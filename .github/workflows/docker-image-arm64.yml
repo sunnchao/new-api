@@ -55,7 +55,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata (labels)
@@ -64,7 +64,7 @@ jobs:
         with:
           images: |
             ${{ secrets.DOCKERHUB_USERNAME }}/new-api
-            ghcr.io/${{ env.GHCR_REPOSITORY }}
+            ghcr.io/${{ github.repository_owner }}/new-api
 
       - name: Build & push single-arch (to both registries)
         uses: docker/build-push-action@v6
@@ -75,8 +75,8 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/new-api:${{ env.TAG }}-${{ matrix.arch }}
             ${{ secrets.DOCKERHUB_USERNAME }}/new-api:latest-${{ matrix.arch }}
-            ghcr.io/${{ env.GHCR_REPOSITORY }}:${{ env.TAG }}-${{ matrix.arch }}
-            ghcr.io/${{ env.GHCR_REPOSITORY }}:latest-${{ matrix.arch }}
+            ghcr.io/${{ github.repository_owner }}:${{ env.TAG }}-${{ matrix.arch }}
+            ghcr.io/${{ github.repository_owner }}:latest-${{ matrix.arch }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -116,23 +116,23 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/new-api:latest-arm64
 
       # ---- GHCR ----
-#      - name: Log in to GHCR
-#        uses: docker/login-action@v3
-#        with:
-#          registry: ghcr.io
-#          username: ${{ github.actor }}
-#          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-#      - name: Create & push manifest (GHCR - version)
-#        run: |
-#          docker buildx imagetools create \
-#            -t ghcr.io/${GHCR_REPOSITORY}:${TAG} \
-#            ghcr.io/${GHCR_REPOSITORY}:${TAG}-amd64 \
-#            ghcr.io/${GHCR_REPOSITORY}:${TAG}-arm64
-#
-#      - name: Create & push manifest (GHCR - latest)
-#        run: |
-#          docker buildx imagetools create \
-#            -t ghcr.io/${GHCR_REPOSITORY}:latest \
-#            ghcr.io/${GHCR_REPOSITORY}:latest-amd64 \
-#            ghcr.io/${GHCR_REPOSITORY}:latest-arm64
+      - name: Create & push manifest (GHCR - version)
+        run: |
+          docker buildx imagetools create \
+            -t ghcr.io/${github.repository_owner}:${TAG} \
+            ghcr.io/${github.repository_owner}:${TAG}-amd64 \
+            ghcr.io/${github.repository_owner}:${TAG}-arm64
+
+      - name: Create & push manifest (GHCR - latest)
+        run: |
+          docker buildx imagetools create \
+            -t ghcr.io/${github.repository_owner}:latest \
+            ghcr.io/${github.repository_owner}:latest-amd64 \
+            ghcr.io/${github.repository_owner}:latest-arm64
