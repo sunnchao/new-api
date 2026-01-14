@@ -172,10 +172,11 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	}()
 
 	retryParam := &service.RetryParam{
-		Ctx:        c,
-		TokenGroup: relayInfo.TokenGroup,
-		ModelName:  relayInfo.OriginModelName,
-		Retry:      common.GetPointer(0),
+		Ctx:              c,
+		TokenGroup:       relayInfo.TokenGroup,
+		ModelName:        relayInfo.OriginModelName,
+		Retry:            common.GetPointer(0),
+		TokenBackupGroup: common.GetContextKeyString(c, constant.ContextKeyBackupTokenGroup),
 	}
 
 	for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
@@ -283,6 +284,10 @@ func getChannel(c *gin.Context, info *relaycommon.RelayInfo, retryParam *service
 		}, nil
 	}
 	channel, selectGroup, err := service.CacheGetRandomSatisfiedChannel(retryParam)
+
+	if info.UsingGroup != selectGroup {
+		info.UsingGroup = selectGroup
+	}
 
 	info.PriceData.GroupRatioInfo = helper.HandleGroupRatio(c, info)
 
@@ -463,10 +468,11 @@ func RelayTask(c *gin.Context) {
 		retryTimes = 0
 	}
 	retryParam := &service.RetryParam{
-		Ctx:        c,
-		TokenGroup: relayInfo.TokenGroup,
-		ModelName:  relayInfo.OriginModelName,
-		Retry:      common.GetPointer(0),
+		Ctx:              c,
+		TokenGroup:       relayInfo.TokenGroup,
+		ModelName:        relayInfo.OriginModelName,
+		Retry:            common.GetPointer(0),
+		TokenBackupGroup: common.GetContextKeyString(c, constant.ContextKeyBackupTokenGroup),
 	}
 	for ; shouldRetryTaskRelay(c, channelId, taskErr, retryTimes) && retryParam.GetRetry() < retryTimes; retryParam.IncreaseRetry() {
 		channel, newAPIError := getChannel(c, relayInfo, retryParam)

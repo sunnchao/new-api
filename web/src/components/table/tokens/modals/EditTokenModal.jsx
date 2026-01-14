@@ -40,7 +40,7 @@ import {
   Avatar,
   Form,
   Col,
-  Row,
+  Row, Divider,
 } from '@douyinfe/semi-ui';
 import {
   IconCreditCard,
@@ -75,6 +75,7 @@ const EditTokenModal = (props) => {
     group: '',
     cross_group_retry: false,
     tokenCount: 1,
+    backup_group: []
   });
 
   const handleCancel = () => {
@@ -162,6 +163,11 @@ const EditTokenModal = (props) => {
       } else {
         data.model_limits = [];
       }
+      if (data.backup_group !== '') {
+        data.backup_group = data.backup_group.split(',');
+      } else {
+        data.backup_group = [];
+      }
       if (formApiRef.current) {
         formApiRef.current.setValues({ ...getInitValues(), ...data });
       }
@@ -221,6 +227,9 @@ const EditTokenModal = (props) => {
       }
       localInputs.model_limits = localInputs.model_limits.join(',');
       localInputs.model_limits_enabled = localInputs.model_limits.length > 0;
+      if (localInputs.backup_group) {
+        localInputs.backup_group = localInputs.backup_group?.join(',');
+      }
       let res = await API.put(`/api/token/`, {
         ...localInputs,
         id: parseInt(props.editingToken.id),
@@ -258,6 +267,9 @@ const EditTokenModal = (props) => {
         }
         localInputs.model_limits = localInputs.model_limits.join(',');
         localInputs.model_limits_enabled = localInputs.model_limits.length > 0;
+        if (localInputs.backup_group) {
+          localInputs.backup_group = localInputs.backup_group?.join(',');
+        }
         let res = await API.post(`/api/token/`, localInputs);
         const { success, message } = res.data;
         if (success) {
@@ -359,17 +371,29 @@ const EditTokenModal = (props) => {
                     />
                   </Col>
                   <Col span={24}>
-                    {groups.length > 0 ? (
+                    {groups.length > 0 ? [
                       <Form.Select
-                        field='group'
-                        label={t('令牌分组')}
-                        placeholder={t('令牌分组，默认为用户的分组')}
-                        optionList={groups}
-                        renderOptionItem={renderGroupOption}
-                        showClear
-                        style={{ width: '100%' }}
-                      />
-                    ) : (
+                          field='group'
+                          label={t('令牌分组')}
+                          placeholder={t('令牌分组，默认为用户的分组')}
+                          optionList={groups}
+                          renderOptionItem={renderGroupOption}
+                          showClear
+                          style={{ width: '100%' }}
+                      />,
+                      (
+                          values.group === "auto" ? <></> : <Form.Select
+                              field='backup_group'
+                              label={t('备用分组')}
+                              placeholder={t('令牌备用分组，默认为用户的分组')}
+                              optionList={groups.filter(g => g.value !== values.group && g.value !== 'auto')}
+                              renderOptionItem={renderGroupOption}
+                              showClear
+                              style={{ width: '100%' }}
+                              multiple
+                          />
+                      )
+                    ] : (
                       <Form.Select
                         placeholder={t('管理员未设置用户可选分组')}
                         disabled
@@ -469,6 +493,8 @@ const EditTokenModal = (props) => {
                 </Row>
               </Card>
 
+              <Row className={"mt-4"}/>
+
               {/* 额度设置 */}
               <Card className='!rounded-2xl shadow-sm border-0'>
                 <div className='flex items-center mb-2'>
@@ -518,6 +544,8 @@ const EditTokenModal = (props) => {
                   </Col>
                 </Row>
               </Card>
+
+              <Row className={"mt-4"}/>
 
               {/* 访问限制 */}
               <Card className='!rounded-2xl shadow-sm border-0'>

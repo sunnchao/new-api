@@ -104,7 +104,7 @@ const renderGroupColumn = (text, record, t) => {
       </Tooltip>
     );
   }
-  return renderGroup(text);
+  return renderGroup(text, record.backup_group);
 };
 
 // Render token key column with show/hide and copy functionality

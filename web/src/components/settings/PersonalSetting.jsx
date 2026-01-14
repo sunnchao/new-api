@@ -86,7 +86,7 @@ const PersonalSetting = () => {
     gotifyToken: '',
     gotifyPriority: 5,
     acceptUnsetModelRatioModel: false,
-    recordIpLog: false,
+    recordIpLog: true,
   });
 
   useEffect(() => {

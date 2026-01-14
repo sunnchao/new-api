@@ -286,6 +286,7 @@ func UpdateToken(c *gin.Context) {
 		cleanToken.AllowIps = token.AllowIps
 		cleanToken.Group = token.Group
 		cleanToken.CrossGroupRetry = token.CrossGroupRetry
+		cleanToken.BackupGroup = token.BackupGroup
 	}
 	err = cleanToken.Update()
 	if err != nil {

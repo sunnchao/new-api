@@ -60,6 +60,7 @@ function TokensPage() {
   const [selectedModel, setSelectedModel] = useState('');
   const [fluentNoticeOpen, setFluentNoticeOpen] = useState(false);
   const [prefillKey, setPrefillKey] = useState('');
+  const [groups, setGroups] = useState([]);
 
   // Keep latest data for handlers inside notifications
   useEffect(() => {
@@ -111,12 +112,36 @@ function TokensPage() {
     }
   };
 
+  const loadGroups = async () => {
+    let res = await API.get(`/api/user/self/groups`);
+    const { success, message, data } = res.data;
+    if (success) {
+      let localGroupOptions = Object.entries(data).map(([group, info]) => ({
+        label: info.desc,
+        value: group,
+        ratio: info.ratio,
+      }));
+      if (statusState?.status?.default_use_auto_group) {
+        if (localGroupOptions.some((group) => group.value === 'auto')) {
+          localGroupOptions.sort((a, b) => (a.value === 'auto' ? -1 : 1));
+        }
+      }
+      setGroups(localGroupOptions);
+      // if (statusState?.status?.default_use_auto_group && formApiRef.current) {
+      //   formApiRef.current.setValue('group', 'auto');
+      // }
+    } else {
+      showError(t(message));
+    }
+  };
+
   function openFluentNotification(key) {
     const { t } = latestRef.current;
     const SUPPRESS_KEY = 'fluent_notify_suppressed';
     if (modelOptions.length === 0) {
       // fire-and-forget; a later effect will refresh the notice content
-      loadModels();
+      loadModels().finally(() => {});
+      loadGroups().finally(() => {});
     }
     if (!key && localStorage.getItem(SUPPRESS_KEY) === '1') return;
     const container = document.getElementById('fluent-new-api-container');

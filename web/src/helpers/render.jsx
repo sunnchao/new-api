@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 
 import i18next from 'i18next';
 import { Modal, Tag, Typography, Avatar } from '@douyinfe/semi-ui';
+import { IconArrowRight } from '@douyinfe/semi-icons';
 import { copy, showSuccess } from './utils';
 import { MOBILE_BREAKPOINT } from '../hooks/common/useIsMobile';
 import { visit } from 'unist-util-visit';
@@ -645,15 +646,16 @@ export function renderText(text, limit) {
 /**
  * Render group tags based on the input group string
  * @param {string} group - The input group string
+ * @param {string} backup_group - The input backup_group string
  * @returns {JSX.Element} - The rendered group tags
  */
-export function renderGroup(group) {
+export function renderGroup(group, backup_group = "") {
   if (group === '') {
-    return (
+    return [
       <Tag key='default' color='white' shape='circle'>
         {i18next.t('用户分组')}
       </Tag>
-    );
+    ];
   }
 
   const tagColors = {
@@ -664,29 +666,38 @@ export function renderGroup(group) {
   };
 
   const groups = group.split(',').sort();
+  const backupGroups = backup_group.split(',').sort();
+  if (backupGroups.length) {
+    backupGroups.filter(_ => !!_).forEach((group) => {
+      groups.push(group);
+    })
+  }
 
   return (
     <span key={group}>
-      {groups.map((group) => (
-        <Tag
-          color={tagColors[group] || stringToColor(group)}
-          key={group}
-          shape='circle'
-          onClick={async (event) => {
-            event.stopPropagation();
-            if (await copy(group)) {
-              showSuccess(i18next.t('已复制：') + group);
-            } else {
-              Modal.error({
-                title: i18next.t('无法复制到剪贴板，请手动复制'),
-                content: group,
-              });
-            }
-          }}
+      {groups.map((group, groupIndex) => [
+        groupIndex > 0 && (
+            <IconArrowRight size={'small'} className={'ml-1 mr-1'} />
+        ),
+          <Tag
+            color={tagColors[group] || stringToColor(group)}
+            key={group}
+            shape='circle'
+            onClick={async (event) => {
+              event.stopPropagation();
+              if (await copy(group)) {
+                showSuccess(i18next.t('已复制：') + group);
+              } else {
+                Modal.error({
+                  title: i18next.t('无法复制到剪贴板，请手动复制'),
+                  content: group,
+                });
+              }
+            }}
         >
           {group}
         </Tag>
-      ))}
+      ])}
     </span>
   );
 }

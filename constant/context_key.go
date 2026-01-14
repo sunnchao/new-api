@@ -15,10 +15,12 @@ const (
 	ContextKeyTokenKey               ContextKey = "token_key"
 	ContextKeyTokenId                ContextKey = "token_id"
 	ContextKeyTokenGroup             ContextKey = "token_group"
+	ContextKeyBackupTokenGroup       ContextKey = "token_backup_group"
 	ContextKeyTokenSpecificChannelId ContextKey = "specific_channel_id"
 	ContextKeyTokenModelLimitEnabled ContextKey = "token_model_limit_enabled"
 	ContextKeyTokenModelLimit        ContextKey = "token_model_limit"
 	ContextKeyTokenCrossGroupRetry   ContextKey = "token_cross_group_retry"
+	ContextKeyTokenBackupGroupRetry  ContextKey = "token_backup_group_retry"
 
 	/* channel related keys */
 	ContextKeyChannelId                ContextKey = "channel_id"
@@ -41,6 +43,10 @@ const (
 	ContextKeyAutoGroup           ContextKey = "auto_group"
 	ContextKeyAutoGroupIndex      ContextKey = "auto_group_index"
 	ContextKeyAutoGroupRetryIndex ContextKey = "auto_group_retry_index"
+
+	ContextKeyBackupAutoGroup           ContextKey = "backup_auto_group"
+	ContextKeyBackupAutoGroupIndex      ContextKey = "backup_auto_group_index"
+	ContextKeyBackupAutoGroupRetryIndex ContextKey = "backup_auto_group_retry_index"
 
 	/* user related keys */
 	ContextKeyUserId      ContextKey = "id"

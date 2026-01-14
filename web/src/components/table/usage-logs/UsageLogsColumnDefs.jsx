@@ -470,17 +470,17 @@ export const getLogsColumns = ({
       ),
       dataIndex: 'ip',
       render: (text, record, index) => {
-        return (record.type === 2 || record.type === 5) && text ? (
-          <Tooltip content={text}>
+        return (record.type === 2 || record.type === 5) && (isAdminUser ? record.request_ip : text) ? (
+          <Tooltip content={(isAdminUser ? record.request_ip : text)}>
             <span>
               <Tag
                 color='orange'
                 shape='circle'
                 onClick={(event) => {
-                  copyText(event, text);
+                  copyText(event, (isAdminUser ? record.request_ip : text));
                 }}
               >
-                {text}
+                {(isAdminUser ? record.request_ip : text)}
               </Tag>
             </span>
           </Tooltip>

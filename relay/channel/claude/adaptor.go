@@ -76,13 +76,69 @@ func CommonClaudeHeadersOperation(c *gin.Context, req *http.Header, info *relayc
 
 func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *relaycommon.RelayInfo) error {
 	channel.SetupApiRequestHeader(info, c, req)
-	req.Set("x-api-key", info.ApiKey)
+	// req.Set("x-api-key", info.ApiKey)
 	anthropicVersion := c.Request.Header.Get("anthropic-version")
 	if anthropicVersion == "" {
 		anthropicVersion = "2023-06-01"
 	}
 	req.Set("anthropic-version", anthropicVersion)
 	CommonClaudeHeadersOperation(c, req, info)
+	if info.ChannelSetting.PassThroughHeaderEnabled {
+		return a.SetupRequestHeaderWithPassThroughHeader(c, req, info)
+	} else {
+		req.Set("x-api-key", info.ApiKey)
+	}
+	return nil
+}
+
+// 开启透传请求头
+func (a *Adaptor) SetupRequestHeaderWithPassThroughHeader(c *gin.Context, req *http.Header, info *relaycommon.RelayInfo) error {
+	hasAuthorization := false
+	hasXApiKey := false
+
+	skipHeaders := map[string]struct{}{
+		"accept-encoding":          {},
+		"content-length":           {},
+		"transfer-encoding":        {},
+		"connection":               {},
+		"proxy-connection":         {},
+		"keep-alive":               {},
+		"host":                     {},
+		"x-forwarded-for":          {},
+		"x-real-ip":                {},
+		"x-client-ip":              {},
+		"cf-connecting-ip":         {},
+		"true-client-ip":           {},
+		"x-forwarded":              {},
+		"forwarded":                {},
+		"x-cluster-client-ip":      {},
+		"fastly-client-ip":         {},
+		"x-original-forwarded-for": {},
+	}
+	// 复制原始请求的所有header头
+	for key, values := range c.Request.Header {
+		lowerKey := strings.ToLower(key)
+		if _, skip := skipHeaders[lowerKey]; skip {
+			continue
+		}
+
+		req.Add(lowerKey, values[0])
+
+		// 检查是否包含Authorization头
+		if lowerKey == "authorization" {
+			hasAuthorization = true
+		}
+		if lowerKey == "x-api-key" {
+			hasXApiKey = true
+		}
+	}
+	if hasAuthorization {
+		req.Set("authorization", "Bearer "+info.ApiKey)
+	} else if hasXApiKey {
+		req.Set("x-api-key", info.ApiKey)
+	} else {
+		req.Set("x-api-key", info.ApiKey)
+	}
 	return nil
 }
 

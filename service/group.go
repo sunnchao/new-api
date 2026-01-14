@@ -63,3 +63,21 @@ func GetUserGroupRatio(userGroup, group string) float64 {
 	}
 	return ratio_setting.GetGroupRatio(group)
 }
+
+// GetTokenBackupGroup 根据令牌获取备用分组设置
+func GetTokenBackupGroup(backupGroupStr string, userGroup string) []string {
+	if backupGroupStr == "" {
+		return nil
+	}
+	groups := GetUserUsableGroups(userGroup)
+	autoGroups := make([]string, 0)
+	backupGroups := strings.Split(backupGroupStr, ",")
+
+	for _, group := range backupGroups {
+		group = strings.TrimSpace(group)
+		if _, ok := groups[group]; ok {
+			autoGroups = append(autoGroups, group)
+		}
+	}
+	return autoGroups
+}

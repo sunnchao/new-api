@@ -12,11 +12,12 @@ import (
 )
 
 type RetryParam struct {
-	Ctx          *gin.Context
-	TokenGroup   string
-	ModelName    string
-	Retry        *int
-	resetNextTry bool
+	Ctx              *gin.Context
+	TokenGroup       string
+	TokenBackupGroup string
+	ModelName        string
+	Retry            *int
+	resetNextTry     bool
 }
 
 func (p *RetryParam) GetRetry() int {
@@ -149,6 +150,68 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 				// Stay in current group, save current state
 				// 保持在当前分组，保存当前状态
 				common.SetContextKey(param.Ctx, constant.ContextKeyAutoGroupIndex, i)
+			}
+			break
+		}
+	} else if param.TokenBackupGroup != "" {
+		autoGroups := GetTokenBackupGroup(param.TokenBackupGroup, userGroup)
+		// startGroupIndex: the group index to start searching from
+		// startGroupIndex: 开始搜索的分组索引
+		startGroupIndex := 0
+		//backupGroupRetry := common.GetContextKeyBool(param.Ctx, constant.ContextKeyTokenBackupGroupRetry)
+
+		if lastGroupIndex, exists := common.GetContextKey(param.Ctx, constant.ContextKeyBackupAutoGroupIndex); exists {
+			if idx, ok := lastGroupIndex.(int); ok {
+				startGroupIndex = idx
+			}
+		}
+
+		for i := startGroupIndex; i < len(autoGroups); i++ {
+			autoGroup := autoGroups[i]
+			// Calculate priorityRetry for current group
+			// 计算当前分组的 priorityRetry
+			priorityRetry := param.GetRetry()
+			// If moved to a new group, reset priorityRetry and update startRetryIndex
+			// 如果切换到新分组，重置 priorityRetry 并更新 startRetryIndex
+			if i > startGroupIndex {
+				priorityRetry = 0
+			}
+			logger.LogDebug(param.Ctx, "Backup selecting group: %s, priorityRetry: %d", autoGroup, priorityRetry)
+
+			channel, _ = model.GetRandomSatisfiedChannel(autoGroup, param.ModelName, priorityRetry)
+			if channel == nil {
+				// Current group has no available channel for this model, try next group
+				// 当前分组没有该模型的可用渠道，尝试下一个分组
+				logger.LogDebug(param.Ctx, "No available channel in group %s for model %s at priorityRetry %d, trying next group", autoGroup, param.ModelName, priorityRetry)
+				// 重置状态以尝试下一个分组
+				common.SetContextKey(param.Ctx, constant.ContextKeyBackupAutoGroupIndex, i+1)
+				common.SetContextKey(param.Ctx, constant.ContextKeyBackupAutoGroupRetryIndex, 0)
+				// Reset retry counter so outer loop can continue for next group
+				// 重置重试计数器，以便外层循环可以为下一个分组继续
+				param.SetRetry(0)
+				continue
+			}
+			common.SetContextKey(param.Ctx, constant.ContextKeyBackupAutoGroup, autoGroup)
+			selectGroup = autoGroup
+			logger.LogDebug(param.Ctx, "Backup selected group: %s", autoGroup)
+
+			// Prepare state for next retry
+			// 为下一次重试准备状态
+			if priorityRetry >= common.RetryTimes {
+				// Current group has exhausted all retries, prepare to switch to next group
+				// This request still uses current group, but next retry will use next group
+				// 当前分组已用完所有重试次数，准备切换到下一个分组
+				// 本次请求仍使用当前分组，但下次重试将使用下一个分组
+				logger.LogDebug(param.Ctx, "Current group %s retries exhausted (priorityRetry=%d >= RetryTimes=%d), preparing switch to next group for next retry", autoGroup, priorityRetry, common.RetryTimes)
+				common.SetContextKey(param.Ctx, constant.ContextKeyBackupAutoGroupIndex, i+1)
+				// Reset retry counter so outer loop can continue for next group
+				// 重置重试计数器，以便外层循环可以为下一个分组继续
+				param.SetRetry(0)
+				param.ResetRetryNextTry()
+			} else {
+				// Stay in current group, save current state
+				// 保持在当前分组，保存当前状态
+				common.SetContextKey(param.Ctx, constant.ContextKeyBackupAutoGroupIndex, i)
 			}
 			break
 		}

@@ -30,6 +30,12 @@ func HandleGroupRatio(ctx *gin.Context, relayInfo *relaycommon.RelayInfo) types.
 		relayInfo.UsingGroup = autoGroup.(string)
 	}
 
+	backupGroup, exists := ctx.Get("backup_auto_group")
+	if exists {
+		logger.LogDebug(ctx, fmt.Sprintf("final group: %s", backupGroup))
+		relayInfo.UsingGroup = backupGroup.(string)
+	}
+
 	// check user group special ratio
 	userGroupRatio, ok := ratio_setting.GetGroupGroupRatio(relayInfo.UserGroup, relayInfo.UsingGroup)
 	if ok {

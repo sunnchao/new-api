@@ -158,6 +158,14 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (taskErr *dto.
 		}
 	}
 
+	// 处理 备用 分组：从 context 获取实际选中的分组
+	// 当使用 备用 分组时，Distribute 中间件会将实际选中的分组存储在 ContextKeyBackupAutoGroup 中
+	if backupGroup, exists := common.GetContextKey(c, constant.ContextKeyBackupAutoGroup); exists {
+		if groupStr, ok := backupGroup.(string); ok && groupStr != "" {
+			info.UsingGroup = groupStr
+		}
+	}
+
 	// 预扣
 	groupRatio := ratio_setting.GetGroupRatio(info.UsingGroup)
 	var ratio float64

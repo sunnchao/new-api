@@ -114,6 +114,12 @@ func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usag
 		log.Printf("final group ratio: %f", groupRatio)
 		relayInfo.UsingGroup = autoGroup.(string)
 	}
+	backupGroup, exists := common.GetContextKey(ctx, constant.ContextKeyBackupAutoGroup)
+	if exists {
+		groupRatio = ratio_setting.GetGroupRatio(backupGroup.(string))
+		log.Printf("final group ratio: %f", groupRatio)
+		relayInfo.UsingGroup = backupGroup.(string)
+	}
 
 	actualGroupRatio := groupRatio
 	userGroupRatio, ok := ratio_setting.GetGroupGroupRatio(relayInfo.UserGroup, relayInfo.UsingGroup)

@@ -36,29 +36,36 @@ type Log struct {
 	TokenId          int    `json:"token_id" gorm:"default:0;index"`
 	Group            string `json:"group" gorm:"index"`
 	Ip               string `json:"ip" gorm:"index;default:''"`
+	RequestIp        string `json:"request_ip,omitempty" gorm:"index;default:''"`
+	RequestId        string `json:"request_id" gorm:"index;default:''"`
 	Other            string `json:"other"`
 }
 
 // don't use iota, avoid change log type value
 const (
-	LogTypeUnknown = 0
-	LogTypeTopup   = 1
-	LogTypeConsume = 2
-	LogTypeManage  = 3
-	LogTypeSystem  = 4
-	LogTypeError   = 5
-	LogTypeRefund  = 6
+	LogTypeUnknown = iota
+	LogTypeTopup
+	LogTypeConsume
+	LogTypeManage
+	LogTypeSystem
+	LogTypeCheckin
+	LogTypeError
+	LogTypeRefund
+	LogTypeArchive
 )
 
 func formatUserLogs(logs []*Log) {
 	for i := range logs {
 		logs[i].ChannelName = ""
+		logs[i].RequestIp = ""
+		logs[i].RequestId = ""
 		var otherMap map[string]interface{}
 		otherMap, _ = common.StrToMap(logs[i].Other)
 		if otherMap != nil {
 			// delete admin
 			delete(otherMap, "admin_info")
 		}
+
 		logs[i].Other = common.MapToJsonStr(otherMap)
 		logs[i].Id = logs[i].Id % 1024
 	}
@@ -130,6 +137,12 @@ func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string,
 			}
 			return ""
 		}(),
+		RequestIp: func() string {
+			return c.ClientIP()
+		}(),
+		RequestId: func() string {
+			return ""
+		}(),
 		Other: otherStr,
 	}
 	err := LOG_DB.Create(log).Error
@@ -187,6 +200,12 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 			if needRecordIp {
 				return c.ClientIP()
 			}
+			return ""
+		}(),
+		RequestIp: func() string {
+			return c.ClientIP()
+		}(),
+		RequestId: func() string {
 			return ""
 		}(),
 		Other: otherStr,
