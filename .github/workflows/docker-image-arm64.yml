@@ -74,9 +74,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/new-api:${{ env.TAG }}-${{ matrix.arch }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/new-api:latest-${{ matrix.arch }}
             ghcr.io/${{ github.repository_owner }}/new-api:${{ env.TAG }}-${{ matrix.arch }}
-            ghcr.io/${{ github.repository_owner }}/new-api:latest-${{ matrix.arch }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -112,8 +110,8 @@ jobs:
         run: |
           docker buildx imagetools create \
             -t ${{ secrets.DOCKERHUB_USERNAME }}/new-api:latest \
-            ${{ secrets.DOCKERHUB_USERNAME }}/new-api:latest-amd64 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/new-api:latest-arm64
+            ${{ secrets.DOCKERHUB_USERNAME }}/new-api:${TAG}-amd64 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/new-api:${TAG}-arm64
 
       # ---- GHCR ----
       - name: Log in to GHCR
@@ -134,5 +132,5 @@ jobs:
         run: |
           docker buildx imagetools create \
             -t ghcr.io/${github.repository_owner}/new-api:latest \
-            ghcr.io/${github.repository_owner}/new-api:latest-amd64 \
-            ghcr.io/${github.repository_owner}/new-api:latest-arm64
+            ghcr.io/${github.repository_owner}/new-api:${TAG}-amd64 \
+            ghcr.io/${github.repository_owner}/new-api:${TAG}-arm64
