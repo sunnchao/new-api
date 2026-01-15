@@ -50,6 +50,8 @@ const AdminPackages = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [grantModalOpen, setGrantModalOpen] = useState(false);
+  const [planModalOpen, setPlanModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
   const [granting, setGranting] = useState(false);
   const [error, setError] = useState('');
 
@@ -228,6 +230,68 @@ const AdminPackages = () => {
     window.location.href = '/console/setting';
   };
 
+  const openPlanModal = (plan = null) => {
+    setEditingPlan(plan);
+    setPlanModalOpen(true);
+  };
+
+  const handleSavePlan = async (values) => {
+    try {
+      const res = editingPlan
+        ? await API.put(`/api/packages-admin/plans/${editingPlan.id}`, values)
+        : await API.post('/api/packages-admin/plans', values);
+
+      if (res?.data?.success) {
+        Modal.success({
+          title: editingPlan ? t('packages.admin.plans.updateSuccess') : t('packages.admin.plans.createSuccess'),
+          content: res.data.message,
+        });
+        setPlanModalOpen(false);
+        setEditingPlan(null);
+        await loadPlans();
+      } else {
+        Modal.error({
+          title: editingPlan ? t('packages.admin.plans.updateFailed') : t('packages.admin.plans.createFailed'),
+          content: res?.data?.message,
+        });
+      }
+    } catch (err) {
+      Modal.error({
+        title: t('packages.admin.plans.saveFailed'),
+        content: err.message,
+      });
+    }
+  };
+
+  const handleDeletePlan = async (plan) => {
+    Modal.confirm({
+      title: t('packages.admin.plans.deleteConfirm'),
+      content: t('packages.admin.plans.deleteConfirmContent'),
+      onOk: async () => {
+        try {
+          const res = await API.delete(`/api/packages-admin/plans/${plan.id}`);
+          if (res?.data?.success) {
+            Modal.success({
+              title: t('packages.admin.plans.deleteSuccess'),
+              content: res.data.message,
+            });
+            await loadPlans();
+          } else {
+            Modal.error({
+              title: t('packages.admin.plans.deleteFailed'),
+              content: res?.data?.message,
+            });
+          }
+        } catch (err) {
+          Modal.error({
+            title: t('packages.admin.plans.deleteFailed'),
+            content: err.message,
+          });
+        }
+      },
+    });
+  };
+
   useEffect(() => {
     if (activeTab === 'subscriptions') {
       loadSubscriptions();
@@ -331,6 +395,19 @@ const AdminPackages = () => {
       title: t('packages.admin.plans.service'),
       dataIndex: 'service_type',
     },
+    {
+      title: t('packages.admin.plans.actions'),
+      render: (_, record) => (
+        <Space>
+          <Button size='small' onClick={() => openPlanModal(record)}>
+            {t('packages.admin.plans.edit')}
+          </Button>
+          <Button size='small' type='danger' onClick={() => handleDeletePlan(record)}>
+            {t('packages.admin.plans.delete')}
+          </Button>
+        </Space>
+      ),
+    },
   ];
 
   return (
@@ -387,13 +464,13 @@ const AdminPackages = () => {
         {activeTab === 'plans' && (
           <Card
             title={t('packages.admin.plans.title')}
-            extra={
+            headerExtraContent={
               <Space>
                 <Button onClick={loadPlans} loading={loading}>
                   {t('packages.action.refresh')}
                 </Button>
-                <Button theme='solid' onClick={handlePlanManagement}>
-                  {t('packages.admin.plans.manage')}
+                <Button theme='solid' onClick={() => openPlanModal()}>
+                  {t('packages.admin.plans.create')}
                 </Button>
               </Space>
             }
@@ -477,6 +554,102 @@ const AdminPackages = () => {
               />
             </div>
           </Space>
+        </Modal>
+
+        <Modal
+          title={editingPlan ? t('packages.admin.plans.editTitle') : t('packages.admin.plans.createTitle')}
+          visible={planModalOpen}
+          onCancel={() => {
+            setPlanModalOpen(false);
+            setEditingPlan(null);
+          }}
+          footer={null}
+          width={800}
+        >
+          <Form
+            initValues={editingPlan || {
+              currency: 'CNY',
+              duration_unit: 'month',
+              is_active: true,
+              show_in_portal: true,
+            }}
+            onSubmit={handleSavePlan}
+            labelPosition='left'
+            labelWidth={150}
+          >
+            <Form.Input
+              field='name'
+              label={t('packages.admin.plans.name')}
+              rules={[{ required: true, message: t('packages.admin.plans.nameRequired') }]}
+            />
+            <Form.Input
+              field='type'
+              label={t('packages.admin.plans.type')}
+              rules={[{ required: true, message: t('packages.admin.plans.typeRequired') }]}
+              disabled={!!editingPlan}
+            />
+            <Form.TextArea
+              field='description'
+              label={t('packages.admin.plans.description')}
+              rows={3}
+            />
+            <Form.InputNumber
+              field='price'
+              label={t('packages.admin.plans.price')}
+              rules={[{ required: true, message: t('packages.admin.plans.priceRequired') }]}
+              min={0}
+              step={0.01}
+            />
+            <Form.Select
+              field='currency'
+              label={t('packages.admin.plans.currency')}
+              optionList={[
+                { label: 'CNY', value: 'CNY' },
+                { label: 'USD', value: 'USD' },
+              ]}
+            />
+            <Form.InputNumber
+              field='total_quota'
+              label={t('packages.admin.plans.quota')}
+              rules={[{ required: true, message: t('packages.admin.plans.quotaRequired') }]}
+              min={0}
+            />
+            <Form.InputNumber
+              field='duration_value'
+              label={t('packages.admin.plans.durationValue')}
+              min={0}
+            />
+            <Form.Select
+              field='duration_unit'
+              label={t('packages.admin.plans.durationUnit')}
+              optionList={[
+                { label: t('packages.admin.plans.day'), value: 'day' },
+                { label: t('packages.admin.plans.month'), value: 'month' },
+                { label: t('packages.admin.plans.year'), value: 'year' },
+              ]}
+            />
+            <Form.Input
+              field='service_type'
+              label={t('packages.admin.plans.service')}
+              rules={[{ required: true, message: t('packages.admin.plans.serviceRequired') }]}
+            />
+            <Form.Switch
+              field='is_active'
+              label={t('packages.admin.plans.isActive')}
+            />
+            <Form.Switch
+              field='show_in_portal'
+              label={t('packages.admin.plans.showInPortal')}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+              <Button onClick={() => setPlanModalOpen(false)}>
+                {t('packages.admin.plans.cancel')}
+              </Button>
+              <Button theme='solid' htmlType='submit'>
+                {t('packages.admin.plans.save')}
+              </Button>
+            </div>
+          </Form>
         </Modal>
       </div>
     </div>

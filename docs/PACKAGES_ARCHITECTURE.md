@@ -10,7 +10,7 @@
 │  ┌──────────────────────┐      ┌──────────────────────┐        │
 │  │  用户套餐管理页面      │      │  管理员套餐管理页面    │        │
 │  │  /console/           │      │  /console/           │        │
-│  │  subscriptions       │      │  admin-packages      │        │
+│  │  subscriptions       │      │  packages      │        │
 │  └──────────────────────┘      └──────────────────────┘        │
 │           │                              │                       │
 │           │                              │                       │
@@ -141,7 +141,7 @@
 │ 管理员   │
 └────┬────┘
      │
-     │ 1. 访问 /console/admin-packages
+     │ 1. 访问 /console/packages
      ▼
 ┌─────────────────────┐
 │  AdminPackages      │
@@ -232,7 +232,7 @@
 │                                                               │
 │  管理员套餐页面                                                │
 │  ┌─────────────────────────────────────────────┐            │
-│  │  Route: /console/admin-packages             │            │
+│  │  Route: /console/packages             │            │
 │  │  Component: <AdminRoute>                    │            │
 │  │  Required: 管理员权限                        │            │
 │  └─────────────────────────────────────────────┘            │

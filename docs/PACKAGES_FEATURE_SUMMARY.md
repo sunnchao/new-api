@@ -26,7 +26,7 @@
 - `POST /api/user/packages/purchase` - 购买套餐
 - `POST /api/user/packages/cancel` - 取消订阅
 
-### 2. 管理员套餐管理页面 (`/console/admin-packages`)
+### 2. 管理员套餐管理页面 (`/console/packages`)
 
 **功能特性：**
 - ✅ 查看所有用户的订阅列表（分页）
@@ -38,7 +38,7 @@
 
 **页面位置：**
 - 文件：`/web/src/pages/AdminPackages/index.jsx`
-- 路由：`/console/admin-packages`
+- 路由：`/console/packages`
 - 权限：需要管理员权限（AdminRoute）
 
 **API端点：**

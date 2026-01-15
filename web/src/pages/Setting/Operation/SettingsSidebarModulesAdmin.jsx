@@ -243,6 +243,11 @@ export default function SettingsSidebarModulesAdmin(props) {
           title: t('个人设置'),
           description: t('个人信息设置'),
         },
+        {
+          key: 'subscriptions',
+          title: t('订阅管理'),
+          description: t('订阅管理设置'),
+        },
       ],
     },
     {
@@ -263,6 +268,11 @@ export default function SettingsSidebarModulesAdmin(props) {
           key: 'setting',
           title: t('系统设置'),
           description: t('系统参数配置'),
+        },
+        {
+          key: 'packages',
+          title: t('订阅管理'),
+          description: t('订阅管理'),
         },
       ],
     },

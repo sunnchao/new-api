@@ -52,7 +52,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     deployment: true,
     redemption: true,
     user: true,
-    'admin-packages': true,
+    packages: true,
     setting: true,
   },
 };

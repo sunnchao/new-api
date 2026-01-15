@@ -49,7 +49,7 @@ const routerMap = {
   playground: '/console/playground',
   personal: '/console/personal',
   subscriptions: '/console/subscriptions',
-  'admin-packages': '/console/admin-packages',
+  packages: '/console/packages',
 };
 
 const SiderBar = ({ onNavigate = () => {} }) => {
@@ -185,8 +185,8 @@ const SiderBar = ({ onNavigate = () => {} }) => {
       },
       {
         text: t('packages.admin.title'),
-        itemKey: 'admin-packages',
-        to: '/admin-packages',
+        itemKey: 'packages',
+        to: '/packages',
         className: isAdmin() ? '' : 'tableHiddle',
       },
       {

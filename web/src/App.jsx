@@ -268,7 +268,7 @@ function App() {
           }
         />
         <Route
-          path='/console/admin-packages'
+          path='/console/packages'
           element={
             <AdminRoute>
               <Suspense fallback={<Loading></Loading>} key={location.pathname}>
