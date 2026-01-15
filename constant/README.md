@@ -9,7 +9,7 @@
 | `azure.go`           | 定义与 Azure 相关的全局常量，如 `AzureNoRemoveDotTime`（控制删除 `.` 的截止时间）。         |
 | `cache_key.go`       | 缓存键格式字符串及 Token 相关字段常量，统一缓存命名规则。                                    |
 | `channel_setting.go` | Channel 级别的设置键，如 `proxy`、`force_format` 等。                          |
-| `context_key.go`     | 定义 `ContextKey` 类型以及在整个项目中使用的上下文键常量（请求时间、Token/Channel/User 相关信息等）。 |
+| `context_key.go`     | 定义 `ContextKey` 类型以及在整个项目中使用的上下文键常量（请求时间、Token/Channel/User 相关信息等），包含订阅套餐服务类型字段。 |
 | `env.go`             | 环境配置相关的全局变量，在启动阶段根据配置文件或环境变量注入。                                     |
 | `finish_reason.go`   | OpenAI/GPT 请求返回的 `finish_reason` 字符串常量集合。                           |
 | `midjourney.go`      | Midjourney 相关错误码及动作(Action)常量与模型到动作的映射表。                            |

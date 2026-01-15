@@ -21,6 +21,7 @@ const (
 	ContextKeyTokenModelLimit        ContextKey = "token_model_limit"
 	ContextKeyTokenCrossGroupRetry   ContextKey = "token_cross_group_retry"
 	ContextKeyTokenBackupGroupRetry  ContextKey = "token_backup_group_retry"
+	ContextKeyPackageServiceType     ContextKey = "package_service_type"
 
 	/* channel related keys */
 	ContextKeyChannelId                ContextKey = "channel_id"

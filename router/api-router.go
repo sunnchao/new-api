@@ -97,6 +97,15 @@ func SetApiRouter(router *gin.Engine) {
 				// Check-in routes
 				selfRoute.GET("/checkin", controller.GetCheckinStatus)
 				selfRoute.POST("/checkin", middleware.TurnstileCheck(), controller.DoCheckin)
+
+				packagesRoute := selfRoute.Group("/packages")
+				{
+					packagesRoute.GET("/plans", controller.GetPackagesPlans)
+					packagesRoute.GET("/subscriptions", controller.GetPackagesSubscription)
+					packagesRoute.POST("/purchase", controller.PurchasePackagesSubscription)
+					packagesRoute.POST("/cancel", controller.CancelPackagesSubscription)
+					packagesRoute.GET("/usage-stats", controller.GetPackagesUsageStats)
+				}
 			}
 
 			adminRoute := userRoute.Group("/")
@@ -117,6 +126,22 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.GET("/2fa/stats", controller.Admin2FAStats)
 				adminRoute.DELETE("/:id/2fa", controller.AdminDisable2FA)
 			}
+
+			packagesAdminRoute := apiRouter.Group("/packages-admin")
+			packagesAdminRoute.Use(middleware.AdminAuth())
+			{
+				packagesAdminRoute.GET("/subscriptions", controller.GetAllPackagesSubscriptions)
+				packagesAdminRoute.GET("/users/search", controller.AdminSearchUsers)
+				packagesAdminRoute.POST("/grant-subscription", controller.AdminGrantPackagesSubscription)
+				packagesAdminRoute.DELETE("/subscriptions/:id", controller.AdminCancelPackagesSubscription)
+
+				packagesAdminRoute.GET("/plans", controller.GetPackagesPlans)
+				packagesAdminRoute.GET("/plans/:id", controller.GetPackagesPlanById)
+				packagesAdminRoute.POST("/plans", controller.CreatePackagesPlan)
+				packagesAdminRoute.PUT("/plans/:id", controller.UpdatePackagesPlan)
+				packagesAdminRoute.DELETE("/plans/:id", controller.DeletePackagesPlan)
+			}
+
 		}
 		optionRoute := apiRouter.Group("/option")
 		optionRoute.Use(middleware.RootAuth())

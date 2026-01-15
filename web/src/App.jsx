@@ -36,11 +36,13 @@ import Token from './pages/Token';
 import Redemption from './pages/Redemption';
 import TopUp from './pages/TopUp';
 import Log from './pages/Log';
+import Subscriptions from './pages/Subscriptions';
 import Chat from './pages/Chat';
 import Chat2Link from './pages/Chat2Link';
 import Midjourney from './pages/Midjourney';
 import Pricing from './pages/Pricing';
 import Task from './pages/Task';
+import AdminPackages from './pages/AdminPackages';
 import ModelPage from './pages/Model';
 import ModelDeploymentPage from './pages/ModelDeployment';
 import Playground from './pages/Playground';
@@ -253,6 +255,26 @@ function App() {
                 <TopUp />
               </Suspense>
             </PrivateRoute>
+          }
+        />
+        <Route
+          path='/console/subscriptions'
+          element={
+            <PrivateRoute>
+              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+                <Subscriptions />
+              </Suspense>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path='/console/admin-packages'
+          element={
+            <AdminRoute>
+              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+                <AdminPackages />
+              </Suspense>
+            </AdminRoute>
           }
         />
         <Route

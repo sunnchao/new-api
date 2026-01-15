@@ -263,5 +263,7 @@ func InitResources() error {
 	if err != nil {
 		return err
 	}
+
+	model.InitPackagesPlans()
 	return nil
 }

@@ -323,6 +323,16 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 	common.SetContextKey(c, constant.ContextKeyTokenGroup, token.Group)
 	common.SetContextKey(c, constant.ContextKeyTokenCrossGroupRetry, token.CrossGroupRetry)
 	common.SetContextKey(c, constant.ContextKeyBackupTokenGroup, token.BackupGroup)
+	switch {
+	case strings.EqualFold(token.Group, "ClaudeCode"):
+		common.SetContextKey(c, constant.ContextKeyPackageServiceType, "claude_code")
+	case strings.EqualFold(token.Group, "Codex"):
+		common.SetContextKey(c, constant.ContextKeyPackageServiceType, "codex_code")
+	case strings.EqualFold(token.Group, "GeminiCli"):
+		common.SetContextKey(c, constant.ContextKeyPackageServiceType, "gemini_code")
+	default:
+		common.SetContextKey(c, constant.ContextKeyPackageServiceType, "")
+	}
 	if len(parts) > 1 {
 		if model.IsAdmin(token.UserId) {
 			c.Set("specific_channel_id", parts[1])

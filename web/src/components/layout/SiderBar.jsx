@@ -48,6 +48,8 @@ const routerMap = {
   deployment: '/console/deployment',
   playground: '/console/playground',
   personal: '/console/personal',
+  subscriptions: '/console/subscriptions',
+  'admin-packages': '/console/admin-packages',
 };
 
 const SiderBar = ({ onNavigate = () => {} }) => {
@@ -129,6 +131,11 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         to: '/topup',
       },
       {
+        text: t('packages.menu.title'),
+        itemKey: 'subscriptions',
+        to: '/subscriptions',
+      },
+      {
         text: t('个人设置'),
         itemKey: 'personal',
         to: '/personal',
@@ -174,6 +181,12 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         text: t('用户管理'),
         itemKey: 'user',
         to: '/user',
+        className: isAdmin() ? '' : 'tableHiddle',
+      },
+      {
+        text: t('packages.admin.title'),
+        itemKey: 'admin-packages',
+        to: '/admin-packages',
         className: isAdmin() ? '' : 'tableHiddle',
       },
       {
