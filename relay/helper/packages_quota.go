@@ -6,7 +6,7 @@ import (
 )
 
 type SubscriptionUsageDetail struct {
-	SubscriptionId int    `json:"subscription_id"`
+	SubscriptionId string `json:"subscription_id"`
 	PlanType       string `json:"plan_type"`
 	Quota          int    `json:"quota"`
 	EndTime        int64  `json:"end_time"`
@@ -62,7 +62,7 @@ func ApplySubscriptionQuota(relayInfo *relaycommon.RelayInfo, totalQuota int) (*
 		result.SubscriptionQuota += deducted
 		remainingQuota -= deducted
 		result.SubscriptionsUsed = append(result.SubscriptionsUsed, SubscriptionUsageDetail{
-			SubscriptionId: sub.Id,
+			SubscriptionId: sub.HashId,
 			PlanType:       sub.PlanType,
 			Quota:          deducted,
 			EndTime:        sub.EndTime,

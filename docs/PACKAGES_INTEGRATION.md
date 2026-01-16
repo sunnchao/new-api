@@ -113,7 +113,7 @@
 |--------|------|------|
 | id | int | 主键 |
 | user_id | int | 用户ID |
-| subscription_id | int | 订阅ID |
+| subscription_id | string | 订阅ID |
 | request_type | string | 请求类型 |
 | tokens_used | int | 消耗的Token数 |
 | client_info | string | 客户端信息 |

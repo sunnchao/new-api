@@ -104,6 +104,7 @@ func SetApiRouter(router *gin.Engine) {
 					packagesRoute.GET("/subscriptions", controller.GetPackagesSubscription)
 					packagesRoute.POST("/purchase", controller.PurchasePackagesSubscription)
 					packagesRoute.POST("/cancel", controller.CancelPackagesSubscription)
+					packagesRoute.POST("/reset", controller.ResetPackagesSubscription)
 					packagesRoute.GET("/usage-stats", controller.GetPackagesUsageStats)
 				}
 			}
@@ -134,6 +135,7 @@ func SetApiRouter(router *gin.Engine) {
 				packagesAdminRoute.GET("/users/search", controller.AdminSearchUsers)
 				packagesAdminRoute.POST("/grant-subscription", controller.AdminGrantPackagesSubscription)
 				packagesAdminRoute.DELETE("/subscriptions/:id", controller.AdminCancelPackagesSubscription)
+				packagesAdminRoute.PUT("/subscriptions/:id/reset-limit", controller.AdminUpdatePackagesSubscriptionResetLimit)
 
 				packagesAdminRoute.GET("/plans", controller.GetPackagesPlans)
 				packagesAdminRoute.GET("/plans/:id", controller.GetPackagesPlanById)

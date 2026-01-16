@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -15,8 +16,15 @@ import (
 
 // GetPackagesPlans 获取所有套餐
 func GetPackagesPlans(c *gin.Context) {
-	includeHidden := c.DefaultQuery("include_hidden", "false") == "true"
+	includeHiddenStr, hasIncludeHidden := c.GetQuery("include_hidden")
+	includeHidden := includeHiddenStr == "true"
 	role := c.GetInt("role")
+	// 管理端默认返回包含隐藏计划
+	if !hasIncludeHidden && role >= common.RoleAdminUser {
+		if strings.Contains(c.FullPath(), "/packages-admin/") {
+			includeHidden = true
+		}
+	}
 	if includeHidden && role < common.RoleAdminUser {
 		includeHidden = false
 	}
@@ -43,6 +51,7 @@ type GetPackagesSubscriptionResponse struct {
 // GetPackagesSubscription 获取用户订阅状态
 func GetPackagesSubscription(c *gin.Context) {
 	userId := c.GetInt("id")
+	_ = model.CheckExpiredPackagesSubscriptions()
 
 	var subscription model.PackagesSubscription
 	subscriptions, err := model.GetUserActivePackagesSubscriptions(userId, subscription, false)
@@ -61,14 +70,16 @@ func GetPackagesSubscription(c *gin.Context) {
 		planTypes[sub.PlanType] = sub.PlanType
 	}
 	for _, planType := range planTypes {
-		plan, err := model.GetPackagesPlanByType(planType)
+		plan, err := model.GetPackagesPlanByTypeAny(planType)
 		if err != nil {
 			continue
 		}
 		newPlan := &model.PackagesPlan{
-			Description: plan.Description,
-			Type:        plan.Type,
-			HashId:      plan.HashId,
+			Description:    plan.Description,
+			Type:           plan.Type,
+			HashId:         plan.HashId,
+			Name:           plan.Name,
+			DeductionGroup: plan.DeductionGroup,
 		}
 		plans = append(plans, newPlan)
 	}
@@ -94,6 +105,49 @@ func GetPackagesSubscription(c *gin.Context) {
 	})
 }
 
+type ResetPackagesSubscriptionRequest struct {
+	HashId string `json:"hash_id" binding:"required"`
+}
+
+// ResetPackagesSubscription 重置订阅今日额度
+func ResetPackagesSubscription(c *gin.Context) {
+	userId := c.GetInt("id")
+	_ = model.CheckExpiredPackagesSubscriptions()
+
+	var req ResetPackagesSubscriptionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "参数错误: " + err.Error(),
+		})
+		return
+	}
+
+	subscription, err := model.ResetPackagesSubscriptionDailyQuota(userId, req.HashId)
+	if err != nil {
+		msg := "重置失败"
+		switch err.Error() {
+		case "subscription_inactive":
+			msg = "订阅当前不可重置"
+		case "reset_not_allowed":
+			msg = "该订阅不支持重置"
+		case "reset_limit_reached":
+			msg = "已达到可重置次数上限"
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": msg,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "额度已重置",
+		"data":    subscription,
+	})
+}
+
 // PurchaseSubscriptionRequest 购买订阅请求结构
 // payment_method: balance
 // plan_type: 套餐类型
@@ -108,6 +162,7 @@ type PurchaseSubscriptionRequest struct {
 // PurchasePackagesSubscription 购买订阅
 func PurchasePackagesSubscription(c *gin.Context) {
 	userId := c.GetInt("id")
+	_ = model.CheckExpiredPackagesSubscriptions()
 
 	var req PurchaseSubscriptionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -123,6 +178,13 @@ func PurchasePackagesSubscription(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": "套餐不存在",
+		})
+		return
+	}
+	if req.HashId != "" && plan.HashId != "" && req.HashId != plan.HashId {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "套餐信息已更新，请刷新后重试",
 		})
 		return
 	}
@@ -275,11 +337,16 @@ func GetPackagesUsageStats(c *gin.Context) {
 	})
 }
 
+type CancelSubscriptionRequest struct {
+	HashId string `json:"hash_id" binding:"required"`
+}
+
 // CancelPackagesSubscription 取消订阅
 func CancelPackagesSubscription(c *gin.Context) {
 	userId := c.GetInt("id")
+	_ = model.CheckExpiredPackagesSubscriptions()
 
-	var req PurchaseSubscriptionRequest
+	var req CancelSubscriptionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
@@ -293,6 +360,13 @@ func CancelPackagesSubscription(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": "未找到有效订阅",
+		})
+		return
+	}
+	if subscription.Status != "active" {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "订阅当前状态不可取消",
 		})
 		return
 	}
@@ -323,8 +397,13 @@ func GetAllPackagesSubscriptions(c *gin.Context) {
 		})
 		return
 	}
+	_ = model.CheckExpiredPackagesSubscriptions()
 
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageStr := c.DefaultQuery("page", "")
+	if pageStr == "" {
+		pageStr = c.DefaultQuery("p", "1")
+	}
+	page, _ := strconv.Atoi(pageStr)
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
 
 	filters := map[string]interface{}{}
@@ -360,6 +439,54 @@ func GetAllPackagesSubscriptions(c *gin.Context) {
 			"page":          page,
 			"page_size":     pageSize,
 		},
+	})
+}
+
+type UpdateResetLimitRequest struct {
+	ResetQuotaLimit int `json:"reset_quota_limit" binding:"required"`
+}
+
+// AdminUpdatePackagesSubscriptionResetLimit 更新订阅重置次数
+func AdminUpdatePackagesSubscriptionResetLimit(c *gin.Context) {
+	if c.GetInt("role") < common.RoleAdminUser {
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"message": "权限不足",
+		})
+		return
+	}
+
+	subscriptionId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "订阅ID错误",
+		})
+		return
+	}
+
+	var req UpdateResetLimitRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "参数错误: " + err.Error(),
+		})
+		return
+	}
+
+	subscription, err := model.UpdatePackagesSubscriptionResetLimit(subscriptionId, req.ResetQuotaLimit)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "更新重置次数失败",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "更新成功",
+		"data":    subscription,
 	})
 }
 
@@ -399,7 +526,7 @@ func AdminGrantPackagesSubscription(c *gin.Context) {
 		return
 	}
 
-	plan, err := model.GetPackagesPlanByType(req.PlanType)
+	plan, err := model.GetPackagesPlanByTypeAny(req.PlanType)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -495,7 +622,7 @@ type CreatePlanRequest struct {
 	Description         string                 `json:"description"`
 	Price               *float64               `json:"price" binding:"required"`
 	Currency            string                 `json:"currency"`
-	TotalQuota          int                    `json:"total_quota" binding:"required"`
+	TotalQuota          int64                  `json:"total_quota" binding:"required"`
 	MaxClientCount      int                    `json:"max_client_count"`
 	IsUnlimitedTime     bool                   `json:"is_unlimited_time"`
 	DurationMonths      int                    `json:"duration_months"`
@@ -509,6 +636,7 @@ type CreatePlanRequest struct {
 	DailyQuotaPerPlan   int                    `json:"daily_quota_per_plan"`
 	WeeklyQuotaPerPlan  int                    `json:"weekly_quota_per_plan"`
 	MonthlyQuotaPerPlan int                    `json:"monthly_quota_per_plan"`
+	ResetQuotaLimit     *int                   `json:"reset_quota_limit"`
 	DeductionGroup      string                 `json:"deduction_group"`
 }
 
@@ -527,11 +655,12 @@ type UpdatePlanRequest struct {
 	IsActive            *bool                  `json:"is_active"`
 	SortOrder           int                    `json:"sort_order"`
 	ServiceType         string                 `json:"service_type"`
-	TotalQuota          int                    `json:"total_quota"`
+	TotalQuota          int64                  `json:"total_quota"`
 	ShowInPortal        *bool                  `json:"show_in_portal"`
-	DailyQuotaPerPlan   *int                   `json:"daily_quota_per_plan"`
-	WeeklyQuotaPerPlan  *int                   `json:"weekly_quota_per_plan"`
-	MonthlyQuotaPerPlan *int                   `json:"monthly_quota_per_plan"`
+	DailyQuotaPerPlan   *int64                 `json:"daily_quota_per_plan"`
+	WeeklyQuotaPerPlan  *int64                 `json:"weekly_quota_per_plan"`
+	MonthlyQuotaPerPlan *int64                 `json:"monthly_quota_per_plan"`
+	ResetQuotaLimit     *int                   `json:"reset_quota_limit"`
 	DeductionGroup      *string                `json:"deduction_group"`
 }
 
@@ -554,7 +683,7 @@ func CreatePackagesPlan(c *gin.Context) {
 		return
 	}
 
-	existingPlan, _ := model.GetPackagesPlanByType(req.Type)
+	existingPlan, _ := model.GetPackagesPlanByTypeAny(req.Type)
 	if existingPlan != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -576,7 +705,8 @@ func CreatePackagesPlan(c *gin.Context) {
 		})
 		return
 	}
-	if req.DailyQuotaPerPlan < 0 || req.WeeklyQuotaPerPlan < 0 || req.MonthlyQuotaPerPlan < 0 {
+	if req.DailyQuotaPerPlan < 0 || req.WeeklyQuotaPerPlan < 0 || req.MonthlyQuotaPerPlan < 0 ||
+		(req.ResetQuotaLimit != nil && *req.ResetQuotaLimit < 0) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"message": "限额不能为负数",
@@ -631,6 +761,11 @@ func CreatePackagesPlan(c *gin.Context) {
 		return
 	}
 
+	resetQuotaLimit := 1
+	if req.ResetQuotaLimit != nil {
+		resetQuotaLimit = *req.ResetQuotaLimit
+	}
+
 	now := common.GetTimestamp()
 	plan := &model.PackagesPlan{
 		Name:                req.Name,
@@ -638,7 +773,7 @@ func CreatePackagesPlan(c *gin.Context) {
 		Description:         req.Description,
 		Price:               priceValue,
 		Currency:            req.Currency,
-		TotalQuota:          req.TotalQuota,
+		TotalQuota:          int(req.TotalQuota),
 		MaxClientCount:      req.MaxClientCount,
 		IsUnlimitedTime:     req.IsUnlimitedTime,
 		DurationMonths:      req.DurationMonths,
@@ -655,6 +790,7 @@ func CreatePackagesPlan(c *gin.Context) {
 		DailyQuotaPerPlan:   req.DailyQuotaPerPlan,
 		WeeklyQuotaPerPlan:  req.WeeklyQuotaPerPlan,
 		MonthlyQuotaPerPlan: req.MonthlyQuotaPerPlan,
+		ResetQuotaLimit:     resetQuotaLimit,
 		DeductionGroup:      req.DeductionGroup,
 	}
 
@@ -712,7 +848,8 @@ func UpdatePackagesPlan(c *gin.Context) {
 
 	if req.DailyQuotaPerPlan != nil && *req.DailyQuotaPerPlan < 0 ||
 		req.WeeklyQuotaPerPlan != nil && *req.WeeklyQuotaPerPlan < 0 ||
-		req.MonthlyQuotaPerPlan != nil && *req.MonthlyQuotaPerPlan < 0 {
+		req.MonthlyQuotaPerPlan != nil && *req.MonthlyQuotaPerPlan < 0 ||
+		req.ResetQuotaLimit != nil && *req.ResetQuotaLimit < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"message": "限额不能为负数",
@@ -796,16 +933,19 @@ func UpdatePackagesPlan(c *gin.Context) {
 	plan.DurationValue = updatedDurationValue
 	plan.DurationMonths = updatedDurationMonths
 	if req.TotalQuota > 0 {
-		plan.TotalQuota = req.TotalQuota
+		plan.TotalQuota = int(req.TotalQuota)
 	}
 	if req.DailyQuotaPerPlan != nil {
-		plan.DailyQuotaPerPlan = *req.DailyQuotaPerPlan
+		plan.DailyQuotaPerPlan = int(*req.DailyQuotaPerPlan)
 	}
 	if req.WeeklyQuotaPerPlan != nil {
-		plan.WeeklyQuotaPerPlan = *req.WeeklyQuotaPerPlan
+		plan.WeeklyQuotaPerPlan = int(*req.WeeklyQuotaPerPlan)
 	}
 	if req.MonthlyQuotaPerPlan != nil {
-		plan.MonthlyQuotaPerPlan = *req.MonthlyQuotaPerPlan
+		plan.MonthlyQuotaPerPlan = int(*req.MonthlyQuotaPerPlan)
+	}
+	if req.ResetQuotaLimit != nil {
+		plan.ResetQuotaLimit = *req.ResetQuotaLimit
 	}
 	if req.DeductionGroup != nil {
 		plan.DeductionGroup = *req.DeductionGroup

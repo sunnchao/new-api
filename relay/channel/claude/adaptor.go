@@ -85,13 +85,13 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	CommonClaudeHeadersOperation(c, req, info)
 	if info.ChannelSetting.PassThroughHeaderEnabled {
 		return a.SetupRequestHeaderWithPassThroughHeader(c, req, info)
-	} else {
-		req.Set("x-api-key", info.ApiKey)
 	}
+
+	req.Set("x-api-key", info.ApiKey)
 	return nil
 }
 
-// 开启透传请求头
+// SetupRequestHeaderWithPassThroughHeader 开启透传请求头
 func (a *Adaptor) SetupRequestHeaderWithPassThroughHeader(c *gin.Context, req *http.Header, info *relaycommon.RelayInfo) error {
 	hasAuthorization := false
 	hasXApiKey := false
@@ -133,7 +133,7 @@ func (a *Adaptor) SetupRequestHeaderWithPassThroughHeader(c *gin.Context, req *h
 		}
 	}
 	if hasAuthorization {
-		req.Set("authorization", "Bearer "+info.ApiKey)
+		req.Set("Authorization", "Bearer "+info.ApiKey)
 	} else if hasXApiKey {
 		req.Set("x-api-key", info.ApiKey)
 	} else {

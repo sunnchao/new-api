@@ -67,6 +67,11 @@ type PackagesSubscription struct {
 	WeeklyQuotaResetAt  int64 `json:"weekly_quota_reset_at" gorm:"default:0"`
 	MonthlyQuotaResetAt int64 `json:"monthly_quota_reset_at" gorm:"default:0"`
 
+	// 订阅额度重置
+	ResetQuotaLimit int   `json:"reset_quota_limit" gorm:"default:1"`
+	ResetQuotaUsed  int   `json:"reset_quota_used" gorm:"default:0"`
+	LastResetAt     int64 `json:"last_reset_at" gorm:"default:0"`
+
 	// 套餐指定抵扣分组
 	DeductionGroup string `json:"deduction_group" gorm:"type:varchar(32);default:''"`
 }
@@ -101,6 +106,7 @@ type PackagesPlan struct {
 	DailyQuotaPerPlan   int `json:"daily_quota_per_plan" gorm:"default:0"`
 	WeeklyQuotaPerPlan  int `json:"weekly_quota_per_plan" gorm:"default:0"`
 	MonthlyQuotaPerPlan int `json:"monthly_quota_per_plan" gorm:"default:0"`
+	ResetQuotaLimit     int `json:"reset_quota_limit" gorm:"default:1"`
 
 	DeductionGroup string `json:"deduction_group" gorm:"type:varchar(32);default:''"`
 }
@@ -112,6 +118,7 @@ func ApplyPlanLimitsToSubscription(subscription *PackagesSubscription, plan *Pac
 	subscription.DailyQuotaLimit = plan.DailyQuotaPerPlan
 	subscription.WeeklyQuotaLimit = plan.WeeklyQuotaPerPlan
 	subscription.MonthlyQuotaLimit = plan.MonthlyQuotaPerPlan
+	subscription.ResetQuotaLimit = plan.ResetQuotaLimit
 	subscription.DeductionGroup = strings.TrimSpace(plan.DeductionGroup)
 }
 
@@ -227,6 +234,7 @@ func GrantPlanToUser(userId int, plan *PackagesPlan, source string, allowStack b
 		updates["daily_quota_limit"] = plan.DailyQuotaPerPlan
 		updates["weekly_quota_limit"] = plan.WeeklyQuotaPerPlan
 		updates["monthly_quota_limit"] = plan.MonthlyQuotaPerPlan
+		updates["reset_quota_limit"] = plan.ResetQuotaLimit
 		updates["deduction_group"] = strings.TrimSpace(plan.DeductionGroup)
 		if !plan.IsUnlimitedTime && durationSeconds > 0 {
 			updates["end_time"] = subscription.EndTime + durationSeconds
@@ -357,7 +365,11 @@ func GetUserActivePackagesSubscriptions(userId int, sub PackagesSubscription, is
 		query = query.Where("deduction_group = ?", sub.DeductionGroup)
 	}
 	if isActive {
-		query = query.Where("status = 'active'")
+		now := common.GetTimestamp()
+		query = query.Where("status = 'active'").
+			Where("start_time <= ?", now).
+			Where("end_time > ?", now).
+			Where("remain_quota > 0")
 	}
 
 	if err := query.Order("end_time ASC").Find(&subscriptions).Error; err != nil {
@@ -420,6 +432,9 @@ func GetPackagesSubscriptionById(id int) (*PackagesSubscription, error) {
 func CreatePackagesSubscription(subscription *PackagesSubscription) error {
 	subscription.CreatedTime = common.GetTimestamp()
 	subscription.UpdatedTime = common.GetTimestamp()
+	if subscription.ResetQuotaLimit == 0 {
+		subscription.ResetQuotaLimit = 1
+	}
 	return DB.Create(subscription).Error
 }
 
@@ -427,6 +442,67 @@ func CreatePackagesSubscription(subscription *PackagesSubscription) error {
 func UpdatePackagesSubscription(subscription *PackagesSubscription) error {
 	subscription.UpdatedTime = common.GetTimestamp()
 	return DB.Save(subscription).Error
+}
+
+// ResetPackagesSubscriptionDailyQuota 重置订阅今日已用额度
+func ResetPackagesSubscriptionDailyQuota(userId int, hashId string) (*PackagesSubscription, error) {
+	now := common.GetTimestamp()
+	var updated *PackagesSubscription
+
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var subscription PackagesSubscription
+		if err := tx.Where("user_id = ? AND hash_id = ?", userId, hashId).First(&subscription).Error; err != nil {
+			return err
+		}
+		if subscription.Status != "active" || subscription.StartTime > now || subscription.EndTime <= now {
+			return errors.New("subscription_inactive")
+		}
+		if subscription.ResetQuotaLimit <= 0 {
+			return errors.New("reset_not_allowed")
+		}
+		if subscription.ResetQuotaUsed >= subscription.ResetQuotaLimit {
+			return errors.New("reset_limit_reached")
+		}
+
+		location, err := time.LoadLocation("Asia/Shanghai")
+		if err != nil {
+			location = time.Local
+		}
+		dayStart, _, _ := getPackagesQuotaResetStarts(time.Unix(now, 0).In(location))
+
+		subscription.DailyQuotaUsed = 0
+		subscription.DailyQuotaResetAt = dayStart
+		subscription.ResetQuotaUsed += 1
+		subscription.LastResetAt = now
+		subscription.UpdatedTime = now
+		if err := tx.Save(&subscription).Error; err != nil {
+			return err
+		}
+
+		updated = &subscription
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return updated, nil
+}
+
+// UpdatePackagesSubscriptionResetLimit 设置订阅可重置次数
+func UpdatePackagesSubscriptionResetLimit(subscriptionId int, limit int) (*PackagesSubscription, error) {
+	if limit < 0 {
+		limit = 0
+	}
+	updates := map[string]interface{}{
+		"reset_quota_limit": limit,
+		"updated_time":      common.GetTimestamp(),
+	}
+	if err := DB.Model(&PackagesSubscription{}).Where("id = ?", subscriptionId).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	return GetPackagesSubscriptionById(subscriptionId)
 }
 
 // 计算可扣除额度，综合剩余额度与日/周/月限额
@@ -483,6 +559,31 @@ func UpdateSubscriptionPackageUsage(subscriptionId int, quotaUsed int, tokenGrou
 		if err := tx.Where("id = ?", subscriptionId).First(&subscription).Error; err != nil {
 			return err
 		}
+
+		// 过期/未开始订阅不允许继续扣费（并尽力更新状态）
+		if subscription.Status == "active" {
+			if subscription.StartTime > now {
+				subscription.UpdatedTime = now
+				return tx.Save(&subscription).Error
+			}
+			if subscription.EndTime <= now {
+				subscription.Status = "expired"
+				subscription.UpdatedTime = now
+				return tx.Save(&subscription).Error
+			}
+		}
+		if subscription.Status != "active" {
+			subscription.UpdatedTime = now
+			return tx.Save(&subscription).Error
+		}
+
+		// 日/周/月限额需要在扣费前重置周期起点
+		location, err := time.LoadLocation("Asia/Shanghai")
+		if err != nil {
+			location = time.Local
+		}
+		dayStart, weekStart, monthStart := getPackagesQuotaResetStarts(time.Unix(now, 0).In(location))
+		_ = resetSubscriptionQuotaIfNeeded(&subscription, dayStart, weekStart, monthStart)
 
 		if subscription.DeductionGroup != "" && tokenGroup != subscription.DeductionGroup {
 			return errors.New("订阅分组不匹配")
@@ -600,6 +701,16 @@ func GetPackagesPlanByType(planType string) (*PackagesPlan, error) {
 	return &plan, nil
 }
 
+// GetPackagesPlanByTypeAny 根据类型获取套餐（不过滤 is_active），用于管理端/历史订阅展示。
+func GetPackagesPlanByTypeAny(planType string) (*PackagesPlan, error) {
+	var plan PackagesPlan
+	if err := DB.Where("type = ?", planType).First(&plan).Error; err != nil {
+		return nil, err
+	}
+	plan.NormalizeDurationFields()
+	return &plan, nil
+}
+
 // GetPackagesPlanById 根据ID获取套餐
 func GetPackagesPlanById(planId int) (*PackagesPlan, error) {
 	var plan PackagesPlan
@@ -628,6 +739,7 @@ func UpdatePackagesSubscriptionsByPlan(plan *PackagesPlan) error {
 		"daily_quota_limit":   plan.DailyQuotaPerPlan,
 		"weekly_quota_limit":  plan.WeeklyQuotaPerPlan,
 		"monthly_quota_limit": plan.MonthlyQuotaPerPlan,
+		"reset_quota_limit":   plan.ResetQuotaLimit,
 		"deduction_group":     strings.TrimSpace(plan.DeductionGroup),
 		"service_type":        plan.ServiceType,
 	}
