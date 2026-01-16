@@ -18,7 +18,6 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Card,
   Button,
@@ -36,11 +35,11 @@ import {API, renderQuota } from '../../helpers';
 const { Title, Text } = Typography;
 
 const statusMap = {
-  active: { label: 'packages.subscription.active', color: 'green' },
-  expired: { label: 'packages.subscription.expired', color: 'grey' },
-  cancelled: { label: 'packages.subscription.cancelled', color: 'orange' },
-  exhausted: { label: 'packages.subscription.exhausted', color: 'red' },
-  pending: { label: 'packages.subscription.pending', color: 'blue' },
+  active: { label: '生效中', color: 'green' },
+  expired: { label: '已过期', color: 'grey' },
+  cancelled: { label: '已取消', color: 'orange' },
+  exhausted: { label: '已耗尽', color: 'red' },
+  pending: { label: '待生效', color: 'blue' },
 };
 
 const formatQuota = (value) => {
@@ -61,7 +60,6 @@ const formatDate = (timestamp) => {
 };
 
 const Subscriptions = () => {
-  const { t } = useTranslation();
   const [plans, setPlans] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(false);
@@ -86,14 +84,14 @@ const Subscriptions = () => {
       if (res?.data?.success) {
         setPlans(res.data.data || []);
       } else {
-        setError(res?.data?.message || t('packages.error.loadPlans'));
+        setError(res?.data?.message || '加载套餐方案失败');
       }
     } catch (err) {
-      setError(err.message || t('packages.error.loadPlans'));
+      setError(err.message || '加载套餐方案失败');
     } finally {
       setLoadingPlans(false);
     }
-  }, [t]);
+  }, []);
 
   const loadSubscriptions = useCallback(async () => {
     setLoadingSubscriptions(true);
@@ -103,14 +101,14 @@ const Subscriptions = () => {
       if (res?.data?.success) {
         setSubscriptions(res.data.data || []);
       } else {
-        setError(res?.data?.message || t('packages.error.loadPlans'));
+        setError(res?.data?.message || '加载订阅信息失败');
       }
     } catch (err) {
-      setError(err.message || t('packages.error.loadPlans'));
+      setError(err.message || '加载订阅信息失败');
     } finally {
       setLoadingSubscriptions(false);
     }
-  }, [t]);
+  }, []);
 
   const loadAll = useCallback(async () => {
     await Promise.all([loadPlans(), loadSubscriptions()]);
@@ -137,15 +135,15 @@ const Subscriptions = () => {
 
       if (res?.data?.success) {
         Modal.success({
-          title: t('packages.purchase.success'),
-          content: res.data.message || t('packages.purchase.success'),
+          title: '购买成功',
+          content: res.data.message || '购买成功',
         });
         setPurchaseOpen(false);
         await loadAll();
       } else {
         Modal.error({
-          title: t('packages.purchase.failed'),
-          content: res?.data?.message || t('packages.purchase.failed'),
+          title: '购买失败',
+          content: res?.data?.message || '购买失败',
         });
       }
     } finally {
@@ -155,10 +153,10 @@ const Subscriptions = () => {
 
   const cancelSubscription = async (subscription) => {
     Modal.confirm({
-      title: t('packages.cancel.confirmTitle'),
-      content: t('packages.cancel.confirmContent'),
-      okText: t('packages.cancel.confirmAction'),
-      cancelText: t('packages.cancel.cancel'),
+      title: '确认取消订阅',
+      content: '取消后当前订阅将不再续费，是否继续？',
+      okText: '确认取消',
+      cancelText: '返回',
       okButtonProps: { type: 'danger' },
       onOk: async () => {
         const res = await API.post('/api/user/packages/cancel', {
@@ -166,14 +164,14 @@ const Subscriptions = () => {
         });
         if (res?.data?.success) {
           Modal.success({
-            title: t('packages.cancel.success'),
-            content: res.data.message || t('packages.cancel.success'),
+            title: '取消成功',
+            content: res.data.message || '取消成功',
           });
           await loadSubscriptions();
         } else {
           Modal.error({
-            title: t('packages.cancel.failed'),
-            content: res?.data?.message || t('packages.cancel.failed'),
+            title: '取消失败',
+            content: res?.data?.message || '取消失败',
           });
         }
       },
@@ -182,10 +180,10 @@ const Subscriptions = () => {
 
   const resetDailyQuota = async (subscription) => {
     Modal.confirm({
-      title: t('packages.reset.confirmTitle'),
-      content: t('packages.reset.confirmContent'),
-      okText: t('packages.reset.confirmAction'),
-      cancelText: t('packages.reset.cancel'),
+      title: '确认重置额度',
+      content: '重置将消耗一次重置次数，是否继续？',
+      okText: '确认重置',
+      cancelText: '返回',
       okButtonProps: { type: 'danger' },
       onOk: async () => {
         setResetLoadingId(subscription.id);
@@ -195,14 +193,14 @@ const Subscriptions = () => {
           });
           if (res?.data?.success) {
             Modal.success({
-              title: t('packages.reset.success'),
-              content: res.data.message || t('packages.reset.success'),
+              title: '重置成功',
+              content: res.data.message || '重置成功',
             });
             await loadSubscriptions();
           } else {
             Modal.error({
-              title: t('packages.reset.failed'),
-              content: res?.data?.message || t('packages.reset.failed'),
+              title: '重置失败',
+              content: res?.data?.message || '重置失败',
             });
           }
         } finally {
@@ -218,14 +216,14 @@ const Subscriptions = () => {
           {error && <Banner type='danger' description={error} />}
 
           <Card
-              title={t('packages.plan.title')}
+              title={'套餐方案'}
           >
             {loadingPlans ? (
                 <div className='flex justify-center py-8'>
                   <Spin />
                 </div>
             ) : plans.length === 0 ? (
-                <Text>{t('packages.plan.empty')}</Text>
+                <Text>{'暂无套餐方案'}</Text>
             ) : (
                 <div className='grid gap-4 md:grid-cols-2'>
                   {plans.map((plan) => (
@@ -233,12 +231,12 @@ const Subscriptions = () => {
                         <Space vertical align='start' spacing='tight'>
                           <Title heading={5}>{plan.name || plan.type}</Title>
                           <Text type='secondary'>{plan.description}</Text>
-                          <Text>{`${t('packages.plan.price')}: ${plan.price} ${plan.currency}`}</Text>
-                          <Text>{`${t('packages.plan.quota')}: ${renderQuota(plan.total_quota)}`}</Text>
-                          <Text>{`${t('packages.plan.duration')}: ${plan.duration_unit || '-'} ${plan.duration_value || '-'}`}</Text>
-                          <Text>{`${t('packages.plan.service')}: ${plan.service_type}`}</Text>
+                          <Text>{`${'价格'}: ${plan.price} ${plan.currency}`}</Text>
+                          <Text>{`${'总额度'}: ${renderQuota(plan.total_quota)}`}</Text>
+                          <Text>{`${'有效期'}: ${plan.duration_unit || '-'} ${plan.duration_value || '-'}`}</Text>
+                          <Text>{`${'服务类型'}: ${plan.service_type}`}</Text>
                           <Button theme='solid' onClick={() => openPurchase(plan)}>
-                            {t('packages.plan.buy')}
+                            {'立即购买'}
                           </Button>
                         </Space>
                       </Card>
@@ -248,14 +246,14 @@ const Subscriptions = () => {
           </Card>
 
           <Card
-              title={t('packages.subscription.list')}
+              title={'订阅列表'}
               className={'w-full'}
               headerExtraContent={(
                   <Button
                       onClick={loadSubscriptions}
                       loading={loadingSubscriptions}
                   >
-                    {t('packages.action.refresh')}
+                    {'刷新'}
                   </Button>
               )}
           >
@@ -264,7 +262,7 @@ const Subscriptions = () => {
                   <Spin />
                 </div>
             ) : subscriptions.length === 0 ? (
-                <Text>{t('packages.subscription.empty')}</Text>
+                <Text>{'暂无订阅'}</Text>
             ) : (
                 <div className='w-full grid gap-4 sm:grid-cols-2 xl:grid-cols-3'>
                   {sortedSubscriptions.map((sub) => {
@@ -285,17 +283,17 @@ const Subscriptions = () => {
                               <Title heading={5}>
                                 {sub.package_plan?.name || sub.package_plan?.type }
                               </Title>
-                              <Tag color={status.color}>{t(status.label)}</Tag>
+                              <Tag color={status.color}>{status.label}</Tag>
                             </div>
                             <Text type='secondary'>
-                              {`${t('packages.subscription.service')}: ${sub.service_type}`}
+                              {`${'服务类型'}: ${sub.service_type}`}
                             </Text>
                             <Text type='secondary'>
-                              {`${t('packages.admin.plans.deductionGroup')}: ${sub.deduction_group}`}
+                              {`${'抵扣分组'}: ${sub.deduction_group}`}
                             </Text>
                             <div className='w-full'>
                               <div className='flex items-center justify-between text-sm text-gray-600'>
-                                <span>{t('packages.subscription.remain')}</span>
+                                <span>{'剩余额度'}</span>
                                 <span>
                             {renderQuota(remainQuota, 6)} /{' '}
                                   {renderQuota(totalQuota, 6)}
@@ -303,12 +301,12 @@ const Subscriptions = () => {
                               </div>
                               <Progress percent={progressPercent} showInfo={false} />
                               <div className='mt-1 flex items-center justify-between text-xs text-gray-500'>
-                                <span>{`${t('packages.subscription.used')}: ${renderQuota(usedQuota, 6)}`}</span>
+                                <span>{`${'已用额度'}: ${renderQuota(usedQuota, 6)}`}</span>
                                 <span>{`${progressPercent}%`}</span>
                               </div>
                               <div className='mt-2 flex items-center justify-between text-xs text-gray-500'>
                           <span>
-                            {t('packages.subscription.resetRemaining')}
+                            {'可重置次数'}
                           </span>
                                 <span>
                             {resetRemaining} / {resetLimit}
@@ -316,7 +314,7 @@ const Subscriptions = () => {
                               </div>
                             </div>
                             <Text type='secondary'>
-                              {`${t('packages.subscription.end')}: ${formatDate(sub.end_time)}`}
+                              {`${'到期时间'}: ${formatDate(sub.end_time)}`}
                             </Text>
                             <Space>
                               <Button
@@ -329,14 +327,14 @@ const Subscriptions = () => {
                                   loading={resetLoadingId === sub.id}
                                   onClick={() => resetDailyQuota(sub)}
                               >
-                                {t('packages.reset.confirmAction')}
+                                {'确认重置'}
                               </Button>
                               <Button
                                   type='danger'
                                   disabled={sub.status !== 'active'}
                                   onClick={() => cancelSubscription(sub)}
                               >
-                                {t('packages.cancel.confirmAction')}
+                                {'确认取消'}
                               </Button>
                             </Space>
                           </Space>
@@ -348,14 +346,14 @@ const Subscriptions = () => {
           </Card>
 
           <Modal
-              title={t('packages.purchase.title')}
+              title={'购买套餐'}
               visible={purchaseOpen}
               onCancel={() => setPurchaseOpen(false)}
               onOk={confirmPurchase}
               confirmLoading={purchaseLoading}
           >
             <Space vertical align='start' style={{ width: '100%' }}>
-              <Text>{t('packages.purchase.selectPlan')}</Text>
+              <Text>{'选择套餐'}</Text>
               <Select
                   style={{ width: '100%' }}
                   optionList={plans.map((plan) => ({
@@ -368,10 +366,10 @@ const Subscriptions = () => {
                     setSelectedPlan(plan || null);
                   }}
               />
-              <Text>{`${t('packages.purchase.payment')}: balance`}</Text>
+              <Text>{`${'支付方式'}: 余额`}</Text>
               {selectedPlan && (
                   <Text type='secondary'>
-                    {`${t('packages.plan.price')}: ${selectedPlan.price} ${selectedPlan.currency}`}
+                    {`${'价格'}: ${selectedPlan.price} ${selectedPlan.currency}`}
                   </Text>
               )}
             </Space>
