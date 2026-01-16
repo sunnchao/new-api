@@ -18,12 +18,17 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
-import AdminPackagesPage from '../../components/table/admin-packages';
+import { Button, Space } from '@douyinfe/semi-ui';
 
-const AdminPackages = () => (
-  <div className='mt-[60px] px-2'>
-    <AdminPackagesPage />
-  </div>
+const SubscriptionsFilters = ({ t, loading, loadSubscriptions, handleOpenGrantModal }) => (
+  <Space>
+    <Button onClick={loadSubscriptions} loading={loading}>
+      {t('刷新')}
+    </Button>
+    <Button theme='solid' onClick={handleOpenGrantModal}>
+      {t('授予订阅')}
+    </Button>
+  </Space>
 );
 
-export default AdminPackages;
+export default SubscriptionsFilters;

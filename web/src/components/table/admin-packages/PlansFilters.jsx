@@ -18,12 +18,17 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
-import AdminPackagesPage from '../../components/table/admin-packages';
+import { Button, Space } from '@douyinfe/semi-ui';
 
-const AdminPackages = () => (
-  <div className='mt-[60px] px-2'>
-    <AdminPackagesPage />
-  </div>
+const PlansFilters = ({ t, loading, loadPlans, openPlanModal }) => (
+  <Space>
+    <Button onClick={loadPlans} loading={loading}>
+      {t('刷新')}
+    </Button>
+    <Button theme='solid' onClick={() => openPlanModal()}>
+      {t('创建')}
+    </Button>
+  </Space>
 );
 
-export default AdminPackages;
+export default PlansFilters;
