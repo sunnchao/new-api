@@ -48,6 +48,7 @@ func GetUserLogs(c *gin.Context) {
 	for _, log := range logs {
 		if log.Type == model.LogTypeError {
 			log.Other = ""
+			log.Content = "请求失败,如果多次出现，请联系客服"
 		}
 	}
 	pageInfo.SetTotal(int(total))
