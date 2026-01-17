@@ -92,7 +92,8 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			//if newAPIError.GetErrorCode() == types.ErrorCodeInsufficientUserQuota || newAPIError.GetErrorCode() == types.ErrorCodePreConsumeTokenQuotaFailed {
 			//	logType = model.LogTypeError
 			//}
-			other["errorCode"] = newAPIError.GetErrorCode()
+			other["error_code"] = newAPIError.GetErrorCode()
+			other["error_type"] = newAPIError.GetErrorType()
 			other["RequestId"] = requestId
 			model.RecordErrorLog(
 				c,
@@ -391,10 +392,10 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		other["error_type"] = err.GetErrorType()
 		other["error_code"] = err.GetErrorCode()
 		other["status_code"] = err.StatusCode
-		other["channel_id"] = channelId
-		other["channel_name"] = c.GetString("channel_name")
-		other["channel_type"] = c.GetInt("channel_type")
 		adminInfo := make(map[string]interface{})
+		adminInfo["channel_id"] = channelId
+		adminInfo["channel_name"] = c.GetString("channel_name")
+		adminInfo["channel_type"] = c.GetInt("channel_type")
 		adminInfo["use_channel"] = c.GetStringSlice("use_channel")
 		isMultiKey := common.GetContextKeyBool(c, constant.ContextKeyChannelIsMultiKey)
 		if isMultiKey {
