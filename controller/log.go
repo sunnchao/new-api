@@ -45,6 +45,11 @@ func GetUserLogs(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	for _, log := range logs {
+		if log.Type == model.LogTypeError {
+			log.Other = ""
+		}
+	}
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(logs)
 	common.ApiSuccess(c, pageInfo)
@@ -155,7 +160,8 @@ func DeleteHistoryLogs(c *gin.Context) {
 		})
 		return
 	}
-	count, err := model.DeleteOldLog(c.Request.Context(), targetTimestamp, 100)
+	//count, err := model.DeleteOldLog(c.Request.Context(), targetTimestamp, 100)
+	count, err := model.DeleteOldLogByGroupByUser(c.Request.Context(), targetTimestamp)
 	if err != nil {
 		common.ApiError(c, err)
 		return
