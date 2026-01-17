@@ -538,7 +538,7 @@ func GetChannelKey(c *gin.Context) {
 	}
 
 	// 记录操作日志
-	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("查看渠道密钥信息 (渠道ID: %d)", channelId))
+	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("查看渠道密钥信息 (渠道ID: %d)", channelId), nil)
 
 	// 返回渠道密钥
 	c.JSON(http.StatusOK, gin.H{

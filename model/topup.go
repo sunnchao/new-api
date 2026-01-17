@@ -98,7 +98,7 @@ func Recharge(referenceId string, customerId string) (err error) {
 		return errors.New("充值失败，" + err.Error())
 	}
 
-	RecordLog(topUp.UserId, LogTypeTopup, fmt.Sprintf("使用在线充值成功，充值金额: %v，支付金额：%d", logger.FormatQuota(int(quota)), topUp.Amount))
+	RecordLog(topUp.UserId, LogTypeTopup, fmt.Sprintf("使用在线充值成功，充值金额: %v，支付金额：%d", logger.FormatQuota(int(quota)), topUp.Amount), nil)
 
 	return nil
 }
@@ -302,7 +302,7 @@ func ManualCompleteTopUp(tradeNo string) error {
 	}
 
 	// 事务外记录日志，避免阻塞
-	RecordLog(userId, LogTypeTopup, fmt.Sprintf("管理员补单成功，充值金额: %v，支付金额：%f", logger.FormatQuota(quotaToAdd), payMoney))
+	RecordLog(userId, LogTypeTopup, fmt.Sprintf("管理员补单成功，充值金额: %v，支付金额：%f", logger.FormatQuota(quotaToAdd), payMoney), nil)
 	return nil
 }
 func RechargeCreem(referenceId string, customerEmail string, customerName string) (err error) {
@@ -370,7 +370,7 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 		return errors.New("充值失败，" + err.Error())
 	}
 
-	RecordLog(topUp.UserId, LogTypeTopup, fmt.Sprintf("使用Creem充值成功，充值额度: %v，支付金额：%.2f", quota, topUp.Money))
+	RecordLog(topUp.UserId, LogTypeTopup, fmt.Sprintf("使用Creem充值成功，充值额度: %v，支付金额：%.2f", quota, topUp.Money), nil)
 
 	return nil
 }

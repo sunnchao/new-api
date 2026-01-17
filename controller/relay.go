@@ -87,6 +87,22 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		if newAPIError != nil {
 			logger.LogError(c, fmt.Sprintf("relay error: %s", newAPIError.Error()))
 			newAPIError.SetMessage(common.MessageWithRequestId(newAPIError.Error(), requestId))
+
+			other := make(map[string]interface{})
+			other["LogType"] = model.LogTypeErrorForAdmin
+			other["RequestId"] = requestId
+			model.RecordErrorLog(
+				c,
+				c.GetInt(string(constant.ContextKeyUserId)),
+				c.GetInt(string(constant.ContextKeyChannelId)),
+				"",
+				"",
+				newAPIError.Error(),
+				c.GetInt(string(constant.ContextKeyTokenId)),
+				0,
+				false,
+				c.GetString(string(constant.ContextKeyUsingGroup)), other)
+
 			switch relayFormat {
 			case types.RelayFormatOpenAIRealtime:
 				helper.WssError(c, ws, newAPIError.ToOpenAIError())
@@ -428,6 +444,22 @@ func RelayMidjourney(c *gin.Context) {
 		})
 		channelId := c.GetInt("channel_id")
 		logger.LogError(c, fmt.Sprintf("relay error (channel #%d, status code %d): %s", channelId, statusCode, fmt.Sprintf("%s %s", mjErr.Description, mjErr.Result)))
+
+		defer func() {
+			other := make(map[string]interface{})
+			other["LogType"] = model.LogTypeErrorForAdmin
+			model.RecordErrorLog(
+				c,
+				c.GetInt(string(constant.ContextKeyUserId)),
+				channelId,
+				"",
+				"",
+				fmt.Sprintf("%s %s", mjErr.Description, mjErr.Result),
+				c.GetInt(string(constant.ContextKeyTokenId)),
+				0,
+				false,
+				c.GetString(string(constant.ContextKeyUsingGroup)), other)
+		}()
 	}
 }
 

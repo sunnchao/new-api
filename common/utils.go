@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -21,6 +22,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+)
+
+var (
+	requestIdRegex = regexp.MustCompile(`\(request id: [^\)]+\)`)
+	// 当前分组 default 下对于模型 claude-3-5-haiku-20241022 无可用渠道 提取分组和 模型的关键字
+	groupAndModelKeywords = regexp.MustCompile(`当前分组 ([\w-]+) 下对于模型 ([\w-]+) 无可用渠道`)
+	// No available channels for model claude-opus-4-1-20250805 in group default (request id: 20260117174023686461227amgVq5CV)
+	groupAndModelKeywordsEN = regexp.MustCompile(`No available channels for model ([\w-]+) in group ([\w-]+)`)
+
+	quotaKeywords = []string{"余额", "额度", "quota", "令牌"}
 )
 
 func OpenBrowser(url string) {
@@ -276,12 +287,17 @@ func Max(a int, b int) int {
 }
 
 func MessageWithRequestId(message string, id string) string {
-	// 如果message中已经包含 request id: 则不再添加
-	if strings.Contains(message, "request id: ") {
-		return message
+	newMessage := message
+	if groupAndModelKeywords.MatchString(newMessage) {
+		newMessage = groupAndModelKeywords.ReplaceAllString(newMessage, "当前分组下对于模型 $2 无可用渠道")
+	} else if groupAndModelKeywordsEN.MatchString(newMessage) {
+		newMessage = groupAndModelKeywordsEN.ReplaceAllString(newMessage, "当前分组下对于模型 $1 无可用渠道")
+	}
+	if strings.Contains(newMessage, "(request id:") {
+		newMessage = requestIdRegex.ReplaceAllString(newMessage, "")
 	}
 
-	return fmt.Sprintf("%s (request id: %s)", message, id)
+	return fmt.Sprintf("%s (request id: %s)", newMessage, id)
 }
 
 func RandomSleep() {

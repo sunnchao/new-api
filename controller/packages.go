@@ -246,7 +246,10 @@ func PurchasePackagesSubscription(c *gin.Context) {
 		}
 
 		if costQuota > 0 {
-			model.RecordLog(userId, model.LogTypeConsume, fmt.Sprintf("使用余额购买套餐：%s", plan.Name))
+			otherParam := map[string]interface{}{
+				"RequestIp": c.ClientIP(),
+			}
+			model.RecordLog(userId, model.LogTypeConsume, fmt.Sprintf("使用余额购买套餐：%s", plan.Name), otherParam)
 		}
 
 		c.JSON(http.StatusOK, gin.H{

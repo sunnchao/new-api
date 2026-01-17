@@ -121,7 +121,10 @@ func UniversalVerify(c *gin.Context) {
 	}
 
 	// 记录日志
-	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("通用安全验证成功 (验证方式: %s)", verifyMethod))
+	otherParam := map[string]interface{}{
+		"RequestIp": c.ClientIP(),
+	}
+	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("通用安全验证成功 (验证方式: %s)", verifyMethod), otherParam)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -301,7 +304,10 @@ func PasskeyVerifyForSecure(c *gin.Context) {
 	PasskeyVerifyAndSetSession(c)
 
 	// 记录日志
-	model.RecordLog(userId, model.LogTypeSystem, "Passkey 安全验证成功")
+	otherParam := map[string]interface{}{
+		"RequestIp": c.ClientIP(),
+	}
+	model.RecordLog(userId, model.LogTypeSystem, "Passkey 安全验证成功", otherParam)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

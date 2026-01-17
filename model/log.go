@@ -52,6 +52,7 @@ const (
 	LogTypeError
 	LogTypeRefund
 	LogTypeArchive
+	LogTypeErrorForAdmin
 )
 
 func formatUserLogs(logs []*Log) {
@@ -85,7 +86,7 @@ func GetLogByKey(key string) (logs []*Log, err error) {
 	return logs, err
 }
 
-func RecordLog(userId int, logType int, content string) {
+func RecordLog(userId int, logType int, content string, other map[string]interface{}) {
 	if logType == LogTypeConsume && !common.LogConsumeEnabled {
 		return
 	}
@@ -96,6 +97,11 @@ func RecordLog(userId int, logType int, content string) {
 		CreatedAt: common.GetTimestamp(),
 		Type:      logType,
 		Content:   content,
+	}
+	if other != nil {
+		if other["RequestIp"] != "" {
+			log.RequestIp = other["RequestIp"].(string)
+		}
 	}
 	err := LOG_DB.Create(log).Error
 	if err != nil {
@@ -115,11 +121,17 @@ func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string,
 			needRecordIp = true
 		}
 	}
+
+	logType := LogTypeError
+	if other["LogType"] != nil {
+		logType = other["LogType"].(int)
+	}
+
 	log := &Log{
 		UserId:           userId,
 		Username:         username,
 		CreatedAt:        common.GetTimestamp(),
-		Type:             LogTypeError,
+		Type:             logType,
 		Content:          content,
 		PromptTokens:     0,
 		CompletionTokens: 0,
@@ -141,6 +153,9 @@ func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string,
 			return c.ClientIP()
 		}(),
 		RequestId: func() string {
+			if other["RequestId"] != nil {
+				return other["RequestId"].(string)
+			}
 			return ""
 		}(),
 		Other: otherStr,
@@ -294,6 +309,7 @@ func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int
 		tx = LOG_DB.Where("logs.user_id = ? and logs.type = ?", userId, logType)
 	}
 
+	tx = LOG_DB.Where("logs.type != ?", LogTypeErrorForAdmin)
 	if modelName != "" {
 		tx = tx.Where("logs.model_name like ?", modelName)
 	}

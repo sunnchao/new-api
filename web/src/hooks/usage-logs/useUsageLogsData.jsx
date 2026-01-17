@@ -349,6 +349,12 @@ export const useLogsData = () => {
           value: other.cache_creation_tokens,
         });
       }
+      if (logs[i].type === 9 || logs[i].type === 6) {
+        expandDataLocal.push({
+          key: t('日志详情'),
+          value: logs[i].content,
+        })
+      }
       if (logs[i].type === 2) {
         expandDataLocal.push({
           key: t('日志详情'),

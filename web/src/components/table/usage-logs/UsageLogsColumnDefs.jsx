@@ -112,6 +112,12 @@ function renderType(type, t) {
             {t('日志归档')}
           </Tag>
       );
+    case 9:
+      return (
+          <Tag color='red' shape='circle'>
+            {t('错误(管理员)')}
+          </Tag>
+      );
     default:
       return (
         <Tag color='grey' shape='circle'>
@@ -283,7 +289,7 @@ export const getLogsColumns = ({
         }
 
         return isAdminUser &&
-          (record.type === 0 || record.type === 2 || record.type === 5) ? (
+          (record.type === 0 || record.type === 2 || record.type === 5 || record.type === 6 || record.type === 9) ? (
           <Space>
             <Tooltip content={record.channel_name || t('未知渠道')}>
               <span>
@@ -488,7 +494,7 @@ export const getLogsColumns = ({
       ),
       dataIndex: 'ip',
       render: (text, record, index) => {
-        return (record.type === 2 || record.type === 5) && (isAdminUser ? record.request_ip : text) ? (
+        return (isAdminUser ? record.request_ip : text) ? (
           <Tooltip content={(isAdminUser ? record.request_ip : text)}>
             <span>
               <Tag
