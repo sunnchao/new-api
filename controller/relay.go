@@ -89,7 +89,10 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			newAPIError.SetMessage(common.MessageWithRequestId(newAPIError.Error(), requestId))
 
 			other := make(map[string]interface{})
-			other["LogType"] = model.LogTypeErrorForAdmin
+			//if newAPIError.GetErrorCode() == types.ErrorCodeInsufficientUserQuota || newAPIError.GetErrorCode() == types.ErrorCodePreConsumeTokenQuotaFailed {
+			//	logType = model.LogTypeError
+			//}
+			other["errorCode"] = newAPIError.GetErrorCode()
 			other["RequestId"] = requestId
 			model.RecordErrorLog(
 				c,
