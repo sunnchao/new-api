@@ -90,9 +90,27 @@ function renderType(type, t) {
       );
     case 5:
       return (
-        <Tag color='red' shape='circle'>
-          {t('错误')}
+        <Tag color='purple' shape='circle'>
+          {t('签到')}
         </Tag>
+      );
+    case 6:
+      return (
+          <Tag color='red' shape='circle'>
+            {t('错误')}
+          </Tag>
+      )
+    case 7:
+      return (
+          <Tag color='purple' shape='circle'>
+            {t('返现')}
+          </Tag>
+      );
+    case 8:
+      return (
+          <Tag color='red' shape='circle'>
+            {t('日志归档')}
+          </Tag>
       );
     default:
       return (
