@@ -85,6 +85,8 @@ export default function ModelRatioNotSetEditor(props) {
       const modelPrice = JSON.parse(props.options.ModelPrice || '{}');
       const modelRatio = JSON.parse(props.options.ModelRatio || '{}');
       const completionRatio = JSON.parse(props.options.CompletionRatio || '{}');
+      const cacheRatio = JSON.parse(props.options.CacheRatio || '{}');
+      const audioRatio = JSON.parse(props.options.AudioRatio || '{}');
 
       // 找出所有未设置价格和倍率的模型
       const unsetModels = enabledModels.filter((modelName) => {
@@ -101,6 +103,8 @@ export default function ModelRatioNotSetEditor(props) {
         price: modelPrice[name] || '',
         ratio: modelRatio[name] || '',
         completionRatio: completionRatio[name] || '',
+        cacheRatio: cacheRatio[name] || '',
+        audioRatio: audioRatio[name] || '',
       }));
 
       setModels(modelData);
@@ -142,6 +146,8 @@ export default function ModelRatioNotSetEditor(props) {
       ModelPrice: JSON.parse(props.options.ModelPrice || '{}'),
       ModelRatio: JSON.parse(props.options.ModelRatio || '{}'),
       CompletionRatio: JSON.parse(props.options.CompletionRatio || '{}'),
+      CacheRatio: JSON.parse(props.options.CacheRatio || '{}'),
+      AudioRatio: JSON.parse(props.options.AudioRatio || '{}'),
     };
 
     try {
@@ -159,6 +165,10 @@ export default function ModelRatioNotSetEditor(props) {
               model.completionRatio,
             );
         }
+        if (model.cacheRatio !== '')
+          output.CacheRatio[model.name] = parseFloat(model.cacheRatio);
+        if (model.audioRatio !== '')
+          output.AudioRatio[model.name] = parseFloat(model.audioRatio);
       });
 
       // 准备API请求数组
@@ -166,6 +176,8 @@ export default function ModelRatioNotSetEditor(props) {
         ModelPrice: JSON.stringify(output.ModelPrice, null, 2),
         ModelRatio: JSON.stringify(output.ModelRatio, null, 2),
         CompletionRatio: JSON.stringify(output.CompletionRatio, null, 2),
+        CacheRatio: JSON.stringify(output.CacheRatio, null, 2),
+        AudioRatio: JSON.stringify(output.AudioRatio, null, 2),
       };
 
       const requestQueue = Object.entries(finalOutput).map(([key, value]) => {
@@ -252,6 +264,32 @@ export default function ModelRatioNotSetEditor(props) {
         />
       ),
     },
+    {
+      title: t('缓存倍率'),
+      dataIndex: 'cacheRatio',
+      key: 'cacheRatio',
+      render: (text, record) => (
+        <Input
+          value={text}
+          placeholder={record.price !== '' ? t('缓存倍率') : t('输入缓存倍率')}
+          disabled={record.price !== ''}
+          onChange={(value) => updateModel(record.name, 'cacheRatio', value)}
+        />
+      ),
+    },
+    {
+      title: t('音频倍率'),
+      dataIndex: 'audioRatio',
+      key: 'audioRatio',
+      render: (text, record) => (
+        <Input
+          value={text}
+          placeholder={record.price !== '' ? t('音频倍率') : t('输入音频倍率')}
+          disabled={record.price !== ''}
+          onChange={(value) => updateModel(record.name, 'audioRatio', value)}
+        />
+      ),
+    },
   ];
 
   const updateModel = (name, field, value) => {
@@ -278,6 +316,8 @@ export default function ModelRatioNotSetEditor(props) {
         price: values.price || '',
         ratio: values.ratio || '',
         completionRatio: values.completionRatio || '',
+        cacheRatio: values.cacheRatio || '',
+        audioRatio: values.audioRatio || '',
       },
       ...prev,
     ]);
@@ -322,18 +362,44 @@ export default function ModelRatioNotSetEditor(props) {
               price: batchFillValue,
               ratio: '',
               completionRatio: '',
+              cacheRatio: '',
+              audioRatio: '',
             };
           } else if (batchFillType === 'ratio') {
             return {
               ...model,
               price: '',
               ratio: batchFillValue,
+              completionRatio: model.completionRatio,
+              cacheRatio: model.cacheRatio,
+              audioRatio: model.audioRatio,
             };
           } else if (batchFillType === 'completionRatio') {
             return {
               ...model,
               price: '',
+              ratio: model.ratio,
               completionRatio: batchFillValue,
+              cacheRatio: model.cacheRatio,
+              audioRatio: model.audioRatio,
+            };
+          } else if (batchFillType === 'cacheRatio') {
+            return {
+              ...model,
+              price: '',
+              ratio: model.ratio,
+              completionRatio: model.completionRatio,
+              cacheRatio: batchFillValue,
+              audioRatio: model.audioRatio,
+            };
+          } else if (batchFillType === 'audioRatio') {
+            return {
+              ...model,
+              price: '',
+              ratio: model.ratio,
+              completionRatio: model.completionRatio,
+              cacheRatio: model.cacheRatio,
+              audioRatio: batchFillValue,
             };
           } else if (batchFillType === 'bothRatio') {
             return {
@@ -341,6 +407,8 @@ export default function ModelRatioNotSetEditor(props) {
               price: '',
               ratio: batchRatioValue,
               completionRatio: batchCompletionRatioValue,
+              cacheRatio: model.cacheRatio,
+              audioRatio: model.audioRatio,
             };
           }
         }
@@ -360,7 +428,11 @@ export default function ModelRatioNotSetEditor(props) {
               ? t('模型倍率')
               : batchFillType === 'completionRatio'
                 ? t('补全倍率')
-                : t('模型倍率和补全倍率'),
+                : batchFillType === 'cacheRatio'
+                  ? t('缓存倍率')
+                  : batchFillType === 'audioRatio'
+                    ? t('音频倍率')
+                    : t('模型倍率和补全倍率'),
       }),
       duration: 3,
     });
@@ -481,6 +553,8 @@ export default function ModelRatioNotSetEditor(props) {
                 price: '',
                 ratio: '',
                 completionRatio: '',
+                cacheRatio: '',
+                audioRatio: '',
                 priceMode: checked,
               }));
             }}
@@ -512,6 +586,28 @@ export default function ModelRatioNotSetEditor(props) {
                   setCurrentModel((prev) => ({
                     ...prev,
                     completionRatio: value,
+                  }))
+                }
+              />
+              <Form.Input
+                field='cacheRatio'
+                label={t('缓存倍率')}
+                placeholder={t('缓存倍率')}
+                onChange={(value) =>
+                  setCurrentModel((prev) => ({
+                    ...prev,
+                    cacheRatio: value,
+                  }))
+                }
+              />
+              <Form.Input
+                field='audioRatio'
+                label={t('音频倍率')}
+                placeholder={t('音频倍率')}
+                onChange={(value) =>
+                  setCurrentModel((prev) => ({
+                    ...prev,
+                    audioRatio: value,
                   }))
                 }
               />
@@ -551,6 +647,18 @@ export default function ModelRatioNotSetEditor(props) {
                   {t('补全倍率')}
                 </Radio>
                 <Radio
+                  checked={batchFillType === 'cacheRatio'}
+                  onChange={() => handleBatchTypeChange('cacheRatio')}
+                >
+                  {t('缓存倍率')}
+                </Radio>
+                <Radio
+                  checked={batchFillType === 'audioRatio'}
+                  onChange={() => handleBatchTypeChange('audioRatio')}
+                >
+                  {t('音频倍率')}
+                </Radio>
+                <Radio
                   checked={batchFillType === 'bothRatio'}
                   onChange={() => handleBatchTypeChange('bothRatio')}
                 >
@@ -585,7 +693,13 @@ export default function ModelRatioNotSetEditor(props) {
                   ? t('固定价格值')
                   : batchFillType === 'ratio'
                     ? t('模型倍率值')
-                    : t('补全倍率值')
+                    : batchFillType === 'completionRatio'
+                      ? t('补全倍率值')
+                      : batchFillType === 'cacheRatio'
+                        ? t('缓存倍率值')
+                        : batchFillType === 'audioRatio'
+                          ? t('音频倍率值')
+                          : t('补全倍率值')
               }
               placeholder={t('请输入数值')}
               value={batchFillValue}
@@ -607,7 +721,11 @@ export default function ModelRatioNotSetEditor(props) {
                     ? t('模型倍率')
                     : batchFillType === 'completionRatio'
                       ? t('补全倍率')
-                      : t('模型倍率和补全倍率')}
+                      : batchFillType === 'cacheRatio'
+                        ? t('缓存倍率')
+                        : batchFillType === 'audioRatio'
+                          ? t('音频倍率')
+                          : t('模型倍率和补全倍率')}
               </Text>
             </Text>
           </div>

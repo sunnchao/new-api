@@ -61,12 +61,16 @@ export default function ModelSettingsVisualEditor(props) {
       const modelPrice = JSON.parse(props.options.ModelPrice || '{}');
       const modelRatio = JSON.parse(props.options.ModelRatio || '{}');
       const completionRatio = JSON.parse(props.options.CompletionRatio || '{}');
+      const cacheRatio = JSON.parse(props.options.CacheRatio || '{}');
+      const audioRatio = JSON.parse(props.options.AudioRatio || '{}');
 
       // 合并所有模型名称
       const modelNames = new Set([
         ...Object.keys(modelPrice),
         ...Object.keys(modelRatio),
         ...Object.keys(completionRatio),
+        ...Object.keys(cacheRatio),
+        ...Object.keys(audioRatio),
       ]);
 
       const modelData = Array.from(modelNames).map((name) => {
@@ -74,12 +78,18 @@ export default function ModelSettingsVisualEditor(props) {
         const ratio = modelRatio[name] === undefined ? '' : modelRatio[name];
         const comp =
           completionRatio[name] === undefined ? '' : completionRatio[name];
+        const cache =
+          cacheRatio[name] === undefined ? '' : cacheRatio[name];
+        const audio =
+          audioRatio[name] === undefined ? '' : audioRatio[name];
 
         return {
           name,
           price,
           ratio,
           completionRatio: comp,
+          cacheRatio: cache,
+          audioRatio: audio,
           hasConflict: price !== '' && (ratio !== '' || comp !== ''),
         };
       });
@@ -113,6 +123,8 @@ export default function ModelSettingsVisualEditor(props) {
       ModelPrice: {},
       ModelRatio: {},
       CompletionRatio: {},
+      CacheRatio: {},
+      AudioRatio: {},
     };
     let currentConvertModelName = '';
 
@@ -131,6 +143,10 @@ export default function ModelSettingsVisualEditor(props) {
               model.completionRatio,
             );
         }
+        if (model.cacheRatio !== '')
+          output.CacheRatio[model.name] = parseFloat(model.cacheRatio);
+        if (model.audioRatio !== '')
+          output.AudioRatio[model.name] = parseFloat(model.audioRatio);
       });
 
       // 准备API请求数组
@@ -138,6 +154,8 @@ export default function ModelSettingsVisualEditor(props) {
         ModelPrice: JSON.stringify(output.ModelPrice, null, 2),
         ModelRatio: JSON.stringify(output.ModelRatio, null, 2),
         CompletionRatio: JSON.stringify(output.CompletionRatio, null, 2),
+        CacheRatio: JSON.stringify(output.CacheRatio, null, 2),
+        AudioRatio: JSON.stringify(output.AudioRatio, null, 2),
       };
 
       const requestQueue = Object.entries(finalOutput).map(([key, value]) => {
@@ -229,6 +247,32 @@ export default function ModelSettingsVisualEditor(props) {
           onChange={(value) =>
             updateModel(record.name, 'completionRatio', value)
           }
+        />
+      ),
+    },
+    {
+      title: t('缓存倍率'),
+      dataIndex: 'cacheRatio',
+      key: 'cacheRatio',
+      render: (text, record) => (
+        <Input
+          value={text}
+          placeholder={record.price !== '' ? t('缓存倍率') : t('默认缓存倍率')}
+          disabled={record.price !== ''}
+          onChange={(value) => updateModel(record.name, 'cacheRatio', value)}
+        />
+      ),
+    },
+    {
+      title: t('音频倍率'),
+      dataIndex: 'audioRatio',
+      key: 'audioRatio',
+      render: (text, record) => (
+        <Input
+          value={text}
+          placeholder={record.price !== '' ? t('音频倍率') : t('默认音频倍率')}
+          disabled={record.price !== ''}
+          onChange={(value) => updateModel(record.name, 'audioRatio', value)}
         />
       ),
     },
@@ -347,6 +391,8 @@ export default function ModelSettingsVisualEditor(props) {
             price: values.price || '',
             ratio: values.ratio || '',
             completionRatio: values.completionRatio || '',
+            cacheRatio: values.cacheRatio || '',
+            audioRatio: values.audioRatio || '',
           };
           updated.hasConflict =
             updated.price !== '' &&
@@ -370,6 +416,8 @@ export default function ModelSettingsVisualEditor(props) {
           price: values.price || '',
           ratio: values.ratio || '',
           completionRatio: values.completionRatio || '',
+          cacheRatio: values.cacheRatio || '',
+          audioRatio: values.audioRatio || '',
         };
         newModel.hasConflict =
           newModel.price !== '' &&
@@ -444,6 +492,8 @@ export default function ModelSettingsVisualEditor(props) {
         } else if (initialPricingMode === 'per-token') {
           formValues.ratioInput = modelCopy.ratio;
           formValues.completionRatioInput = modelCopy.completionRatio;
+          formValues.cacheRatioInput = modelCopy.cacheRatio;
+          formValues.audioRatioInput = modelCopy.audioRatio;
           formValues.modelTokenPrice = modelCopy.tokenPrice;
           formValues.completionTokenPrice = modelCopy.completionTokenPrice;
         }
@@ -593,6 +643,10 @@ export default function ModelSettingsVisualEditor(props) {
                         formValues.ratioInput = updatedModel.ratio || '';
                         formValues.completionRatioInput =
                           updatedModel.completionRatio || '';
+                        formValues.cacheRatioInput =
+                          updatedModel.cacheRatio || '';
+                        formValues.audioRatioInput =
+                          updatedModel.audioRatio || '';
                         formValues.modelTokenPrice =
                           updatedModel.tokenPrice || '';
                         formValues.completionTokenPrice =
@@ -662,6 +716,10 @@ export default function ModelSettingsVisualEditor(props) {
                             formValues.ratioInput = updatedModel.ratio || '';
                             formValues.completionRatioInput =
                               updatedModel.completionRatio || '';
+                            formValues.cacheRatioInput =
+                              updatedModel.cacheRatio || '';
+                            formValues.audioRatioInput =
+                              updatedModel.audioRatio || '';
                           } else if (newSubMode === 'token-price') {
                             formValues.modelTokenPrice =
                               updatedModel.tokenPrice || '';
@@ -707,6 +765,30 @@ export default function ModelSettingsVisualEditor(props) {
                       }))
                     }
                     initValue={currentModel?.completionRatio || ''}
+                  />
+                  <Form.Input
+                    field='cacheRatioInput'
+                    label={t('缓存倍率')}
+                    placeholder={t('输入缓存倍率')}
+                    onChange={(value) =>
+                      setCurrentModel((prev) => ({
+                        ...(prev || {}),
+                        cacheRatio: value,
+                      }))
+                    }
+                    initValue={currentModel?.cacheRatio || ''}
+                  />
+                  <Form.Input
+                    field='audioRatioInput'
+                    label={t('音频倍率')}
+                    placeholder={t('输入音频倍率')}
+                    onChange={(value) =>
+                      setCurrentModel((prev) => ({
+                        ...(prev || {}),
+                        audioRatio: value,
+                      }))
+                    }
+                    initValue={currentModel?.audioRatio || ''}
                   />
                 </>
               )}
