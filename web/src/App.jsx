@@ -50,6 +50,11 @@ import OAuth2Callback from './components/auth/OAuth2Callback';
 import PersonalSetting from './components/settings/PersonalSetting';
 import Setup from './pages/Setup';
 import SetupCheck from './components/layout/SetupCheck';
+import ClaudeCodeTutorial from './pages/ClaudeCode';
+import CodexCodeTutorial from './pages/CodexCode';
+import GeminiCodeTutorial from './pages/GeminiCode';
+import ClaudeCodeAdmin from './pages/ClaudeCode/Admin';
+import ClaudeCodeSubscription from './pages/ClaudeCode/Subscription';
 
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -373,6 +378,50 @@ function App() {
             <PrivateRoute>
               <Suspense fallback={<Loading></Loading>} key={location.pathname}>
                 <Chat2Link />
+              </Suspense>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path='/vibecoding/claude'
+          element={
+            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <ClaudeCodeTutorial />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/vibecoding/codex'
+          element={
+            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <CodexCodeTutorial />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/vibecoding/gemini'
+          element={
+            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <GeminiCodeTutorial />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/vibecoding/claude/admin'
+          element={
+            <AdminRoute>
+              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+                <ClaudeCodeAdmin />
+              </Suspense>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path='/vibecoding/claude/subscription'
+          element={
+            <PrivateRoute>
+              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+                <ClaudeCodeSubscription />
               </Suspense>
             </PrivateRoute>
           }

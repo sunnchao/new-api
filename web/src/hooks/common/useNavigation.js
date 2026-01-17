@@ -26,6 +26,7 @@ export const useNavigation = (t, docsLink, headerNavModules) => {
       home: true,
       console: true,
       pricing: true,
+      vibecoding: true,
       docs: true,
       about: true,
     };
@@ -48,6 +49,27 @@ export const useNavigation = (t, docsLink, headerNavModules) => {
         text: t('模型广场'),
         itemKey: 'pricing',
         to: '/pricing',
+      },
+      {
+        text: 'VibeCoding',
+        itemKey: 'vibecoding',
+        items: [
+          {
+            itemKey: 'vibecoding-claude',
+            text: 'Claude Code',
+            to: '/vibecoding/claude',
+          },
+          {
+            itemKey: 'vibecoding-codex',
+            text: 'Codex Code',
+            to: '/vibecoding/codex',
+          },
+          {
+            itemKey: 'vibecoding-gemini',
+            text: 'Gemini Code',
+            to: '/vibecoding/gemini',
+          },
+        ],
       },
       ...(docsLink
         ? [
@@ -72,10 +94,12 @@ export const useNavigation = (t, docsLink, headerNavModules) => {
         return docsLink && modules.docs;
       }
       if (link.itemKey === 'pricing') {
-        // 支持新的pricing配置格式
         return typeof modules.pricing === 'object'
           ? modules.pricing.enabled
           : modules.pricing;
+      }
+      if (link.itemKey === 'vibecoding') {
+        return modules.vibecoding !== false;
       }
       return modules[link.itemKey] === true;
     });

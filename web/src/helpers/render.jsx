@@ -75,6 +75,8 @@ import {
   CircleUser,
   Package,
   Server,
+  Code2,
+  Sparkles,
 } from 'lucide-react';
 
 // 获取侧边栏Lucide图标组件
@@ -120,6 +122,14 @@ export function getLucideIcon(key, selected = false) {
       return <Server {...commonProps} color={iconColor} />;
     case 'setting':
       return <Settings {...commonProps} color={iconColor} />;
+    case 'vibecoding':
+      return <Code2 {...commonProps} color={iconColor} />;
+    case 'vibecoding-claude':
+      return <Code2 {...commonProps} color={iconColor} />;
+    case 'vibecoding-codex':
+      return <Code2 {...commonProps} color={iconColor} />;
+    case 'vibecoding-gemini':
+      return <Sparkles {...commonProps} color={iconColor} />;
     default:
       return <CircleUser {...commonProps} color={iconColor} />;
   }

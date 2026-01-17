@@ -19,6 +19,8 @@ For commercial licensing, please contact support@quantumnous.com
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Dropdown } from '@douyinfe/semi-ui';
+import { ChevronDown } from 'lucide-react';
 import SkeletonWrapper from '../components/SkeletonWrapper';
 
 const Navigation = ({
@@ -38,6 +40,32 @@ const Navigation = ({
 
     return mainNavLinks.map((link) => {
       const linkContent = <span>{link.text}</span>;
+
+      if (link.items && link.items.length > 0) {
+        return (
+          <Dropdown
+            key={link.itemKey}
+            trigger='hover'
+            position='bottomLeft'
+            render={
+              <Dropdown.Menu>
+                {link.items.map((item) => (
+                  <Dropdown.Item key={item.itemKey}>
+                    <Link to={item.to} className='block w-full'>
+                      {item.text}
+                    </Link>
+                  </Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            }
+          >
+            <div className={`${commonLinkClasses} cursor-pointer`}>
+              {linkContent}
+              <ChevronDown size={16} />
+            </div>
+          </Dropdown>
+        );
+      }
 
       if (link.isExternal) {
         return (
