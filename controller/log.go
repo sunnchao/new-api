@@ -160,8 +160,8 @@ func DeleteHistoryLogs(c *gin.Context) {
 		})
 		return
 	}
-	//count, err := model.DeleteOldLog(c.Request.Context(), targetTimestamp, 100)
-	count, err := model.DeleteOldLogByGroupByUser(c.Request.Context(), targetTimestamp)
+	count, err := model.DeleteOldLog(c.Request.Context(), targetTimestamp, 100)
+	//count, err := model.DeleteOldLogByGroupByUser(c.Request.Context(), targetTimestamp)
 	if err != nil {
 		common.ApiError(c, err)
 		return

@@ -428,3 +428,66 @@ func DeleteOldLog(ctx context.Context, targetTimestamp int64, limit int) (int64,
 
 	return total, nil
 }
+
+// DeleteOldLogByGroupByUser
+// 1. 按照用户分组查询日志
+// 2. 记录归档日志
+// 3. 按照用户分组删除日志
+func DeleteOldLogByGroupByUser(ctx context.Context, targetTimestamp int64) (int64, error) {
+	type UserLogSummary struct {
+		UserId     int   `gorm:"-"`
+		LogCount   int64 `gorm:"-"`
+		TotalQuota int64 `gorm:"-"`
+	}
+
+	var userLogSummaries []UserLogSummary
+	// 使用 Table 明确指定查询 logs 表，避免 GORM 尝试映射到其他表
+	err := LOG_DB.Table("logs").
+		Select("user_id, COUNT(*) as log_count, SUM(quota) as total_quota").
+		Where("type = ? AND created_at < ?", LogTypeConsume, targetTimestamp).
+		Group("user_id").
+		Scan(&userLogSummaries).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	var totalRowsAffected int64 = 0
+
+	// 按照用户分组删除日志
+	for _, summary := range userLogSummaries {
+		if nil != ctx.Err() {
+			return totalRowsAffected, ctx.Err()
+		}
+
+		result := LOG_DB.Where("user_id = ? AND type = ? AND created_at < ?",
+			summary.UserId, LogTypeConsume, targetTimestamp).Delete(&Log{})
+
+		if result.Error != nil {
+			return totalRowsAffected, result.Error
+		}
+
+		totalRowsAffected += result.RowsAffected
+	}
+
+	// 记录归档日志
+	for _, summary := range userLogSummaries {
+		formattedTime := time.Unix(targetTimestamp, 0).Format("2006-01-02 15:04:05")
+
+		archiveContent := fmt.Sprintf("归档截止到 %s 的 %d 条日志，共计 %d 额度",
+			formattedTime, summary.LogCount, summary.TotalQuota)
+
+		archiveLog := &Log{
+			UserId:    summary.UserId,
+			CreatedAt: common.GetTimestamp(),
+			Type:      LogTypeArchive,
+			Content:   archiveContent,
+		}
+
+		if err := LOG_DB.Create(archiveLog).Error; err != nil {
+			logger.LogError(ctx, "failed to record archive log: "+err.Error())
+		}
+	}
+
+	return totalRowsAffected, nil
+}
