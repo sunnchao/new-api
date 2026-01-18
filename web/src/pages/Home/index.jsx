@@ -24,6 +24,9 @@ import {
   Input,
   ScrollList,
   ScrollItem,
+  Card,
+  Row,
+  Col,
 } from '@douyinfe/semi-ui';
 import { API, showError, copy, showSuccess } from '../../helpers';
 import { useIsMobile } from '../../hooks/common/useIsMobile';
@@ -351,133 +354,190 @@ const Home = () => {
                 </p>
               </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8'>
-                <Link to='/claude-code' className='block group'>
-                  <div className='h-full bg-semi-color-fill-0 border border-semi-color-border rounded-2xl p-6 hover:shadow-xl hover:border-semi-color-primary hover:-translate-y-1 transition-all duration-300'>
-                    <div className='flex items-center justify-between mb-4'>
-                      <span className='px-3 py-1 rounded-full bg-semi-color-fill-1 text-xs text-semi-color-text-2'>
-                        {t('终端集成 · 结对编程')}
-                      </span>
-                      <span className='px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-xs font-medium dark:bg-purple-900/30 dark:text-purple-300'>
-                        Anthropic
-                      </span>
-                    </div>
-                    <h3 className='text-xl md:text-2xl font-bold text-semi-color-text-0 mb-4 group-hover:text-semi-color-primary transition-colors'>
-                      Claude Code
-                    </h3>
-                    <ul className='space-y-3'>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('Claude Opus 4.5 驱动')}
-                      </li>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('深度理解代码上下文')}
-                      </li>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('智能调试与文档生成')}
-                      </li>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('全平台 CLI 支持')}
-                      </li>
-                    </ul>
-                  </div>
-                </Link>
+              <Row gutter={[24, 24]} className='mt-8'>
+                <Col span={24} md={8}>
+                  <Link to='/claude-code' className='block h-full group'>
+                    <Card
+                      shadows='hover'
+                      className='h-full !rounded-2xl border-2 hover:border-purple-400 dark:hover:border-purple-600 transition-all duration-300 !bg-white dark:!bg-semi-color-fill-0'
+                      bodyStyle={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}
+                    >
+                      <div className='flex items-center justify-between mb-6'>
+                         <div className='p-3 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300'>
+                            <svg className='w-6 h-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' />
+                            </svg>
+                         </div>
+                        <span className='px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-xs font-bold dark:bg-purple-900/30 dark:text-purple-300'>
+                          Anthropic
+                        </span>
+                      </div>
+                      <h3 className='text-xl md:text-2xl font-bold text-semi-color-text-0 mb-2 group-hover:text-purple-600 transition-colors'>
+                        Claude Code
+                      </h3>
+                      <p className='text-sm text-semi-color-text-2 mb-6 min-h-[40px]'>
+                        {t('终端集成 · 结对编程 · 深度理解')}
+                      </p>
+                      <ul className='space-y-3 mt-auto'>
+                        <li className='text-sm text-semi-color-text-1 flex items-start'>
+                          <div className='w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-purple-600 dark:text-purple-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('Claude Opus 4.5 驱动')}
+                        </li>
+                        <li className='text-sm text-semi-color-text-1 flex items-start'>
+                          <div className='w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-purple-600 dark:text-purple-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('深度理解代码上下文')}
+                        </li>
+                        <li className='text-sm text-semi-color-text-1 flex items-start'>
+                           <div className='w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-purple-600 dark:text-purple-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('智能调试与文档生成')}
+                        </li>
+                         <li className='text-sm text-semi-color-text-1 flex items-start'>
+                           <div className='w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-purple-600 dark:text-purple-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('全平台 CLI 支持')}
+                        </li>
+                      </ul>
+                    </Card>
+                  </Link>
+                </Col>
 
-                <Link to='/codex-code' className='block group'>
-                  <div className='h-full bg-semi-color-fill-0 border border-semi-color-border rounded-2xl p-6 hover:shadow-xl hover:border-semi-color-primary hover:-translate-y-1 transition-all duration-300'>
-                    <div className='flex items-center justify-between mb-4'>
-                      <span className='px-3 py-1 rounded-full bg-semi-color-fill-1 text-xs text-semi-color-text-2'>
-                        {t('企业级 · 智能重构')}
-                      </span>
-                      <span className='px-3 py-1 rounded-full bg-green-50 text-green-600 text-xs font-medium dark:bg-green-900/30 dark:text-green-300'>
-                        OpenAI
-                      </span>
-                    </div>
-                    <h3 className='text-xl md:text-2xl font-bold text-semi-color-text-0 mb-4 group-hover:text-semi-color-primary transition-colors'>
-                      Codex CLI
-                    </h3>
-                    <ul className='space-y-3'>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('GPT 5.2驱动')}
-                      </li>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('实时联网能力')}
-                      </li>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('智能代码重构')}
-                      </li>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('VSCode 深度集成')}
-                      </li>
-                    </ul>
-                  </div>
-                </Link>
+                <Col span={24} md={8}>
+                  <Link to='/codex-code' className='block h-full group'>
+                    <Card
+                      shadows='hover'
+                      className='h-full !rounded-2xl border-2 hover:border-green-400 dark:hover:border-green-600 transition-all duration-300 !bg-white dark:!bg-semi-color-fill-0'
+                      bodyStyle={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}
+                    >
+                      <div className='flex items-center justify-between mb-6'>
+                         <div className='p-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300'>
+                            <svg className='w-6 h-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                               <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z' />
+                            </svg>
+                         </div>
+                        <span className='px-3 py-1 rounded-full bg-green-50 text-green-600 text-xs font-bold dark:bg-green-900/30 dark:text-green-300'>
+                          OpenAI
+                        </span>
+                      </div>
+                      <h3 className='text-xl md:text-2xl font-bold text-semi-color-text-0 mb-2 group-hover:text-green-600 transition-colors'>
+                        Codex CLI
+                      </h3>
+                      <p className='text-sm text-semi-color-text-2 mb-6 min-h-[40px]'>
+                        {t('企业级 · 智能重构 · 实时联网')}
+                      </p>
+                      <ul className='space-y-3 mt-auto'>
+                        <li className='text-sm text-semi-color-text-1 flex items-start'>
+                           <div className='w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-green-600 dark:text-green-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('GPT 5.2驱动')}
+                        </li>
+                        <li className='text-sm text-semi-color-text-1 flex items-start'>
+                           <div className='w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-green-600 dark:text-green-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('实时联网能力')}
+                        </li>
+                        <li className='text-sm text-semi-color-text-1 flex items-start'>
+                           <div className='w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-green-600 dark:text-green-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('智能代码重构')}
+                        </li>
+                         <li className='text-sm text-semi-color-text-1 flex items-start'>
+                           <div className='w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-green-600 dark:text-green-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('VSCode 深度集成')}
+                        </li>
+                      </ul>
+                    </Card>
+                  </Link>
+                </Col>
 
-                <Link to='/gemini-code' className='block group'>
-                  <div className='h-full bg-semi-color-fill-0 border border-semi-color-border rounded-2xl p-6 hover:shadow-xl hover:border-semi-color-primary hover:-translate-y-1 transition-all duration-300'>
-                    <div className='flex items-center justify-between mb-4'>
-                      <span className='px-3 py-1 rounded-full bg-semi-color-fill-1 text-xs text-semi-color-text-2'>
-                        {t('超大上下文 · Agent模式')}
-                      </span>
-                      <span className='px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-medium dark:bg-blue-900/30 dark:text-blue-300'>
-                        Google
-                      </span>
-                    </div>
-                    <h3 className='text-xl md:text-2xl font-bold text-semi-color-text-0 mb-4 group-hover:text-semi-color-primary transition-colors'>
-                      Gemini CLI
-                    </h3>
-                    <ul className='space-y-3'>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('1M tokens 超大上下文')}
-                      </li>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('Agent Mode 自动规划')}
-                      </li>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('内置 Google Search')}
-                      </li>
-                      <li className='text-sm text-semi-color-text-1 flex items-start'>
-                        <svg className='w-4 h-4 text-semi-color-primary mr-2 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
-                          <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
-                        </svg>
-                        {t('多模态输入支持')}
-                      </li>
-                    </ul>
-                  </div>
-                </Link>
-              </div>
+                <Col span={24} md={8}>
+                  <Link to='/gemini-code' className='block h-full group'>
+                    <Card
+                      shadows='hover'
+                      className='h-full !rounded-2xl border-2 hover:border-blue-400 dark:hover:border-blue-600 transition-all duration-300 !bg-white dark:!bg-semi-color-fill-0'
+                      bodyStyle={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}
+                    >
+                      <div className='flex items-center justify-between mb-6'>
+                         <div className='p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300'>
+                            <svg className='w-6 h-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                               <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M13 10V3L4 14h7v7l9-11h-7z' />
+                            </svg>
+                         </div>
+                        <span className='px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-300'>
+                          Google
+                        </span>
+                      </div>
+                      <h3 className='text-xl md:text-2xl font-bold text-semi-color-text-0 mb-2 group-hover:text-blue-600 transition-colors'>
+                        Gemini CLI
+                      </h3>
+                      <p className='text-sm text-semi-color-text-2 mb-6 min-h-[40px]'>
+                        {t('超大上下文 · Agent模式 · 多模态')}
+                      </p>
+                      <ul className='space-y-3 mt-auto'>
+                        <li className='text-sm text-semi-color-text-1 flex items-start'>
+                           <div className='w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-blue-600 dark:text-blue-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('1M tokens 超大上下文')}
+                        </li>
+                        <li className='text-sm text-semi-color-text-1 flex items-start'>
+                           <div className='w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-blue-600 dark:text-blue-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('Agent Mode 自动规划')}
+                        </li>
+                        <li className='text-sm text-semi-color-text-1 flex items-start'>
+                           <div className='w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-blue-600 dark:text-blue-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('内置 Google Search')}
+                        </li>
+                        <li className='text-sm text-semi-color-text-1 flex items-start'>
+                           <div className='w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3 mt-0.5'>
+                            <svg className='w-3 h-3 text-blue-600 dark:text-blue-400' fill='currentColor' viewBox='0 0 20 20'>
+                               <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                            </svg>
+                          </div>
+                          {t('多模态输入支持')}
+                        </li>
+                      </ul>
+                    </Card>
+                  </Link>
+                </Col>
+              </Row>
             </div>
           </div>
 

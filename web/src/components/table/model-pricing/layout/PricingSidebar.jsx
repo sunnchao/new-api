@@ -113,14 +113,14 @@ const PricingSidebar = ({
         t={t}
       />
 
-      <PricingTags
-        filterTag={filterTag}
-        setFilterTag={setFilterTag}
-        models={tagModels}
-        allModels={categoryProps.models}
-        loading={loading}
-        t={t}
-      />
+      {/*<PricingTags*/}
+      {/*  filterTag={filterTag}*/}
+      {/*  setFilterTag={setFilterTag}*/}
+      {/*  models={tagModels}*/}
+      {/*  allModels={categoryProps.models}*/}
+      {/*  loading={loading}*/}
+      {/*  t={t}*/}
+      {/*/>*/}
 
       <PricingGroups
         filterGroup={filterGroup}
