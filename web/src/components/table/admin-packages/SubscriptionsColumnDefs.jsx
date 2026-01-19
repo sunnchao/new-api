@@ -30,69 +30,69 @@ export const getSubscriptionsColumns = ({
   handleCancelSubscription,
   handleDeleteSubscription,
 }) => [
-  {
-    title: t('用户'),
-    render: (_, record) =>
-      record?.user?.email || record?.user?.username || record?.user_id || '-',
-  },
-  // {
-  //   title: t('可重置次数'),
-  //   render: (_, record) => (
-  //     <InputNumber
-  //       min={0}
-  //       size='small'
-  //       value={record.reset_quota_limit ?? 1}
-  //       disabled={resetLimitSavingId === record.id}
-  //       onChange={(value) => handleUpdateResetLimit(record, value)}
-  //       style={{ width: 120 }}
-  //       placeholder={t('可重置次数')}
-  //     />
-  //   ),
-  // },
-  {
-    title: t('套餐'),
-    render: (_, record) => record?.package_plan?.type || record?.plan_type || '-',
-  },
-  {
-    title: t('状态'),
-    dataIndex: 'status',
-    render: (status) => {
-      const statusInfo = statusMap[status] || statusMap.pending;
-      return <Tag color={statusInfo.color}>{t(statusInfo.label)}</Tag>;
+    {
+      title: t('用户'),
+      render: (_, record) =>
+        record?.user?.email || record?.user?.username || record?.user_id || '-',
     },
-  },
-  {
-    title: t('额度'),
-    render: (_, record) =>
-      `${renderQuota(record.remain_quota)} / ${renderQuota(record.total_quota)}`,
-  },
-  {
-    title: t('开始时间'),
-    dataIndex: 'start_time',
-    render: formatDate,
-  },
-  {
-    title: t('结束时间'),
-    dataIndex: 'end_time',
-    render: formatDate,
-  },
-  {
-    title: t('操作'),
-    dataIndex: 'operate',
-    fixed: 'right',
-    render: (_, record) => (
-      <Space>
-        <Button
-          type='danger'
-          disabled={record.status === 'expired' || record.status === 'cancelled'}
-          onClick={() => handleCancelSubscription(record)}
-        >
-          {t('取消')}
-        </Button>
-        <Button type='danger' onClick={() => handleDeleteSubscription(record)}>
-          {t('删除')}
-        </Button>
-      </Space>
-    ),
-  },
-];
+    // {
+    //   title: t('可重置次数'),
+    //   render: (_, record) => (
+    //     <InputNumber
+    //       min={0}
+    //       size='small'
+    //       value={record.reset_quota_limit ?? 1}
+    //       disabled={resetLimitSavingId === record.id}
+    //       onChange={(value) => handleUpdateResetLimit(record, value)}
+    //       style={{ width: 120 }}
+    //       placeholder={t('可重置次数')}
+    //     />
+    //   ),
+    // },
+    {
+      title: t('套餐'),
+      render: (_, record) => record?.package_plan?.type || record?.plan_type || '-',
+    },
+    {
+      title: t('状态'),
+      dataIndex: 'status',
+      render: (status) => {
+        const statusInfo = statusMap[status] || statusMap.pending;
+        return <Tag color={statusInfo.color}>{statusInfo.label}</Tag>;
+      },
+    },
+    {
+      title: t('额度'),
+      render: (_, record) =>
+        `${renderQuota(record.remain_quota)} / ${renderQuota(record.total_quota)}`,
+    },
+    {
+      title: t('开始时间'),
+      dataIndex: 'start_time',
+      render: formatDate,
+    },
+    {
+      title: t('结束时间'),
+      dataIndex: 'end_time',
+      render: formatDate,
+    },
+    {
+      title: t('操作'),
+      dataIndex: 'operate',
+      fixed: 'right',
+      render: (_, record) => (
+        <Space>
+          <Button
+            type='danger'
+            disabled={record.status === 'expired' || record.status === 'cancelled'}
+            onClick={() => handleCancelSubscription(record)}
+          >
+            {t('取消')}
+          </Button>
+          <Button type='danger' onClick={() => handleDeleteSubscription(record)}>
+            {t('删除')}
+          </Button>
+        </Space>
+      ),
+    },
+  ];

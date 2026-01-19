@@ -483,6 +483,8 @@ func GetSelf(c *gin.Context) {
 		"sidebar_modules":   userSetting.SidebarModules, // 正确提取sidebar_modules字段
 		"permissions":       permissions,                // 新增权限字段
 		"avatar_url":        user.AvatarUrl,
+		"last_login_ip":     user.LastLoginIp,
+		"last_login_time":   user.LastLoginTime,
 	}
 
 	c.JSON(http.StatusOK, gin.H{

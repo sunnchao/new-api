@@ -20,45 +20,68 @@ For commercial licensing, please contact support@quantumnous.com
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@douyinfe/semi-ui';
-import {API, renderQuota, showError, showSuccess} from '../../helpers';
+import { API, renderQuota, showError, showSuccess } from '../../helpers';
 import { useIsMobile } from '../common/useIsMobile';
 import { useTableCompactMode } from '../common/useTableCompactMode';
 
-const statusMap = {
+const getStatusMap = (t) => ({
   active: {
-    label: '生效中',
+    label: t('生效中'),
     color: 'green',
   },
   expired: {
-    label: '已过期',
+    label: t('已过期'),
     color: 'grey',
   },
   cancelled: {
-    label: '已取消',
+    label: t('已取消'),
     color: 'orange',
   },
   exhausted: {
-    label: '已耗尽',
+    label: t('已耗尽'),
     color: 'red',
   },
   pending: {
-    label: '待处理',
+    label: t('待处理'),
     color: 'blue',
   },
-};
+});
 
-const formatDate = (timestamp) => {
+const formatDate = (timestamp, language = 'zh') => {
   if (!timestamp) return '-';
   const date = new Date(timestamp * 1000);
-  return date.toLocaleString();
+
+  // 根据语言返回不同的日期格式
+  const localeMap = {
+    zh: 'zh-CN',
+    en: 'en-US',
+    ja: 'ja-JP',
+    fr: 'fr-FR',
+    ru: 'ru-RU',
+    vi: 'vi-VN',
+  };
+
+  const locale = localeMap[language] || 'zh-CN';
+
+  return date.toLocaleString(locale, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
 };
 
 const formatQuotaLimit = (value, t) =>
   value && value > 0 ? renderQuota(value) : t('不限');
 
 export const useAdminPackagesData = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isMobile = useIsMobile();
+  const currentLanguage = i18n.language || 'zh';
+  const statusMap = getStatusMap(t);
   const [activeTab, setActiveTab] = useState('subscriptions');
 
   const [plansCompactMode, setPlansCompactMode] = useTableCompactMode('adminPackagesPlans');
@@ -416,7 +439,7 @@ export const useAdminPackagesData = () => {
     t,
     isMobile,
     statusMap,
-    formatDate,
+    formatDate: (timestamp) => formatDate(timestamp, currentLanguage),
     formatQuotaLimit: (value) => formatQuotaLimit(value, t),
     plansCompactMode,
     setPlansCompactMode,

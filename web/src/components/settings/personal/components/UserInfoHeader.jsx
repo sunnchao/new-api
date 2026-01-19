@@ -33,6 +33,7 @@ import {
   stringToColor,
 } from '../../../../helpers';
 import { Coins, BarChart2, Users } from 'lucide-react';
+import dayjs from 'dayjs';
 
 const UserInfoHeader = ({ t, userState }) => {
   const getUsername = () => {
@@ -78,9 +79,9 @@ const UserInfoHeader = ({ t, userState }) => {
                 {
                   getAvatarUrl() ?
                     <Avatar size='large' src={getAvatarUrl()} />
-                      : <Avatar size='large' color={stringToColor(getUsername())}>
-                          {getAvatarText()}
-                        </Avatar>
+                    : <Avatar size='large' color={stringToColor(getUsername())}>
+                      {getAvatarText()}
+                    </Avatar>
                 }
                 <div className='flex-1 min-w-0 flex flex-col justify-between'>
                   <div
@@ -131,10 +132,11 @@ const UserInfoHeader = ({ t, userState }) => {
         {/* 当前余额显示 */}
         <Badge count={t('当前余额')} position='rightTop' type='danger'>
           <div className='text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide'>
-            {renderQuota(userState?.user?.quota)}
+            {renderQuota(userState?.user?.quota, 6)}
           </div>
         </Badge>
-
+      </div>
+      <div className='flex items-start justify-between gap-6 mt-4'>
         {/* 桌面版统计信息（Semi UI 卡片） */}
         <div className='hidden lg:block flex-shrink-0'>
           <Card
@@ -170,6 +172,33 @@ const UserInfoHeader = ({ t, userState }) => {
                 </Typography.Text>
                 <Typography.Text size='small' type='tertiary' strong>
                   {userState?.user?.group || t('默认')}
+                </Typography.Text>
+              </div>
+              {/*  登录时间*/}
+              <Divider layout='vertical' />
+              <div className='flex items-center gap-2'>
+                <Users size={16} />
+                <Typography.Text size='small' type='tertiary'>
+                  {t('最近一次登录时间')}
+                </Typography.Text>
+                {
+                  userState?.user?.last_login_time > 0 ?
+                    <Typography.Text size='small' type='tertiary' strong>
+                      {dayjs(userState?.user?.last_login_time * 1000).format('YYYY-MM-DD HH:mm:ss') || t('--')}
+                    </Typography.Text>
+                    : <Typography.Text size='small' type='tertiary'>{t('--')}</Typography.Text>
+                }
+
+              </div>
+              {/*  登录地址*/}
+              <Divider layout='vertical' />
+              <div className='flex items-center gap-2'>
+                <Users size={16} />
+                <Typography.Text size='small' type='tertiary'>
+                  {t('最近一次登录IP')}
+                </Typography.Text>
+                <Typography.Text size='small' type='tertiary' strong>
+                  {userState?.user?.last_login_ip || t('--')}
                 </Typography.Text>
               </div>
             </div>
@@ -218,6 +247,36 @@ const UserInfoHeader = ({ t, userState }) => {
               </div>
               <Typography.Text size='small' type='tertiary' strong>
                 {userState?.user?.group || t('默认')}
+              </Typography.Text>
+            </div>
+            {/*  登录时间*/}
+            <Divider margin='8px' />
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center gap-2'>
+                <Users size={16} />
+                <Typography.Text size='small' type='tertiary'>
+                  {t('最近一次登录时间')}
+                </Typography.Text>
+              </div>
+              {
+                userState?.user?.last_login_time > 0 ?
+                  <Typography.Text size='small' type='tertiary' strong>
+                    {dayjs(userState?.user?.last_login_time * 1000).format('YYYY-MM-DD HH:mm:ss') || t('--')}
+                  </Typography.Text>
+                  : <Typography.Text size='small' type='tertiary'>{t('--')}</Typography.Text>
+              }
+            </div>
+            {/*  最近一次登录IP*/}
+            <Divider margin='8px' />
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center gap-2'>
+                <Users size={16} />
+                <Typography.Text size='small' type='tertiary'>
+                  {t('最近一次登录IP')}
+                </Typography.Text>
+              </div>
+              <Typography.Text size='small' type='tertiary' strong>
+                {userState?.user?.last_login_ip || t('--')}
               </Typography.Text>
             </div>
           </div>
