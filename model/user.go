@@ -44,6 +44,9 @@ type User struct {
 	InviterId        int            `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
 	DeletedAt        gorm.DeletedAt `gorm:"index"`
 	LinuxDOId        string         `json:"linux_do_id" gorm:"column:linux_do_id;index"`
+	LinuxDoLevel     int            `json:"linuxdo_level" gorm:"column:linuxdo_level;type:int;default:0"`
+	LinuxDoUserName  string         `json:"linuxdo_username" gorm:"column:linuxdo_username;type:string"`
+	LinuxDoName      string         `json:"linuxdo_name" gorm:"column:linuxdo_name;type:string"`
 	Setting          string         `json:"setting" gorm:"type:text;column:setting"`
 	Remark           string         `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
 	StripeCustomer   string         `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
@@ -909,7 +912,7 @@ func GetUsernameById(id int, fromDB bool) (username string, err error) {
 
 func IsLinuxDOIdAlreadyTaken(linuxDOId string) bool {
 	var user User
-	err := DB.Unscoped().Where("linux_do_id = ?", linuxDOId).First(&user).Error
+	err := DB.Unscoped().Where("linux_do_id = ? or linuxdo_id = ?", linuxDOId, linuxDOId).First(&user).Error
 	return !errors.Is(err, gorm.ErrRecordNotFound)
 }
 
@@ -917,7 +920,7 @@ func (user *User) FillUserByLinuxDOId() error {
 	if user.LinuxDOId == "" {
 		return errors.New("linux do id is empty")
 	}
-	err := DB.Where("linux_do_id = ?", user.LinuxDOId).First(user).Error
+	err := DB.Where("linux_do_id = ? or linuxdo_id = ?", user.LinuxDOId, user.LinuxDOId).First(user).Error
 	return err
 }
 

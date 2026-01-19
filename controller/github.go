@@ -23,9 +23,14 @@ type GitHubOAuthResponse struct {
 }
 
 type GitHubUser struct {
-	Login string `json:"login"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Login     string `json:"login"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	AvatarUrl string `json:"avatar_url"`
+	Location  string `json:"location"`
+	Type      string `json:"type"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 func getGitHubUserInfoByCode(code string) (*GitHubUser, error) {
@@ -141,6 +146,7 @@ func GitHubOAuth(c *gin.Context) {
 			user.Email = githubUser.Email
 			user.Role = common.RoleCommonUser
 			user.Status = common.UserStatusEnabled
+
 			affCode := session.Get("aff")
 			inviterId := 0
 			if affCode != nil {

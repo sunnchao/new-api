@@ -66,6 +66,9 @@ func LinuxDoBind(c *gin.Context) {
 	}
 
 	user.LinuxDOId = strconv.Itoa(linuxdoUser.Id)
+	user.LinuxDoLevel = linuxdoUser.TrustLevel
+	user.LinuxDoUserName = linuxdoUser.Username
+	user.LinuxDoName = linuxdoUser.Name
 	err = user.Update(false)
 	if err != nil {
 		common.ApiError(c, err)
