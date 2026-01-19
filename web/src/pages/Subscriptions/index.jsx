@@ -226,7 +226,13 @@ const Subscriptions = () => {
                 <Text>{'暂无套餐方案'}</Text>
             ) : (
                 <div className='grid gap-4 md:grid-cols-2'>
-                  {plans.map((plan) => (
+                  {plans.map((plan) => {
+                    const deductionGroups = plan.deduction_group
+                      ? plan.deduction_group.split(',').map(g => g.trim()).filter(Boolean)
+                      : [];
+                    const showGroupInfo = deductionGroups.length > 0;
+
+                    return (
                       <Card key={plan.id} bordered={true} shadows='hover'>
                         <Space vertical align='start' spacing='tight'>
                           <Title heading={5}>{plan.name || plan.type}</Title>
@@ -235,12 +241,30 @@ const Subscriptions = () => {
                           <Text>{`${'总额度'}: ${renderQuota(plan.total_quota)}`}</Text>
                           <Text>{`${'有效期'}: ${plan.duration_unit || '-'} ${plan.duration_value || '-'}`}</Text>
                           <Text>{`${'服务类型'}: ${plan.service_type}`}</Text>
+                          {showGroupInfo && (
+                            <Space>
+                              <Text type='tertiary'>适用分组:</Text>
+                              <Space wrap size='small'>
+                                {deductionGroups.map((group, idx) => (
+                                  <Tag key={idx} color='blue' size='small'>
+                                    {group}
+                                  </Tag>
+                                ))}
+                              </Space>
+                            </Space>
+                          )}
+                          {!showGroupInfo && (
+                            <Text type='tertiary' size='small'>
+                              所有分组均可使用
+                            </Text>
+                          )}
                           <Button theme='solid' onClick={() => openPurchase(plan)}>
                             {'立即购买'}
                           </Button>
                         </Space>
                       </Card>
-                  ))}
+                    );
+                  })}
                 </div>
             )}
           </Card>
@@ -285,13 +309,36 @@ const Subscriptions = () => {
                               </Title>
                               <Tag color={status.color}>{status.label}</Tag>
                             </div>
-                            <Text type='secondary'>
-                              {`${'服务类型'}: ${sub.service_type}`}
-                            </Text>
-                            <Text type='secondary'>
-                              {`${'抵扣分组'}: ${sub.deduction_group}`}
-                            </Text>
-                            <div className='w-full'>
+                             <Text type='secondary'>
+                               {`${'服务类型'}: ${sub.service_type}`}
+                             </Text>
+                             {(() => {
+                               const deductionGroups = sub.deduction_group
+                                 ? sub.deduction_group.split(',').map(g => g.trim()).filter(Boolean)
+                                 : [];
+                               
+                                return (
+                                  <Space vertical align='start' className='w-full'>
+                                    <Text type='secondary'>
+                                      {`${'抵扣分组'}:`}
+                                    </Text>
+                                    {deductionGroups.length > 0 ? (
+                                      <Space wrap size='small' className='w-full'>
+                                        {deductionGroups.map((group, idx) => (
+                                          <Tag key={idx} color='cyan' size='small'>
+                                            {group}
+                                          </Tag>
+                                        ))}
+                                      </Space>
+                                    ) : (
+                                      <Tag color='green' size='small'>
+                                        所有分组
+                                      </Tag>
+                                    )}
+                                  </Space>
+                                );
+                             })()}
+                             <div className='w-full'>
                               <div className='flex items-center justify-between text-sm text-gray-600'>
                                 <span>{'剩余额度'}</span>
                                 <span>
@@ -368,9 +415,42 @@ const Subscriptions = () => {
               />
               <Text>{`${'支付方式'}: 余额`}</Text>
               {selectedPlan && (
-                  <Text type='secondary'>
-                    {`${'价格'}: ${selectedPlan.price} ${selectedPlan.currency}`}
-                  </Text>
+                  <>
+                    <Space vertical align='start' style={{ width: '100%' }}>
+                      <Text type='secondary'>
+                        {`${'价格'}: ${selectedPlan.price} ${selectedPlan.currency}`}
+                      </Text>
+                      <Text type='secondary'>
+                        {`${'总额度'}: ${renderQuota(selectedPlan.total_quota)}`}
+                      </Text>
+                       {(() => {
+                         const deductionGroups = selectedPlan.deduction_group
+                           ? selectedPlan.deduction_group.split(',').map(g => g.trim()).filter(Boolean)
+                           : [];
+                         
+                         if (deductionGroups.length > 0) {
+                           return (
+                             <Space>
+                               <Text type='tertiary'>适用分组:</Text>
+                               <Space wrap size='small'>
+                                 {deductionGroups.map((group, idx) => (
+                                   <Tag key={idx} color='blue' size='small'>
+                                     {group}
+                                   </Tag>
+                                 ))}
+                               </Space>
+                             </Space>
+                           );
+                         } else {
+                           return (
+                             <Text type='tertiary' size='small'>
+                               所有分组均可使用此套餐
+                             </Text>
+                           );
+                         }
+                       })()}
+                    </Space>
+                  </>
               )}
             </Space>
           </Modal>

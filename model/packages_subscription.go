@@ -73,7 +73,48 @@ type PackagesSubscription struct {
 	LastResetAt     int64 `json:"last_reset_at" gorm:"default:0"`
 
 	// 套餐指定抵扣分组
-	DeductionGroup string `json:"deduction_group" gorm:"type:varchar(32);default:''"`
+	DeductionGroup string `json:"deduction_group" gorm:"type:varchar(255);default:''"`
+}
+
+func NormalizeDeductionGroups(raw string) string {
+	parts := strings.Split(raw, ",")
+	seen := make(map[string]struct{})
+	groups := make([]string, 0, len(parts))
+	for _, part := range parts {
+		group := strings.TrimSpace(part)
+		if group == "" {
+			continue
+		}
+		if _, ok := seen[group]; ok {
+			continue
+		}
+		seen[group] = struct{}{}
+		groups = append(groups, group)
+	}
+	return strings.Join(groups, ",")
+}
+
+func SplitDeductionGroups(raw string) []string {
+	normalized := NormalizeDeductionGroups(raw)
+	if normalized == "" {
+		return nil
+	}
+	return strings.Split(normalized, ",")
+}
+
+func DeductionGroupAllows(allowedGroups, tokenGroup string) bool {
+	if allowedGroups == "" {
+		return true
+	}
+	if tokenGroup == "" {
+		return false
+	}
+	for _, group := range SplitDeductionGroups(allowedGroups) {
+		if group == tokenGroup {
+			return true
+		}
+	}
+	return false
 }
 
 // PackagesPlan 套餐模型
@@ -108,7 +149,7 @@ type PackagesPlan struct {
 	MonthlyQuotaPerPlan int `json:"monthly_quota_per_plan" gorm:"default:0"`
 	ResetQuotaLimit     int `json:"reset_quota_limit" gorm:"default:1"`
 
-	DeductionGroup string `json:"deduction_group" gorm:"type:varchar(32);default:''"`
+	DeductionGroup string `json:"deduction_group" gorm:"type:varchar(255);default:''"`
 }
 
 func ApplyPlanLimitsToSubscription(subscription *PackagesSubscription, plan *PackagesPlan) {
@@ -119,7 +160,7 @@ func ApplyPlanLimitsToSubscription(subscription *PackagesSubscription, plan *Pac
 	subscription.WeeklyQuotaLimit = plan.WeeklyQuotaPerPlan
 	subscription.MonthlyQuotaLimit = plan.MonthlyQuotaPerPlan
 	subscription.ResetQuotaLimit = plan.ResetQuotaLimit
-	subscription.DeductionGroup = strings.TrimSpace(plan.DeductionGroup)
+	subscription.DeductionGroup = NormalizeDeductionGroups(plan.DeductionGroup)
 }
 
 func getPackagesQuotaResetStarts(now time.Time) (int64, int64, int64) {
@@ -235,7 +276,7 @@ func GrantPlanToUser(userId int, plan *PackagesPlan, source string, allowStack b
 		updates["weekly_quota_limit"] = plan.WeeklyQuotaPerPlan
 		updates["monthly_quota_limit"] = plan.MonthlyQuotaPerPlan
 		updates["reset_quota_limit"] = plan.ResetQuotaLimit
-		updates["deduction_group"] = strings.TrimSpace(plan.DeductionGroup)
+		updates["deduction_group"] = NormalizeDeductionGroups(plan.DeductionGroup)
 		if !plan.IsUnlimitedTime && durationSeconds > 0 {
 			updates["end_time"] = subscription.EndTime + durationSeconds
 		}
@@ -360,9 +401,6 @@ func GetUserActivePackagesSubscriptions(userId int, sub PackagesSubscription, is
 	query := DB.Where("user_id = ?", userId)
 	if sub.ServiceType != "" {
 		query = query.Where("service_type = ?", sub.ServiceType)
-	}
-	if sub.DeductionGroup != "" {
-		query = query.Where("deduction_group = ?", sub.DeductionGroup)
 	}
 	if isActive {
 		now := common.GetTimestamp()
@@ -585,7 +623,7 @@ func UpdateSubscriptionPackageUsage(subscriptionId int, quotaUsed int, tokenGrou
 		dayStart, weekStart, monthStart := getPackagesQuotaResetStarts(time.Unix(now, 0).In(location))
 		_ = resetSubscriptionQuotaIfNeeded(&subscription, dayStart, weekStart, monthStart)
 
-		if subscription.DeductionGroup != "" && tokenGroup != subscription.DeductionGroup {
+		if !DeductionGroupAllows(subscription.DeductionGroup, tokenGroup) {
 			return errors.New("订阅分组不匹配")
 		}
 
@@ -740,7 +778,7 @@ func UpdatePackagesSubscriptionsByPlan(plan *PackagesPlan) error {
 		"weekly_quota_limit":  plan.WeeklyQuotaPerPlan,
 		"monthly_quota_limit": plan.MonthlyQuotaPerPlan,
 		"reset_quota_limit":   plan.ResetQuotaLimit,
-		"deduction_group":     strings.TrimSpace(plan.DeductionGroup),
+		"deduction_group":     NormalizeDeductionGroups(plan.DeductionGroup),
 		"service_type":        plan.ServiceType,
 	}
 	return DB.Model(&PackagesSubscription{}).

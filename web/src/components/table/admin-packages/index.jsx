@@ -76,6 +76,10 @@ const AdminPackagesPage = () => {
     statusMap,
     formatDate,
     formatQuotaLimit,
+    plansCompactMode,
+    setPlansCompactMode,
+    subscriptionsCompactMode,
+    setSubscriptionsCompactMode,
   } = data;
 
   return (
@@ -104,6 +108,8 @@ const AdminPackagesPage = () => {
             formatDate={formatDate}
             handleCancelSubscription={handleCancelSubscription}
             handleDeleteSubscription={handleDeleteSubscription}
+            compactMode={subscriptionsCompactMode}
+            setCompactMode={setSubscriptionsCompactMode}
           />
         </TabPane>
         <TabPane itemKey='plans' tab={t('套餐管理')}>
@@ -115,6 +121,8 @@ const AdminPackagesPage = () => {
             openPlanModal={openPlanModal}
             handleDeletePlan={handleDeletePlan}
             formatQuotaLimit={formatQuotaLimit}
+            compactMode={plansCompactMode}
+            setCompactMode={setPlansCompactMode}
           />
         </TabPane>
       </Tabs>

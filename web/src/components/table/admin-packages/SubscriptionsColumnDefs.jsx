@@ -78,6 +78,8 @@ export const getSubscriptionsColumns = ({
   },
   {
     title: t('操作'),
+    dataIndex: 'operate',
+    fixed: 'right',
     render: (_, record) => (
       <Space>
         <Button

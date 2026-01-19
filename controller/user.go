@@ -110,6 +110,14 @@ func setupLogin(user *model.User, c *gin.Context) {
 		})
 		return
 	}
+	func() {
+		user.LastLoginTime = common.GetTimestamp()
+		user.LastLoginIp = c.ClientIP()
+		err := user.Update(false)
+		if err != nil {
+			return
+		}
+	}()
 	c.JSON(http.StatusOK, gin.H{
 		"message": "",
 		"success": true,
@@ -207,11 +215,14 @@ func Register(c *gin.Context) {
 	affCode := user.AffCode // this code is the inviter's code, not the user's own code
 	inviterId, _ := model.GetUserIdByAffCode(affCode)
 	cleanUser := model.User{
-		Username:    user.Username,
-		Password:    user.Password,
-		DisplayName: user.Username,
-		InviterId:   inviterId,
-		Role:        common.RoleCommonUser, // 明确设置角色为普通用户
+		Username:      user.Username,
+		Password:      user.Password,
+		DisplayName:   user.Username,
+		InviterId:     inviterId,
+		Role:          common.RoleCommonUser, // 明确设置角色为普通用户
+		CreatedTime:   common.GetTimestamp(),
+		LastLoginTime: common.GetTimestamp(), // 初始登录时间
+		LastLoginIp:   c.ClientIP(),
 	}
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
@@ -471,6 +482,7 @@ func GetSelf(c *gin.Context) {
 		"stripe_customer":   user.StripeCustomer,
 		"sidebar_modules":   userSetting.SidebarModules, // 正确提取sidebar_modules字段
 		"permissions":       permissions,                // 新增权限字段
+		"avatar_url":        user.AvatarUrl,
 	}
 
 	c.JSON(http.StatusOK, gin.H{

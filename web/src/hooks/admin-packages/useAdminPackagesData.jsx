@@ -20,8 +20,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@douyinfe/semi-ui';
-import { API, renderQuota } from '../../helpers';
+import {API, renderQuota, showError, showSuccess} from '../../helpers';
 import { useIsMobile } from '../common/useIsMobile';
+import { useTableCompactMode } from '../common/useTableCompactMode';
 
 const statusMap = {
   active: {
@@ -59,6 +60,9 @@ export const useAdminPackagesData = () => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('subscriptions');
+
+  const [plansCompactMode, setPlansCompactMode] = useTableCompactMode('adminPackagesPlans');
+  const [subscriptionsCompactMode, setSubscriptionsCompactMode] = useTableCompactMode('adminPackagesSubscriptions');
   const [subscriptions, setSubscriptions] = useState([]);
   const [plans, setPlans] = useState([]);
   const [users, setUsers] = useState([]);
@@ -291,7 +295,9 @@ export const useAdminPackagesData = () => {
         ...values,
         type: (values.type || '').trim(),
         service_type: (values.service_type || '').trim(),
-        deduction_group: (values.deduction_group || '').trim(),
+        deduction_group: Array.isArray(values.deduction_group)
+          ? values.deduction_group.join(',').trim()
+          : (values.deduction_group || '').trim(),
       };
 
       if (payload.is_unlimited_time) {
@@ -305,24 +311,15 @@ export const useAdminPackagesData = () => {
           : await API.post('/api/packages-admin/plans', payload);
 
         if (res?.data?.success) {
-          Modal.success({
-            title: editingPlan ? t('更新成功') : t('创建成功'),
-            content: res.data.message,
-          });
+          showSuccess(editingPlan ? t('更新成功') : t('创建成功'))
           setPlanModalOpen(false);
           setEditingPlan(null);
           await loadPlans();
         } else {
-          Modal.error({
-            title: editingPlan ? t('更新失败') : t('创建失败'),
-            content: res?.data?.message,
-          });
+          showSuccess(editingPlan ? t('更新成功') : t('创建成功'))
         }
       } catch (err) {
-        Modal.error({
-          title: t('保存失败'),
-          content: err.message,
-        });
+        showError(err.message)
       } finally {
         setPlanSaving(false);
       }
@@ -421,6 +418,10 @@ export const useAdminPackagesData = () => {
     statusMap,
     formatDate,
     formatQuotaLimit: (value) => formatQuotaLimit(value, t),
+    plansCompactMode,
+    setPlansCompactMode,
+    subscriptionsCompactMode,
+    setSubscriptionsCompactMode,
     activeTab,
     setActiveTab,
     subscriptions,

@@ -36,7 +36,7 @@ func ApplySubscriptionQuota(relayInfo *relaycommon.RelayInfo, totalQuota int) (*
 		tokenGroup = relayInfo.UsingGroup
 	}
 
-	filter := model.PackagesSubscription{ServiceType: serviceType, DeductionGroup: tokenGroup}
+	filter := model.PackagesSubscription{ServiceType: serviceType}
 	subscriptions, err := model.GetUserActivePackagesSubscriptions(relayInfo.UserId, filter, true)
 	if err != nil || len(subscriptions) == 0 {
 		return nil, err

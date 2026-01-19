@@ -23,6 +23,7 @@ type GitHubOAuthResponse struct {
 }
 
 type GitHubUser struct {
+	Id        int    `json:"id"`
 	Login     string `json:"login"`
 	Name      string `json:"name"`
 	Email     string `json:"email"`
@@ -146,6 +147,11 @@ func GitHubOAuth(c *gin.Context) {
 			user.Email = githubUser.Email
 			user.Role = common.RoleCommonUser
 			user.Status = common.UserStatusEnabled
+			user.GitHubIdNew = githubUser.Id
+			user.AvatarUrl = githubUser.AvatarUrl
+			user.Email = githubUser.Email
+			user.GitHubUserName = githubUser.Name
+			user.GitHubEmail = githubUser.Email
 
 			affCode := session.Get("aff")
 			inviterId := 0
@@ -213,6 +219,13 @@ func GitHubBind(c *gin.Context) {
 		return
 	}
 	user.GitHubId = githubUser.Login
+	user.GitHubIdNew = githubUser.Id
+	user.GitHubUserName = githubUser.Name
+	user.GitHubEmail = githubUser.Email
+	if user.AvatarUrl == "" {
+		user.AvatarUrl = githubUser.AvatarUrl
+	}
+
 	err = user.Update(false)
 	if err != nil {
 		common.ApiError(c, err)

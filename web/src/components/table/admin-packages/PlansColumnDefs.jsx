@@ -87,6 +87,8 @@ export const getPlansColumns = ({
   },
   {
     title: t('操作'),
+    dataIndex: 'operate',
+    fixed: 'right',
     render: (_, record) => (
       <Space>
         <Button onClick={() => openPlanModal(record)}>{t('编辑')}</Button>

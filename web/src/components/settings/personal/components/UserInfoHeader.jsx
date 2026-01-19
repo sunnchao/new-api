@@ -50,6 +50,12 @@ const UserInfoHeader = ({ t, userState }) => {
     }
     return 'NA';
   };
+  const getAvatarUrl = () => {
+    if (userState.user?.avatar_url) {
+      return userState.user.avatar_url
+    }
+    return null;
+  };
 
   return (
     <Card
@@ -69,9 +75,13 @@ const UserInfoHeader = ({ t, userState }) => {
           <div className='relative z-10 h-full flex flex-col justify-end p-6'>
             <div className='flex items-center'>
               <div className='flex items-stretch gap-3 sm:gap-4 flex-1 min-w-0'>
-                <Avatar size='large' color={stringToColor(getUsername())}>
-                  {getAvatarText()}
-                </Avatar>
+                {
+                  getAvatarUrl() ?
+                    <Avatar size='large' src={getAvatarUrl()} />
+                      : <Avatar size='large' color={stringToColor(getUsername())}>
+                          {getAvatarText()}
+                        </Avatar>
+                }
                 <div className='flex-1 min-w-0 flex flex-col justify-between'>
                   <div
                     className='text-3xl font-bold truncate'

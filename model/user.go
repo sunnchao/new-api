@@ -43,6 +43,9 @@ type User struct {
 	AffHistoryQuota  int            `json:"aff_history_quota" gorm:"type:int;default:0;column:aff_history"` // 邀请历史额度
 	InviterId        int            `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
 	DeletedAt        gorm.DeletedAt `gorm:"index"`
+	GitHubUserName   string         `json:"github_username" gorm:"column:github_username;type:string"`
+	GitHubEmail      string         `json:"github_email" gorm:"column:github_email;type:string"`
+	GitHubCreatedAt  string         `json:"github_created_at" gorm:"column:github_created_at;type:string"`
 	LinuxDOId        string         `json:"linux_do_id" gorm:"column:linux_do_id;index"`
 	LinuxDoLevel     int            `json:"linuxdo_level" gorm:"column:linuxdo_level;type:int;default:0"`
 	LinuxDoUserName  string         `json:"linuxdo_username" gorm:"column:linuxdo_username;type:string"`
@@ -50,6 +53,11 @@ type User struct {
 	Setting          string         `json:"setting" gorm:"type:text;column:setting"`
 	Remark           string         `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
 	StripeCustomer   string         `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
+	AvatarUrl        string         `json:"avatar_url" gorm:"type:varchar(500);column:avatar_url;default:''"`
+	GitHubIdNew      int            `json:"github_id_new" gorm:"column:github_id_new;index"`
+	LastLoginTime    int64          `json:"last_login_time" gorm:"bigint;default:0"`
+	LastLoginIp      string         `json:"last_login_ip" gorm:"type:varchar(128);default:''"`
+	CreatedTime      int64          `json:"created_time" gorm:"bigint"`
 }
 
 func (user *User) ToBaseUser() *UserBase {
@@ -540,6 +548,14 @@ func (user *User) FillUserByGitHubId() error {
 		return errors.New("GitHub id 为空！")
 	}
 	DB.Where(User{GitHubId: user.GitHubId}).First(user)
+	return nil
+}
+
+func (user *User) FillUserByGitHubIdNew() error {
+	if user.GitHubIdNew == 0 {
+		return errors.New("GitHub id new 为空！")
+	}
+	DB.Where(User{GitHubIdNew: user.GitHubIdNew}).First(user)
 	return nil
 }
 

@@ -794,7 +794,7 @@ func CreatePackagesPlan(c *gin.Context) {
 		WeeklyQuotaPerPlan:  req.WeeklyQuotaPerPlan,
 		MonthlyQuotaPerPlan: req.MonthlyQuotaPerPlan,
 		ResetQuotaLimit:     resetQuotaLimit,
-		DeductionGroup:      req.DeductionGroup,
+		DeductionGroup:      model.NormalizeDeductionGroups(req.DeductionGroup),
 	}
 
 	if err := model.CreatePackagesPlan(plan); err != nil {
@@ -951,7 +951,7 @@ func UpdatePackagesPlan(c *gin.Context) {
 		plan.ResetQuotaLimit = *req.ResetQuotaLimit
 	}
 	if req.DeductionGroup != nil {
-		plan.DeductionGroup = *req.DeductionGroup
+		plan.DeductionGroup = model.NormalizeDeductionGroups(*req.DeductionGroup)
 	}
 	if req.IsActive != nil {
 		plan.IsActive = *req.IsActive

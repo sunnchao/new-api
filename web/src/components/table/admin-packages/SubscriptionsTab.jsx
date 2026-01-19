@@ -18,9 +18,12 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React, { useMemo } from 'react';
-import { Card, Table } from '@douyinfe/semi-ui';
+import { Card, Typography } from '@douyinfe/semi-ui';
+import { CreditCard } from 'lucide-react';
 import { getSubscriptionsColumns } from './SubscriptionsColumnDefs';
 import SubscriptionsFilters from './SubscriptionsFilters';
+import CardTable from '../../common/ui/CardTable';
+import CompactModeToggle from '../../common/ui/CompactModeToggle';
 
 const SubscriptionsTab = ({
   t,
@@ -39,6 +42,8 @@ const SubscriptionsTab = ({
   formatDate,
   handleCancelSubscription,
   handleDeleteSubscription,
+  compactMode,
+  setCompactMode,
 }) => {
   const subscriptionColumns = useMemo(
     () =>
@@ -62,9 +67,36 @@ const SubscriptionsTab = ({
     ],
   );
 
+  const { Text } = Typography;
+
+  const tableColumns = useMemo(() => {
+    return compactMode
+      ? subscriptionColumns.map((col) => {
+          if (col.dataIndex === 'operate') {
+            const { fixed, ...rest } = col;
+            return rest;
+          }
+          return col;
+        })
+      : subscriptionColumns;
+  }, [compactMode, subscriptionColumns]);
+
   return (
     <Card
-      title={t('订阅管理')}
+      title={
+        <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-2 w-full'>
+          <div className='flex items-center text-blue-500'>
+            <CreditCard size={16} className='mr-2' />
+            <Text>{t('订阅管理')}</Text>
+          </div>
+
+          <CompactModeToggle
+            compactMode={compactMode}
+            setCompactMode={setCompactMode}
+            t={t}
+          />
+        </div>
+      }
       extra={
         <SubscriptionsFilters
           t={t}
@@ -74,10 +106,11 @@ const SubscriptionsTab = ({
         />
       }
     >
-      <Table
-        columns={subscriptionColumns}
+      <CardTable
+        columns={tableColumns}
         dataSource={subscriptions}
         loading={loading}
+        scroll={compactMode ? undefined : { x: 'max-content' }}
         pagination={{
           currentPage: activePage,
           pageSize: pageSize,

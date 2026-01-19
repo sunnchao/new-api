@@ -19,12 +19,13 @@ import (
 )
 
 type LinuxdoUser struct {
-	Id         int    `json:"id"`
-	Username   string `json:"username"`
-	Name       string `json:"name"`
-	Active     bool   `json:"active"`
-	TrustLevel int    `json:"trust_level"`
-	Silenced   bool   `json:"silenced"`
+	Id             int    `json:"id"`
+	Username       string `json:"username"` // 唯一
+	Name           string `json:"name"`
+	Active         bool   `json:"active"`
+	TrustLevel     int    `json:"trust_level"`
+	Silenced       bool   `json:"silenced"`
+	AvatarTemplate string `json:"avatar_template"`
 }
 
 func LinuxDoBind(c *gin.Context) {
@@ -69,6 +70,10 @@ func LinuxDoBind(c *gin.Context) {
 	user.LinuxDoLevel = linuxdoUser.TrustLevel
 	user.LinuxDoUserName = linuxdoUser.Username
 	user.LinuxDoName = linuxdoUser.Name
+	if user.AvatarUrl == "" {
+		user.AvatarUrl = linuxdoUser.AvatarTemplate
+	}
+
 	err = user.Update(false)
 	if err != nil {
 		common.ApiError(c, err)
@@ -229,6 +234,8 @@ func LinuxdoOAuth(c *gin.Context) {
 				user.DisplayName = linuxdoUser.Name
 				user.Role = common.RoleCommonUser
 				user.Status = common.UserStatusEnabled
+				user.CreatedTime = common.GetTimestamp()
+				user.AvatarUrl = linuxdoUser.AvatarTemplate
 
 				affCode := session.Get("aff")
 				inviterId := 0

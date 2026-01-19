@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
-import { Typography, Card, Tabs, TabPane, Space, List, Tag, Button } from '@douyinfe/semi-ui';
+import { Typography, Card, Tabs, TabPane, Space, List, Tag, Button, Row } from '@douyinfe/semi-ui';
 import { Sparkles, Brain, ArrowRight, CheckCircle2, Layers, Download, Key, Rocket } from 'lucide-react';
 import InstallationGuide from '../../components/InstallationGuide';
 
@@ -225,7 +225,7 @@ const GeminiCodeTutorial = () => {
 
   return (
     <div className='w-full overflow-x-hidden mt-20'>
-      <div className='p-6 max-w-6xl mx-auto'>
+      <div className='p-6 mx-auto'>
       <div className='mb-8'>
         <div className='inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-600 text-white mb-6'>
           <Sparkles size={16} />
@@ -236,9 +236,11 @@ const GeminiCodeTutorial = () => {
           Gemini Code Google AI 编程助手
         </Title>
 
-        <Paragraph className='text-xl mb-6' style={{ color: 'var(--semi-color-text-1)', maxWidth: '800px' }}>
-          拥有 1M tokens 超大上下文窗口，支持多模态输入。内置 Agent Mode 和 Google Search，重新定义 AI 辅助编程。
-        </Paragraph>
+        <div className={'mt-3 mb-6'}>
+          <Paragraph className='text-xl' style={{ color: 'var(--semi-color-text-1)', maxWidth: '800px' }}>
+            拥有 1M tokens 超大上下文窗口，支持多模态输入。内置 Agent Mode 和 Google Search，重新定义 AI 辅助编程。
+          </Paragraph>
+        </div>
 
         <Space className='mb-8'>
           <Button type='primary' size='large' theme='solid'>
@@ -270,7 +272,7 @@ const GeminiCodeTutorial = () => {
         title={
           <div className='flex items-center gap-2'>
             <div className='w-1 h-6 bg-gradient-to-b from-purple-500 to-pink-600 rounded-full'></div>
-            <Title heading={3} style={{ margin: 0 }}>功能概览</Title>
+            <Title heading={5} style={{ margin: 0 }}>功能概览</Title>
           </div>
         }
       >
@@ -293,13 +295,14 @@ const GeminiCodeTutorial = () => {
         </Tabs>
       </Card>
 
+      <Row className={'mt-8'}></Row>
       <Card
         className='mb-8'
         headerLine={true}
         title={
           <div className='flex items-center gap-2'>
             <div className='w-1 h-6 bg-gradient-to-b from-pink-500 to-purple-500 rounded-full'></div>
-            <Title heading={3} style={{ margin: 0 }}>准备好开始了吗？</Title>
+            <Title heading={5} style={{ margin: 0 }}>准备好开始了吗？</Title>
           </div>
         }
       >

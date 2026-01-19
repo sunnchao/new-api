@@ -18,9 +18,12 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React, { useMemo } from 'react';
-import { Card, Table } from '@douyinfe/semi-ui';
+import { Card, Typography } from '@douyinfe/semi-ui';
+import { Package } from 'lucide-react';
 import { getPlansColumns } from './PlansColumnDefs';
 import PlansFilters from './PlansFilters';
+import CardTable from '../../common/ui/CardTable';
+import CompactModeToggle from '../../common/ui/CompactModeToggle';
 
 const PlansTab = ({
   t,
@@ -30,6 +33,8 @@ const PlansTab = ({
   openPlanModal,
   handleDeletePlan,
   formatQuotaLimit,
+  compactMode,
+  setCompactMode,
 }) => {
   const planColumns = useMemo(
     () =>
@@ -42,9 +47,36 @@ const PlansTab = ({
     [t, openPlanModal, handleDeletePlan, formatQuotaLimit],
   );
 
+  const { Text } = Typography;
+
+  const tableColumns = useMemo(() => {
+    return compactMode
+      ? planColumns.map((col) => {
+          if (col.dataIndex === 'operate') {
+            const { fixed, ...rest } = col;
+            return rest;
+          }
+          return col;
+        })
+      : planColumns;
+  }, [compactMode, planColumns]);
+
   return (
     <Card
-      title={t('套餐管理')}
+      title={
+        <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-2 w-full'>
+          <div className='flex items-center text-blue-500'>
+            <Package size={16} className='mr-2' />
+            <Text>{t('套餐管理')}</Text>
+          </div>
+
+          <CompactModeToggle
+            compactMode={compactMode}
+            setCompactMode={setCompactMode}
+            t={t}
+          />
+        </div>
+      }
       headerExtraContent={
         <PlansFilters
           t={t}
@@ -54,7 +86,13 @@ const PlansTab = ({
         />
       }
     >
-      <Table columns={planColumns} dataSource={plans} loading={loading} pagination={false} />
+      <CardTable
+        columns={tableColumns}
+        dataSource={plans}
+        loading={loading}
+        pagination={false}
+        scroll={compactMode ? undefined : { x: 'max-content' }}
+      />
     </Card>
   );
 };

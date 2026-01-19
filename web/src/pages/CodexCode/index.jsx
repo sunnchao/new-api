@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
-import { Typography, Card, Tabs, TabPane, Space, List, Tag, Button } from '@douyinfe/semi-ui';
+import { Typography, Card, Tabs, TabPane, Space, List, Tag, Button, Row } from '@douyinfe/semi-ui';
 import { Cpu, Zap, ArrowRight, CheckCircle2, Download, Settings } from 'lucide-react';
 import InstallationGuide from '../../components/InstallationGuide';
 
@@ -29,7 +29,7 @@ const CodexCodeTutorial = () => {
     {
       icon: <Cpu className='text-blue-500' size={24} />,
       title: '智能代码生成',
-      description: '基于 GPT-5.1 的高质量代码生成和智能补全',
+      description: '基于 GPT-5.2 的高质量代码生成和智能补全',
     },
     {
       icon: <ArrowRight className='text-green-500' size={24} />,
@@ -48,7 +48,7 @@ const CodexCodeTutorial = () => {
     },
     {
       icon: <Zap className='text-cyan-500' size={24} />,
-      title: 'GPT-5 驱动',
+      title: 'GPT-5.2 驱动',
       description: '企业级 AI 编程助手，强大的推理能力',
     },
   ];
@@ -60,7 +60,7 @@ const CodexCodeTutorial = () => {
       icon: <Download size={20} />,
     },
     {
-      title: 'GPT-5.1 模型',
+      title: 'GPT-5.2 模型',
       description: '企业级 AI 助手',
       icon: <Cpu size={20} />,
     },
@@ -76,10 +76,10 @@ const CodexCodeTutorial = () => {
       title: "功能概览",
       content: (
         <div>
-          <Paragraph className='mb-4'>
-            CodeX 是一款企业级 AI 编程助手，基于 GPT-5.1 模型，提供深度代码分析和智能重构能力。
+          <Paragraph>
+            CodeX 是一款企业级 AI 编程助手，基于 GPT-5.2 模型，提供深度代码分析和智能重构能力。
           </Paragraph>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
             {features.map((feature, index) => (
               <div
                 key={index}
@@ -102,8 +102,8 @@ const CodexCodeTutorial = () => {
       title: "技术规格",
       content: (
         <div>
-          <Paragraph className='mb-4'>了解 CodeX 的技术规格：</Paragraph>
-          <div className='space-y-3'>
+          <Paragraph>了解 CodeX 的技术规格：</Paragraph>
+          <div className='space-y-3 mt-4'>
             {techSpecs.map((spec, index) => (
               <div
                 key={index}
@@ -132,7 +132,7 @@ const CodexCodeTutorial = () => {
       content: (
         <div>
           <Paragraph className='mb-4'>安装 CodeX 命令行工具：</Paragraph>
-          <div className='space-y-3'>
+          <div className='space-y-3 mt-4'>
             <div>
               <Text strong className='mb-2 block'>使用 npm 全局安装：</Text>
               <div className='p-4 bg-gray-900 text-gray-100 rounded-lg font-mono text-sm'>
@@ -155,6 +155,7 @@ const CodexCodeTutorial = () => {
         <div>
           <Paragraph className='mb-4'>确保您的开发环境满足要求：</Paragraph>
           <List
+              className={'mt-4'}
             dataSource={[
               'Node.js 18.0 或更高版本',
               'Git 版本控制工具',
@@ -183,6 +184,7 @@ const CodexCodeTutorial = () => {
         <div>
           <Paragraph className='mb-4'>在 VSCode 中安装 CodeX 扩展：</Paragraph>
           <List
+              className={'mt-4'}
             dataSource={[
               '打开 VSCode 扩展面板（Ctrl+Shift+X）',
               '搜索 "CodeX Assistant"',
@@ -247,20 +249,22 @@ const CodexCodeTutorial = () => {
 
   return (
     <div className='w-full overflow-x-hidden mt-20'>
-      <div className='p-6 max-w-6xl mx-auto'>
+      <div className='p-6 mx-auto'>
       <div className='mb-8'>
         <div className='inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white mb-6'>
           <Cpu size={16} />
-          <Text className='text-sm font-medium'>GPT-5.1 强力驱动</Text>
+          <Text className='text-sm font-medium'>GPT-5.2 强力驱动</Text>
         </div>
 
         <Title heading={1} className='mb-4 text-4xl md:text-5xl font-bold'>
           CodeX 企业级 AI 编程助手
         </Title>
 
-        <Paragraph className='text-xl mb-6' style={{ color: 'var(--semi-color-text-1)', maxWidth: '800px' }}>
-          不仅仅是代码补全，而是真正的结对编程伙伴。基于 GPT-5.1 模型，提供深度代码分析和智能重构能力。
-        </Paragraph>
+        <div className={'mt-3 mb-6'}>
+          <Paragraph className='text-xl' style={{ color: 'var(--semi-color-text-1)', maxWidth: '800px' }}>
+            不仅仅是代码补全，而是真正的结对编程伙伴。基于 GPT-5.1 模型，提供深度代码分析和智能重构能力。
+          </Paragraph>
+        </div>
 
         <Space className='mb-8'>
           <Button type='primary' size='large' theme='solid'>
@@ -292,7 +296,7 @@ const CodexCodeTutorial = () => {
         title={
           <div className='flex items-center gap-2'>
             <div className='w-1 h-6 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full'></div>
-            <Title heading={3} style={{ margin: 0 }}>功能概览</Title>
+            <Title heading={5} style={{ margin: 0 }}>功能概览</Title>
           </div>
         }
       >
@@ -311,13 +315,14 @@ const CodexCodeTutorial = () => {
         </Tabs>
       </Card>
 
+      <Row className={'mt-8'}></Row>
       <Card
-        className='mb-8'
+        className='mb-8 mt-4'
         headerLine={true}
         title={
           <div className='flex items-center gap-2'>
             <div className='w-1 h-6 bg-gradient-to-b from-cyan-500 to-blue-500 rounded-full'></div>
-            <Title heading={3} style={{ margin: 0 }}>准备好开始了吗？</Title>
+            <Title heading={5} style={{ margin: 0 }}>准备好开始了吗？</Title>
           </div>
         }
       >

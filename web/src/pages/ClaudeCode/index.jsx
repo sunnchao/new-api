@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
-import { Typography, Card, Tabs, TabPane, Space, List, Tag, Button } from '@douyinfe/semi-ui';
+import { Typography, Card, Tabs, TabPane, Space, List, Tag, Button, Row } from '@douyinfe/semi-ui';
 import { Code2, Zap, Shield, Globe, Terminal, ArrowRight, CheckCircle2, Download, Key, Rocket } from 'lucide-react';
 import InstallationGuide from '../../components/InstallationGuide';
 
@@ -345,7 +345,7 @@ const ClaudeCodeTutorial = () => {
   return (
       <div className='w-full overflow-x-hidden mt-20'>
 
-    <div className='p-6 max-w-6xl mx-auto'>
+    <div className='p-6 mx-auto'>
       <div className='mb-8'>
         <div className='inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white mb-6'>
           <Zap size={16} />
@@ -356,9 +356,11 @@ const ClaudeCodeTutorial = () => {
           Claude Code 下一代 AI 编程助手
         </Title>
 
-        <Paragraph className='text-xl mb-6' style={{ color: 'var(--semi-color-text-1)', maxWidth: '800px' }}>
-          不仅仅是代码补全，而是真正的结对编程伙伴。在您的终端中直接运行，深度理解项目上下文，自动化处理繁琐任务。
-        </Paragraph>
+        <div className={'mt-3 mb-6'}>
+          <Paragraph className='text-xl' style={{ color: 'var(--semi-color-text-1)', maxWidth: '800px' }}>
+            不仅仅是代码补全，而是真正的结对编程伙伴。在您的终端中直接运行，深度理解项目上下文，自动化处理繁琐任务。
+          </Paragraph>
+        </div>
 
         <Space className='mb-8'>
           <Button type='primary' size='large' theme='solid'>
@@ -393,7 +395,7 @@ const ClaudeCodeTutorial = () => {
         title={
           <div className='flex items-center gap-2'>
             <div className='w-1 h-6 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full'></div>
-            <Title heading={3} style={{ margin: 0 }}>功能概览</Title>
+            <Title heading={5} style={{ margin: 0 }}>功能概览</Title>
           </div>
         }
       >
@@ -416,13 +418,14 @@ const ClaudeCodeTutorial = () => {
         </Tabs>
       </Card>
 
+      <Row className={'mt-8'}></Row>
       <Card
         className='mb-8'
         headerLine={true}
         title={
           <div className='flex items-center gap-2'>
             <div className='w-1 h-6 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full'></div>
-            <Title heading={3} style={{ margin: 0 }}>准备好开始了吗？</Title>
+            <Title heading={5} style={{ margin: 0 }}>准备好开始了吗？</Title>
           </div>
         }
       >
