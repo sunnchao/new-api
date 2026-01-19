@@ -61,58 +61,70 @@ const colors = [
   'yellow',
 ];
 
+const LogType = {
+  RECHARGE: 1, // '充值',
+  CONSUME: 2, // '消费',
+  MANAGEMENT: 3, // '管理',
+  SYSTEM: 4, // '系统',
+  SIGNIN: 5, // '签到',
+  ERROR: 6, // '错误',
+  REFUND: 7, // '返现',
+  LOGARCHIVE: 8, // '日志归档',
+  ERRORADMIN: 9, // '错误(管理员)',
+};
+
 // Render functions
 function renderType(type, t) {
   switch (type) {
-    case 1:
+    case LogType.RECHARGE:
       return (
         <Tag color='cyan' shape='circle'>
           {t('充值')}
         </Tag>
       );
-    case 2:
+    case LogType.CONSUME:
       return (
         <Tag color='lime' shape='circle'>
           {t('消费')}
         </Tag>
       );
-    case 3:
+    case LogType.MANAGEMENT:
       return (
         <Tag color='orange' shape='circle'>
           {t('管理')}
         </Tag>
       );
-    case 4:
+    case LogType.SYSTEM:
       return (
         <Tag color='purple' shape='circle'>
           {t('系统')}
         </Tag>
       );
-    case 5:
+    case LogType.SIGNIN:
       return (
         <Tag color='purple' shape='circle'>
           {t('签到')}
         </Tag>
       );
-    case 6:
+    case LogType.ERROR:
       return (
           <Tag color='red' shape='circle'>
             {t('错误')}
           </Tag>
       )
-    case 7:
+    case LogType.REFUND:
       return (
           <Tag color='purple' shape='circle'>
             {t('返现')}
           </Tag>
       );
-    case 8:
+    case LogType.LOGARCHIVE:
       return (
           <Tag color='red' shape='circle'>
             {t('日志归档')}
           </Tag>
       );
-    case 9:
+    case LogType.ERRORADMIN:
       return (
           <Tag color='red' shape='circle'>
             {t('错误(管理员)')}
@@ -316,18 +328,20 @@ export const getLogsColumns = ({
       dataIndex: 'username',
       render: (text, record, index) => {
         return isAdminUser ? (
-          <div>
-            <Avatar
-              size='extra-small'
-              color={stringToColor(text)}
-              style={{ marginRight: 4 }}
-              onClick={(event) => {
-                event.stopPropagation();
-                showUserInfoFunc(record.user_id);
-              }}
-            >
-              {typeof text === 'string' && text.slice(0, 1)}
-            </Avatar>
+          <div
+            onClick={(event) => {
+              event.stopPropagation();
+              showUserInfoFunc(record.user_id);
+            }}
+          >
+            {/*<Avatar*/}
+            {/*  size='extra-small'*/}
+            {/*  color={stringToColor(text)}*/}
+            {/*  style={{ marginRight: 4 }}*/}
+
+            {/*>*/}
+            {/*  {typeof text === 'string' && text.slice(0, 1)}*/}
+            {/*</Avatar>*/}
             {text}
           </div>
         ) : (
