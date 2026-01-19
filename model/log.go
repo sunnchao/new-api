@@ -309,7 +309,7 @@ func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int
 		tx = LOG_DB.Where("logs.user_id = ? and logs.type = ?", userId, logType)
 	}
 
-	tx = LOG_DB.Where("logs.type != ?", LogTypeErrorForAdmin)
+	tx = tx.Where("logs.type != ?", LogTypeErrorForAdmin)
 	if modelName != "" {
 		tx = tx.Where("logs.model_name like ?", modelName)
 	}
