@@ -30,6 +30,8 @@ const maxLogCount = 1000000
 var logCount int
 var setupLogLock sync.Mutex
 var setupLogWorking bool
+var currentLogDate string
+var currentLogFile *os.File
 
 func SetupLogger() {
 	defer func() {
@@ -44,11 +46,20 @@ func SetupLogger() {
 		defer func() {
 			setupLogLock.Unlock()
 		}()
-		logPath := filepath.Join(*common.LogDir, fmt.Sprintf("oneapi-%s.log", time.Now().Format("20060102150405")))
+		logDate := time.Now().Format("20060102")
+		if currentLogDate == logDate && currentLogFile != nil {
+			return
+		}
+		logPath := filepath.Join(*common.LogDir, fmt.Sprintf("oneapi-%s.log", logDate))
 		fd, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatal("failed to open log file")
 		}
+		if currentLogFile != nil {
+			_ = currentLogFile.Close()
+		}
+		currentLogFile = fd
+		currentLogDate = logDate
 		gin.DefaultWriter = io.MultiWriter(os.Stdout, fd)
 		gin.DefaultErrorWriter = io.MultiWriter(os.Stderr, fd)
 	}
@@ -85,6 +96,12 @@ func logHelper(ctx context.Context, level string, msg string) {
 		id = "SYSTEM"
 	}
 	now := time.Now()
+	if now.Format("20060102") != currentLogDate && !setupLogWorking {
+		setupLogWorking = true
+		gopool.Go(func() {
+			SetupLogger()
+		})
+	}
 	_, _ = fmt.Fprintf(writer, "[%s] %v | %s | %s \n", level, now.Format("2006/01/02 - 15:04:05"), id, msg)
 	logCount++ // we don't need accurate count, so no lock here
 	if logCount > maxLogCount && !setupLogWorking {
