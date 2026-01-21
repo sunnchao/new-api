@@ -21,8 +21,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   API,
+  copy,
   showError,
   showSuccess,
+  renderGroup,
   renderQuota,
   renderQuotaWithPrompt,
 } from '../../../../helpers';
@@ -42,6 +44,8 @@ import {
   Col,
   Input,
   InputNumber,
+  Table,
+  Empty,
 } from '@douyinfe/semi-ui';
 import {
   IconUser,
@@ -50,7 +54,15 @@ import {
   IconLink,
   IconUserGroup,
   IconPlus,
+  IconKey,
+  IconEyeOpened,
+  IconEyeClosed,
+  IconCopy,
 } from '@douyinfe/semi-icons';
+import {
+  IllustrationNoResult,
+  IllustrationNoResultDark,
+} from '@douyinfe/semi-illustrations';
 
 const { Text, Title } = Typography;
 
@@ -63,6 +75,12 @@ const EditUserModal = (props) => {
   const isMobile = useIsMobile();
   const [groupOptions, setGroupOptions] = useState([]);
   const formApiRef = useRef(null);
+  const [tokens, setTokens] = useState([]);
+  const [tokensLoading, setTokensLoading] = useState(false);
+  const [tokensPage, setTokensPage] = useState(1);
+  const [tokensPageSize, setTokensPageSize] = useState(10);
+  const [tokensTotal, setTokensTotal] = useState(0);
+  const [showKeys, setShowKeys] = useState({});
 
   const isEdit = Boolean(userId);
 
@@ -79,6 +97,7 @@ const EditUserModal = (props) => {
     quota: 0,
     group: 'default',
     remark: '',
+    linux_do_id: ''
   });
 
   const fetchGroups = async () => {
@@ -106,10 +125,45 @@ const EditUserModal = (props) => {
     setLoading(false);
   };
 
+  const copyText = async (text) => {
+    if (await copy(text)) {
+      showSuccess(t('已复制到剪贴板！'));
+    } else {
+      showError(t('无法复制到剪贴板，请手动复制'));
+    }
+  };
+
+  const loadUserTokens = async (page = tokensPage, size = tokensPageSize) => {
+    if (!userId) return;
+    setTokensLoading(true);
+    const res = await API.get(`/api/user/${userId}/tokens?p=${page}&size=${size}`);
+    const { success, message, data } = res.data;
+    if (success) {
+      setTokens(data.items || []);
+      setTokensTotal(data.total || 0);
+      setTokensPage(data.page || page);
+      setTokensPageSize(data.page_size || size);
+    } else {
+      showError(message);
+    }
+    setTokensLoading(false);
+  };
+
   useEffect(() => {
     loadUser();
     if (userId) fetchGroups();
   }, [props.editingUser.id]);
+
+  useEffect(() => {
+    if (props.visible && userId) {
+      loadUserTokens(1, tokensPageSize);
+    } else {
+      setTokens([]);
+      setTokensTotal(0);
+      setTokensPage(1);
+      setShowKeys({});
+    }
+  }, [props.visible, userId]);
 
   /* ----------------------- submit ----------------------- */
   const submit = async (values) => {
@@ -139,6 +193,69 @@ const EditUserModal = (props) => {
     const delta = parseInt(addQuotaLocal) || 0;
     formApiRef.current?.setValue('quota', current + delta);
   };
+
+  const tokenColumns = [
+    {
+      title: t('令牌 ID'),
+      dataIndex: 'id',
+      width: 90,
+    },
+    {
+      title: t('令牌 Key'),
+      dataIndex: 'key',
+      render: (text, record) => {
+        const fullKey = `sk-${record.key}`;
+        const maskedKey =
+          record.key && record.key.length > 8
+            ? `sk-${record.key.slice(0, 4)}********${record.key.slice(-4)}`
+            : fullKey;
+        const revealed = !!showKeys[record.id];
+        return (
+          <div className='w-[220px]'>
+            <Input readOnly size='small' value={revealed ? fullKey : maskedKey} />
+          </div>
+        );
+      },
+    },
+    {
+      title: t('分组'),
+      dataIndex: 'group',
+      render: (text) => renderGroup(text),
+    },
+    {
+      title: t('操作'),
+      dataIndex: 'operate',
+      render: (text, record) => {
+        const fullKey = `sk-${record.key}`;
+        const revealed = !!showKeys[record.id];
+        return (
+          <Space>
+            <Button
+              size='small'
+              type='tertiary'
+              icon={revealed ? <IconEyeClosed /> : <IconEyeOpened />}
+              onClick={() =>
+                setShowKeys((prev) => ({
+                  ...prev,
+                  [record.id]: !revealed,
+                }))
+              }
+            >
+              {revealed ? t('隐藏') : t('显示')}
+            </Button>
+            <Button
+              size='small'
+              type='tertiary'
+              icon={<IconCopy />}
+              onClick={() => copyText(fullKey)}
+            >
+              {t('复制')}
+            </Button>
+          </Space>
+        );
+      },
+    },
+  ];
 
   /* --------------------------- UI --------------------------- */
   return (
@@ -310,6 +427,63 @@ const EditUserModal = (props) => {
                   </Card>
                 )}
 
+                {userId && (
+                  <Card className='!rounded-2xl shadow-sm border-0'>
+                    <div className='flex items-center mb-2'>
+                      <Avatar
+                        size='small'
+                        color='orange'
+                        className='mr-2 shadow-md'
+                      >
+                        <IconKey size={16} />
+                      </Avatar>
+                      <div>
+                        <Text className='text-lg font-medium'>
+                          {t('API Keys')}
+                        </Text>
+                        <div className='text-xs text-gray-600'>
+                          {t('当前用户的令牌信息')}
+                        </div>
+                      </div>
+                    </div>
+                    <Table
+                      columns={tokenColumns}
+                      dataSource={tokens}
+                      loading={tokensLoading}
+                      rowKey='id'
+                      pagination={{
+                        currentPage: tokensPage,
+                        pageSize: tokensPageSize,
+                        total: tokensTotal,
+                        showSizeChanger: true,
+                        pageSizeOpts: [5, 10, 20, 50],
+                        onPageChange: (page) => loadUserTokens(page, tokensPageSize),
+                        onPageSizeChange: (size) => {
+                          setTokensPageSize(size);
+                          loadUserTokens(1, size);
+                        },
+                      }}
+                      size='small'
+                      empty={
+                        <Empty
+                          image={
+                            <IllustrationNoResult
+                              style={{ width: 120, height: 120 }}
+                            />
+                          }
+                          darkModeImage={
+                            <IllustrationNoResultDark
+                              style={{ width: 120, height: 120 }}
+                            />
+                          }
+                          description={t('暂无令牌')}
+                          style={{ padding: 16 }}
+                        />
+                      }
+                    />
+                  </Card>
+                )}
+
                 {/* 绑定信息 */}
                 <Card className='!rounded-2xl shadow-sm border-0'>
                   <div className='flex items-center mb-2'>
@@ -338,6 +512,7 @@ const EditUserModal = (props) => {
                       'wechat_id',
                       'email',
                       'telegram_id',
+                      'linux_do_id',
                     ].map((field) => (
                       <Col span={24} key={field}>
                         <Form.Input
