@@ -20,6 +20,13 @@
   --sidebar-width: 180px;
   --sidebar-width-collapsed: 60px;
   --sidebar-current-width: var(--sidebar-width);
+  --page-padding-desktop: 32px;
+  --page-padding-mobile: 12px;
+  --card-padding: 16px;
+  --control-padding-y: 8px;
+  --control-padding-x: 14px;
+  --table-cell-padding-y: 12px;
+  --table-cell-padding-x: 16px;
 }
 
 body.sidebar-collapsed {
@@ -31,6 +38,8 @@ body {
     'Microsoft YaHei', sans-serif;
   color: var(--semi-color-text-0);
   background-color: var(--semi-color-bg-0);
+  line-height: 1.65;
+  font-size: 14px;
 }
 
 code {
@@ -56,8 +65,8 @@ code {
 
 /* ==================== 导航和侧边栏样式 ==================== */
 .semi-navigation-item {
-  margin-bottom: 4px !important;
-  padding: 4px 12px !important;
+  margin-bottom: 6px !important;
+  padding: 6px 14px !important;
 }
 
 .semi-navigation-sub-title {
@@ -84,7 +93,7 @@ code {
 }
 
 .semi-navigation-item-collapsed {
-  height: 44px !important;
+  height: 52px !important;
 }
 
 #root
@@ -131,10 +140,10 @@ code {
 
 /* 侧边栏导航项样式 */
 .sidebar-nav-item {
-  border-radius: 6px;
-  margin: 3px 8px;
+  border-radius: 10px;
+  margin: 4px 10px;
   transition: all 0.15s ease;
-  padding: 8px 12px;
+  padding: 10px 14px;
 }
 
 .sidebar-nav-item:hover {
@@ -150,22 +159,22 @@ code {
 
 /* 图标容器样式 */
 .sidebar-icon-container {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 10px;
+  margin-right: 12px;
   transition: all 0.2s ease;
 }
 
 .sidebar-sub-icon-container {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 10px;
+  margin-right: 12px;
   margin-left: 1px;
   transition: all 0.2s ease;
 }
@@ -178,7 +187,7 @@ code {
 
 /* 分组标签样式 */
 .sidebar-group-label {
-  padding: 4px 15px 8px;
+  padding: 6px 18px 10px;
   color: var(--semi-color-text-2);
   font-size: 12px;
   text-transform: uppercase;
@@ -191,7 +200,7 @@ code {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 12px;
+  padding: 16px;
   margin-top: auto;
   cursor: pointer;
   background-color: var(--semi-color-bg-0);
@@ -204,8 +213,8 @@ code {
 }
 
 .sidebar-collapse-button-inner {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 9999px;
   display: flex;
   align-items: center;
@@ -221,7 +230,7 @@ code {
 
 /* 侧边栏区域容器 */
 .sidebar-section {
-  padding-top: 12px;
+  padding-top: 16px;
 }
 
 @media (max-width: 767px) {
@@ -817,7 +826,31 @@ html.dark .with-pastel-balls::before {
 /* ==================== semi-ui 组件自定义样式 ==================== */
 .semi-card-header,
 .semi-card-body {
-  padding: 10px !important;
+  padding: var(--card-padding) !important;
+}
+
+.semi-form-field {
+  margin-bottom: 18px;
+}
+
+.semi-input-wrapper .semi-input,
+.semi-input-textarea-wrapper textarea,
+.semi-select,
+.semi-tagInput,
+.semi-datepicker-range-input {
+  padding: var(--control-padding-y) var(--control-padding-x) !important;
+}
+
+.semi-button {
+  padding: var(--control-padding-y) calc(var(--control-padding-x) + 2px)
+    !important;
+  min-height: 36px;
+}
+
+.semi-table-thead > tr > th,
+.semi-table-tbody > tr > td {
+  padding: var(--table-cell-padding-y) var(--table-cell-padding-x)
+    !important;
 }
 
 /* ==================== 自定义圆角样式 ==================== */

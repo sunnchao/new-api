@@ -45,8 +45,8 @@ const LogsFilters = ({
       trigger='change'
       stopValidateWithError={false}
     >
-      <div className='flex flex-col gap-2'>
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2'>
+      <div className='flex flex-col gap-4'>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
           {/* 时间选择器 */}
           <div className='col-span-1 lg:col-span-2'>
             <Form.DatePicker
@@ -56,7 +56,7 @@ const LogsFilters = ({
               placeholder={[t('开始时间'), t('结束时间')]}
               showClear
               pure
-              size='small'
+              size='default'
               presets={DATE_RANGE_PRESETS.map((preset) => ({
                 text: t(preset.text),
                 start: preset.start(),
@@ -72,7 +72,7 @@ const LogsFilters = ({
             placeholder={t('令牌名称')}
             showClear
             pure
-            size='small'
+            size='default'
           />
 
           <Form.Input
@@ -81,7 +81,7 @@ const LogsFilters = ({
             placeholder={t('模型名称')}
             showClear
             pure
-            size='small'
+            size='default'
           />
 
           <Form.Input
@@ -90,7 +90,7 @@ const LogsFilters = ({
             placeholder={t('分组')}
             showClear
             pure
-            size='small'
+            size='default'
           />
 
           {isAdminUser && (
@@ -101,7 +101,7 @@ const LogsFilters = ({
                 placeholder={t('渠道 ID')}
                 showClear
                 pure
-                size='small'
+                size='default'
               />
               <Form.Input
                 field='username'
@@ -109,14 +109,14 @@ const LogsFilters = ({
                 placeholder={t('用户名称')}
                 showClear
                 pure
-                size='small'
+                size='default'
               />
             </>
           )}
         </div>
 
         {/* 操作按钮区域 */}
-        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3'>
+        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
           {/* 日志类型选择器 */}
           <div className='w-full sm:w-auto'>
             <Form.Select
@@ -131,7 +131,7 @@ const LogsFilters = ({
                   refresh();
                 }, 0);
               }}
-              size='small'
+              size='default'
             >
               <Form.Select.Option value='0'>{t('全部')}</Form.Select.Option>
               <Form.Select.Option value='1'>{t('充值')}</Form.Select.Option>
@@ -144,12 +144,12 @@ const LogsFilters = ({
             </Form.Select>
           </div>
 
-          <div className='flex gap-2 w-full sm:w-auto justify-end'>
+          <div className='flex gap-3 w-full sm:w-auto justify-end'>
             <Button
               type='tertiary'
               htmlType='submit'
               loading={loading}
-              size='small'
+              size='default'
             >
               {t('查询')}
             </Button>
@@ -164,14 +164,14 @@ const LogsFilters = ({
                   }, 100);
                 }
               }}
-              size='small'
+              size='default'
             >
               {t('重置')}
             </Button>
             <Button
               type='tertiary'
               onClick={() => setShowColumnSelector(true)}
-              size='small'
+              size='default'
             >
               {t('列设置')}
             </Button>

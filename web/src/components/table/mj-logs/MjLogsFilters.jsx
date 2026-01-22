@@ -44,8 +44,8 @@ const MjLogsFilters = ({
       trigger='change'
       stopValidateWithError={false}
     >
-      <div className='flex flex-col gap-2'>
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2'>
+      <div className='flex flex-col gap-4'>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
           {/* 时间选择器 */}
           <div className='col-span-1 lg:col-span-2'>
             <Form.DatePicker
@@ -55,7 +55,7 @@ const MjLogsFilters = ({
               placeholder={[t('开始时间'), t('结束时间')]}
               showClear
               pure
-              size='small'
+              size='default'
               presets={DATE_RANGE_PRESETS.map((preset) => ({
                 text: t(preset.text),
                 start: preset.start(),
@@ -71,7 +71,7 @@ const MjLogsFilters = ({
             placeholder={t('任务 ID')}
             showClear
             pure
-            size='small'
+            size='default'
           />
 
           {/* 渠道 ID - 仅管理员可见 */}
@@ -79,23 +79,23 @@ const MjLogsFilters = ({
             <Form.Input
               field='channel_id'
               prefix={<IconSearch />}
-              placeholder={t('渠道 ID')}
-              showClear
-              pure
-              size='small'
-            />
+                placeholder={t('渠道 ID')}
+                showClear
+                pure
+                size='default'
+              />
           )}
         </div>
 
         {/* 操作按钮区域 */}
-        <div className='flex justify-between items-center'>
+        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
           <div></div>
-          <div className='flex gap-2'>
+          <div className='flex gap-3 w-full sm:w-auto justify-end'>
             <Button
               type='tertiary'
               htmlType='submit'
               loading={loading}
-              size='small'
+              size='default'
             >
               {t('查询')}
             </Button>
@@ -109,14 +109,14 @@ const MjLogsFilters = ({
                   }, 100);
                 }
               }}
-              size='small'
+              size='default'
             >
               {t('重置')}
             </Button>
             <Button
               type='tertiary'
               onClick={() => setShowColumnSelector(true)}
-              size='small'
+              size='default'
             >
               {t('列设置')}
             </Button>
