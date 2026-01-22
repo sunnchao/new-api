@@ -39,6 +39,24 @@ export async function fetchTokenKeys() {
 }
 
 /**
+ * 获取可用的完整token对象
+ * @returns {Promise<Array>} 返回active状态的token对象数组
+ */
+export async function fetchTokens() {
+  try {
+    const response = await API.get('/api/token/search?keyword=');
+    const { success, data } = response.data;
+    if (!success) throw new Error('Failed to fetch tokens');
+
+    const tokenItems = Array.isArray(data) ? data : [];
+    return tokenItems.filter((token) => token.status === 1);
+  } catch (error) {
+    console.error('Error fetching tokens:', error);
+    return [];
+  }
+}
+
+/**
  * 获取服务器地址
  * @returns {string} 服务器地址
  */
