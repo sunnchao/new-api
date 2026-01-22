@@ -21,6 +21,8 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, transformWithEsbuild } from 'vite';
 import pkg from '@douyinfe/vite-plugin-semi';
 import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
 import { codeInspectorPlugin } from 'code-inspector-plugin';
 import { visualizer } from 'rollup-plugin-visualizer';
 import viteCompression from 'vite-plugin-compression';
@@ -37,6 +39,40 @@ export default defineConfig({
     codeInspectorPlugin({
       bundler: 'vite',
     }),
+    (() => {
+      let outDir = 'dist';
+      return {
+        name: 'manifest-version-hash',
+        apply: 'build',
+        configResolved(config) {
+          outDir = config.build.outDir;
+        },
+        writeBundle() {
+          const manifestPath = path.resolve(__dirname, 'public/manifest.json');
+          if (!fs.existsSync(manifestPath)) {
+            return;
+          }
+          let manifestData = {};
+          try {
+            const rawManifest = fs.readFileSync(manifestPath, 'utf-8');
+            manifestData = JSON.parse(rawManifest);
+          } catch (error) {
+            manifestData = {};
+          }
+          const versionHash = crypto
+            .createHash('sha256')
+            .update(`${Date.now()}-${Math.random()}`)
+            .digest('hex')
+            .slice(0, 12);
+          const outputManifest = {
+            ...manifestData,
+            version: versionHash,
+          };
+          const outputPath = path.resolve(outDir || 'dist', 'manifest.json');
+          fs.writeFileSync(outputPath, JSON.stringify(outputManifest, null, 2));
+        },
+      };
+    })(),
     {
       name: 'treat-js-files-as-jsx',
       async transform(code, id) {

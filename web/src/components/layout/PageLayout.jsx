@@ -22,6 +22,7 @@ import { Layout } from '@douyinfe/semi-ui';
 import SiderBar from './SiderBar';
 import App from '../../App';
 import FooterBar from './Footer';
+import UpdatePrompt from './UpdatePrompt';
 import { ToastContainer } from 'react-toastify';
 import React, { useContext, useEffect, useState } from 'react';
 import { useIsMobile } from '../../hooks/common/useIsMobile';
@@ -119,6 +120,7 @@ const PageLayout = () => {
     }
   }, [i18n]);
 
+
   return (
     <Layout
       style={{
@@ -210,6 +212,7 @@ const PageLayout = () => {
           )}
         </Layout>
       </Layout>
+      <UpdatePrompt />
       <ToastContainer />
     </Layout>
   );
