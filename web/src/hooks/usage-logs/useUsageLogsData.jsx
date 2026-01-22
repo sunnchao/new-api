@@ -35,7 +35,7 @@ import {
   renderLogContent,
   renderAudioModelPrice,
   renderClaudeModelPrice,
-  renderModelPrice,
+  renderModelPrice, getTodayEndTimestamp,
 } from '../../helpers';
 import { ITEMS_PER_PAGE } from '../../constants';
 import { useTableCompactMode } from '../common/useTableCompactMode';
@@ -96,7 +96,7 @@ export const useLogsData = () => {
     group: '',
     dateRange: [
       timestamp2string(getTodayStartTimestamp()),
-      timestamp2string(now.getTime() / 1000 + 3600),
+      timestamp2string(getTodayEndTimestamp()),
     ],
     logType: '0',
   };
