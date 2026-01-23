@@ -55,7 +55,7 @@ const LogsActions = ({
             }}
             className='!rounded-lg'
           >
-            {t('消耗额度')}: {renderQuota(stat.quota)}
+            {t('消耗额度')}: {renderQuota(stat.quota, 6)}
           </Tag>
           <Tag
             color='pink'
