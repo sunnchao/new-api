@@ -87,7 +87,6 @@ const ChannelsFilters = ({
         >
           <div className='relative w-full md:w-64'>
             <Form.Input
-              size='small'
               field='searchKeyword'
               prefix={<IconSearch />}
               placeholder={t('渠道ID，名称，密钥，API地址')}
@@ -97,7 +96,6 @@ const ChannelsFilters = ({
           </div>
           <div className='w-full md:w-48'>
             <Form.Input
-              size='small'
               field='searchModel'
               prefix={<IconSearch />}
               placeholder={t('模型关键字')}
@@ -107,7 +105,6 @@ const ChannelsFilters = ({
           </div>
           <div className='w-full md:w-32'>
             <Form.Select
-              size='small'
               field='searchGroup'
               placeholder={t('选择分组')}
               optionList={[
@@ -126,7 +123,6 @@ const ChannelsFilters = ({
             />
           </div>
           <Button
-            size='small'
             type='tertiary'
             htmlType='submit'
             loading={loading || searching}
@@ -135,7 +131,6 @@ const ChannelsFilters = ({
             {t('查询')}
           </Button>
           <Button
-            size='small'
             type='tertiary'
             onClick={() => {
               if (formApi) {

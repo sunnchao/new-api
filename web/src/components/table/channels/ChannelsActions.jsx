@@ -253,7 +253,6 @@ const ChannelsActions = ({
               {t('状态筛选')}
             </Typography.Text>
             <Select
-              size='small'
               value={statusFilter}
               onChange={(v) => {
                 localStorage.setItem('channel-status-filter', v);
