@@ -82,10 +82,6 @@ export const getPlansColumns = ({
     },
   },
   {
-    title: t('服务类型'),
-    dataIndex: 'service_type',
-  },
-  {
     title: t('操作'),
     dataIndex: 'operate',
     fixed: 'right',

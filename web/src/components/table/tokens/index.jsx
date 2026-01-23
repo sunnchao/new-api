@@ -256,7 +256,7 @@ function TokensPage() {
     }
 
     const payload = {
-      id: 'new-api',
+      id: 'Chirou API',
       baseUrl: serverAddress,
       apiKey: apiKeyToUse,
       model: chosenModel,

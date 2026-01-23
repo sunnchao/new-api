@@ -34,9 +34,9 @@ type PackagesSubscription struct {
 	Id          int     `json:"id" gorm:"primaryKey"`
 	HashId      string  `json:"hash_id"`
 	UserId      int     `json:"user_id" gorm:"index"`
-	ServiceType string  `json:"service_type" gorm:"type:varchar(50);index;default:'claude_code'"` // claude_code, codex_code, gemini_code
-	PlanType    string  `json:"plan_type"`                                                        // basic, pro, enterprise
-	Status      string  `json:"status" gorm:"default:'active'"`                                   // active, expired, cancelled, pending, exhausted
+	ServiceType string  `json:"-" gorm:"type:varchar(50);index;default:''"`
+	PlanType    string  `json:"plan_type"`                      // basic, pro, enterprise
+	Status      string  `json:"status" gorm:"default:'active'"` // active, expired, cancelled, pending, exhausted
 	StartTime   int64   `json:"start_time"`
 	EndTime     int64   `json:"end_time" gorm:"index"`
 	AutoRenew   bool    `json:"auto_renew" gorm:"default:true"`
@@ -123,7 +123,7 @@ type PackagesPlan struct {
 	HashId      string  `json:"hash_id"`
 	Name        string  `json:"name"`
 	Type        string  `json:"type" gorm:"unique"`
-	ServiceType string  `json:"service_type" gorm:"type:varchar(50);index;default:'claude_code'"` // claude_code, codex_code, gemini_code
+	ServiceType string  `json:"-" gorm:"type:varchar(50);index;default:''"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 	Currency    string  `json:"currency" gorm:"default:'USD'"`
@@ -265,7 +265,7 @@ func GrantPlanToUser(userId int, plan *PackagesPlan, source string, allowStack b
 	now := common.GetTimestamp()
 	durationSeconds := plan.DurationSeconds()
 
-	subscription, err := GetUserActivePackagesSubscription(userId, plan.ServiceType)
+	subscription, err := GetUserActivePackagesSubscription(userId)
 	if err == nil && subscription != nil && allowStack {
 		updates := map[string]interface{}{
 			"total_quota":  gorm.Expr("total_quota + ?", plan.TotalQuota),
@@ -314,7 +314,6 @@ func GrantPlanToUser(userId int, plan *PackagesPlan, source string, allowStack b
 	newSubscription := &PackagesSubscription{
 		UserId:         userId,
 		PlanType:       plan.Type,
-		ServiceType:    plan.ServiceType,
 		Status:         "active",
 		StartTime:      now,
 		EndTime:        endTime,
@@ -363,16 +362,12 @@ type ClientFingerprint struct {
 	Version     string `json:"version"`
 }
 
-// 获取用户当前有效订阅（按服务类型查询）
-func GetUserActivePackagesSubscription(userId int, serviceType string) (*PackagesSubscription, error) {
+// 获取用户当前有效订阅
+func GetUserActivePackagesSubscription(userId int) (*PackagesSubscription, error) {
 	var subscription PackagesSubscription
 	now := common.GetTimestamp()
 
 	query := DB.Where("user_id = ? AND status = 'active' AND end_time > ?", userId, now)
-
-	if serviceType != "" {
-		query = query.Where("service_type = ?", serviceType)
-	}
 
 	err := query.Find(&subscription).Error
 	if err != nil {
@@ -399,9 +394,6 @@ func GetUserActivePackagesSubscriptions(userId int, sub PackagesSubscription, is
 	var subscriptions []PackagesSubscription
 
 	query := DB.Where("user_id = ?", userId)
-	if sub.ServiceType != "" {
-		query = query.Where("service_type = ?", sub.ServiceType)
-	}
 	if isActive {
 		now := common.GetTimestamp()
 		query = query.Where("status = 'active'").
@@ -779,7 +771,6 @@ func UpdatePackagesSubscriptionsByPlan(plan *PackagesPlan) error {
 		"monthly_quota_limit": plan.MonthlyQuotaPerPlan,
 		"reset_quota_limit":   plan.ResetQuotaLimit,
 		"deduction_group":     NormalizeDeductionGroups(plan.DeductionGroup),
-		"service_type":        plan.ServiceType,
 	}
 	return DB.Model(&PackagesSubscription{}).
 		Where("plan_type = ?", plan.Type).
@@ -890,9 +881,6 @@ func GetPackagesSubscriptions(page, pageSize int, filters map[string]interface{}
 	}
 	if planType, ok := filters["plan_type"].(string); ok && planType != "" {
 		query = query.Where("plan_type = ?", planType)
-	}
-	if serviceType, ok := filters["service_type"].(string); ok && serviceType != "" {
-		query = query.Where("service_type = ?", serviceType)
 	}
 	if userId, ok := filters["user_id"].(int); ok && userId > 0 {
 		query = query.Where("user_id = ?", userId)

@@ -317,7 +317,6 @@ export const useAdminPackagesData = () => {
       const payload = {
         ...values,
         type: (values.type || '').trim(),
-        service_type: (values.service_type || '').trim(),
         deduction_group: Array.isArray(values.deduction_group)
           ? values.deduction_group.join(',').trim()
           : (values.deduction_group || '').trim(),

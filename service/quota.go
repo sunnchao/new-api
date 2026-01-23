@@ -183,68 +183,7 @@ func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usag
 	return nil
 }
 
-func resolvePackageServiceType(group string) string {
-	group = strings.TrimSpace(group)
-	if group == "" {
-		return ""
-	}
-	switch {
-	case strings.EqualFold(group, "ClaudeCode"):
-		return "claude_code"
-	case strings.EqualFold(group, "Codex"):
-		return "codex_code"
-	case strings.EqualFold(group, "GeminiCli"):
-		return "gemini_code"
-	default:
-		return ""
-	}
-}
-
-func resolvePackageServiceTypeFromContext(ctx *gin.Context, relayInfo *relaycommon.RelayInfo) string {
-	if relayInfo != nil && relayInfo.PackageServiceType != "" {
-		return relayInfo.PackageServiceType
-	}
-	if ctx == nil {
-		return ""
-	}
-	serviceType := common.GetContextKeyString(ctx, constant.ContextKeyPackageServiceType)
-	if serviceType != "" {
-		return serviceType
-	}
-
-	backupGroup, exists := common.GetContextKey(ctx, constant.ContextKeyBackupAutoGroup)
-	if exists {
-		if groupStr, ok := backupGroup.(string); ok {
-			serviceType = resolvePackageServiceType(groupStr)
-			if serviceType != "" {
-				return serviceType
-			}
-		}
-	}
-
-	autoGroup, exists := common.GetContextKey(ctx, constant.ContextKeyAutoGroup)
-	if exists {
-		if groupStr, ok := autoGroup.(string); ok {
-			serviceType = resolvePackageServiceType(groupStr)
-			if serviceType != "" {
-				return serviceType
-			}
-		}
-	}
-
-	tokenGroup := common.GetContextKeyString(ctx, constant.ContextKeyTokenGroup)
-	if tokenGroup == "" {
-		tokenGroup = common.GetContextKeyString(ctx, constant.ContextKeyUserGroup)
-	}
-	return resolvePackageServiceType(tokenGroup)
-}
-
 func PostClaudeConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage) {
-
-	if relayInfo.PackageServiceType == "" {
-		relayInfo.PackageServiceType = resolvePackageServiceTypeFromContext(ctx, relayInfo)
-	}
-
 	useTimeSeconds := time.Now().Unix() - relayInfo.StartTime.Unix()
 	promptTokens := usage.PromptTokens
 	completionTokens := usage.CompletionTokens
@@ -385,11 +324,6 @@ func PostClaudeConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, 
 
 func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, modelName string,
 	usage *dto.RealtimeUsage, extraContent string) {
-
-	if relayInfo.PackageServiceType == "" {
-		relayInfo.PackageServiceType = resolvePackageServiceTypeFromContext(ctx, relayInfo)
-	}
-
 	useTimeSeconds := time.Now().Unix() - relayInfo.StartTime.Unix()
 	textInputTokens := usage.InputTokenDetails.TextTokens
 	textOutTokens := usage.OutputTokenDetails.TextTokens
@@ -531,11 +465,6 @@ func CalcOpenRouterCacheCreateTokens(usage dto.Usage, priceData types.PriceData)
 }
 
 func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage, extraContent string) {
-
-	if relayInfo.PackageServiceType == "" {
-		relayInfo.PackageServiceType = resolvePackageServiceTypeFromContext(ctx, relayInfo)
-	}
-
 	useTimeSeconds := time.Now().Unix() - relayInfo.StartTime.Unix()
 	textInputTokens := usage.PromptTokensDetails.TextTokens
 	textOutTokens := usage.CompletionTokenDetails.TextTokens

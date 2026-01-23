@@ -63,7 +63,6 @@ const TokensFilters = ({
             placeholder={t('搜索关键字')}
             showClear
             pure
-            size='small'
           />
         </div>
 
@@ -74,7 +73,6 @@ const TokensFilters = ({
             placeholder={t('密钥')}
             showClear
             pure
-            size='small'
           />
         </div>
 
@@ -84,7 +82,6 @@ const TokensFilters = ({
             htmlType='submit'
             loading={loading || searching}
             className='flex-1 md:flex-initial md:w-auto'
-            size='small'
           >
             {t('查询')}
           </Button>
@@ -93,7 +90,6 @@ const TokensFilters = ({
             type='tertiary'
             onClick={handleReset}
             className='flex-1 md:flex-initial md:w-auto'
-            size='small'
           >
             {t('重置')}
           </Button>

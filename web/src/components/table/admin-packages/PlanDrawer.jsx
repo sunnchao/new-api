@@ -149,17 +149,6 @@ const PlanDrawer = ({
               />
 
               <Form.Select
-                field='service_type'
-                label={t('服务类型')}
-                placeholder={t('选择服务类型')}
-                rules={[{ required: true, message: t('请选择服务类型') }]}
-                optionList={[
-                  { label: 'claude_code', value: 'claude_code' },
-                  { label: 'codex_code', value: 'codex_code' },
-                  { label: 'gemini_code', value: 'gemini_code' },
-                ]}
-              />
-              <Form.Select
                 field='currency'
                 label={t('货币')}
                 optionList={[

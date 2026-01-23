@@ -32,7 +32,7 @@ const Navigation = ({
 }) => {
   const renderNavLinks = () => {
     const baseClasses =
-      'flex-shrink-0 flex items-center gap-1 text-xs md:text-sm font-semibold rounded-md transition-all duration-200 ease-in-out';
+      'flex-shrink-0 flex items-center gap-1 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out';
     const hoverClasses = 'hover:text-semi-color-primary';
     const spacingClasses = isMobile ? 'px-1 py-0.5' : 'px-2 py-1';
 

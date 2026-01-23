@@ -289,7 +289,6 @@ func PurchasePackagesSubscription(c *gin.Context) {
 		Currency:       plan.Currency,
 		PaymentMethod:  paymentMethod,
 		OrderId:        orderId,
-		ServiceType:    plan.ServiceType,
 		HashId:         common.GetUUID(),
 	}
 	model.ApplyPlanLimitsToSubscription(subscription, plan)
@@ -415,9 +414,6 @@ func GetAllPackagesSubscriptions(c *gin.Context) {
 	}
 	if planType := c.Query("plan_type"); planType != "" {
 		filters["plan_type"] = planType
-	}
-	if serviceType := c.Query("service_type"); serviceType != "" {
-		filters["service_type"] = serviceType
 	}
 	if userIdStr := c.Query("user_id"); userIdStr != "" {
 		if userId, err := strconv.Atoi(userIdStr); err == nil {
@@ -635,7 +631,6 @@ type CreatePlanRequest struct {
 	IsActive            bool                   `json:"is_active"`
 	SortOrder           int                    `json:"sort_order"`
 	ShowInPortal        bool                   `json:"show_in_portal"`
-	ServiceType         string                 `json:"service_type" binding:"required"`
 	DailyQuotaPerPlan   int                    `json:"daily_quota_per_plan"`
 	WeeklyQuotaPerPlan  int                    `json:"weekly_quota_per_plan"`
 	MonthlyQuotaPerPlan int                    `json:"monthly_quota_per_plan"`
@@ -657,7 +652,6 @@ type UpdatePlanRequest struct {
 	Features            map[string]interface{} `json:"features"`
 	IsActive            *bool                  `json:"is_active"`
 	SortOrder           int                    `json:"sort_order"`
-	ServiceType         string                 `json:"service_type"`
 	TotalQuota          int64                  `json:"total_quota"`
 	ShowInPortal        *bool                  `json:"show_in_portal"`
 	DailyQuotaPerPlan   *int64                 `json:"daily_quota_per_plan"`
@@ -789,7 +783,6 @@ func CreatePackagesPlan(c *gin.Context) {
 		CreatedTime:         now,
 		UpdatedTime:         now,
 		HashId:              common.GetUUID(),
-		ServiceType:         req.ServiceType,
 		DailyQuotaPerPlan:   req.DailyQuotaPerPlan,
 		WeeklyQuotaPerPlan:  req.WeeklyQuotaPerPlan,
 		MonthlyQuotaPerPlan: req.MonthlyQuotaPerPlan,
@@ -862,9 +855,6 @@ func UpdatePackagesPlan(c *gin.Context) {
 
 	if req.Name != "" {
 		plan.Name = req.Name
-	}
-	if req.ServiceType != "" {
-		plan.ServiceType = req.ServiceType
 	}
 	if req.Description != "" {
 		plan.Description = req.Description

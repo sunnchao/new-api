@@ -141,6 +141,9 @@ const LogsFilters = ({
               <Form.Select.Option value='5'>{t('签到')}</Form.Select.Option>
               <Form.Select.Option value='6'>{t('错误')}</Form.Select.Option>
               <Form.Select.Option value='8'>{t('归档')}</Form.Select.Option>
+              {
+                isAdminUser && <Form.Select.Option value='9'>{t('错误(管理员)')}</Form.Select.Option>
+              }
             </Form.Select>
           </div>
 

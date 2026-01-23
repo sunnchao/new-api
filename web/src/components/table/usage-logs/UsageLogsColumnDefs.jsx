@@ -301,7 +301,7 @@ export const getLogsColumns = ({
         }
 
         return isAdminUser &&
-          (record.type === 0 || record.type === 2 || record.type === 5 || record.type === 6 || record.type === 9) ? (
+          (record.type === 0 || record.type === 2 || record.type === 6 || record.type === 9) ? (
           <Space>
             <Tooltip content={record.channel_name || t('未知渠道')}>
               <span>
@@ -354,7 +354,7 @@ export const getLogsColumns = ({
       title: t('令牌'),
       dataIndex: 'token_name',
       render: (text, record, index) => {
-        return record.type === 0 || record.type === 2 || record.type === 5 ? (
+        return record.type === 0 || record.type === 2 ? (
           <div>
             <Tag
               color='grey'
@@ -417,7 +417,7 @@ export const getLogsColumns = ({
       title: t('模型'),
       dataIndex: 'model_name',
       render: (text, record, index) => {
-        return record.type === 0 || record.type === 2 || record.type === 5 ? (
+        return record.type === 0 || record.type === 2 ? (
           <>{renderModelName(record, copyText, t)}</>
         ) : (
           <></>
@@ -429,7 +429,7 @@ export const getLogsColumns = ({
       title: t('用时/首字'),
       dataIndex: 'use_time',
       render: (text, record, index) => {
-        if (!(record.type === 2 || record.type === 5)) {
+        if (!(record.type === 2)) {
           return <></>;
         }
         if (record.is_stream) {

@@ -20,7 +20,7 @@ const PackagesMenu = () => {
 
   const menuItems = subscriptions.length
     ? subscriptions.map((sub) => ({
-        name: `${sub.package_plan?.type || sub.plan_type} (${sub.service_type})`,
+        name: sub.package_plan?.type || sub.plan_type,
         onClick: () => {
           window.location.href = '/console/subscriptions';
         },

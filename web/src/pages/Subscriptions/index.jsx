@@ -265,7 +265,6 @@ const Subscriptions = () => {
                       <Text>{`${t('价格')}: ${plan.price} ${plan.currency}`}</Text>
                       <Text>{`${t('总额度')}: ${renderQuota(plan.total_quota)}`}</Text>
                       <Text>{`${t('有效期')}: ${plan.duration_unit || '-'} ${plan.duration_value || '-'}`}</Text>
-                      <Text>{`${t('服务类型')}: ${plan.service_type}`}</Text>
                       {showGroupInfo && (
                         <Space>
                           <Text type='tertiary'>{t('适用分组')}:</Text>
@@ -332,12 +331,9 @@ const Subscriptions = () => {
                         <Title heading={5}>
                           {sub.package_plan?.name || sub.package_plan?.type}
                         </Title>
-                        <Tag color={status.color}>{status.label}</Tag>
-                      </div>
-                      <Text type='secondary'>
-                        {`${t('服务类型')}: ${sub.service_type}`}
-                      </Text>
-                      {(() => {
+                          <Tag color={status.color}>{status.label}</Tag>
+                        </div>
+                        {(() => {
                         const deductionGroups = sub.deduction_group
                           ? sub.deduction_group.split(',').map(g => g.trim()).filter(Boolean)
                           : [];
@@ -429,7 +425,7 @@ const Subscriptions = () => {
             <Select
               style={{ width: '100%' }}
               optionList={plans.map((plan) => ({
-                label: `${plan.name || plan.type} (${plan.service_type || '-'})`,
+                label: plan.name || plan.type,
                 value: plan.type,
               }))}
               value={selectedPlan?.type}

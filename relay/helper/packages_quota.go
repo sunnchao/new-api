@@ -14,7 +14,6 @@ type SubscriptionUsageDetail struct {
 
 type SubscriptionQuotaResult struct {
 	SubscriptionHashId  string
-	PackageServiceType  string
 	SubscriptionQuota   int
 	QuotaFromBalance    int
 	SubscriptionHandled bool
@@ -26,24 +25,19 @@ func ApplySubscriptionQuota(relayInfo *relaycommon.RelayInfo, totalQuota int) (*
 		return nil, nil
 	}
 
-	serviceType := relayInfo.PackageServiceType
-	if serviceType == "" {
-		return nil, nil
-	}
-
 	tokenGroup := relayInfo.TokenGroup
 	if tokenGroup == "" {
 		tokenGroup = relayInfo.UsingGroup
 	}
 
-	filter := model.PackagesSubscription{ServiceType: serviceType}
+	filter := model.PackagesSubscription{}
 	subscriptions, err := model.GetUserActivePackagesSubscriptions(relayInfo.UserId, filter, true)
 	if err != nil || len(subscriptions) == 0 {
 		return nil, err
 	}
 
 	remainingQuota := totalQuota
-	result := &SubscriptionQuotaResult{PackageServiceType: serviceType}
+	result := &SubscriptionQuotaResult{}
 	result.SubscriptionsUsed = make([]SubscriptionUsageDetail, 0, len(subscriptions))
 
 	for i := range subscriptions {
@@ -100,7 +94,6 @@ func BuildSubscriptionLogMeta(relayInfo *relaycommon.RelayInfo, usageMeta map[st
 
 	usageMeta["billing_type"] = "resource_package"
 	usageMeta["resource_package_id"] = result.SubscriptionHashId
-	usageMeta["package_service_type"] = result.PackageServiceType
 	if len(result.SubscriptionsUsed) > 0 {
 		usageMeta["subscriptions_used"] = result.SubscriptionsUsed
 	}
@@ -136,5 +129,5 @@ func ApplySubscriptionDeduction(relayInfo *relaycommon.RelayInfo, quota int) (in
 }
 
 func ShouldSkipPreConsume(relayInfo *relaycommon.RelayInfo) bool {
-	return relayInfo != nil && relayInfo.PackageServiceType != ""
+	return false
 }

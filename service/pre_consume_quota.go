@@ -64,12 +64,6 @@ func PreConsumeQuota(c *gin.Context, preConsumedQuota int, relayInfo *relaycommo
 	}
 
 	if preConsumedQuota > 0 {
-		if relayInfo.PackageServiceType == "" {
-			relayInfo.PackageServiceType = resolvePackageServiceTypeFromContext(c, relayInfo)
-		}
-		if relayInfo.PackageServiceType != "" {
-			preConsumedQuota = 0
-		}
 		err := PreConsumeTokenQuota(relayInfo, preConsumedQuota)
 		if err != nil {
 			return types.NewErrorWithStatusCode(err, types.ErrorCodePreConsumeTokenQuotaFailed, http.StatusForbidden, types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())

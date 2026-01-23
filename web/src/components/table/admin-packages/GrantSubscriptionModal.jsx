@@ -91,7 +91,7 @@ const GrantSubscriptionModal = ({
           style={{ width: '100%' }}
           placeholder={t('请选择套餐')}
           optionList={plans.map((plan) => ({
-            label: `${plan.name || plan.type} (${plan.service_type})`,
+            label: plan.name || plan.type,
             value: plan.type,
           }))}
           value={selectedPlan?.type}

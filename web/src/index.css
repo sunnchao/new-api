@@ -20,7 +20,7 @@
   --sidebar-width: 180px;
   --sidebar-width-collapsed: 60px;
   --sidebar-current-width: var(--sidebar-width);
-  --page-padding-desktop: 32px;
+  --page-padding-desktop: 32px 16px;
   --page-padding-mobile: 12px;
   --card-padding: 16px;
   --control-padding-y: 8px;
