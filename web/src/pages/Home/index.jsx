@@ -28,7 +28,7 @@ import {
   Row,
   Col,
 } from '@douyinfe/semi-ui';
-import { API, showError, copy, showSuccess } from '../../helpers';
+import { API, showError, copy, showSuccess, renderQuota } from '../../helpers';
 import { useIsMobile } from '../../hooks/common/useIsMobile';
 import { API_ENDPOINTS } from '../../constants/common.constant';
 import { StatusContext } from '../../context/Status';
@@ -83,6 +83,27 @@ const Home = () => {
   const endpointItems = API_ENDPOINTS.map((e) => ({ value: e }));
   const [endpointIndex, setEndpointIndex] = useState(0);
   const isChinese = i18n.language.startsWith('zh');
+  const [plans, setPlans] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(false);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      setLoadingPlans(true);
+      try {
+        const res = await API.get('/api/user/packages/plans', {
+          skipErrorHandler: true,
+        });
+        if (res?.data?.success) {
+          setPlans(res.data.data || []);
+        }
+      } catch (error) {
+        // ignore (unauth visitors may not have access to user plans)
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+    fetchPlans();
+  }, []);
 
   const displayHomePageContent = async () => {
     setHomePageContent(localStorage.getItem('home_page_content') || '');
@@ -161,16 +182,16 @@ const Home = () => {
       {homePageContentLoaded && homePageContent === '' ? (
         <div className='w-full overflow-x-hidden'>
           {/* Banner 部分 */}
-          <div className='w-full border-b border-semi-color-border min-h-[500px] md:min-h-[600px] lg:min-h-[700px] relative overflow-x-hidden'>
+          <div className='w-full border-b border-semi-color-border min-h-[500px] md:min-h-[600px] lg:min-h-[700px] relative overflow-x-hidden bg-gradient-to-b from-transparent via-purple-50/30 to-white/50 dark:via-purple-900/10 dark:to-black/20'>
             {/* 背景模糊晕染球 */}
-            <div className='blur-ball blur-ball-indigo' />
-            <div className='blur-ball blur-ball-teal' />
+            <div className='blur-ball blur-ball-indigo opacity-80' />
+            <div className='blur-ball blur-ball-teal opacity-60' />
             <div className='flex items-center justify-center h-full px-4 py-20 md:py-24 lg:py-32 mt-10'>
               {/* 居中内容区 */}
               <div className='flex flex-col items-center justify-center text-center max-w-4xl mx-auto'>
                 <div className='flex flex-col items-center justify-center mb-6 md:mb-8'>
                   <h1
-                    className={`text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-semi-color-text-0 leading-tight ${isChinese ? 'tracking-wide md:tracking-wider' : ''}`}
+                    className={`text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 leading-tight ${isChinese ? 'tracking-wide md:tracking-wider' : ''} drop-shadow-sm`}
                   >
                     <>
                       {t('统一的')}
@@ -340,10 +361,10 @@ const Home = () => {
           <div className='w-full py-16 md:py-20 lg:py-24 px-4 md:px-8'>
             <div className='max-w-6xl mx-auto'>
               <div className='text-center mb-12 md:mb-16'>
-                <div className='inline-block px-4 py-2 rounded-full bg-semi-color-fill-1 border border-semi-color-border text-sm text-semi-color-text-2 mb-4'>
+                <div className='inline-block px-4 py-2 rounded-full bg-purple-50 border border-purple-100 text-sm text-purple-600 dark:bg-purple-900/20 dark:border-purple-800 dark:text-purple-300 mb-4 font-medium'>
                   {t('AI-Powered Development')}
                 </div>
-                <h2 className='text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-semi-color-primary to-purple-600 bg-clip-text text-transparent mb-4'>
+                <h2 className='text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4 drop-shadow-sm'>
                   {t('Vibe Coding')}
                 </h2>
                 <p className='text-lg md:text-xl text-semi-color-text-1'>
@@ -359,20 +380,20 @@ const Home = () => {
                   <Link to='/claude-code' className='block h-full group'>
                     <Card
                       shadows='hover'
-                      className='h-full !rounded-2xl border-2 hover:border-purple-400 dark:hover:border-purple-600 transition-all duration-300 !bg-white dark:!bg-semi-color-fill-0'
+                      className='h-full !rounded-2xl border hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-300 !bg-white/50 dark:!bg-gray-800/40 backdrop-blur-sm group-hover:shadow-2xl group-hover:shadow-purple-500/10'
                       bodyStyle={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}
                     >
                       <div className='flex items-center justify-between mb-6'>
-                         <div className='p-3 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300'>
+                         <div className='p-3 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 group-hover:scale-110 transition-transform'>
                             <svg className='w-6 h-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                               <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' />
                             </svg>
                          </div>
-                        <span className='px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-xs font-bold dark:bg-purple-900/30 dark:text-purple-300'>
+                        <span className='px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-xs font-bold dark:bg-purple-900/40 dark:text-purple-300 border border-purple-100 dark:border-purple-800'>
                           Anthropic
                         </span>
                       </div>
-                      <h3 className='text-xl md:text-2xl font-bold text-semi-color-text-0 mb-2 group-hover:text-purple-600 transition-colors'>
+                      <h3 className='text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors'>
                         Claude Code
                       </h3>
                       <p className='text-sm text-semi-color-text-2 mb-6 min-h-[40px]'>
@@ -420,20 +441,20 @@ const Home = () => {
                   <Link to='/codex-code' className='block h-full group'>
                     <Card
                       shadows='hover'
-                      className='h-full !rounded-2xl border-2 hover:border-green-400 dark:hover:border-green-600 transition-all duration-300 !bg-white dark:!bg-semi-color-fill-0'
+                      className='h-full !rounded-2xl border hover:border-emerald-400 dark:hover:border-emerald-500 transition-all duration-300 !bg-white/50 dark:!bg-gray-800/40 backdrop-blur-sm group-hover:shadow-2xl group-hover:shadow-emerald-500/10'
                       bodyStyle={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}
                     >
                       <div className='flex items-center justify-between mb-6'>
-                         <div className='p-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300'>
+                         <div className='p-3 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 group-hover:scale-110 transition-transform'>
                             <svg className='w-6 h-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z' />
                             </svg>
                          </div>
-                        <span className='px-3 py-1 rounded-full bg-green-50 text-green-600 text-xs font-bold dark:bg-green-900/30 dark:text-green-300'>
+                        <span className='px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800'>
                           OpenAI
                         </span>
                       </div>
-                      <h3 className='text-xl md:text-2xl font-bold text-semi-color-text-0 mb-2 group-hover:text-green-600 transition-colors'>
+                      <h3 className='text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors'>
                         Codex CLI
                       </h3>
                       <p className='text-sm text-semi-color-text-2 mb-6 min-h-[40px]'>
@@ -481,11 +502,11 @@ const Home = () => {
                   <Link to='/gemini-code' className='block h-full group'>
                     <Card
                       shadows='hover'
-                      className='h-full !rounded-2xl border-2 hover:border-blue-400 dark:hover:border-blue-600 transition-all duration-300 !bg-white dark:!bg-semi-color-fill-0'
+                      className='h-full !rounded-2xl border hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 !bg-white/50 dark:!bg-gray-800/40 backdrop-blur-sm group-hover:shadow-2xl group-hover:shadow-blue-500/10'
                       bodyStyle={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}
                     >
                       <div className='flex items-center justify-between mb-6'>
-                         <div className='p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300'>
+                         <div className='p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 group-hover:scale-110 transition-transform'>
                             <svg className='w-6 h-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M13 10V3L4 14h7v7l9-11h-7z' />
                             </svg>
@@ -668,7 +689,7 @@ const Home = () => {
                     ]
                   }
                 ].map((item, index) => (
-                  <div key={index} className={`group bg-white dark:bg-semi-color-fill-0 ${item.hoverBg} border border-semi-color-border ${item.hoverBorder} rounded-2xl p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-1`}>
+                  <div key={index} className={`group bg-white/60 dark:bg-gray-800/40 backdrop-blur-md ${item.hoverBg} border border-semi-color-border ${item.hoverBorder} rounded-2xl p-8 transition-all duration-300 shadow-sm hover:shadow-2xl hover:-translate-y-1`}>
                     <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.color} ${item.shadow} flex items-center justify-center mb-6 group-hover:scale-105 transition-transform duration-300`}>
                       {item.icon}
                     </div>
@@ -689,8 +710,100 @@ const Home = () => {
             </div>
           </div>
 
-          <div className='w-full py-16 md:py-24 lg:py-32 px-4 md:px-8'>
-            <div className='max-w-6xl mx-auto'>
+          {/* 套餐方案部分 */}
+          <div className='w-full py-16 md:py-24 lg:py-32 px-4 md:px-8 relative overflow-hidden'>
+            <div className='absolute inset-0 pointer-events-none'>
+              <div className='absolute top-0 right-1/4 w-[600px] h-[600px] bg-indigo-50/50 dark:bg-indigo-900/10 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-screen opacity-70' />
+              <div className='absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-blue-50/50 dark:bg-blue-900/10 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-screen opacity-70' />
+            </div>
+            <div className='max-w-6xl mx-auto relative z-10'>
+              <div className='text-center mb-12 md:mb-16'>
+                <h2 className='text-3xl md:text-4xl lg:text-5xl font-bold text-semi-color-text-0 mb-6'>
+                  {t('套餐方案')}
+                </h2>
+                <p className='text-lg md:text-xl text-semi-color-text-2 max-w-2xl mx-auto'>
+                  {t('灵活的计费方式，满足不同规模的需求')}
+                </p>
+              </div>
+
+              {loadingPlans ? (
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8'>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className='h-[400px] bg-white dark:bg-semi-color-fill-0 rounded-2xl animate-pulse border border-semi-color-border' />
+                  ))}
+                </div>
+              ) : plans.length > 0 ? (
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 justify-center'>
+                  {plans.slice(0, 3).map((plan) => (
+                    <div key={plan.id} className='relative group h-full'>
+                      <div className='h-full bg-white/60 dark:bg-gray-800/40 backdrop-blur-md border border-semi-color-border hover:border-indigo-400 dark:hover:border-indigo-500 rounded-2xl p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 flex flex-col relative overflow-hidden'>
+                        <div className='absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300' />
+                        <div className='mb-6'>
+                          <h3 className='text-xl font-bold text-semi-color-text-0 mb-2'>
+                            {plan.name || plan.type}
+                          </h3>
+                          <div className='flex items-baseline gap-1'>
+                            <span className='text-3xl font-bold text-blue-600 dark:text-blue-400'>{plan.price}</span>
+                            <span className='text-lg text-semi-color-text-2'>{plan.currency}</span>
+                          </div>
+                          <p className='text-semi-color-text-2 mt-4 min-h-[48px] line-clamp-2'>{plan.description}</p>
+                        </div>
+
+                        <div className='space-y-4 mb-8 flex-1'>
+                           <div className='flex items-center text-semi-color-text-1'>
+                              <div className='w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mr-3'>
+                                <svg className='w-3 h-3 text-blue-600 dark:text-blue-400' fill='currentColor' viewBox='0 0 20 20'>
+                                  <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                                </svg>
+                              </div>
+                              <span>{t('总额度')}: {renderQuota(plan.total_quota)}</span>
+                           </div>
+                           <div className='flex items-center text-semi-color-text-1'>
+                              <div className='w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mr-3'>
+                                <svg className='w-3 h-3 text-blue-600 dark:text-blue-400' fill='currentColor' viewBox='0 0 20 20'>
+                                  <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
+                                </svg>
+                              </div>
+                              <span>{t('有效期')}: {plan.duration_value} {plan.duration_unit}</span>
+                           </div>
+                        </div>
+
+                        <Link to='/subscriptions' className='block mt-auto'>
+                          <Button block theme='solid' type='primary' size='large' className='!rounded-xl'>
+                            {t('立即购买')}
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className='flex justify-center'>
+                   <div className='max-w-lg w-full bg-white/60 dark:bg-gray-800/40 backdrop-blur-md border border-semi-color-border rounded-2xl p-8 text-center hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300'>
+                     <div className='w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-6'>
+                        <svg className='w-8 h-8 text-blue-600 dark:text-blue-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' />
+                        </svg>
+                     </div>
+                     <h3 className='text-xl font-bold text-semi-color-text-0 mb-3'>{t('查看所有订阅方案')}</h3>
+                     <p className='text-semi-color-text-2 mb-8'>{t('登录后查看详细的套餐方案与定价')}</p>
+                     <Link to='/subscriptions'>
+                        <Button theme='solid' type='primary' size='large' className='!rounded-xl px-12'>
+                          {t('前往订阅')}
+                        </Button>
+                     </Link>
+                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className='w-full py-16 md:py-24 lg:py-32 px-4 md:px-8 relative overflow-hidden'>
+            <div className='absolute inset-0 pointer-events-none'>
+              <div className='absolute top-0 left-1/4 w-[560px] h-[560px] bg-emerald-50/40 dark:bg-emerald-900/10 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-screen opacity-70' />
+              <div className='absolute bottom-0 right-1/4 w-[520px] h-[520px] bg-cyan-50/40 dark:bg-cyan-900/10 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-screen opacity-70' />
+            </div>
+            <div className='max-w-6xl mx-auto relative z-10'>
               <div className='text-center mb-16 md:mb-20'>
                 <h2 className='text-3xl md:text-4xl lg:text-5xl font-bold text-semi-color-text-0 mb-6'>
                   {t('联系我们')}
@@ -702,8 +815,9 @@ const Home = () => {
 
               <div className='grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 max-w-5xl mx-auto'>
                 <a href='mailto:chirou.api@outlook.com' className='block group h-full'>
-                  <div className='h-full bg-white dark:bg-semi-color-fill-0 border border-semi-color-border group-hover:border-blue-200 dark:group-hover:border-blue-800 group-hover:bg-blue-50/30 dark:group-hover:bg-blue-900/10 rounded-3xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden'>
-                     <div className='absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500' />
+                   <div className='h-full bg-white/60 dark:bg-gray-800/40 backdrop-blur-md border border-semi-color-border group-hover:border-blue-200 dark:group-hover:border-blue-800 group-hover:bg-blue-50/30 dark:group-hover:bg-blue-900/10 rounded-3xl p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden'>
+                     <div className='absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300' />
+                      <div className='absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500' />
                     
                     <div className='w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-6 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-300'>
                       <svg className='w-8 h-8 text-white' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
@@ -723,8 +837,9 @@ const Home = () => {
                 </a>
 
                 <div className='block h-full cursor-default group'>
-                  <div className='h-full bg-white dark:bg-semi-color-fill-0 border border-semi-color-border group-hover:border-emerald-200 dark:group-hover:border-emerald-800 group-hover:bg-emerald-50/30 dark:group-hover:bg-emerald-900/10 rounded-3xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden'>
-                     <div className='absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500' />
+                   <div className='h-full bg-white/60 dark:bg-gray-800/40 backdrop-blur-md border border-semi-color-border group-hover:border-emerald-200 dark:group-hover:border-emerald-800 group-hover:bg-emerald-50/30 dark:group-hover:bg-emerald-900/10 rounded-3xl p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden'>
+                     <div className='absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300' />
+                      <div className='absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500' />
                     <div className='w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-6 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-300'>
                       <svg className='w-8 h-8 text-white' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                         <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' />
@@ -743,8 +858,9 @@ const Home = () => {
                 </div>
 
                 <a href='https://t.me/chirou_api' target='_blank' rel='noopener noreferrer' className='block group h-full'>
-                  <div className='h-full bg-white dark:bg-semi-color-fill-0 border border-semi-color-border group-hover:border-cyan-200 dark:group-hover:border-cyan-800 group-hover:bg-cyan-50/30 dark:group-hover:bg-cyan-900/10 rounded-3xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden'>
-                     <div className='absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500' />
+                   <div className='h-full bg-white/60 dark:bg-gray-800/40 backdrop-blur-md border border-semi-color-border group-hover:border-cyan-200 dark:group-hover:border-cyan-800 group-hover:bg-cyan-50/30 dark:group-hover:bg-cyan-900/10 rounded-3xl p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden'>
+                     <div className='absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300' />
+                      <div className='absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500' />
                     <div className='w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-6 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-300'>
                       <svg className='w-8 h-8 text-white' fill='currentColor' viewBox='0 0 24 24'>
                         <path d='M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z' />
