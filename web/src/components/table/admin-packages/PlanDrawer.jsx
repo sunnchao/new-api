@@ -218,7 +218,7 @@ const PlanDrawer = ({
               <Form.InputNumber field='daily_quota_per_plan' label={t('每日额度上限')} min={0} />
               <Form.InputNumber field='weekly_quota_per_plan' label={t('每周额度上限')} min={0} />
               <Form.InputNumber field='monthly_quota_per_plan' label={t('每月额度上限')} min={0} />
-              <Form.InputNumber field='reset_quota_limit' label={t('可重置次数')} min={0} />
+              {/*<Form.InputNumber field='reset_quota_limit' label={t('可重置次数')} min={0} />*/}
               <div style={{ gridColumn: '1 / -1', marginTop: -4 }}>
                 <div style={{ fontSize: 12, color: 'var(--semi-color-text-2)' }}>
                   {t('填 0 表示不限')}

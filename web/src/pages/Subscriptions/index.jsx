@@ -372,38 +372,38 @@ const Subscriptions = () => {
                           <span>{`${t('已用额度')}: ${renderQuota(usedQuota, 6)}`}</span>
                           <span>{`${progressPercent}%`}</span>
                         </div>
-                        <div className='mt-2 flex items-center justify-between text-xs text-gray-500'>
-                          <span>
-                            {t('可重置次数')}
-                          </span>
-                          <span>
-                            {resetRemaining} / {resetLimit}
-                          </span>
-                        </div>
+                        {/*<div className='mt-2 flex items-center justify-between text-xs text-gray-500'>*/}
+                        {/*  <span>*/}
+                        {/*    {t('可重置次数')}*/}
+                        {/*  </span>*/}
+                        {/*  <span>*/}
+                        {/*    {resetRemaining} / {resetLimit}*/}
+                        {/*  </span>*/}
+                        {/*</div>*/}
                       </div>
                       <Text type='secondary'>
                         {`${t('到期时间')}: ${formatDate(sub.end_time, currentLanguage)}`}
                       </Text>
                       <Space>
-                        <Button
-                          type='danger'
-                          disabled={
-                            sub.status !== 'active' ||
-                            resetRemaining <= 0 ||
-                            resetLoadingId === sub.id
-                          }
-                          loading={resetLoadingId === sub.id}
-                          onClick={() => resetDailyQuota(sub)}
-                        >
-                          {t('确认重置')}
-                        </Button>
-                        <Button
-                          type='danger'
-                          disabled={sub.status !== 'active'}
-                          onClick={() => cancelSubscription(sub)}
-                        >
-                          {t('取消订阅')}
-                        </Button>
+                        {/*<Button*/}
+                        {/*  type='danger'*/}
+                        {/*  disabled={*/}
+                        {/*    sub.status !== 'active' ||*/}
+                        {/*    resetRemaining <= 0 ||*/}
+                        {/*    resetLoadingId === sub.id*/}
+                        {/*  }*/}
+                        {/*  loading={resetLoadingId === sub.id}*/}
+                        {/*  onClick={() => resetDailyQuota(sub)}*/}
+                        {/*>*/}
+                        {/*  {t('确认重置')}*/}
+                        {/*</Button>*/}
+                        {/*<Button*/}
+                        {/*  type='danger'*/}
+                        {/*  disabled={sub.status !== 'active'}*/}
+                        {/*  onClick={() => cancelSubscription(sub)}*/}
+                        {/*>*/}
+                        {/*  {t('取消订阅')}*/}
+                        {/*</Button>*/}
                       </Space>
                     </Space>
                   </Card>

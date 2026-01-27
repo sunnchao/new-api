@@ -60,11 +60,11 @@ export const getPlansColumns = ({
     dataIndex: 'monthly_quota_per_plan',
     render: (value) => formatQuotaLimit(value),
   },
-  {
-    title: t('可重置次数'),
-    dataIndex: 'reset_quota_limit',
-    render: (value) => value ?? 1,
-  },
+  // {
+  //   title: t('可重置次数'),
+  //   dataIndex: 'reset_quota_limit',
+  //   render: (value) => value ?? 1,
+  // },
   {
     title: t('时长'),
     render: (_, record) => {
