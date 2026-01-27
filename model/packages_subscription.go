@@ -31,20 +31,21 @@ var durationUnitToSeconds = map[string]int64{
 
 // PackagesSubscription 订阅模型
 type PackagesSubscription struct {
-	Id          int     `json:"id" gorm:"primaryKey"`
-	HashId      string  `json:"hash_id"`
-	UserId      int     `json:"user_id" gorm:"index"`
-	ServiceType string  `json:"-" gorm:"type:varchar(50);index;default:''"`
-	PlanType    string  `json:"plan_type"`                      // basic, pro, enterprise
-	Status      string  `json:"status" gorm:"default:'active'"` // active, expired, cancelled, pending, exhausted
-	StartTime   int64   `json:"start_time"`
-	EndTime     int64   `json:"end_time" gorm:"index"`
-	AutoRenew   bool    `json:"auto_renew" gorm:"default:true"`
-	TotalQuota  int     `json:"total_quota" gorm:"default:0"`  // 总额度
-	RemainQuota int     `json:"remain_quota" gorm:"default:0"` // 剩余额度
-	UsedQuota   int     `json:"used_quota" gorm:"default:0"`   // 已使用额度
-	Price       float64 `json:"price"`
-	Currency    string  `json:"currency" gorm:"default:'USD'"`
+	Id              int     `json:"id" gorm:"primaryKey"`
+	HashId          string  `json:"hash_id"`
+	UserId          int     `json:"user_id" gorm:"index"`
+	ServiceType     string  `json:"-" gorm:"type:varchar(50);index;default:''"`
+	PlanType        string  `json:"plan_type"` // basic, pro, enterprise
+	OrderPlanHashId string  `json:"order_plan_hash_id" gorm:"type:varchar(64);index;default:''"`
+	Status          string  `json:"status" gorm:"default:'active'"` // active, expired, cancelled, pending, exhausted
+	StartTime       int64   `json:"start_time"`
+	EndTime         int64   `json:"end_time" gorm:"index"`
+	AutoRenew       bool    `json:"auto_renew" gorm:"default:true"`
+	TotalQuota      int     `json:"total_quota" gorm:"default:0"`  // 总额度
+	RemainQuota     int     `json:"remain_quota" gorm:"default:0"` // 剩余额度
+	UsedQuota       int     `json:"used_quota" gorm:"default:0"`   // 已使用额度
+	Price           float64 `json:"price"`
+	Currency        string  `json:"currency" gorm:"default:'USD'"`
 	// PaymentMethod 支付方式
 	PaymentMethod string `json:"payment_method"`
 	OrderId       string `json:"order_id" gorm:"index"` // 关联支付订单
@@ -272,6 +273,10 @@ func GrantPlanToUser(userId int, plan *PackagesPlan, source string, allowStack b
 			"remain_quota": gorm.Expr("remain_quota + ?", plan.TotalQuota),
 			"updated_time": now,
 		}
+		if subscription.OrderPlanHashId == "" && plan.HashId != "" {
+			updates["order_plan_hash_id"] = plan.HashId
+			subscription.OrderPlanHashId = plan.HashId
+		}
 		updates["daily_quota_limit"] = plan.DailyQuotaPerPlan
 		updates["weekly_quota_limit"] = plan.WeeklyQuotaPerPlan
 		updates["monthly_quota_limit"] = plan.MonthlyQuotaPerPlan
@@ -312,23 +317,24 @@ func GrantPlanToUser(userId int, plan *PackagesPlan, source string, allowStack b
 	}
 
 	newSubscription := &PackagesSubscription{
-		UserId:         userId,
-		PlanType:       plan.Type,
-		Status:         "active",
-		StartTime:      now,
-		EndTime:        endTime,
-		AutoRenew:      false,
-		TotalQuota:     plan.TotalQuota,
-		RemainQuota:    plan.TotalQuota,
-		UsedQuota:      0,
-		Price:          plan.Price,
-		Currency:       plan.Currency,
-		PaymentMethod:  source,
-		OrderId:        fmt.Sprintf("%s_%d_%d", source, userId, now),
-		CreatedTime:    now,
-		UpdatedTime:    now,
-		MaxClientCount: plan.MaxClientCount,
-		HashId:         common.GetUUID(),
+		UserId:          userId,
+		PlanType:        plan.Type,
+		OrderPlanHashId: plan.HashId,
+		Status:          "active",
+		StartTime:       now,
+		EndTime:         endTime,
+		AutoRenew:       false,
+		TotalQuota:      plan.TotalQuota,
+		RemainQuota:     plan.TotalQuota,
+		UsedQuota:       0,
+		Price:           plan.Price,
+		Currency:        plan.Currency,
+		PaymentMethod:   source,
+		OrderId:         fmt.Sprintf("%s_%d_%d", source, userId, now),
+		CreatedTime:     now,
+		UpdatedTime:     now,
+		MaxClientCount:  plan.MaxClientCount,
+		HashId:          common.GetUUID(),
 	}
 	ApplyPlanLimitsToSubscription(newSubscription, plan)
 
@@ -724,7 +730,9 @@ func GetAllPackagesPlans(includeHidden bool) ([]PackagesPlan, error) {
 // 根据类型获取套餐
 func GetPackagesPlanByType(planType string) (*PackagesPlan, error) {
 	var plan PackagesPlan
-	if err := DB.Where("type = ? AND is_active = true", planType).First(&plan).Error; err != nil {
+	if err := DB.Where("type = ? AND is_active = true AND show_in_portal = true", planType).
+		Order("created_time DESC").
+		First(&plan).Error; err != nil {
 		return nil, err
 	}
 	plan.NormalizeDurationFields()
@@ -734,7 +742,9 @@ func GetPackagesPlanByType(planType string) (*PackagesPlan, error) {
 // GetPackagesPlanByTypeAny 根据类型获取套餐（不过滤 is_active），用于管理端/历史订阅展示。
 func GetPackagesPlanByTypeAny(planType string) (*PackagesPlan, error) {
 	var plan PackagesPlan
-	if err := DB.Where("type = ?", planType).First(&plan).Error; err != nil {
+	if err := DB.Where("type = ?", planType).
+		Order("created_time DESC").
+		First(&plan).Error; err != nil {
 		return nil, err
 	}
 	plan.NormalizeDurationFields()
@@ -751,6 +761,34 @@ func GetPackagesPlanById(planId int) (*PackagesPlan, error) {
 	return &plan, nil
 }
 
+// GetPackagesPlanByHashIdAny 根据 hash_id 获取套餐（不过滤 is_active），用于购买校验/历史展示。
+func GetPackagesPlanByHashIdAny(hashId string) (*PackagesPlan, error) {
+	var plan PackagesPlan
+	if err := DB.Where("hash_id = ?", hashId).First(&plan).Error; err != nil {
+		return nil, err
+	}
+	plan.NormalizeDurationFields()
+	return &plan, nil
+}
+
+// GetPackagesPlansByHashIdsAny 根据 hash_id 批量获取套餐（不过滤 is_active），用于历史订阅展示。
+func GetPackagesPlansByHashIdsAny(hashIds []string) ([]*PackagesPlan, error) {
+	if len(hashIds) == 0 {
+		return nil, nil
+	}
+	var plans []*PackagesPlan
+	if err := DB.Where("hash_id IN ?", hashIds).Find(&plans).Error; err != nil {
+		return nil, err
+	}
+	for _, plan := range plans {
+		if plan == nil {
+			continue
+		}
+		plan.NormalizeDurationFields()
+	}
+	return plans, nil
+}
+
 // CreatePackagesPlan 创建套餐
 func CreatePackagesPlan(plan *PackagesPlan) error {
 	return DB.Create(plan).Error
@@ -765,6 +803,9 @@ func UpdatePackagesSubscriptionsByPlan(plan *PackagesPlan) error {
 	if plan == nil {
 		return nil
 	}
+	if plan.HashId == "" {
+		return nil
+	}
 	updates := map[string]interface{}{
 		"daily_quota_limit":   plan.DailyQuotaPerPlan,
 		"weekly_quota_limit":  plan.WeeklyQuotaPerPlan,
@@ -773,7 +814,7 @@ func UpdatePackagesSubscriptionsByPlan(plan *PackagesPlan) error {
 		"deduction_group":     NormalizeDeductionGroups(plan.DeductionGroup),
 	}
 	return DB.Model(&PackagesSubscription{}).
-		Where("plan_type = ?", plan.Type).
+		Where("order_plan_hash_id = ?", plan.HashId).
 		Updates(updates).Error
 }
 
@@ -790,9 +831,13 @@ func CheckPackagesPlanHasSubscriptions(planId int) (bool, error) {
 	}
 
 	var count int64
-	err := DB.Model(&PackagesSubscription{}).
-		Where("plan_type = ?", plan.Type).
-		Count(&count).Error
+	query := DB.Model(&PackagesSubscription{})
+	if plan.HashId != "" {
+		query = query.Where("order_plan_hash_id = ?", plan.HashId)
+	} else {
+		query = query.Where("plan_type = ?", plan.Type)
+	}
+	err := query.Count(&count).Error
 
 	return count > 0, err
 }

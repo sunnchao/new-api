@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // GetPackagesPlans 获取所有套餐
@@ -64,24 +65,31 @@ func GetPackagesSubscription(c *gin.Context) {
 		return
 	}
 
-	planTypes := make(map[string]string)
-	var plans []*model.PackagesPlan
+	planHashIds := make(map[string]struct{})
 	for _, sub := range subscriptions {
-		planTypes[sub.PlanType] = sub.PlanType
-	}
-	for _, planType := range planTypes {
-		plan, err := model.GetPackagesPlanByTypeAny(planType)
-		if err != nil {
+		if sub.OrderPlanHashId == "" {
 			continue
 		}
-		newPlan := &model.PackagesPlan{
-			Description:    plan.Description,
-			Type:           plan.Type,
-			HashId:         plan.HashId,
-			Name:           plan.Name,
-			DeductionGroup: plan.DeductionGroup,
+		planHashIds[sub.OrderPlanHashId] = struct{}{}
+	}
+
+	hashIds := make([]string, 0, len(planHashIds))
+	for hashId := range planHashIds {
+		hashIds = append(hashIds, hashId)
+	}
+
+	planByHashId := make(map[string]*model.PackagesPlan)
+	if len(hashIds) > 0 {
+		plans, err := model.GetPackagesPlansByHashIdsAny(hashIds)
+		if err == nil {
+			for i := range plans {
+				plan := plans[i]
+				if plan.HashId == "" {
+					continue
+				}
+				planByHashId[plan.HashId] = plan
+			}
 		}
-		plans = append(plans, newPlan)
 	}
 
 	var newSubscriptions []*GetPackagesSubscriptionResponse
@@ -90,10 +98,15 @@ func GetPackagesSubscription(c *gin.Context) {
 		subscription := &GetPackagesSubscriptionResponse{
 			PackagesSubscription: sub,
 		}
-		for _, plan := range plans {
-			if plan.Type == sub.PlanType {
-				subscription.PackagePlan = plan
-				break
+		if sub.OrderPlanHashId != "" {
+			if plan := planByHashId[sub.OrderPlanHashId]; plan != nil {
+				subscription.PackagePlan = &model.PackagesPlan{
+					Description:    plan.Description,
+					Type:           sub.PlanType,
+					HashId:         plan.HashId,
+					Name:           plan.Name,
+					DeductionGroup: plan.DeductionGroup,
+				}
 			}
 		}
 		newSubscriptions = append(newSubscriptions, subscription)
@@ -154,7 +167,7 @@ func ResetPackagesSubscription(c *gin.Context) {
 // hash_id: 套餐 hash_id
 // payment_method 为空默认 balance
 type PurchaseSubscriptionRequest struct {
-	PlanType      string `json:"plan_type" binding:"required"`
+	PlanType      string `json:"plan_type"`
 	HashId        string `json:"hash_id" binding:"required"`
 	PaymentMethod string `json:"payment_method"`
 }
@@ -173,7 +186,7 @@ func PurchasePackagesSubscription(c *gin.Context) {
 		return
 	}
 
-	plan, err := model.GetPackagesPlanByType(req.PlanType)
+	plan, err := model.GetPackagesPlanByHashIdAny(req.HashId)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -181,7 +194,7 @@ func PurchasePackagesSubscription(c *gin.Context) {
 		})
 		return
 	}
-	if req.HashId != "" && plan.HashId != "" && req.HashId != plan.HashId {
+	if req.PlanType != "" && plan.Type != "" && req.PlanType != plan.Type {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": "套餐信息已更新，请刷新后重试",
@@ -276,20 +289,21 @@ func PurchasePackagesSubscription(c *gin.Context) {
 	}
 
 	subscription := &model.PackagesSubscription{
-		UserId:         userId,
-		PlanType:       plan.Type,
-		Status:         "pending",
-		StartTime:      now,
-		EndTime:        endTime,
-		TotalQuota:     plan.TotalQuota,
-		RemainQuota:    plan.TotalQuota,
-		UsedQuota:      0,
-		MaxClientCount: plan.MaxClientCount,
-		Price:          plan.Price,
-		Currency:       plan.Currency,
-		PaymentMethod:  paymentMethod,
-		OrderId:        orderId,
-		HashId:         common.GetUUID(),
+		UserId:          userId,
+		PlanType:        plan.Type,
+		OrderPlanHashId: plan.HashId,
+		Status:          "pending",
+		StartTime:       now,
+		EndTime:         endTime,
+		TotalQuota:      plan.TotalQuota,
+		RemainQuota:     plan.TotalQuota,
+		UsedQuota:       0,
+		MaxClientCount:  plan.MaxClientCount,
+		Price:           plan.Price,
+		Currency:        plan.Currency,
+		PaymentMethod:   paymentMethod,
+		OrderId:         orderId,
+		HashId:          common.GetUUID(),
 	}
 	model.ApplyPlanLimitsToSubscription(subscription, plan)
 
@@ -833,7 +847,7 @@ func UpdatePackagesPlan(c *gin.Context) {
 		return
 	}
 
-	plan, err := model.GetPackagesPlanById(planId)
+	oldPlan, err := model.GetPackagesPlanById(planId)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -841,6 +855,13 @@ func UpdatePackagesPlan(c *gin.Context) {
 		})
 		return
 	}
+
+	now := common.GetTimestamp()
+	newPlan := *oldPlan
+	newPlan.Id = 0
+	newPlan.HashId = common.GetUUID()
+	newPlan.CreatedTime = now
+	newPlan.UpdatedTime = now
 
 	if req.DailyQuotaPerPlan != nil && *req.DailyQuotaPerPlan < 0 ||
 		req.WeeklyQuotaPerPlan != nil && *req.WeeklyQuotaPerPlan < 0 ||
@@ -854,10 +875,10 @@ func UpdatePackagesPlan(c *gin.Context) {
 	}
 
 	if req.Name != "" {
-		plan.Name = req.Name
+		newPlan.Name = req.Name
 	}
 	if req.Description != "" {
-		plan.Description = req.Description
+		newPlan.Description = req.Description
 	}
 	if req.Price != nil {
 		if *req.Price < 0 {
@@ -867,18 +888,18 @@ func UpdatePackagesPlan(c *gin.Context) {
 			})
 			return
 		}
-		plan.Price = *req.Price
+		newPlan.Price = *req.Price
 	}
 	if req.Currency != "" {
-		plan.Currency = req.Currency
+		newPlan.Currency = req.Currency
 	}
 	if req.MaxClientCount > 0 {
-		plan.MaxClientCount = req.MaxClientCount
+		newPlan.MaxClientCount = req.MaxClientCount
 	}
 	if req.IsUnlimitedTime != nil {
-		plan.IsUnlimitedTime = *req.IsUnlimitedTime
+		newPlan.IsUnlimitedTime = *req.IsUnlimitedTime
 	}
-	updatedDurationUnit := plan.DurationUnit
+	updatedDurationUnit := newPlan.DurationUnit
 	if req.DurationUnit != "" {
 		if !model.IsSupportedDurationUnit(req.DurationUnit) {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -889,11 +910,11 @@ func UpdatePackagesPlan(c *gin.Context) {
 		}
 		updatedDurationUnit = model.NormalizeDurationUnit(req.DurationUnit)
 	}
-	updatedDurationValue := plan.DurationValue
+	updatedDurationValue := newPlan.DurationValue
 	if req.DurationValue > 0 {
 		updatedDurationValue = req.DurationValue
 	}
-	updatedDurationMonths := plan.DurationMonths
+	updatedDurationMonths := newPlan.DurationMonths
 	if req.DurationMonths > 0 {
 		updatedDurationMonths = req.DurationMonths
 		if updatedDurationUnit == model.DurationUnitMonth {
@@ -905,7 +926,7 @@ func UpdatePackagesPlan(c *gin.Context) {
 			}
 		}
 	}
-	if plan.IsUnlimitedTime {
+	if newPlan.IsUnlimitedTime {
 		updatedDurationMonths = 0
 		updatedDurationValue = 0
 	} else {
@@ -922,40 +943,109 @@ func UpdatePackagesPlan(c *gin.Context) {
 			}
 		}
 	}
-	plan.DurationUnit = updatedDurationUnit
-	plan.DurationValue = updatedDurationValue
-	plan.DurationMonths = updatedDurationMonths
+	newPlan.DurationUnit = updatedDurationUnit
+	newPlan.DurationValue = updatedDurationValue
+	newPlan.DurationMonths = updatedDurationMonths
 	if req.TotalQuota > 0 {
-		plan.TotalQuota = int(req.TotalQuota)
+		newPlan.TotalQuota = int(req.TotalQuota)
 	}
 	if req.DailyQuotaPerPlan != nil {
-		plan.DailyQuotaPerPlan = int(*req.DailyQuotaPerPlan)
+		newPlan.DailyQuotaPerPlan = int(*req.DailyQuotaPerPlan)
 	}
 	if req.WeeklyQuotaPerPlan != nil {
-		plan.WeeklyQuotaPerPlan = int(*req.WeeklyQuotaPerPlan)
+		newPlan.WeeklyQuotaPerPlan = int(*req.WeeklyQuotaPerPlan)
 	}
 	if req.MonthlyQuotaPerPlan != nil {
-		plan.MonthlyQuotaPerPlan = int(*req.MonthlyQuotaPerPlan)
+		newPlan.MonthlyQuotaPerPlan = int(*req.MonthlyQuotaPerPlan)
 	}
 	if req.ResetQuotaLimit != nil {
-		plan.ResetQuotaLimit = *req.ResetQuotaLimit
+		newPlan.ResetQuotaLimit = *req.ResetQuotaLimit
 	}
 	if req.DeductionGroup != nil {
-		plan.DeductionGroup = model.NormalizeDeductionGroups(*req.DeductionGroup)
+		newPlan.DeductionGroup = model.NormalizeDeductionGroups(*req.DeductionGroup)
 	}
 	if req.IsActive != nil {
-		plan.IsActive = *req.IsActive
+		newPlan.IsActive = *req.IsActive
 	}
 	if req.ShowInPortal != nil {
-		plan.ShowInPortal = *req.ShowInPortal
+		newPlan.ShowInPortal = *req.ShowInPortal
 	}
-	plan.SortOrder = req.SortOrder
-	plan.UpdatedTime = common.GetTimestamp()
-	if plan.HashId == "" {
-		plan.HashId = common.GetUUID()
+	newPlan.SortOrder = req.SortOrder
+	newPlan.UpdatedTime = now
+	if !newPlan.IsActive {
+		newPlan.ShowInPortal = false
 	}
 
-	if err := model.UpdatePackagesPlan(plan); err != nil {
+	isDuplicateTypeError := func(err error) bool {
+		if err == nil {
+			return false
+		}
+		errMsg := strings.ToLower(err.Error())
+		if strings.Contains(errMsg, "unique") && strings.Contains(errMsg, "type") {
+			return true
+		}
+		if strings.Contains(errMsg, "duplicate") && strings.Contains(errMsg, "type") {
+			return true
+		}
+		return false
+	}
+
+	// 用事务保证：要么新版本创建成功并隐藏旧版本，要么不改动旧版本
+	txErr := model.DB.Transaction(func(tx *gorm.DB) error {
+		var dbOldPlan model.PackagesPlan
+		if err := tx.Where("id = ?", planId).First(&dbOldPlan).Error; err != nil {
+			return err
+		}
+		originalType := dbOldPlan.Type
+
+		newPlan.Type = originalType
+		newPlan.Id = 0
+		newPlan.CreatedTime = now
+		newPlan.UpdatedTime = now
+		if newPlan.HashId == "" {
+			newPlan.HashId = common.GetUUID()
+		}
+
+		createErr := tx.Create(&newPlan).Error
+		if createErr != nil {
+			if !isDuplicateTypeError(createErr) {
+				return createErr
+			}
+
+			suffix := strings.ReplaceAll(dbOldPlan.HashId, "-", "")
+			if len(suffix) > 8 {
+				suffix = suffix[:8]
+			}
+			if suffix == "" {
+				suffix = fmt.Sprintf("%d", now)
+			}
+			dbOldPlan.Type = fmt.Sprintf("%s__archived__%s", originalType, suffix)
+			dbOldPlan.UpdatedTime = now
+			if err := tx.Save(&dbOldPlan).Error; err != nil {
+				return err
+			}
+
+			newPlan.Type = originalType
+			newPlan.Id = 0
+			createErr = tx.Create(&newPlan).Error
+			if createErr != nil {
+				return createErr
+			}
+		}
+
+		// 保证同一 type 只有一个 show_in_portal=true
+		if err := tx.Model(&model.PackagesPlan{}).
+			Where("type = ? AND id <> ?", originalType, newPlan.Id).
+			Update("show_in_portal", false).Error; err != nil {
+			return err
+		}
+
+		// 旧版本隐藏，不影响历史订阅展示（历史订阅通过 order_plan_hash_id -> packages_plans.hash_id 关联）
+		dbOldPlan.ShowInPortal = false
+		dbOldPlan.UpdatedTime = now
+		return tx.Save(&dbOldPlan).Error
+	})
+	if txErr != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": "更新套餐失败",
@@ -963,14 +1053,10 @@ func UpdatePackagesPlan(c *gin.Context) {
 		return
 	}
 
-	if err := model.UpdatePackagesSubscriptionsByPlan(plan); err != nil {
-		common.SysError("更新套餐关联订阅失败: " + err.Error())
-	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "套餐更新成功",
-		"data":    plan,
+		"data":    &newPlan,
 	})
 }
 
