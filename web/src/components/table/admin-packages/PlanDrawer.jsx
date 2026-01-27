@@ -20,7 +20,8 @@ For commercial licensing, please contact support@quantumnous.com
 import React, { useEffect } from 'react';
 import { Button, Form, SideSheet, Space, Tag, Typography } from '@douyinfe/semi-ui';
 import { IconClose, IconSave } from '@douyinfe/semi-icons';
-import { renderQuotaWithPrompt } from '../../../helpers';
+import { renderQuotaWithPrompt, getQuotaPerUnit } from '../../../helpers';
+import Decimal from 'decimal.js';
 
 const { Title, Text } = Typography;
 
@@ -38,7 +39,21 @@ const PlanDrawer = ({
 }) => {
   const normalizeInitialValues = (plan) => {
     if (!plan) return null;
-    
+
+// 计算 total_quota 等字段的实际值
+    if (plan.total_quota != 0) {
+      plan.total_quota = Decimal(plan.total_quota).div(getQuotaPerUnit()).toNumber();
+    }
+    if (plan.daily_quota_per_plan != 0) {
+      plan.daily_quota_per_plan = Decimal(plan.daily_quota_per_plan).div(getQuotaPerUnit()).toNumber();
+    }
+    if (plan.weekly_quota_per_plan != 0) {
+      plan.weekly_quota_per_plan = Decimal(plan.weekly_quota_per_plan).div(getQuotaPerUnit()).toNumber();
+    }
+    if (plan.monthly_quota_per_plan != 0) {
+      plan.monthly_quota_per_plan = Decimal(plan.monthly_quota_per_plan).div(getQuotaPerUnit()).toNumber();
+    }
+
     return {
       ...plan,
       deduction_group: plan.deduction_group 
@@ -54,12 +69,27 @@ const PlanDrawer = ({
         ? values.deduction_group.join(',')
         : (values.deduction_group || '').trim(),
     };
+    // 计算 total_quota 等字段的实际值
+    if (normalizedValues.total_quota != 0) {
+      normalizedValues.total_quota = Decimal(normalizedValues.total_quota).mul(getQuotaPerUnit()).toNumber();
+    }
+    // 计算 daily_quota_per_plan 等字段的实际值
+    if (normalizedValues.daily_quota_per_plan != 0) {
+      normalizedValues.daily_quota_per_plan = Decimal(normalizedValues.daily_quota_per_plan).mul(getQuotaPerUnit()).toNumber();
+    }
+    if (normalizedValues.weekly_quota_per_plan != 0) {
+      normalizedValues.weekly_quota_per_plan = Decimal(normalizedValues.weekly_quota_per_plan).mul(getQuotaPerUnit()).toNumber();
+    }
+    if (normalizedValues.monthly_quota_per_plan != 0) {
+      normalizedValues.monthly_quota_per_plan = Decimal(normalizedValues.monthly_quota_per_plan).mul(getQuotaPerUnit()).toNumber();
+    }
+    // 保存
     handleSavePlan(normalizedValues);
   };
 
   useEffect(() => {
     if (planFormApiRef.current && editingPlan) {
-      planFormApiRef.current.setValues(normalizeInitialValues(editingPlan));
+      planFormApiRef.current.setValues(normalizeInitialValues(JSON.parse(JSON.stringify(editingPlan))));
     }
   }, [editingPlan]);
 
@@ -103,7 +133,7 @@ const PlanDrawer = ({
         key={editingPlan?.id || 'new'}
         initValues={
           editingPlan
-            ? normalizeInitialValues(editingPlan)
+            ? normalizeInitialValues(JSON.parse(JSON.stringify(editingPlan)))
             : {
                 currency: 'CNY',
                 max_client_count: 3,
@@ -117,7 +147,7 @@ const PlanDrawer = ({
                 daily_quota_per_plan: 0,
                 weekly_quota_per_plan: 0,
                 monthly_quota_per_plan: 0,
-                reset_quota_limit: 1,
+                reset_quota_limit: 0,
               }
         }
         onSubmit={handleSubmit}
@@ -183,7 +213,6 @@ const PlanDrawer = ({
                   rules={[{ required: true, message: t('请输入额度') }]}
                   min={1}
                 />
-                {renderQuotaWithPrompt(values.total_quota || 0, 6)}
               </div>
 
               <Form.InputNumber field='daily_quota_per_plan' label={t('每日额度上限')} min={0} />

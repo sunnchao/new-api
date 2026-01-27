@@ -13,17 +13,11 @@ export async function createProxyHandler(context, options = {}) {
     targetUrl = context.env.TARGET_URL || 'https://openai-replay.wochirou.com',
     headers: extraHeaders = {},
     transformRequest,
-    transformResponse,
+    transformResponse
   } = options;
 
   const isRedirectStatus = (status) => {
-    return (
-      status === 301 ||
-      status === 302 ||
-      status === 303 ||
-      status === 307 ||
-      status === 308
-    );
+    return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
   };
 
   const shouldIncludeBody = (method) => {
@@ -36,11 +30,7 @@ export async function createProxyHandler(context, options = {}) {
     return String(base || '').replace(/\/+$/, '');
   };
 
-  const fetchWithRedirects = async (
-    initialUrl,
-    requestInit,
-    { maxRedirects = 5 } = {},
-  ) => {
+  const fetchWithRedirects = async (initialUrl, requestInit, { maxRedirects = 5 } = {}) => {
     let currentUrl = initialUrl;
     let method = requestInit.method;
     let body = requestInit.body;
@@ -60,7 +50,7 @@ export async function createProxyHandler(context, options = {}) {
         ...requestInit,
         method,
         body,
-        redirect: 'manual',
+        redirect: 'manual'
       });
 
       if (!isRedirectStatus(response.status)) {
@@ -96,11 +86,7 @@ export async function createProxyHandler(context, options = {}) {
       }
 
       // Mirror fetch redirect behavior for 303 (and common 301/302 POST downgrade).
-      if (
-        response.status === 303 ||
-        ((response.status === 301 || response.status === 302) &&
-          String(method).toUpperCase() === 'POST')
-      ) {
+      if (response.status === 303 || ((response.status === 301 || response.status === 302) && String(method).toUpperCase() === 'POST')) {
         method = 'GET';
         body = undefined;
       }
@@ -153,16 +139,12 @@ export async function createProxyHandler(context, options = {}) {
     method: request.method,
     headers: newHeaders,
     body: bufferedBody,
-    redirect: 'manual',
+    redirect: 'manual'
   };
 
   // 如果提供了请求转换函数，应用转换
   if (transformRequest && typeof transformRequest === 'function') {
-    newRequestInit = await transformRequest(
-      newRequestInit,
-      requestForTransforms,
-      context,
-    );
+    newRequestInit = await transformRequest(newRequestInit, requestForTransforms, context);
   }
 
   try {
@@ -178,7 +160,7 @@ export async function createProxyHandler(context, options = {}) {
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
-      headers: response.headers,
+      headers: response.headers
     });
   } catch (error) {
     // 错误处理
@@ -186,14 +168,14 @@ export async function createProxyHandler(context, options = {}) {
     return new Response(
       JSON.stringify({
         error: 'Proxy request failed',
-        message: error.message,
+        message: error.message
       }),
       {
         status: 500,
         headers: {
-          'Content-Type': 'application/json',
-        },
-      },
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 }
