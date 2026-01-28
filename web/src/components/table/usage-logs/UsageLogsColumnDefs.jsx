@@ -25,6 +25,7 @@ import {
   Tooltip,
   Popover,
   Typography,
+  Spin,
 } from '@douyinfe/semi-ui';
 import {
   timestamp2string,
@@ -287,6 +288,7 @@ export const getLogsColumns = ({
   copyText,
   showUserInfoFunc,
   isAdminUser,
+  loadingUserId,
 }) => {
   return [
     {
@@ -343,16 +345,13 @@ export const getLogsColumns = ({
               event.stopPropagation();
               showUserInfoFunc(record.user_id);
             }}
+            style={{ cursor: 'pointer' }}
           >
-            {/*<Avatar*/}
-            {/*  size='extra-small'*/}
-            {/*  color={stringToColor(text)}*/}
-            {/*  style={{ marginRight: 4 }}*/}
-
-            {/*>*/}
-            {/*  {typeof text === 'string' && text.slice(0, 1)}*/}
-            {/*</Avatar>*/}
-            {text}
+            {loadingUserId === record.user_id ? (
+              <Spin size='small' />
+            ) : (
+              text
+            )}
           </div>
         ) : (
           <></>
@@ -470,7 +469,7 @@ export const getLogsColumns = ({
       title: t('输入'),
       dataIndex: 'prompt_tokens',
       render: (text, record, index) => {
-        return record.type === 0 || record.type === 2 || record.type === 5 ? (
+        return record.type === 0 || record.type === 2 ? (
           <>{<span> {text} </span>}</>
         ) : (
           <></>
@@ -483,20 +482,8 @@ export const getLogsColumns = ({
       dataIndex: 'completion_tokens',
       render: (text, record, index) => {
         return parseInt(text) > 0 &&
-          (record.type === 0 || record.type === 2 || record.type === 5) ? (
+          (record.type === 0 || record.type === 2) ? (
           <>{<span> {text} </span>}</>
-        ) : (
-          <></>
-        );
-      },
-    },
-    {
-      key: COLUMN_KEYS.COST,
-      title: t('花费'),
-      dataIndex: 'quota',
-      render: (text, record, index) => {
-        return record.type === 0 || record.type === 2 || record.type === 5 ? (
-          <>{renderQuota(text, 6)}</>
         ) : (
           <></>
         );
@@ -542,7 +529,7 @@ export const getLogsColumns = ({
       title: t('重试'),
       dataIndex: 'retry',
       render: (text, record, index) => {
-        if (!(record.type === 2 || record.type === 5)) {
+        if (!(record.type === 2 )) {
           return <></>;
         }
         let content = t('渠道') + `：${record.channel}`;
@@ -610,6 +597,19 @@ export const getLogsColumns = ({
           </Space>
         ) : (
           <></>
+        );
+      },
+    },
+    {
+      key: COLUMN_KEYS.COST,
+      title: t('花费'),
+      dataIndex: 'quota',
+      fixed: 'right',
+      render: (text, record, index) => {
+        return record.type === 0 || record.type === 2 ? (
+            <>{renderQuota(text, 6)}</>
+        ) : (
+            <></>
         );
       },
     },

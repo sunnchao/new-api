@@ -53,7 +53,7 @@ const CardPro = ({
   searchArea,
   paginationArea, // 新增分页区域
   // 卡片属性
-  shadows = '',
+  shadows = 'hover',
   bordered = true,
   // 自定义样式
   style,

@@ -1136,7 +1136,7 @@ function renderPriceSimpleCore({
 
   const parts = [];
   // base: model ratio
-  parts.push(i18next.t('模型: {{ratio}}'));
+  parts.push(i18next.t('模型倍率: {{ratio}}'));
 
   // cache part (label differs when with image)
   if (shouldShowCache) {

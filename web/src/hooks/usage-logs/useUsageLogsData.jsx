@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal } from '@douyinfe/semi-ui';
+import {Divider, Modal, Space, Tag} from '@douyinfe/semi-ui';
 import {
   API,
   getTodayStartTimestamp,
@@ -111,6 +111,7 @@ export const useLogsData = () => {
   // User info modal state
   const [showUserInfo, setShowUserInfoModal] = useState(false);
   const [userInfoData, setUserInfoData] = useState(null);
+  const [loadingUserId, setLoadingUserId] = useState(null);
 
   // Load saved column preferences from localStorage
   useEffect(() => {
@@ -127,6 +128,7 @@ export const useLogsData = () => {
           merged[COLUMN_KEYS.USERNAME] = false;
           merged[COLUMN_KEYS.RETRY] = false;
         }
+        merged[COLUMN_KEYS.DETAILS] = false;
         setVisibleColumns(merged);
       } catch (e) {
         console.error('Failed to parse saved column preferences', e);
@@ -153,7 +155,7 @@ export const useLogsData = () => {
       [COLUMN_KEYS.COST]: true,
       [COLUMN_KEYS.RETRY]: isAdminUser,
       [COLUMN_KEYS.IP]: true,
-      [COLUMN_KEYS.DETAILS]: true,
+      [COLUMN_KEYS.DETAILS]: false,
     };
   };
 
@@ -294,6 +296,7 @@ export const useLogsData = () => {
     if (!isAdminUser) {
       return;
     }
+    setLoadingUserId(userId);
     const res = await API.get(`/api/user/${userId}`);
     const { success, message, data } = res.data;
     if (success) {
@@ -302,6 +305,7 @@ export const useLogsData = () => {
     } else {
       showError(message);
     }
+    setLoadingUserId(null);
   };
 
   // Format logs data
@@ -534,6 +538,18 @@ export const useLogsData = () => {
             value: localCountMode,
         });
       }
+      if (other.subscriptions_used?.length) {
+        expandDataLocal.push({
+          key: t('资源包'),
+          value: other.subscriptions_used?.map((item) =>
+            <Space spacing={'tight'}>
+              <Tag onClick={(event) => copyText(event, item.subscription_id)}>
+                {item.subscription_id}
+              </Tag>
+            {renderQuota(item.quota, 6)}
+          </Space>)
+        })
+      }
       expandDatesLocal[logs[i].key] = expandDataLocal;
     }
 
@@ -685,6 +701,7 @@ export const useLogsData = () => {
     setShowUserInfoModal,
     userInfoData,
     showUserInfoFunc,
+    loadingUserId,
 
     // Functions
     loadLogs,

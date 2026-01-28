@@ -54,6 +54,9 @@ const formatQuota = (value) => {
   return `${value}`;
 };
 
+const formatQuotaLimit = (value, t) =>
+  value && value > 0 ? renderQuota(value) : t('不限');
+
 const formatDate = (timestamp, language = 'zh') => {
   if (!timestamp) return '-';
   const date = new Date(timestamp * 1000);
@@ -79,6 +82,24 @@ const formatDate = (timestamp, language = 'zh') => {
     second: '2-digit',
     hour12: false,
   });
+};
+
+const formatDuration = (value, unit, t, language = 'zh') => {
+  if (!unit && value === undefined) return '-';
+  if (!unit || value === undefined || value === null) return '-';
+  const unitLabelMap = {
+    day: t('天'),
+    week: t('周'),
+    month: t('月'),
+    year: t('年'),
+    quarter: t('季度'),
+  };
+  const isChinese = language.startsWith('zh');
+  const unitLabel = isChinese && unit === 'month' ? '个月' : unitLabelMap[unit] || unit;
+  const normalizedValue = Number(value);
+  if (!Number.isFinite(normalizedValue)) return '-';
+  const needsSpace = !['zh', 'ja', 'ko'].some((prefix) => language.startsWith(prefix));
+  return `${normalizedValue}${needsSpace ? ' ' : ''}${unitLabel}`;
 };
 
 const Subscriptions = () => {
@@ -264,7 +285,10 @@ const Subscriptions = () => {
                       <Text type='secondary'>{plan.description}</Text>
                       <Text>{`${t('价格')}: ${plan.price} ${plan.currency}`}</Text>
                       <Text>{`${t('总额度')}: ${renderQuota(plan.total_quota)}`}</Text>
-                      <Text>{`${t('有效期')}: ${plan.duration_unit || '-'} ${plan.duration_value || '-'}`}</Text>
+                      <Text>{`${t('每日额度上限')}: ${formatQuotaLimit(plan.daily_quota_per_plan, t)}`}</Text>
+                      <Text>{`${t('每周额度上限')}: ${formatQuotaLimit(plan.weekly_quota_per_plan, t)}`}</Text>
+                      <Text>{`${t('每月额度上限')}: ${formatQuotaLimit(plan.monthly_quota_per_plan, t)}`}</Text>
+                      <Text>{`${t('有效期')}: ${formatDuration(plan.duration_value, plan.duration_unit, t, currentLanguage)}`}</Text>
                       {showGroupInfo && (
                         <Space>
                           <Text type='tertiary'>{t('适用分组')}:</Text>
@@ -366,6 +390,11 @@ const Subscriptions = () => {
                             {renderQuota(remainQuota, 6)} /{' '}
                             {renderQuota(totalQuota, 6)}
                           </span>
+                        </div>
+                        <div className='mt-2 space-y-1 text-xs text-gray-500'>
+                          <div>{`${t('每日额度上限')}: ${formatQuotaLimit(sub.daily_quota_limit, t)}`}</div>
+                          <div>{`${t('每周额度上限')}: ${formatQuotaLimit(sub.weekly_quota_limit, t)}`}</div>
+                          <div>{`${t('每月额度上限')}: ${formatQuotaLimit(sub.monthly_quota_limit, t)}`}</div>
                         </div>
                         <Progress percent={progressPercent} showInfo={false} />
                         <div className='mt-1 flex items-center justify-between text-xs text-gray-500'>
