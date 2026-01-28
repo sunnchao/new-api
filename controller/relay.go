@@ -388,6 +388,11 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		adminInfo["channel_name"] = c.GetString("channel_name")
 		adminInfo["channel_type"] = c.GetInt("channel_type")
 		adminInfo["use_channel"] = c.GetStringSlice("use_channel")
+		if c != nil && c.Request != nil {
+			if ua := c.Request.UserAgent(); ua != "" {
+				adminInfo["user_agent"] = ua
+			}
+		}
 		isMultiKey := common.GetContextKeyBool(c, constant.ContextKeyChannelIsMultiKey)
 		if isMultiKey {
 			adminInfo["is_multi_key"] = true

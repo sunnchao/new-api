@@ -22,88 +22,21 @@ import {
   Card,
   Button,
   Typography,
-  Progress,
   Space,
   Modal,
   Select,
   Tag,
-  Spin,
   Banner,
 } from '@douyinfe/semi-ui';
 import { API, renderQuota } from '../../helpers';
 import { useTranslation } from 'react-i18next';
+import PlansList from './PlansList';
+import SubscriptionsList from './SubscriptionsList';
 
-const { Title, Text } = Typography;
-
-const getStatusMap = (t) => ({
-  active: { label: t('生效中'), color: 'green' },
-  expired: { label: t('已过期'), color: 'grey' },
-  cancelled: { label: t('已取消'), color: 'orange' },
-  exhausted: { label: t('已耗尽'), color: 'red' },
-  pending: { label: t('待生效'), color: 'blue' },
-});
-
-const formatQuota = (value) => {
-  if (!Number.isFinite(value)) return '-';
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(2)}M`;
-  }
-  if (value >= 10000) {
-    return `${(value / 10000).toFixed(2)}W`;
-  }
-  return `${value}`;
-};
-
-const formatQuotaLimit = (value, t) =>
-  value && value > 0 ? renderQuota(value) : t('不限');
-
-const formatDate = (timestamp, language = 'zh') => {
-  if (!timestamp) return '-';
-  const date = new Date(timestamp * 1000);
-
-  // 根据语言返回不同的日期格式
-  const localeMap = {
-    zh: 'zh-CN',
-    en: 'en-US',
-    ja: 'ja-JP',
-    fr: 'fr-FR',
-    ru: 'ru-RU',
-    vi: 'vi-VN',
-  };
-
-  const locale = localeMap[language] || 'zh-CN';
-
-  return date.toLocaleString(locale, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
-};
-
-const formatDuration = (value, unit, t, language = 'zh') => {
-  if (!unit && value === undefined) return '-';
-  if (!unit || value === undefined || value === null) return '-';
-  const unitLabelMap = {
-    day: t('天'),
-    week: t('周'),
-    month: t('月'),
-    year: t('年'),
-    quarter: t('季度'),
-  };
-  const isChinese = language.startsWith('zh');
-  const unitLabel = isChinese && unit === 'month' ? '个月' : unitLabelMap[unit] || unit;
-  const normalizedValue = Number(value);
-  if (!Number.isFinite(normalizedValue)) return '-';
-  const needsSpace = !['zh', 'ja', 'ko'].some((prefix) => language.startsWith(prefix));
-  return `${normalizedValue}${needsSpace ? ' ' : ''}${unitLabel}`;
-};
+const { Text } = Typography;
 
 const Subscriptions = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [plans, setPlans] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(false);
@@ -113,14 +46,6 @@ const Subscriptions = () => {
   const [purchaseLoading, setPurchaseLoading] = useState(false);
   const [resetLoadingId, setResetLoadingId] = useState(null);
   const [error, setError] = useState('');
-  const statusMap = getStatusMap(t);
-  const currentLanguage = i18n.language || 'zh';
-  const sortedSubscriptions = [...subscriptions].sort((a, b) => {
-    const priority = (status) => (status === 'active' ? 0 : 1);
-    const priorityDiff = priority(a.status) - priority(b.status);
-    if (priorityDiff !== 0) return priorityDiff;
-    return (b.start_time || 0) - (a.start_time || 0);
-  });
 
   const loadPlans = useCallback(async () => {
     setLoadingPlans(true);
@@ -261,60 +186,12 @@ const Subscriptions = () => {
       <div className='flex flex-col gap-4'>
         {error && <Banner type='danger' description={error} />}
 
-        <Card
-          title={t('套餐方案')}
-        >
-          {loadingPlans ? (
-            <div className='flex justify-center py-8'>
-              <Spin />
-            </div>
-          ) : plans.length === 0 ? (
-            <Text>{t('暂无套餐方案')}</Text>
-          ) : (
-            <div className='grid gap-4 md:grid-cols-2'>
-              {plans.map((plan) => {
-                const deductionGroups = plan.deduction_group
-                  ? plan.deduction_group.split(',').map(g => g.trim()).filter(Boolean)
-                  : [];
-                const showGroupInfo = deductionGroups.length > 0;
-
-                return (
-                  <Card key={plan.id} bordered={true} shadows='hover'>
-                    <Space vertical align='start' spacing='tight'>
-                      <Title heading={5}>{plan.name || plan.type}</Title>
-                      <Text type='secondary'>{plan.description}</Text>
-                      <Text>{`${t('价格')}: ${plan.price} ${plan.currency}`}</Text>
-                      <Text>{`${t('总额度')}: ${renderQuota(plan.total_quota)}`}</Text>
-                      <Text>{`${t('每日额度上限')}: ${formatQuotaLimit(plan.daily_quota_per_plan, t)}`}</Text>
-                      <Text>{`${t('每周额度上限')}: ${formatQuotaLimit(plan.weekly_quota_per_plan, t)}`}</Text>
-                      <Text>{`${t('每月额度上限')}: ${formatQuotaLimit(plan.monthly_quota_per_plan, t)}`}</Text>
-                      <Text>{`${t('有效期')}: ${formatDuration(plan.duration_value, plan.duration_unit, t, currentLanguage)}`}</Text>
-                      {showGroupInfo && (
-                        <Space>
-                          <Text type='tertiary'>{t('适用分组')}:</Text>
-                          <Space wrap size='small'>
-                            {deductionGroups.map((group, idx) => (
-                              <Tag key={idx} color='blue' size='small'>
-                                {group}
-                              </Tag>
-                            ))}
-                          </Space>
-                        </Space>
-                      )}
-                      {!showGroupInfo && (
-                        <Text type='tertiary' size='small'>
-                          {t('所有分组均可使用')}
-                        </Text>
-                      )}
-                      <Button theme='solid' onClick={() => openPurchase(plan)}>
-                        {t('立即购买')}
-                      </Button>
-                    </Space>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+        <Card title={t('套餐方案')}>
+          <PlansList 
+            plans={plans} 
+            loading={loadingPlans} 
+            onPurchase={openPurchase} 
+          />
         </Card>
 
         <Card
@@ -329,117 +206,11 @@ const Subscriptions = () => {
             </Button>
           )}
         >
-          {loadingSubscriptions ? (
-            <div className='flex justify-center py-8'>
-              <Spin />
-            </div>
-          ) : subscriptions.length === 0 ? (
-            <Text>{t('暂无订阅')}</Text>
-          ) : (
-            <div className='w-full grid gap-4 sm:grid-cols-2 xl:grid-cols-3'>
-              {sortedSubscriptions.map((sub) => {
-                const status = statusMap[sub.status] || statusMap.pending;
-                const remainQuota = Math.max(sub.remain_quota || 0, 0);
-                const totalQuota = Math.max(sub.total_quota || 0, 0);
-                const usedQuota = Math.max(totalQuota - remainQuota, 0);
-                const progressPercent = totalQuota
-                  ? Math.min(100, Math.round((usedQuota / totalQuota) * 100))
-                  : 0;
-                const resetLimit = Math.max(sub.reset_quota_limit || 0, 0);
-                const resetUsed = Math.max(sub.reset_quota_used || 0, 0);
-                const resetRemaining = Math.max(resetLimit - resetUsed, 0);
-                return (
-                  <Card key={sub.id} bordered className={'w-full'}>
-                    <Space vertical align='start' spacing='tight' className={'w-full'}>
-                      <div className='flex items-center gap-2'>
-                        <Title heading={5}>
-                          {sub.package_plan?.name || sub.package_plan?.type}
-                        </Title>
-                          <Tag color={status.color}>{status.label}</Tag>
-                        </div>
-                        {(() => {
-                        const deductionGroups = sub.deduction_group
-                          ? sub.deduction_group.split(',').map(g => g.trim()).filter(Boolean)
-                          : [];
-
-                        return (
-                          <Space vertical align='start' className='w-full'>
-                            <Text type='secondary'>
-                              {`${t('抵扣分组')}:`}
-                            </Text>
-                            {deductionGroups.length > 0 ? (
-                              <Space wrap size='small' className='w-full'>
-                                {deductionGroups.map((group, idx) => (
-                                  <Tag key={idx} color='cyan' size='small'>
-                                    {group}
-                                  </Tag>
-                                ))}
-                              </Space>
-                            ) : (
-                              <Tag color='green' size='small'>
-                                {t('所有分组')}
-                              </Tag>
-                            )}
-                          </Space>
-                        );
-                      })()}
-                      <div className='w-full'>
-                        <div className='flex items-center justify-between text-sm text-gray-600'>
-                          <span>{t('剩余额度')}</span>
-                          <span>
-                            {renderQuota(remainQuota, 6)} /{' '}
-                            {renderQuota(totalQuota, 6)}
-                          </span>
-                        </div>
-                        <div className='mt-2 space-y-1 text-xs text-gray-500'>
-                          <div>{`${t('每日额度上限')}: ${formatQuotaLimit(sub.daily_quota_limit, t)}`}</div>
-                          <div>{`${t('每周额度上限')}: ${formatQuotaLimit(sub.weekly_quota_limit, t)}`}</div>
-                          <div>{`${t('每月额度上限')}: ${formatQuotaLimit(sub.monthly_quota_limit, t)}`}</div>
-                        </div>
-                        <Progress percent={progressPercent} showInfo={false} />
-                        <div className='mt-1 flex items-center justify-between text-xs text-gray-500'>
-                          <span>{`${t('已用额度')}: ${renderQuota(usedQuota, 6)}`}</span>
-                          <span>{`${progressPercent}%`}</span>
-                        </div>
-                        {/*<div className='mt-2 flex items-center justify-between text-xs text-gray-500'>*/}
-                        {/*  <span>*/}
-                        {/*    {t('可重置次数')}*/}
-                        {/*  </span>*/}
-                        {/*  <span>*/}
-                        {/*    {resetRemaining} / {resetLimit}*/}
-                        {/*  </span>*/}
-                        {/*</div>*/}
-                      </div>
-                      <Text type='secondary'>
-                        {`${t('到期时间')}: ${formatDate(sub.end_time, currentLanguage)}`}
-                      </Text>
-                      <Space>
-                        {/*<Button*/}
-                        {/*  type='danger'*/}
-                        {/*  disabled={*/}
-                        {/*    sub.status !== 'active' ||*/}
-                        {/*    resetRemaining <= 0 ||*/}
-                        {/*    resetLoadingId === sub.id*/}
-                        {/*  }*/}
-                        {/*  loading={resetLoadingId === sub.id}*/}
-                        {/*  onClick={() => resetDailyQuota(sub)}*/}
-                        {/*>*/}
-                        {/*  {t('确认重置')}*/}
-                        {/*</Button>*/}
-                        {/*<Button*/}
-                        {/*  type='danger'*/}
-                        {/*  disabled={sub.status !== 'active'}*/}
-                        {/*  onClick={() => cancelSubscription(sub)}*/}
-                        {/*>*/}
-                        {/*  {t('取消订阅')}*/}
-                        {/*</Button>*/}
-                      </Space>
-                    </Space>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+          <SubscriptionsList 
+            subscriptions={subscriptions} 
+            loading={loadingSubscriptions}
+            resetLoadingId={resetLoadingId}
+          />
         </Card>
 
         <Modal
