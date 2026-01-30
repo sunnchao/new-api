@@ -782,8 +782,9 @@ const Home = () => {
                     <p className='relative text-sm text-semi-color-text-1 mb-6 leading-relaxed'>
                       {t('发送邮件联系我们，通常在24小时内回复')}
                     </p>
-                    <div className='relative inline-flex items-center px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 text-sm font-medium border border-blue-100 dark:border-blue-800/50 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-colors'>
+                    <div className='relative inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 text-sm font-medium border border-blue-100 dark:border-blue-800/50 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-colors'>
                       chirou.api@outlook.com
+                      <Typography.Paragraph copyable={{ content: 'chirou.api@outlook.com' }}></Typography.Paragraph>
                     </div>
                   </div>
                 </a>
@@ -814,8 +815,9 @@ const Home = () => {
                     <p className='relative text-sm text-semi-color-text-1 mb-6 leading-relaxed'>
                       {t('加入用户交流群，获取最新资讯')}
                     </p>
-                    <div className='relative inline-flex items-center px-4 py-2 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 text-sm font-medium border border-emerald-100 dark:border-emerald-800/50 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/40 transition-colors select-all'>
+                    <div className='relative inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 text-sm font-medium border border-emerald-100 dark:border-emerald-800/50 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/40 transition-colors select-all'>
                       924076327
+                      <Typography.Paragraph copyable={{ content: '924076327' }}></Typography.Paragraph>
                     </div>
                   </div>
                 </div>
@@ -845,8 +847,9 @@ const Home = () => {
                     <p className='relative text-sm text-semi-color-text-1 mb-6 leading-relaxed'>
                       {t('关注 TG 频道，获取实时通知')}
                     </p>
-                    <div className='relative inline-flex items-center px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-300 text-sm font-medium border border-cyan-100 dark:border-cyan-800/50 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/40 transition-colors'>
+                    <div className='relative inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-300 text-sm font-medium border border-cyan-100 dark:border-cyan-800/50 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/40 transition-colors'>
                       @chirou_api
+                      <Typography.Paragraph copyable={{ content: '@chirou_api' }}></Typography.Paragraph>
                     </div>
                   </div>
                 </a>
