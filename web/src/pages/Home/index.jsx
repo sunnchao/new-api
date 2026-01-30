@@ -360,7 +360,13 @@ const Home = () => {
                 <Link to='/claude-code' className='block h-full group'>
                   <Card
                     shadows='hover'
-                    className='h-full !rounded-3xl border border-purple-100 dark:border-purple-800 bg-gradient-to-b from-white/90 to-purple-50/50 dark:from-semi-color-fill-0 dark:to-purple-900/10 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
+                    className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
+                    style={{
+                      border: '1px solid rgba(139, 92, 246, 0.15)',
+                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(250,247,255,0.6) 40%, rgba(245,240,255,0.4) 100%)',
+                      backdropFilter: 'blur(12px)',
+                      boxShadow: '0 1px 2px rgba(139, 92, 246, 0.05), 0 4px 8px rgba(139, 92, 246, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
+                    }}
                     bodyStyle={{
                       padding: '28px',
                       height: '100%',
@@ -404,7 +410,13 @@ const Home = () => {
                 <Link to='/codex-code' className='block h-full group'>
                   <Card
                     shadows='hover'
-                    className='h-full !rounded-3xl border border-green-100 dark:border-green-800 bg-gradient-to-b from-white/90 to-green-50/50 dark:from-semi-color-fill-0 dark:to-green-900/10 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
+                    className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
+                    style={{
+                      border: '1px solid rgba(16, 185, 129, 0.15)',
+                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(247,254,250,0.6) 40%, rgba(240,253,245,0.4) 100%)',
+                      backdropFilter: 'blur(12px)',
+                      boxShadow: '0 1px 2px rgba(16, 185, 129, 0.05), 0 4px 8px rgba(16, 185, 129, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
+                    }}
                     bodyStyle={{
                       padding: '28px',
                       height: '100%',
@@ -448,7 +460,13 @@ const Home = () => {
                 <Link to='/gemini-code' className='block h-full group'>
                   <Card
                     shadows='hover'
-                    className='h-full !rounded-3xl border border-blue-100 dark:border-blue-800 bg-gradient-to-b from-white/90 to-blue-50/50 dark:from-semi-color-fill-0 dark:to-blue-900/10 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
+                    className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
+                    style={{
+                      border: '1px solid rgba(59, 130, 246, 0.15)',
+                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(248,250,255,0.6) 40%, rgba(239,246,255,0.4) 100%)',
+                      backdropFilter: 'blur(12px)',
+                      boxShadow: '0 1px 2px rgba(59, 130, 246, 0.05), 0 4px 8px rgba(59, 130, 246, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
+                    }}
                     bodyStyle={{
                       padding: '28px',
                       height: '100%',
