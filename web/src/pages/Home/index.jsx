@@ -357,7 +357,7 @@ const Home = () => {
               </div>
 
               <div className='grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mt-8'>
-                <Link to='/claude-code' className='block h-full group'>
+                <Link to='/vibecoding/claude' className='block h-full group'>
                   <Card
                     shadows='hover'
                     className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
@@ -407,7 +407,7 @@ const Home = () => {
                   </Card>
                 </Link>
 
-                <Link to='/codex-code' className='block h-full group'>
+                <Link to='/vibecoding/codex' className='block h-full group'>
                   <Card
                     shadows='hover'
                     className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
@@ -457,7 +457,7 @@ const Home = () => {
                   </Card>
                 </Link>
 
-                <Link to='/gemini-code' className='block h-full group'>
+                <Link to='/vibecoding/gemini' className='block h-full group'>
                   <Card
                     shadows='hover'
                     className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
