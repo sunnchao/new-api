@@ -123,10 +123,10 @@ func Distribute() func(c *gin.Context) {
 
 				if channel == nil {
 					channel, selectGroup, err = service.CacheGetRandomSatisfiedChannel(&service.RetryParam{
-						Ctx:        c,
-						ModelName:  modelRequest.Model,
-						TokenGroup: usingGroup,
-						Retry:      common.GetPointer(0),
+						Ctx:              c,
+						ModelName:        modelRequest.Model,
+						TokenGroup:       usingGroup,
+						Retry:            common.GetPointer(0),
 						TokenBackupGroup: common.GetContextKeyString(c, constant.ContextKeyBackupTokenGroup),
 					})
 					if err != nil {
@@ -144,7 +144,7 @@ func Distribute() func(c *gin.Context) {
 						return
 					}
 					if channel == nil {
-						abortWithOpenAiMessage(c, http.StatusServiceUnavailable, fmt.Sprintf("分组 %s 下模型 %s 无可用渠道（distributor）", usingGroup, modelRequest.Model), types.ErrorCodeModelNotFound)
+						abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("分组 %s 下模型 %s 无可用渠道（distributor）", usingGroup, modelRequest.Model), types.ErrorCodeModelNotFound)
 						return
 					}
 				}

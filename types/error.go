@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -207,6 +208,10 @@ func (e *NewAPIError) ToOpenAIError() OpenAIError {
 	if result.Message == "" {
 		result.Message = string(e.errorType)
 	}
+
+	// Apply error filtering for user-friendly messages
+	//result = filterOpenAIError(result, e.StatusCode)
+
 	return result
 }
 
@@ -236,6 +241,10 @@ func (e *NewAPIError) ToClaudeError() ClaudeError {
 	if result.Message == "" {
 		result.Message = string(e.errorType)
 	}
+
+	// Apply error filtering for user-friendly messages
+	//result = filterClaudeError(result, e.StatusCode)
+
 	return result
 }
 
@@ -408,4 +417,99 @@ func IsRecordErrorLog(e *NewAPIError) bool {
 		return true
 	}
 	return *e.recordErrorLog
+}
+
+// Error filtering patterns and keywords
+var (
+	requestIdRegex = regexp.MustCompile(`\(request id: [^\)]+\)`)
+	// Extract group and model from messages like "当前分组 default 下对于模型 claude-3-5-haiku-20241022 无可用渠道"
+	groupAndModelKeywords = regexp.MustCompile(`当前分组 (\S+) 下对于模型 (\S+) 无可用渠道`)
+	quotaKeywords         = []string{"余额", "额度", "quota", "令牌"}
+)
+
+// filterOpenAIError applies user-friendly filtering to OpenAI error messages
+func filterOpenAIError(err OpenAIError, statusCode int) OpenAIError {
+	result := err
+
+	// Filter 429 errors to user-friendly message
+	if statusCode == http.StatusTooManyRequests {
+		result.Message = "当前分组上游负载已饱和，请稍后再试"
+	}
+
+	// Remove request id if already present (will be re-added by middleware)
+	if strings.Contains(result.Message, "(request id:") {
+		result.Message = requestIdRegex.ReplaceAllString(result.Message, "")
+	}
+
+	// Unify error types for upstream errors
+	if result.Type != "new_api_error" && (result.Type == "upstream_error" || strings.HasSuffix(result.Type, "_api_error")) {
+		result.Type = "system_error"
+
+		// Hide group name in "no available channel" errors
+		if groupAndModelKeywords.MatchString(result.Message) {
+			result.Message = groupAndModelKeywords.ReplaceAllString(result.Message, "当前分组下对于模型 $2 无可用渠道")
+			// Adjust status code for no available channel
+			if statusCode != http.StatusTooManyRequests {
+				// Note: statusCode is passed by value, so this won't affect the original
+				// The caller should handle status code adjustment if needed
+			}
+		} else if containsAnyKeyword(result.Message, quotaKeywords) {
+			// Handle quota-related errors
+			if strings.Contains(result.Message, "额度") {
+				result.Message = "user quota is not enough"
+			} else {
+				result.Message = "当前分组上游负载已饱和，请稍后再试"
+			}
+		}
+	}
+
+	// Handle bad_response_status_code errors
+	if code, ok := result.Code.(string); ok && code == "bad_response_status_code" && !strings.Contains(result.Message, "bad response status code") {
+		result.Message = fmt.Sprintf("Provider API error: bad response status code %s", result.Param)
+	}
+
+	return result
+}
+
+// filterClaudeError applies user-friendly filtering to Claude error messages
+func filterClaudeError(err ClaudeError, statusCode int) ClaudeError {
+	result := err
+
+	// Filter 429 errors to user-friendly message
+	if statusCode == http.StatusTooManyRequests {
+		result.Message = "当前分组上游负载已饱和，请稍后再试"
+	}
+
+	// Remove request id if already present
+	if strings.Contains(result.Message, "(request id:") {
+		result.Message = requestIdRegex.ReplaceAllString(result.Message, "")
+	}
+
+	// Unify error types
+	if result.Type != "new_api_error" && (result.Type == "upstream_error" || strings.HasSuffix(result.Type, "_api_error")) {
+		result.Type = "system_error"
+
+		// Hide group name in "no available channel" errors
+		if groupAndModelKeywords.MatchString(result.Message) {
+			result.Message = groupAndModelKeywords.ReplaceAllString(result.Message, "当前分组下对于模型 $2 无可用渠道")
+		} else if containsAnyKeyword(result.Message, quotaKeywords) {
+			if strings.Contains(result.Message, "额度") {
+				result.Message = "user quota is not enough"
+			} else {
+				result.Message = "当前分组上游负载已饱和，请稍后再试"
+			}
+		}
+	}
+
+	return result
+}
+
+// containsAnyKeyword checks if the message contains any of the keywords
+func containsAnyKeyword(message string, keywords []string) bool {
+	for _, keyword := range keywords {
+		if strings.Contains(message, keyword) {
+			return true
+		}
+	}
+	return false
 }
