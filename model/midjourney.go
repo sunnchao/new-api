@@ -23,11 +23,14 @@ type Midjourney struct {
 	Quota       int    `json:"quota"`
 	Buttons     string `json:"buttons"`
 	Properties  string `json:"properties"`
+	Mode        string `json:"mode,omitempty"`
+	TokenID     int    `json:"token_id" gorm:"default:0"`
 }
 
 // TaskQueryParams 用于包含所有搜索条件的结构体，可以根据需求添加更多字段
 type TaskQueryParams struct {
 	ChannelID      string
+	TokenID        int `form:"token_id"`
 	MjID           string
 	StartTimestamp string
 	EndTimestamp   string
@@ -49,6 +52,9 @@ func GetAllUserTask(userId int, startIdx int, num int, queryParams TaskQueryPara
 	}
 	if queryParams.EndTimestamp != "" {
 		query = query.Where("submit_time <= ?", queryParams.EndTimestamp)
+	}
+	if queryParams.TokenID != 0 {
+		query = query.Where("token_id = ? ", queryParams.TokenID)
 	}
 
 	// 获取数据

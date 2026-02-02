@@ -26,12 +26,17 @@ func abortWithOpenAiMessage(c *gin.Context, statusCode int, message string, code
 	logger.LogError(c.Request.Context(), fmt.Sprintf("user %d | %s", userId, message))
 }
 
-func abortWithMidjourneyMessage(c *gin.Context, statusCode int, code int, description string) {
+func abortWithMidjourneyMessage(c *gin.Context, statusCode int, message string, code ...types.ErrorCode) {
+	codeStr := ""
+	if len(code) > 0 {
+		codeStr = string(code[0])
+	}
+	userId := c.GetInt("id")
 	c.JSON(statusCode, gin.H{
-		"description": description,
+		"description": message,
 		"type":        "new_api_error",
-		"code":        code,
+		"code":        codeStr,
 	})
 	c.Abort()
-	logger.LogError(c.Request.Context(), description)
+	logger.LogError(c.Request.Context(), fmt.Sprintf("user %d | %s", userId, message))
 }
