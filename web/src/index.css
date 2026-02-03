@@ -17,27 +17,64 @@
 
 /* ==================== 全局基础样式 ==================== */
 :root {
-  --sidebar-width: 180px;
+  --sidebar-width: 210px;
   --sidebar-width-collapsed: 60px;
   --sidebar-current-width: var(--sidebar-width);
-  --page-padding-desktop: 32px 16px;
-  --page-padding-mobile: 12px;
+  --page-padding-desktop: 16px 8px;
+  --page-padding-mobile: 8px;
   --card-padding: 16px;
   --control-padding-y: 8px;
   --control-padding-x: 14px;
   --table-cell-padding-y: 12px;
   --table-cell-padding-x: 16px;
+
+  /* ==================== V3 风格主题变量 ==================== */
+  --v3-radius-md: 12px;
+  --v3-radius-lg: 16px;
+  --v3-border: rgba(15, 23, 42, 0.08);
+  --v3-surface: rgba(255, 255, 255, 0.78);
+  --v3-surface-strong: rgba(255, 255, 255, 0.92);
+  --v3-shadow: 0 1px 2px rgba(15, 23, 42, 0.05),
+    0 16px 44px rgba(15, 23, 42, 0.08);
+  --v3-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --v3-backdrop: blur(16px);
+  --v3-bg-0: #f8fafc;
 }
 
 body.sidebar-collapsed {
   --sidebar-current-width: var(--sidebar-width-collapsed);
 }
 
+html.dark {
+  --v3-border: rgba(255, 255, 255, 0.12);
+  --v3-surface: rgba(24, 24, 27, 0.72);
+  --v3-surface-strong: rgba(24, 24, 27, 0.86);
+  --v3-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 18px 54px rgba(0, 0, 0, 0.7);
+  --v3-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.6);
+  --v3-bg-0: #0b1220;
+}
+
 body {
   font-family: 'Manrope', Lato, 'Helvetica Neue', Arial, Helvetica,
     'Microsoft YaHei', sans-serif;
   color: var(--semi-color-text-0);
-  background-color: var(--semi-color-bg-0);
+  background-color: var(--v3-bg-0);
+  background-image: radial-gradient(
+      1200px circle at 72% 10%,
+      rgba(20, 184, 166, 0.18) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      1100px circle at 28% 16%,
+      rgba(99, 102, 241, 0.15) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      900px circle at 50% 90%,
+      rgba(59, 130, 246, 0.1) 0%,
+      transparent 62%
+    );
+  background-attachment: fixed;
   line-height: 1.65;
   font-size: 14px;
 }
@@ -805,7 +842,7 @@ html.dark .with-pastel-balls::before {
 
 .pricing-search-header {
   padding: 0.5rem;
-  background-color: var(--semi-color-bg-0);
+  /*background-color: var(--semi-color-bg-0);*/
   flex-shrink: 0;
   position: sticky;
   top: 0;
@@ -842,15 +879,13 @@ html.dark .with-pastel-balls::before {
 }
 
 .semi-button {
-  padding: var(--control-padding-y) calc(var(--control-padding-x) + 2px)
-    !important;
+  padding: var(--control-padding-y) calc(var(--control-padding-x) + 2px) !important;
   min-height: 36px;
 }
 
 .semi-table-thead > tr > th,
 .semi-table-tbody > tr > td {
-  padding: var(--table-cell-padding-y) var(--table-cell-padding-x)
-    !important;
+  padding: var(--table-cell-padding-y) var(--table-cell-padding-x) !important;
 }
 
 /* ==================== 使用日志: channel affinity tag ==================== */
@@ -896,4 +931,207 @@ html.dark .with-pastel-balls::before {
 .semi-button,
 .semi-datepicker-range-input {
   border-radius: 10px !important;
+}
+
+/* ==================== V3 风格统一覆盖（尽量少改动） ==================== */
+#root > section.semi-layout,
+#root > section.semi-layout > section.semi-layout,
+#root > section.semi-layout .semi-layout,
+#root > section.semi-layout .semi-layout-content,
+#root > section.semi-layout .semi-layout-footer {
+  background: transparent !important;
+}
+
+.app-header {
+  border-bottom: 1px solid var(--v3-border);
+  box-shadow: var(--v3-shadow-sm);
+}
+
+.sidebar-container {
+  background: var(--v3-surface-strong);
+  backdrop-filter: var(--v3-backdrop);
+  border-right: 1px solid var(--v3-border);
+}
+
+.sidebar-nav {
+  background: transparent;
+}
+
+.sidebar-nav-item {
+  border-radius: var(--v3-radius-md);
+}
+
+body.sidebar-collapsed .sidebar-nav-item {
+  margin: 6px 8px;
+  padding: 10px;
+}
+
+body.sidebar-collapsed .sidebar-icon-container,
+body.sidebar-collapsed .sidebar-sub-icon-container {
+  margin-right: 0;
+}
+
+.semi-card {
+  border-radius: var(--v3-radius-lg) !important;
+  border-color: var(--v3-border) !important;
+  background: var(--v3-surface) !important;
+  backdrop-filter: var(--v3-backdrop);
+  box-shadow: var(--v3-shadow);
+}
+
+.semi-table-container {
+  border-radius: var(--v3-radius-lg);
+  border: 1px solid var(--v3-border);
+  background: var(--v3-surface);
+  box-shadow: var(--v3-shadow-sm);
+  overflow: hidden;
+}
+
+/* 输入/按钮统一圆角（覆盖上面的 10px 设定） */
+.semi-radio,
+.semi-tagInput,
+.semi-input-textarea-wrapper,
+.semi-navigation-sub-title,
+.semi-chat-inputBox-sendButton,
+.semi-page-item,
+.semi-navigation-item,
+.semi-tag-closable,
+.semi-input-wrapper,
+.semi-tabs-tab-button,
+.semi-select,
+.semi-button,
+.semi-datepicker-range-input {
+  border-radius: var(--v3-radius-md) !important;
+}
+
+/* ==================== Auth 页面（登录/注册/重置）统一布局 ==================== */
+.auth-shell {
+  min-height: calc(100vh - 64px);
+  display: grid;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+  padding-top: 64px;
+}
+
+.auth-shell__side {
+  display: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-side-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .auth-blob {
+    transform-box: fill-box;
+    transform-origin: center;
+    will-change: transform, opacity;
+  }
+
+  .auth-blob--1 {
+    animation: authBlob1 16s ease-in-out infinite;
+  }
+
+  .auth-blob--2 {
+    animation: authBlob2 18s ease-in-out infinite;
+  }
+
+  .auth-blob--3 {
+    animation: authBlob3 22s ease-in-out infinite;
+  }
+
+  .auth-blob--4 {
+    animation: authBlob4 26s ease-in-out infinite;
+  }
+}
+
+@keyframes authBlob1 {
+  0% {
+    transform: translate3d(-90px, 40px, 0) scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: translate3d(70px, -30px, 0) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-90px, 40px, 0) scale(1);
+    opacity: 0.92;
+  }
+}
+
+@keyframes authBlob2 {
+  0% {
+    transform: translate3d(70px, -60px, 0) scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: translate3d(-80px, 50px, 0) scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(70px, -60px, 0) scale(1);
+    opacity: 0.92;
+  }
+}
+
+@keyframes authBlob3 {
+  0% {
+    transform: translate3d(-60px, 60px, 0) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate3d(90px, -70px, 0) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-60px, 60px, 0) scale(1);
+    opacity: 0.9;
+  }
+}
+
+@keyframes authBlob4 {
+  0% {
+    transform: translate3d(60px, 40px, 0) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate3d(-100px, -50px, 0) scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(60px, 40px, 0) scale(1);
+    opacity: 0.9;
+  }
+}
+
+.auth-shell__main {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+}
+
+@media (min-width: 768px) {
+  .auth-shell {
+    grid-template-columns: 0.85fr 1.15fr;
+  }
+
+  .auth-shell__side {
+    display: block;
+  }
+}
+
+@media (max-width: 767px) {
+  .auth-shell__main {
+    padding: 36px 14px;
+  }
 }

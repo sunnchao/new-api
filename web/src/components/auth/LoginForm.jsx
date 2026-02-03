@@ -62,6 +62,7 @@ import OIDCIcon from '../common/logo/OIDCIcon';
 import WeChatIcon from '../common/logo/WeChatIcon';
 import LinuxDoIcon from '../common/logo/LinuxDoIcon';
 import TwoFAVerification from './TwoFAVerification';
+import AuthSideArt from './AuthSideArt';
 import { useTranslation } from 'react-i18next';
 import { SiDiscord } from 'react-icons/si';
 
@@ -904,41 +905,35 @@ const LoginForm = () => {
   };
 
   return (
-    <div className='relative overflow-hidden bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8'>
-      {/* 背景模糊晕染球 */}
-      <div
-        className='blur-ball blur-ball-indigo'
-        style={{ top: '-80px', right: '-80px', transform: 'none' }}
-      />
-      <div
-        className='blur-ball blur-ball-teal'
-        style={{ top: '50%', left: '-120px' }}
-      />
-      <div className='w-full max-w-sm mt-[60px]'>
-        {showEmailLogin ||
-        !(
-          status.github_oauth ||
-          status.discord_oauth ||
-          status.oidc_enabled ||
-          status.wechat_login ||
-          status.linuxdo_oauth ||
-          status.telegram_oauth
-        )
-          ? renderEmailLoginForm()
-          : renderOAuthOptions()}
-        {renderWeChatLoginModal()}
-        {render2FAModal()}
+    <div className='auth-shell'>
+      <AuthSideArt />
+      <div className='auth-shell__main'>
+        <div className='w-full max-w-sm'>
+          {showEmailLogin ||
+          !(
+            status.github_oauth ||
+            status.discord_oauth ||
+            status.oidc_enabled ||
+            status.wechat_login ||
+            status.linuxdo_oauth ||
+            status.telegram_oauth
+          )
+            ? renderEmailLoginForm()
+            : renderOAuthOptions()}
+          {renderWeChatLoginModal()}
+          {render2FAModal()}
 
-        {turnstileEnabled && (
-          <div className='flex justify-center mt-6'>
-            <Turnstile
-              sitekey={turnstileSiteKey}
-              onVerify={(token) => {
-                setTurnstileToken(token);
-              }}
-            />
-          </div>
-        )}
+          {turnstileEnabled && (
+            <div className='flex justify-center mt-6'>
+              <Turnstile
+                sitekey={turnstileSiteKey}
+                onVerify={(token) => {
+                  setTurnstileToken(token);
+                }}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
