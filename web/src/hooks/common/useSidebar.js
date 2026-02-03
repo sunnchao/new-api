@@ -53,6 +53,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     redemption: true,
     user: true,
     packages: true,
+    subscription: true,
     setting: true,
   },
 };

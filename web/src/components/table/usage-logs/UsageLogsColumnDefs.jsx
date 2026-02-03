@@ -248,6 +248,18 @@ function renderFirstUseTime(type, t) {
   }
 }
 
+function renderBillingTag(record, t) {
+  const other = getLogOther(record.other);
+  if (other?.billing_source === 'subscription') {
+    return (
+      <Tag color='green' shape='circle'>
+        {t('订阅抵扣')}
+      </Tag>
+    );
+  }
+  return null;
+}
+
 function renderModelName(record, copyText, t) {
   let other = getLogOther(record.other);
   let modelMapped =
@@ -520,6 +532,27 @@ export const getLogsColumns = ({
       },
     },
     {
+      key: COLUMN_KEYS.COST,
+      title: t('花费'),
+      dataIndex: 'quota',
+      render: (text, record, index) => {
+        if (!(record.type === 0 || record.type === 2 || record.type === 5)) {
+          return <></>;
+        }
+        const other = getLogOther(record.other);
+        const isSubscription = other?.billing_source === 'subscription';
+        if (isSubscription) {
+          // Subscription billed: show only tag (no $0), but keep tooltip for equivalent cost.
+          return (
+            <Tooltip content={`${t('由订阅抵扣')}：${renderQuota(text, 6)}`}>
+              <span>{renderBillingTag(record, t)}</span>
+            </Tooltip>
+          );
+        }
+        return <>{renderQuota(text, 6)}</>;
+      },
+    },
+    {
       key: COLUMN_KEYS.IP,
       title: (
         <div className='flex items-center gap-1'>
@@ -736,6 +769,10 @@ export const getLogsColumns = ({
               other?.is_system_prompt_overwritten,
               'openai',
             );
+        // Do not add billing source here; keep details clean.
+        const summary = [content, text ? `${t('详情')}：${text}` : null]
+          .filter(Boolean)
+          .join('\n');
         return (
           <Typography.Paragraph
             ellipsis={{
@@ -743,7 +780,7 @@ export const getLogsColumns = ({
             }}
             style={{ maxWidth: 240, whiteSpace: 'pre-line' }}
           >
-            {content}
+            {summary}
           </Typography.Paragraph>
         );
       },
