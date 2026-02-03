@@ -220,6 +220,317 @@ const Home = () => {
     [isDarkTheme],
   );
 
+  const VibeStyleCard = ({
+    to,
+    accentRgb,
+    lightBackgroundRgb,
+    icon,
+    iconWrapperClassName = '',
+    badge,
+    badgeClassName = '',
+    title,
+    titleHoverClassName = '',
+    description,
+    items = [],
+    dotClassName = 'bg-semi-color-primary',
+  }) => {
+    const Wrapper = to ? Link : 'div';
+    const wrapperProps = to ? { to } : {};
+    const listClassName = description ? 'mt-auto space-y-3' : 'mt-4 space-y-3';
+
+    return (
+      <Wrapper {...wrapperProps} className='block h-full group'>
+        <Card
+          shadows='hover'
+          className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
+          style={getVibeCardStyle({ accentRgb, lightBackgroundRgb })}
+          bodyStyle={vibeCardBodyStyle}
+        >
+          <div
+            className={`flex items-center ${badge ? 'justify-between' : 'justify-start'} mb-6`}
+          >
+            <div
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center ${iconWrapperClassName} group-hover:scale-110 transition-transform duration-300`}
+            >
+              {icon}
+            </div>
+            {badge ? <span className={badgeClassName}>{badge}</span> : null}
+          </div>
+
+          <h3
+            className={`text-xl md:text-2xl font-bold text-semi-color-text-0 mb-3 ${titleHoverClassName} transition-colors`}
+          >
+            {title}
+          </h3>
+
+          {description ? (
+            <p className='text-sm text-semi-color-text-2 mb-8 leading-relaxed'>
+              {description}
+            </p>
+          ) : null}
+
+          <div className={listClassName}>
+            {items.map((text, i) => (
+              <div
+                key={i}
+                className='flex items-center text-sm text-semi-color-text-1'
+              >
+                <div
+                  className={`w-1.5 h-1.5 rounded-full ${dotClassName} mr-2.5 flex-shrink-0`}
+                />
+                {text}
+              </div>
+            ))}
+          </div>
+        </Card>
+      </Wrapper>
+    );
+  };
+
+  const vibeCodingCardItems = [
+    {
+      to: '/vibecoding/claude',
+      accentRgb: '139, 92, 246',
+      lightBackgroundRgb: '250,247,255',
+      icon: <Claude.Color size={32} />,
+      iconWrapperClassName: 'bg-purple-50 dark:bg-purple-900/20',
+      badge: 'Anthropic',
+      badgeClassName:
+        'px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-xs font-bold dark:bg-purple-900/30 dark:text-purple-300 border border-purple-100 dark:border-purple-800',
+      title: 'Claude Code',
+      titleHoverClassName: 'group-hover:text-purple-600',
+      description: t('终端集成 · 结对编程 · 深度理解'),
+      dotClassName: 'bg-purple-400',
+      items: [
+        t('Claude Opus 4.5 驱动'),
+        t('深度理解代码上下文'),
+        t('智能调试与文档生成'),
+        t('全平台 CLI 支持'),
+      ],
+    },
+    {
+      to: '/vibecoding/codex',
+      accentRgb: '16, 185, 129',
+      lightBackgroundRgb: '247,254,250',
+      icon: <OpenAI size={32} />,
+      iconWrapperClassName: 'bg-green-50 dark:bg-green-900/20',
+      badge: 'OpenAI',
+      badgeClassName:
+        'px-3 py-1 rounded-full bg-green-50 text-green-600 text-xs font-bold dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800',
+      title: 'Codex CLI',
+      titleHoverClassName: 'group-hover:text-green-600',
+      description: t('企业级 · 智能重构 · 实时联网'),
+      dotClassName: 'bg-green-400',
+      items: [
+        t('GPT 5.2驱动'),
+        t('实时联网能力'),
+        t('智能代码重构'),
+        t('VSCode 深度集成'),
+      ],
+    },
+    {
+      to: '/vibecoding/gemini',
+      accentRgb: '59, 130, 246',
+      lightBackgroundRgb: '248,250,255',
+      icon: <Gemini.Color size={32} />,
+      iconWrapperClassName: 'bg-blue-50 dark:bg-blue-900/20',
+      badge: 'Google',
+      badgeClassName:
+        'px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-300 border border-blue-100 dark:border-blue-800',
+      title: 'Gemini CLI',
+      titleHoverClassName: 'group-hover:text-blue-600',
+      description: t('超大上下文 · Agent模式 · 多模态'),
+      dotClassName: 'bg-blue-400',
+      items: [
+        t('1M tokens 超大上下文'),
+        t('Agent Mode 自动规划'),
+        t('内置 Google Search'),
+        t('多模态输入支持'),
+      ],
+    },
+  ];
+
+  const coreAdvantageCardItems = [
+    {
+      accentRgb: '59, 130, 246',
+      lightBackgroundRgb: '248,250,255',
+      icon: (
+        <svg
+          className='w-8 h-8'
+          fill='none'
+          stroke='currentColor'
+          viewBox='0 0 24 24'
+        >
+          <path
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth={2}
+            d='M13 10V3L4 14h7v7l9-11h-7z'
+          />
+        </svg>
+      ),
+      iconWrapperClassName: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
+      title: t('极速响应'),
+      titleHoverClassName: 'group-hover:text-blue-600',
+      dotClassName: 'bg-blue-400',
+      items: [
+        t('毫秒级API响应时间'),
+        t('千万级并发处理能力'),
+        t('智能负载均衡系统'),
+        t('超两年稳定运行验证'),
+      ],
+    },
+    {
+      accentRgb: '16, 185, 129',
+      lightBackgroundRgb: '247,254,250',
+      icon: (
+        <svg
+          className='w-8 h-8'
+          fill='none'
+          stroke='currentColor'
+          viewBox='0 0 24 24'
+        >
+          <path
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth={2}
+            d='M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+          />
+        </svg>
+      ),
+      iconWrapperClassName:
+        'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400',
+      title: t('全球网络'),
+      titleHoverClassName: 'group-hover:text-emerald-600',
+      dotClassName: 'bg-emerald-400',
+      items: [
+        t('全球多区域节点部署'),
+        t('CN2 GIA专线接入'),
+        t('全球70+高速中转节点'),
+        t('智能路由优化'),
+      ],
+    },
+    {
+      accentRgb: '139, 92, 246',
+      lightBackgroundRgb: '250,247,255',
+      icon: (
+        <svg
+          className='w-8 h-8'
+          fill='none'
+          stroke='currentColor'
+          viewBox='0 0 24 24'
+        >
+          <path
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth={2}
+            d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+          />
+        </svg>
+      ),
+      iconWrapperClassName:
+        'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400',
+      title: t('透明计费'),
+      titleHoverClassName: 'group-hover:text-violet-600',
+      dotClassName: 'bg-violet-400',
+      items: [
+        t('官方标准计费模式'),
+        t('无任何隐藏费用'),
+        t('按需使用成本可控'),
+        t('账户余额永不过期'),
+      ],
+    },
+    {
+      accentRgb: '245, 158, 11',
+      lightBackgroundRgb: '255,251,235',
+      icon: (
+        <svg
+          className='w-8 h-8'
+          fill='none'
+          stroke='currentColor'
+          viewBox='0 0 24 24'
+        >
+          <path
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth={2}
+            d='M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z'
+          />
+        </svg>
+      ),
+      iconWrapperClassName:
+        'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400',
+      title: t('全面兼容'),
+      titleHoverClassName: 'group-hover:text-amber-600',
+      dotClassName: 'bg-amber-400',
+      items: [
+        t('完美兼容OpenAI, Claude, Gemini'),
+        t('支持全球所有主流大语言模型'),
+        t('轻松集成现有应用工作流'),
+        t('模型库与功能持续更新'),
+      ],
+    },
+    {
+      accentRgb: '244, 63, 94',
+      lightBackgroundRgb: '255,241,242',
+      icon: (
+        <svg
+          className='w-8 h-8'
+          fill='none'
+          stroke='currentColor'
+          viewBox='0 0 24 24'
+        >
+          <path
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth={2}
+            d='M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z'
+          />
+        </svg>
+      ),
+      iconWrapperClassName:
+        'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400',
+      title: t('服务保障'),
+      titleHoverClassName: 'group-hover:text-rose-600',
+      dotClassName: 'bg-rose-400',
+      items: [
+        t('7x24小时在线服务'),
+        t('便捷的在线自助充值'),
+        t('详尽的消费日志查询'),
+        t('专业工程师技术支持'),
+      ],
+    },
+    {
+      accentRgb: '6, 182, 212',
+      lightBackgroundRgb: '236,254,255',
+      icon: (
+        <svg
+          className='w-8 h-8'
+          fill='none'
+          stroke='currentColor'
+          viewBox='0 0 24 24'
+        >
+          <path
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth={2}
+            d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
+          />
+        </svg>
+      ),
+      iconWrapperClassName: 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400',
+      title: t('Midjourney支持'),
+      titleHoverClassName: 'group-hover:text-cyan-600',
+      dotClassName: 'bg-cyan-400',
+      items: [
+        t('内置提示词中文优化'),
+        t('高速稳定的反向代理'),
+        t('同步支持最新版本'),
+        t('高并发任务处理'),
+      ],
+    },
+  ];
+
   return (
     <div className='w-full overflow-x-hidden'>
       <NoticeModal
@@ -422,134 +733,9 @@ const Home = () => {
               </div>
 
               <div className='grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mt-8'>
-                <Link to='/vibecoding/claude' className='block h-full group'>
-                  <Card
-                    shadows='hover'
-                    className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
-                    style={getVibeCardStyle({
-                      accentRgb: '139, 92, 246',
-                      lightBackgroundRgb: '250,247,255',
-                    })}
-                    bodyStyle={vibeCardBodyStyle}
-                  >
-                    <div className='flex items-center justify-between mb-6'>
-                      <div className='w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300'>
-                        <Claude.Color size={32} />
-                      </div>
-                      <span className='px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-xs font-bold dark:bg-purple-900/30 dark:text-purple-300 border border-purple-100 dark:border-purple-800'>
-                        Anthropic
-                      </span>
-                    </div>
-                    <h3 className='text-xl md:text-2xl font-bold text-semi-color-text-0 mb-3 group-hover:text-purple-600 transition-colors'>
-                      Claude Code
-                    </h3>
-                    <p className='text-sm text-semi-color-text-2 mb-8 leading-relaxed'>
-                      {t('终端集成 · 结对编程 · 深度理解')}
-                    </p>
-                    <div className='mt-auto space-y-3'>
-                      {[
-                        t('Claude Opus 4.5 驱动'),
-                        t('深度理解代码上下文'),
-                        t('智能调试与文档生成'),
-                        t('全平台 CLI 支持'),
-                      ].map((text, i) => (
-                        <div
-                          key={i}
-                          className='flex items-center text-sm text-semi-color-text-1'
-                        >
-                          <div className='w-1.5 h-1.5 rounded-full bg-purple-400 mr-2.5 flex-shrink-0' />
-                          {text}
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                </Link>
-
-                <Link to='/vibecoding/codex' className='block h-full group'>
-                  <Card
-                    shadows='hover'
-                    className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
-                    style={getVibeCardStyle({
-                      accentRgb: '16, 185, 129',
-                      lightBackgroundRgb: '247,254,250',
-                    })}
-                    bodyStyle={vibeCardBodyStyle}
-                  >
-                    <div className='flex items-center justify-between mb-6'>
-                      <div className='w-14 h-14 rounded-2xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300'>
-                        <OpenAI size={32} />
-                      </div>
-                      <span className='px-3 py-1 rounded-full bg-green-50 text-green-600 text-xs font-bold dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800'>
-                        OpenAI
-                      </span>
-                    </div>
-                    <h3 className='text-xl md:text-2xl font-bold text-semi-color-text-0 mb-3 group-hover:text-green-600 transition-colors'>
-                      Codex CLI
-                    </h3>
-                    <p className='text-sm text-semi-color-text-2 mb-8 leading-relaxed'>
-                      {t('企业级 · 智能重构 · 实时联网')}
-                    </p>
-                    <div className='mt-auto space-y-3'>
-                      {[
-                        t('GPT 5.2驱动'),
-                        t('实时联网能力'),
-                        t('智能代码重构'),
-                        t('VSCode 深度集成'),
-                      ].map((text, i) => (
-                        <div
-                          key={i}
-                          className='flex items-center text-sm text-semi-color-text-1'
-                        >
-                          <div className='w-1.5 h-1.5 rounded-full bg-green-400 mr-2.5 flex-shrink-0' />
-                          {text}
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                </Link>
-
-                <Link to='/vibecoding/gemini' className='block h-full group'>
-                  <Card
-                    shadows='hover'
-                    className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
-                    style={getVibeCardStyle({
-                      accentRgb: '59, 130, 246',
-                      lightBackgroundRgb: '248,250,255',
-                    })}
-                    bodyStyle={vibeCardBodyStyle}
-                  >
-                    <div className='flex items-center justify-between mb-6'>
-                      <div className='w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300'>
-                        <Gemini.Color size={32} />
-                      </div>
-                      <span className='px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-300 border border-blue-100 dark:border-blue-800'>
-                        Google
-                      </span>
-                    </div>
-                    <h3 className='text-xl md:text-2xl font-bold text-semi-color-text-0 mb-3 group-hover:text-blue-600 transition-colors'>
-                      Gemini CLI
-                    </h3>
-                    <p className='text-sm text-semi-color-text-2 mb-8 leading-relaxed'>
-                      {t('超大上下文 · Agent模式 · 多模态')}
-                    </p>
-                    <div className='mt-auto space-y-3'>
-                      {[
-                        t('1M tokens 超大上下文'),
-                        t('Agent Mode 自动规划'),
-                        t('内置 Google Search'),
-                        t('多模态输入支持'),
-                      ].map((text, i) => (
-                        <div
-                          key={i}
-                          className='flex items-center text-sm text-semi-color-text-1'
-                        >
-                          <div className='w-1.5 h-1.5 rounded-full bg-blue-400 mr-2.5 flex-shrink-0' />
-                          {text}
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                </Link>
+                {vibeCodingCardItems.map((card) => (
+                  <VibeStyleCard key={card.to} {...card} />
+                ))}
               </div>
             </div>
           </div>
@@ -573,211 +759,8 @@ const Home = () => {
               </div>
 
               <div className='grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8'>
-                {[
-                  {
-                    icon: (
-                      <svg
-                        className='w-6 h-6 text-white'
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M13 10V3L4 14h7v7l9-11h-7z'
-                        />
-                      </svg>
-                    ),
-                    bg: 'bg-blue-50 dark:bg-blue-900/10',
-                    accent: 'bg-blue-500',
-                    text: 'text-blue-600 dark:text-blue-400',
-                    border: 'hover:border-blue-200 dark:hover:border-blue-800',
-                    title: t('极速响应'),
-                    items: [
-                      t('毫秒级API响应时间'),
-                      t('千万级并发处理能力'),
-                      t('智能负载均衡系统'),
-                      t('超两年稳定运行验证'),
-                    ],
-                  },
-                  {
-                    icon: (
-                      <svg
-                        className='w-6 h-6 text-white'
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-                        />
-                      </svg>
-                    ),
-                    bg: 'bg-emerald-50 dark:bg-emerald-900/10',
-                    accent: 'bg-emerald-500',
-                    text: 'text-emerald-600 dark:text-emerald-400',
-                    border:
-                      'hover:border-emerald-200 dark:hover:border-emerald-800',
-                    title: t('全球网络'),
-                    items: [
-                      t('全球多区域节点部署'),
-                      t('CN2 GIA专线接入'),
-                      t('全球70+高速中转节点'),
-                      t('智能路由优化'),
-                    ],
-                  },
-                  {
-                    icon: (
-                      <svg
-                        className='w-6 h-6 text-white'
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-                        />
-                      </svg>
-                    ),
-                    bg: 'bg-violet-50 dark:bg-violet-900/10',
-                    accent: 'bg-violet-500',
-                    text: 'text-violet-600 dark:text-violet-400',
-                    border:
-                      'hover:border-violet-200 dark:hover:border-violet-800',
-                    title: t('透明计费'),
-                    items: [
-                      t('官方标准计费模式'),
-                      t('无任何隐藏费用'),
-                      t('按需使用成本可控'),
-                      t('账户余额永不过期'),
-                    ],
-                  },
-                  {
-                    icon: (
-                      <svg
-                        className='w-6 h-6 text-white'
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z'
-                        />
-                      </svg>
-                    ),
-                    bg: 'bg-amber-50 dark:bg-amber-900/10',
-                    accent: 'bg-amber-500',
-                    text: 'text-amber-600 dark:text-amber-400',
-                    border:
-                      'hover:border-amber-200 dark:hover:border-amber-800',
-                    title: t('全面兼容'),
-                    items: [
-                      t('完美兼容OpenAI, Claude, Gemini'),
-                      t('支持全球所有主流大语言模型'),
-                      t('轻松集成现有应用工作流'),
-                      t('模型库与功能持续更新'),
-                    ],
-                  },
-                  {
-                    icon: (
-                      <svg
-                        className='w-6 h-6 text-white'
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z'
-                        />
-                      </svg>
-                    ),
-                    bg: 'bg-rose-50 dark:bg-rose-900/10',
-                    accent: 'bg-rose-500',
-                    text: 'text-rose-600 dark:text-rose-400',
-                    border: 'hover:border-rose-200 dark:hover:border-rose-800',
-                    title: t('服务保障'),
-                    items: [
-                      t('7x24小时在线服务'),
-                      t('便捷的在线自助充值'),
-                      t('详尽的消费日志查询'),
-                      t('专业工程师技术支持'),
-                    ],
-                  },
-                  {
-                    icon: (
-                      <svg
-                        className='w-6 h-6 text-white'
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth={2}
-                          d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
-                        />
-                      </svg>
-                    ),
-                    bg: 'bg-cyan-50 dark:bg-cyan-900/10',
-                    accent: 'bg-cyan-500',
-                    text: 'text-cyan-600 dark:text-cyan-400',
-                    border: 'hover:border-cyan-200 dark:hover:border-cyan-800',
-                    title: t('Midjourney支持'),
-                    items: [
-                      t('内置提示词中文优化'),
-                      t('高速稳定的反向代理'),
-                      t('同步支持最新版本'),
-                      t('高并发任务处理'),
-                    ],
-                  },
-                ].map((item, index) => (
-                  <div
-                    key={index}
-                    className={`group relative bg-white dark:bg-semi-color-fill-0 border border-semi-color-border ${item.border} rounded-2xl p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 overflow-hidden`}
-                  >
-                    <div
-                      className={`absolute top-0 right-0 w-24 h-24 ${item.bg} rounded-bl-full -mr-4 -mt-4 opacity-50 group-hover:scale-110 transition-transform duration-500`}
-                    />
-
-                    <div
-                      className={`relative w-12 h-12 rounded-xl ${item.accent} flex items-center justify-center mb-6 shadow-md group-hover:scale-110 transition-transform duration-300`}
-                    >
-                      {item.icon}
-                    </div>
-
-                    <h3 className='text-lg font-bold text-semi-color-text-0 mb-4 relative z-10'>
-                      {item.title}
-                    </h3>
-
-                    <ul className='space-y-2.5 relative z-10'>
-                      {item.items.map((subItem, idx) => (
-                        <li
-                          key={idx}
-                          className='text-sm text-semi-color-text-1 flex items-start'
-                        >
-                          <div
-                            className={`w-1.5 h-1.5 rounded-full ${item.accent} mt-1.5 mr-2.5 flex-shrink-0 opacity-60`}
-                          />
-                          {subItem}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                {coreAdvantageCardItems.map((card, index) => (
+                  <VibeStyleCard key={index} {...card} />
                 ))}
               </div>
             </div>
