@@ -17,7 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useContext, useEffect, useState } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Button,
   Typography,
@@ -25,8 +32,7 @@ import {
   ScrollList,
   ScrollItem,
   Card,
-  Row,
-  Col,
+  Spin,
 } from '@douyinfe/semi-ui';
 import { API, showError, copy, showSuccess } from '../../helpers';
 import { useIsMobile } from '../../hooks/common/useIsMobile';
@@ -72,6 +78,7 @@ const Home = () => {
   const { t, i18n } = useTranslation();
   const [statusState] = useContext(StatusContext);
   const actualTheme = useActualTheme();
+  const isDarkTheme = actualTheme === 'dark';
   const [homePageContentLoaded, setHomePageContentLoaded] = useState(false);
   const [homePageContent, setHomePageContent] = useState('');
   const [noticeVisible, setNoticeVisible] = useState(false);
@@ -83,34 +90,52 @@ const Home = () => {
   const endpointItems = API_ENDPOINTS.map((e) => ({ value: e }));
   const [endpointIndex, setEndpointIndex] = useState(0);
   const isChinese = i18n.language.startsWith('zh');
+  const iframeRef = useRef(null);
+
+  const iframeTargetOrigin = useMemo(() => {
+    if (!homePageContent.startsWith('https://')) return '*';
+    try {
+      return new URL(homePageContent).origin;
+    } catch {
+      return '*';
+    }
+  }, [homePageContent]);
+
+  const postIframeContext = useCallback(() => {
+    if (!homePageContent.startsWith('https://')) return;
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    iframe.contentWindow.postMessage(
+      { themeMode: actualTheme },
+      iframeTargetOrigin,
+    );
+    iframe.contentWindow.postMessage(
+      { lang: i18n.language },
+      iframeTargetOrigin,
+    );
+  }, [actualTheme, homePageContent, i18n.language, iframeTargetOrigin]);
 
   const displayHomePageContent = async () => {
     setHomePageContent(localStorage.getItem('home_page_content') || '');
-    const res = await API.get('/api/home_page_content');
-    const { success, message, data } = res.data;
-    if (success) {
-      let content = data;
-      if (!data.startsWith('https://')) {
-        content = marked.parse(data);
-      }
-      setHomePageContent(content);
-      localStorage.setItem('home_page_content', content);
-
-      // 如果内容是 URL，则发送主题模式
-      if (data.startsWith('https://')) {
-        const iframe = document.querySelector('iframe');
-        if (iframe) {
-          iframe.onload = () => {
-            iframe.contentWindow.postMessage({ themeMode: actualTheme }, '*');
-            iframe.contentWindow.postMessage({ lang: i18n.language }, '*');
-          };
+    try {
+      const res = await API.get('/api/home_page_content');
+      const { success, message, data } = res.data;
+      if (success) {
+        let content = data;
+        if (!data.startsWith('https://')) {
+          content = marked.parse(data);
         }
+        setHomePageContent(content);
+        localStorage.setItem('home_page_content', content);
+      } else {
+        showError(message);
       }
-    } else {
-      showError(message);
-      setHomePageContent('加载首页内容失败...');
+    } catch (error) {
+      console.error('加载首页内容失败:', error);
+      showError(t('加载首页内容失败...'));
+    } finally {
+      setHomePageContentLoaded(true);
     }
-    setHomePageContentLoaded(true);
   };
 
   const handleCopyBaseURL = async () => {
@@ -145,11 +170,55 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
+    postIframeContext();
+  }, [postIframeContext]);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       setEndpointIndex((prev) => (prev + 1) % endpointItems.length);
     }, 3000);
     return () => clearInterval(timer);
   }, [endpointItems.length]);
+
+  const hasHomePageContent = homePageContent.trim() !== '';
+  const showDefaultHome = homePageContentLoaded && !hasHomePageContent;
+  const showLoadingHome = !homePageContentLoaded && !hasHomePageContent;
+
+  const endpointScroller = (
+    <ScrollList bodyHeight={32} style={{ border: 'unset', boxShadow: 'unset' }}>
+      <ScrollItem
+        mode='wheel'
+        cycled={true}
+        list={endpointItems}
+        selectedIndex={endpointIndex}
+        onSelect={({ index }) => setEndpointIndex(index)}
+      />
+    </ScrollList>
+  );
+
+  const vibeCardBodyStyle = useMemo(
+    () => ({
+      padding: '28px',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+    }),
+    [],
+  );
+
+  const getVibeCardStyle = useCallback(
+    ({ accentRgb, lightBackgroundRgb }) => ({
+      border: `1px solid rgba(${accentRgb}, ${isDarkTheme ? 0.3 : 0.15})`,
+      background: isDarkTheme
+        ? `linear-gradient(145deg, rgba(17, 24, 39, 0.92) 0%, rgba(${accentRgb}, 0.10) 45%, rgba(17, 24, 39, 0.72) 100%)`
+        : `linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(${lightBackgroundRgb},0.6) 40%, rgba(${lightBackgroundRgb},0.35) 100%)`,
+      backdropFilter: 'blur(12px)',
+      boxShadow: isDarkTheme
+        ? `0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 18px rgba(${accentRgb}, 0.08), inset 0 1px 0 rgba(255,255,255,0.06)`
+        : `0 1px 2px rgba(${accentRgb}, 0.05), 0 4px 8px rgba(${accentRgb}, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)`,
+    }),
+    [isDarkTheme],
+  );
 
   return (
     <div className='w-full overflow-x-hidden'>
@@ -158,7 +227,7 @@ const Home = () => {
         onClose={() => setNoticeVisible(false)}
         isMobile={isMobile}
       />
-      {homePageContentLoaded && homePageContent === '' ? (
+      {showDefaultHome ? (
         <div className='w-full overflow-x-hidden'>
           {/* Banner 部分 */}
           <div className='w-full border-b border-semi-color-border min-h-[500px] md:min-h-[600px] lg:min-h-[700px] relative overflow-x-hidden'>
@@ -184,24 +253,13 @@ const Home = () => {
                   {/* BASE URL 与端点选择 */}
                   <div className='flex flex-col md:flex-row items-center justify-center gap-4 w-full mt-4 md:mt-6 max-w-md'>
                     <Input
-                      readonly
+                      readOnly
                       value={serverAddress}
                       className='flex-1 !rounded-full'
                       size={isMobile ? 'default' : 'large'}
                       suffix={
                         <div className='flex items-center gap-2'>
-                          <ScrollList
-                            bodyHeight={32}
-                            style={{ border: 'unset', boxShadow: 'unset' }}
-                          >
-                            <ScrollItem
-                              mode='wheel'
-                              cycled={true}
-                              list={endpointItems}
-                              selectedIndex={endpointIndex}
-                              onSelect={({ index }) => setEndpointIndex(index)}
-                            />
-                          </ScrollList>
+                          {!isMobile && endpointScroller}
                           <Button
                             type='primary'
                             onClick={handleCopyBaseURL}
@@ -211,11 +269,18 @@ const Home = () => {
                         </div>
                       }
                     />
+                    {isMobile ? (
+                      <div className='flex items-center justify-center w-full'>
+                        <div className='px-4 py-1 rounded-full bg-semi-color-fill-1 border border-semi-color-border'>
+                          {endpointScroller}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
                 {/* 操作按钮 */}
-                <div className='flex flex-row gap-4 justify-center items-center'>
+                <div className='flex flex-col sm:flex-row gap-4 justify-center items-center'>
                   <Link to='/console'>
                     <Button
                       theme='solid'
@@ -361,18 +426,11 @@ const Home = () => {
                   <Card
                     shadows='hover'
                     className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
-                    style={{
-                      border: '1px solid rgba(139, 92, 246, 0.15)',
-                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(250,247,255,0.6) 40%, rgba(245,240,255,0.4) 100%)',
-                      backdropFilter: 'blur(12px)',
-                      boxShadow: '0 1px 2px rgba(139, 92, 246, 0.05), 0 4px 8px rgba(139, 92, 246, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
-                    }}
-                    bodyStyle={{
-                      padding: '28px',
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                    }}
+                    style={getVibeCardStyle({
+                      accentRgb: '139, 92, 246',
+                      lightBackgroundRgb: '250,247,255',
+                    })}
+                    bodyStyle={vibeCardBodyStyle}
                   >
                     <div className='flex items-center justify-between mb-6'>
                       <div className='w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300'>
@@ -411,18 +469,11 @@ const Home = () => {
                   <Card
                     shadows='hover'
                     className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
-                    style={{
-                      border: '1px solid rgba(16, 185, 129, 0.15)',
-                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(247,254,250,0.6) 40%, rgba(240,253,245,0.4) 100%)',
-                      backdropFilter: 'blur(12px)',
-                      boxShadow: '0 1px 2px rgba(16, 185, 129, 0.05), 0 4px 8px rgba(16, 185, 129, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
-                    }}
-                    bodyStyle={{
-                      padding: '28px',
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                    }}
+                    style={getVibeCardStyle({
+                      accentRgb: '16, 185, 129',
+                      lightBackgroundRgb: '247,254,250',
+                    })}
+                    bodyStyle={vibeCardBodyStyle}
                   >
                     <div className='flex items-center justify-between mb-6'>
                       <div className='w-14 h-14 rounded-2xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300'>
@@ -461,18 +512,11 @@ const Home = () => {
                   <Card
                     shadows='hover'
                     className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
-                    style={{
-                      border: '1px solid rgba(59, 130, 246, 0.15)',
-                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(248,250,255,0.6) 40%, rgba(239,246,255,0.4) 100%)',
-                      backdropFilter: 'blur(12px)',
-                      boxShadow: '0 1px 2px rgba(59, 130, 246, 0.05), 0 4px 8px rgba(59, 130, 246, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
-                    }}
-                    bodyStyle={{
-                      padding: '28px',
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                    }}
+                    style={getVibeCardStyle({
+                      accentRgb: '59, 130, 246',
+                      lightBackgroundRgb: '248,250,255',
+                    })}
+                    bodyStyle={vibeCardBodyStyle}
                   >
                     <div className='flex items-center justify-between mb-6'>
                       <div className='w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300'>
@@ -784,7 +828,9 @@ const Home = () => {
                     </p>
                     <div className='relative inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 text-sm font-medium border border-blue-100 dark:border-blue-800/50 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-colors'>
                       chirou.api@outlook.com
-                      <Typography.Paragraph copyable={{ content: 'chirou.api@outlook.com' }}></Typography.Paragraph>
+                      <Typography.Paragraph
+                        copyable={{ content: 'chirou.api@outlook.com' }}
+                      ></Typography.Paragraph>
                     </div>
                   </div>
                 </a>
@@ -817,7 +863,9 @@ const Home = () => {
                     </p>
                     <div className='relative inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 text-sm font-medium border border-emerald-100 dark:border-emerald-800/50 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/40 transition-colors select-all'>
                       924076327
-                      <Typography.Paragraph copyable={{ content: '924076327' }}></Typography.Paragraph>
+                      <Typography.Paragraph
+                        copyable={{ content: '924076327' }}
+                      ></Typography.Paragraph>
                     </div>
                   </div>
                 </div>
@@ -849,7 +897,9 @@ const Home = () => {
                     </p>
                     <div className='relative inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-300 text-sm font-medium border border-cyan-100 dark:border-cyan-800/50 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/40 transition-colors'>
                       @chirou_api
-                      <Typography.Paragraph copyable={{ content: '@chirou_api' }}></Typography.Paragraph>
+                      <Typography.Paragraph
+                        copyable={{ content: '@chirou_api' }}
+                      ></Typography.Paragraph>
                     </div>
                   </div>
                 </a>
@@ -857,12 +907,20 @@ const Home = () => {
             </div>
           </div>
         </div>
+      ) : showLoadingHome ? (
+        <div className='w-full border-b border-semi-color-border min-h-[420px] md:min-h-[520px] lg:min-h-[620px] relative overflow-x-hidden flex items-center justify-center'>
+          <div className='blur-ball blur-ball-indigo' />
+          <div className='blur-ball blur-ball-teal' />
+          <Spin spinning size='large' />
+        </div>
       ) : (
         <div className='overflow-x-hidden w-full'>
           {homePageContent.startsWith('https://') ? (
             <iframe
+              ref={iframeRef}
               src={homePageContent}
               className='w-full h-screen border-none'
+              onLoad={postIframeContext}
             />
           ) : (
             <div
