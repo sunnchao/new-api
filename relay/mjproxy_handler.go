@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -661,13 +662,35 @@ type taskChangeParams struct {
 }
 
 func getMjRequestPath(path string) string {
-	requestURL := path
-	if strings.Contains(requestURL, "/mj-") {
-		urls := strings.Split(requestURL, "/mj/")
-		if len(urls) < 2 {
-			return requestURL
+	u, err := url.Parse(path)
+	if err != nil || u == nil {
+		// Fallback to previous behaviour on parse error.
+		requestURL := path
+		if strings.Contains(requestURL, "/mj-") {
+			urls := strings.Split(requestURL, "/mj/")
+			if len(urls) < 2 {
+				return requestURL
+			}
+			requestURL = "/mj/" + urls[1]
 		}
-		requestURL = "/mj/" + urls[1]
+		return requestURL
 	}
-	return requestURL
+
+	// Strip internal mode query param before forwarding to upstream.
+	q := u.Query()
+	q.Del("mj_model")
+	u.RawQuery = q.Encode()
+
+	requestPath := u.Path
+	if strings.Contains(requestPath, "/mj-") {
+		urls := strings.Split(requestPath, "/mj/")
+		if len(urls) >= 2 {
+			requestPath = "/mj/" + urls[1]
+		}
+	}
+
+	if u.RawQuery != "" {
+		return requestPath + "?" + u.RawQuery
+	}
+	return requestPath
 }

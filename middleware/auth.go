@@ -312,6 +312,8 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 	c.Set("token_key", token.Key)
 	c.Set("token_name", token.Name)
 	c.Set("token_unlimited_quota", token.UnlimitedQuota)
+	// Optional Midjourney drawing mode override for this token.
+	c.Set("token_mj_model", token.MjModel)
 	if !token.UnlimitedQuota {
 		c.Set("token_quota", token.RemainQuota)
 	}
@@ -337,21 +339,43 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 
 func MjAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		// 判断path :mode
-		model := c.Param("mode")
+		// Priority: token setting > url param > default.
 
+		// 1) Token-level override (locks the token to a mode when set)
+		if tokenModel := c.GetString("token_mj_model"); tokenModel != "" {
+			model, ok := common.NormalizeMjModel(tokenModel)
+			if !ok || model == "" {
+				abortWithMidjourneyMessage(c, 4, "无效的MJ绘画模式（令牌设置）")
+				return
+			}
+			c.Set("mj_model", model)
+			c.Next()
+			return
+		}
+
+		// 2) URL override (query param wins over path mode)
+		if queryModel := c.Query("mj_model"); queryModel != "" {
+			model, ok := common.NormalizeMjModel(queryModel)
+			if !ok || model == "" {
+				abortWithMidjourneyMessage(c, 4, "无效的MJ绘画模式")
+				return
+			}
+			c.Set("mj_model", model)
+			c.Next()
+			return
+		}
+
+		// 3) Backward compatible path mode: /{mj-fast|mj-relax|mj-turbo}/mj/*
+		model := c.Param("mode")
 		if model != "" && model != "mj-fast" && model != "mj-turbo" && model != "mj-relax" {
 			abortWithMidjourneyMessage(c, 4, "无效的MJ绘画模式")
 			return
 		}
-
 		if model == "" {
 			model = "mj-fast"
 		}
-
 		model = strings.TrimPrefix(model, "mj-")
 		c.Set("mj_model", model)
-
 		c.Next()
 	}
 }

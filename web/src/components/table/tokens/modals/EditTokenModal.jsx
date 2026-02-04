@@ -71,6 +71,7 @@ const EditTokenModal = (props) => {
     unlimited_quota: true,
     model_limits_enabled: false,
     model_limits: [],
+    mj_model: '',
     allow_ips: '',
     group: '',
     cross_group_retry: false,
@@ -215,6 +216,7 @@ const EditTokenModal = (props) => {
     setLoading(true);
     if (isEdit) {
       let { tokenCount: _tc, ...localInputs } = values;
+      localInputs.mj_model = localInputs.mj_model || '';
       localInputs.remain_quota = parseInt(localInputs.remain_quota);
       if (localInputs.expired_time !== -1) {
         let time = Date.parse(localInputs.expired_time);
@@ -247,6 +249,7 @@ const EditTokenModal = (props) => {
       let successCount = 0;
       for (let i = 0; i < count; i++) {
         let { tokenCount: _tc, ...localInputs } = values;
+        localInputs.mj_model = localInputs.mj_model || '';
         const baseName =
           values.name.trim() === '' ? 'default' : values.name.trim();
         if (i !== 0 || values.name.trim() === '') {
@@ -495,6 +498,44 @@ const EditTokenModal = (props) => {
                       />
                     </Col>
                   )}
+                </Row>
+              </Card>
+
+              <Row className={"mt-4"}/>
+
+              {/* Midjourney 设置 */}
+              <Card className='!rounded-2xl shadow-sm border-0'>
+                <div className='flex items-center mb-2'>
+                  <Avatar size='small' color='orange' className='mr-2 shadow-md'>
+                    <IconLink size={16} />
+                  </Avatar>
+                  <div>
+                    <Text className='text-lg font-medium'>
+                      {t('Midjourney 设置')}
+                    </Text>
+                    <div className='text-xs text-gray-600'>
+                      {t('设置令牌的 Midjourney 绘图模式（可选）')}
+                    </div>
+                  </div>
+                </div>
+                <Row gutter={12}>
+                  <Col span={24}>
+                    <Form.Select
+                      field='mj_model'
+                      label={t('绘图模式')}
+                      placeholder={t('默认 Fast')}
+                      optionList={[
+                        { label: t('默认（Fast）'), value: '' },
+                        { label: t('Fast（出图速度很快、价格中等）'), value: 'fast' },
+                        { label: t('Relax（出图速度较慢、价格较低）'), value: 'relax' },
+                        { label: t('Turbo（出图速度加倍、价格最贵）'), value: 'turbo' },
+                      ]}
+                      extraText={t(
+                        '优先级：令牌设置 > url参数 > 默认。可通过 URL 参数 mj_model=fast/relax/turbo 自定义',
+                      )}
+                      style={{ width: '100%' }}
+                    />
+                  </Col>
                 </Row>
               </Card>
 
