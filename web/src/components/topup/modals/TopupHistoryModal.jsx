@@ -51,6 +51,7 @@ const STATUS_CONFIG = {
 const PAYMENT_METHOD_MAP = {
   stripe: 'Stripe',
   creem: 'Creem',
+  balance: '余额',
   alipay: '支付宝',
   wxpay: '微信',
 };

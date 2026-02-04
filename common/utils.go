@@ -26,6 +26,7 @@ import (
 
 var (
 	requestIdRegex = regexp.MustCompile(`\(request id: [^\)]+\)`)
+	traceIdRegex   = regexp.MustCompile(`\(traceid: [^\)]+\)`)
 	// 当前分组 default 下对于模型 claude-3-5-haiku-20241022 无可用渠道 提取分组和 模型的关键字
 	groupAndModelKeywords = regexp.MustCompile(`当前分组 ([\w-]+) 下对于模型 ([\w-]+) 无可用渠道`)
 	// No available channels for model claude-opus-4-1-20250805 in group default (request id: 20260117174023686461227amgVq5CV)

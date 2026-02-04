@@ -662,7 +662,7 @@ const TopUp = () => {
   };
 
   return (
-    <div className='w-full max-w-7xl mx-auto relative min-h-screen lg:min-h-0 mt-[60px] px-2'>
+    <div className='w-full mx-auto relative min-h-screen lg:min-h-0 mt-[60px] px-2'>
       {/* 划转模态框 */}
       <TransferModal
         t={t}
@@ -729,28 +729,9 @@ const TopUp = () => {
       </Modal>
 
       {/* 主布局区域 */}
-      <div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
-        {/* 左侧 - 订阅套餐 */}
-        <div className='lg:col-span-7'>
-          <SubscriptionPlansCard
-            t={t}
-            loading={subscriptionLoading}
-            plans={subscriptionPlans}
-            payMethods={payMethods}
-            enableOnlineTopUp={enableOnlineTopUp}
-            enableStripeTopUp={enableStripeTopUp}
-            enableCreemTopUp={enableCreemTopUp}
-            billingPreference={billingPreference}
-            onChangeBillingPreference={updateBillingPreference}
-            activeSubscriptions={activeSubscriptions}
-            allSubscriptions={allSubscriptions}
-            reloadSubscriptionSelf={getSubscriptionSelf}
-          />
-        </div>
-
-        {/* 右侧 - 账户充值 + 邀请奖励 */}
-        <div className='lg:col-span-5 flex flex-col gap-6'>
-          <RechargeCard
+      {/* 头部账户充值 */}
+      <div className={'w-full'}>
+        <RechargeCard
             t={t}
             enableOnlineTopUp={enableOnlineTopUp}
             enableStripeTopUp={enableStripeTopUp}
@@ -785,7 +766,31 @@ const TopUp = () => {
             statusLoading={statusLoading}
             topupInfo={topupInfo}
             onOpenHistory={handleOpenHistory}
+        />
+      </div>
+      <div className='mt-4 grid grid-cols-1 lg:grid-cols-12 gap-6'>
+        {/* 左侧 - 订阅套餐 */}
+        <div className='lg:col-span-6 flex flex-col gap-6'>
+          <SubscriptionPlansCard
+            t={t}
+            loading={subscriptionLoading}
+            plans={subscriptionPlans}
+            payMethods={payMethods}
+            enableOnlineTopUp={enableOnlineTopUp}
+            enableStripeTopUp={enableStripeTopUp}
+            enableCreemTopUp={enableCreemTopUp}
+            billingPreference={billingPreference}
+            onChangeBillingPreference={updateBillingPreference}
+            activeSubscriptions={activeSubscriptions}
+            allSubscriptions={allSubscriptions}
+            reloadSubscriptionSelf={getSubscriptionSelf}
+            reloadUserQuota={getUserQuota}
           />
+        </div>
+
+        {/* 右侧 - 账户充值 + 邀请奖励 */}
+        <div className='lg:col-span-6 flex flex-col gap-6'>
+
           <InvitationCard
             t={t}
             userState={userState}

@@ -108,7 +108,7 @@ func SubscriptionRequestEpay(c *gin.Context) {
 		common.ApiErrorMsg(c, "拉起支付失败")
 		return
 	}
-	common.ApiSuccess(c, gin.H{"data": params, "url": uri})
+	c.JSON(200, gin.H{"message": "success", "data": params, "url": uri})
 }
 
 func SubscriptionEpayNotify(c *gin.Context) {
@@ -146,7 +146,7 @@ func SubscriptionEpayNotify(c *gin.Context) {
 	LockOrder(verifyInfo.ServiceTradeNo)
 	defer UnlockOrder(verifyInfo.ServiceTradeNo)
 
-	if err := model.CompleteSubscriptionOrder(verifyInfo.ServiceTradeNo, common.GetJsonString(verifyInfo)); err != nil {
+	if err := model.CompleteSubscriptionOrder(verifyInfo.ServiceTradeNo, common.GetJsonString(verifyInfo), c.ClientIP()); err != nil {
 		_, _ = c.Writer.Write([]byte("fail"))
 		return
 	}
@@ -158,7 +158,7 @@ func SubscriptionEpayNotify(c *gin.Context) {
 // It verifies the payload and completes the order, then redirects to console.
 func SubscriptionEpayReturn(c *gin.Context) {
 	if err := c.Request.ParseForm(); err != nil {
-		c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/subscription?pay=fail")
+		c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/topup?pay=fail")
 		return
 	}
 	params := lo.Reduce(lo.Keys(c.Request.PostForm), func(r map[string]string, t string, i int) map[string]string {
@@ -174,23 +174,23 @@ func SubscriptionEpayReturn(c *gin.Context) {
 
 	client := GetEpayClient()
 	if client == nil {
-		c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/subscription?pay=fail")
+		c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/topup?pay=fail")
 		return
 	}
 	verifyInfo, err := client.Verify(params)
 	if err != nil || !verifyInfo.VerifyStatus {
-		c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/subscription?pay=fail")
+		c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/topup?pay=fail")
 		return
 	}
 	if verifyInfo.TradeStatus == epay.StatusTradeSuccess {
 		LockOrder(verifyInfo.ServiceTradeNo)
 		defer UnlockOrder(verifyInfo.ServiceTradeNo)
-		if err := model.CompleteSubscriptionOrder(verifyInfo.ServiceTradeNo, common.GetJsonString(verifyInfo)); err != nil {
-			c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/subscription?pay=fail")
+		if err := model.CompleteSubscriptionOrder(verifyInfo.ServiceTradeNo, common.GetJsonString(verifyInfo), c.ClientIP()); err != nil {
+			c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/topup?pay=fail")
 			return
 		}
-		c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/subscription?pay=success")
+		c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/topup?pay=success")
 		return
 	}
-	c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/subscription?pay=pending")
+	c.Redirect(http.StatusFound, system_setting.ServerAddress+"/console/topup?pay=pending")
 }

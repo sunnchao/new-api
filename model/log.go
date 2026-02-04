@@ -53,6 +53,7 @@ const (
 	LogTypeRefund
 	LogTypeArchive
 	LogTypeErrorForAdmin
+	LogTypeSubscriptionPay
 )
 
 func formatUserLogs(logs []*Log) {

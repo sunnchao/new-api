@@ -505,7 +505,7 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 }
 
 // Complete a subscription order (idempotent). Creates a UserSubscription snapshot from the plan.
-func CompleteSubscriptionOrder(tradeNo string, providerPayload string) error {
+func CompleteSubscriptionOrder(tradeNo string, providerPayload string, clientIP string) error {
 	if tradeNo == "" {
 		return errors.New("tradeNo is empty")
 	}
@@ -541,8 +541,12 @@ func CompleteSubscriptionOrder(tradeNo string, providerPayload string) error {
 		if err != nil {
 			return err
 		}
-		if err := upsertSubscriptionTopUpTx(tx, &order); err != nil {
-			return err
+		// Balance payment is an internal quota deduction; do not create a top_ups record.
+		// Online payments (epay/stripe/creem) still write a top_ups row for billing history.
+		if strings.TrimSpace(order.PaymentMethod) != "balance" {
+			if err := upsertSubscriptionTopUpTx(tx, &order); err != nil {
+				return err
+			}
 		}
 		order.Status = common.TopUpStatusSuccess
 		order.CompleteTime = common.GetTimestamp()
@@ -566,7 +570,10 @@ func CompleteSubscriptionOrder(tradeNo string, providerPayload string) error {
 	}
 	if logUserId > 0 {
 		msg := fmt.Sprintf("订阅购买成功，套餐: %s，支付金额: %.2f，支付方式: %s", logPlanTitle, logMoney, logPaymentMethod)
-		RecordLog(logUserId, LogTypeTopup, msg)
+		otherParam := map[string]interface{}{
+			"RequestIp": clientIP,
+		}
+		RecordLog(logUserId, LogTypeSubscriptionPay, msg, otherParam)
 	}
 	return nil
 }

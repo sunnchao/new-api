@@ -28,7 +28,7 @@ import {
   Divider,
   Tooltip,
 } from '@douyinfe/semi-ui';
-import { Crown, CalendarClock, Package } from 'lucide-react';
+import { Crown, CalendarClock, Package, Wallet } from 'lucide-react';
 import { SiStripe } from 'react-icons/si';
 import { IconCreditCard } from '@douyinfe/semi-icons';
 import { renderQuota } from '../../../helpers';
@@ -53,6 +53,7 @@ const SubscriptionPurchaseModal = ({
   enableStripeTopUp = false,
   enableCreemTopUp = false,
   purchaseLimitInfo = null,
+  onPayBalance,
   onPayStripe,
   onPayCreem,
   onPayEpay,
@@ -65,11 +66,14 @@ const SubscriptionPurchaseModal = ({
   const displayPrice = convertedPrice.toFixed(
     Number.isInteger(convertedPrice) ? 0 : 2,
   );
+  // Balance does not depend on payment gateways; show it whenever provided.
+  const hasBalance = typeof onPayBalance === 'function';
+
   // 只有当管理员开启支付网关 AND 套餐配置了对应的支付ID时才显示
   const hasStripe = enableStripeTopUp && !!plan?.stripe_price_id;
   const hasCreem = enableCreemTopUp && !!plan?.creem_product_id;
-  const hasEpay = enableOnlineTopUp && epayMethods.length > 0;
-  const hasAnyPayment = hasStripe || hasCreem || hasEpay;
+  const hasEpay = false // enableOnlineTopUp && epayMethods.length > 0;
+  const hasAnyPayment = hasBalance || hasStripe || hasCreem || hasEpay;
   const purchaseLimit = Number(purchaseLimitInfo?.limit || 0);
   const purchaseCount = Number(purchaseLimitInfo?.count || 0);
   const purchaseLimitReached =
@@ -184,6 +188,21 @@ const SubscriptionPurchaseModal = ({
               <Text size='small' type='tertiary'>
                 {t('选择支付方式')}：
               </Text>
+
+              {/* Balance */}
+              {hasBalance && (
+                <Button
+                  theme='solid'
+                  type='primary'
+                  block
+                  icon={<Wallet size={14} />}
+                  onClick={onPayBalance}
+                  loading={paying}
+                  disabled={purchaseLimitReached}
+                >
+                  {t('余额购买')}
+                </Button>
+              )}
 
               {/* Stripe / Creem */}
               {(hasStripe || hasCreem) && (

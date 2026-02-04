@@ -422,6 +422,7 @@ func IsRecordErrorLog(e *NewAPIError) bool {
 // Error filtering patterns and keywords
 var (
 	requestIdRegex = regexp.MustCompile(`\(request id: [^\)]+\)`)
+	traceIdRegex   = regexp.MustCompile(`\(traceid: [^\)]+\)`)
 	// Extract group and model from messages like "当前分组 default 下对于模型 claude-3-5-haiku-20241022 无可用渠道"
 	groupAndModelKeywords = regexp.MustCompile(`当前分组 (\S+) 下对于模型 (\S+) 无可用渠道`)
 	quotaKeywords         = []string{"余额", "额度", "quota", "令牌"}

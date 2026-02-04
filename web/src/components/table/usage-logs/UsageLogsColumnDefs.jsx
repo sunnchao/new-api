@@ -65,6 +65,7 @@ const colors = [
 
 const LogType = {
     RECHARGE: 1, // '充值',
+    SUBSCRIPTION_PAY: 10, // '订阅支付',
     CONSUME: 2, // '消费',
     MANAGEMENT: 3, // '管理',
     SYSTEM: 4, // '系统',
@@ -120,6 +121,12 @@ function renderType(type, t) {
       return (
         <Tag color='cyan' shape='circle'>
           {t('充值')}
+        </Tag>
+      );
+    case LogType.SUBSCRIPTION_PAY:
+      return (
+        <Tag color='purple' shape='circle'>
+          {t('订阅支付')}
         </Tag>
       );
     case LogType.CONSUME:
