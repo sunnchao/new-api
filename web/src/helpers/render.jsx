@@ -189,7 +189,7 @@ export const getModelCategories = (() => {
           model.model_name.toLowerCase().includes('text-embedding-004') ||
           model.model_name.toLowerCase().includes('imagen-4') ||
           model.model_name.toLowerCase().includes('veo-') ||
-          model.model_name.toLowerCase().includes('aqa'),
+          model.model_name.toLowerCase().includes('aqa') ,
       },
       moonshot: {
         label: 'Moonshot',
@@ -616,34 +616,6 @@ export function stringToColor(str) {
   return colors[i];
 }
 
-// High-contrast color palette for group tags (avoids similar blue/teal shades)
-const groupColors = [
-  'red',
-  'orange',
-  'yellow',
-  'lime',
-  'green',
-  'cyan',
-  'blue',
-  'indigo',
-  'violet',
-  'purple',
-  'pink',
-  'amber',
-  'grey',
-];
-
-export function groupToColor(str) {
-  // Use a better hash algorithm for more even distribution
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash = hash & hash;
-  }
-  hash = Math.abs(hash);
-  return groupColors[hash % groupColors.length];
-}
-
 // 渲染带有模型图标的标签
 export function renderModelTag(modelName, options = {}) {
   const {
@@ -722,7 +694,7 @@ export function renderGroup(group, backup_group = "") {
             <IconArrowRight size={'small'} className={'ml-1 mr-1'} />
         ),
           <Tag
-            color={tagColors[group] || groupToColor(group)}
+            color={tagColors[group] || stringToColor(group)}
             key={group}
             shape='circle'
             onClick={async (event) => {

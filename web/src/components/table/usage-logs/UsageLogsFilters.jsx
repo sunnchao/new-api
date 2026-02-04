@@ -93,6 +93,15 @@ const LogsFilters = ({
             size='default'
           />
 
+          <Form.Input
+            field='request_id'
+            prefix={<IconSearch />}
+            placeholder={t('Request ID')}
+            showClear
+            pure
+            size='small'
+          />
+
           {isAdminUser && (
             <>
               <Form.Input
