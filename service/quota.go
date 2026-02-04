@@ -14,7 +14,6 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
-	relayhelper "github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/QuantumNous/new-api/types"
@@ -153,37 +152,97 @@ func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usag
 		return fmt.Errorf("token quota is not enough, token remain quota: %s, need quota: %s", logger.FormatQuota(token.RemainQuota), logger.FormatQuota(quota))
 	}
 
-	quotaFromBalance, subscriptionResult, subErr := relayhelper.ApplySubscriptionDeduction(relayInfo, quota)
-	if subErr != nil {
-		logger.LogError(ctx, "subscription deduction failed: "+subErr.Error())
-		quotaFromBalance = quota
-		subscriptionResult = nil
-	}
-
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		if relayInfo.FinalPreConsumedQuota > 0 {
-			refundErr := PostConsumeQuota(relayInfo, -relayInfo.FinalPreConsumedQuota, 0, false)
-			if refundErr != nil {
-				logger.LogError(ctx, "error refunding pre-consumed quota: "+refundErr.Error())
-			}
-			relayInfo.FinalPreConsumedQuota = 0
-		}
-	}
-
-	if quotaFromBalance <= 0 {
-		logger.LogInfo(ctx, "realtime streaming consume quota success, quota: "+fmt.Sprintf("%d", quota))
-		return nil
-	}
-
-	err = PostConsumeQuota(relayInfo, quotaFromBalance, 0, false)
+	err = PostConsumeQuota(relayInfo, quota, 0, false)
 	if err != nil {
 		return err
 	}
-	logger.LogInfo(ctx, "realtime streaming consume quota success, quota: "+fmt.Sprintf("%d", quotaFromBalance))
+	logger.LogInfo(ctx, "realtime streaming consume quota success, quota: "+fmt.Sprintf("%d", quota))
 	return nil
 }
 
+func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, modelName string,
+	usage *dto.RealtimeUsage, extraContent string) {
+
+	useTimeSeconds := time.Now().Unix() - relayInfo.StartTime.Unix()
+	textInputTokens := usage.InputTokenDetails.TextTokens
+	textOutTokens := usage.OutputTokenDetails.TextTokens
+
+	audioInputTokens := usage.InputTokenDetails.AudioTokens
+	audioOutTokens := usage.OutputTokenDetails.AudioTokens
+
+	tokenName := ctx.GetString("token_name")
+	completionRatio := decimal.NewFromFloat(ratio_setting.GetCompletionRatio(modelName))
+	audioRatio := decimal.NewFromFloat(ratio_setting.GetAudioRatio(relayInfo.OriginModelName))
+	audioCompletionRatio := decimal.NewFromFloat(ratio_setting.GetAudioCompletionRatio(modelName))
+
+	modelRatio := relayInfo.PriceData.ModelRatio
+	groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
+	modelPrice := relayInfo.PriceData.ModelPrice
+	usePrice := relayInfo.PriceData.UsePrice
+
+	quotaInfo := QuotaInfo{
+		InputDetails: TokenDetails{
+			TextTokens:  textInputTokens,
+			AudioTokens: audioInputTokens,
+		},
+		OutputDetails: TokenDetails{
+			TextTokens:  textOutTokens,
+			AudioTokens: audioOutTokens,
+		},
+		ModelName:  modelName,
+		UsePrice:   usePrice,
+		ModelRatio: modelRatio,
+		GroupRatio: groupRatio,
+	}
+
+	quota := calculateAudioQuota(quotaInfo)
+
+	totalTokens := usage.TotalTokens
+	var logContent string
+	if !usePrice {
+		logContent = fmt.Sprintf("模型倍率 %.2f，补全倍率 %.2f，音频倍率 %.2f，音频补全倍率 %.2f，分组倍率 %.2f",
+			modelRatio, completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), groupRatio)
+	} else {
+		logContent = fmt.Sprintf("模型价格 %.2f，分组倍率 %.2f", modelPrice, groupRatio)
+	}
+
+	// record all the consume log even if quota is 0
+	if totalTokens == 0 {
+		// in this case, must be some error happened
+		// we cannot just return, because we may have to return the pre-consumed quota
+		quota = 0
+		logContent += fmt.Sprintf("（可能是上游超时）")
+		logger.LogError(ctx, fmt.Sprintf("total tokens is 0, cannot consume quota, userId %d, channelId %d, "+
+			"tokenId %d, model %s， pre-consumed quota %d", relayInfo.UserId, relayInfo.ChannelId, relayInfo.TokenId, modelName, relayInfo.FinalPreConsumedQuota))
+	} else {
+		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, quota)
+		model.UpdateChannelUsedQuota(relayInfo.ChannelId, quota)
+	}
+
+	logModel := modelName
+	if extraContent != "" {
+		logContent += ", " + extraContent
+	}
+	other := GenerateWssOtherInfo(ctx, relayInfo, usage, modelRatio, groupRatio,
+		completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
+	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
+		ChannelId:        relayInfo.ChannelId,
+		PromptTokens:     usage.InputTokens,
+		CompletionTokens: usage.OutputTokens,
+		ModelName:        logModel,
+		TokenName:        tokenName,
+		Quota:            quota,
+		Content:          logContent,
+		TokenId:          relayInfo.TokenId,
+		UseTimeSeconds:   int(useTimeSeconds),
+		IsStream:         relayInfo.IsStream,
+		Group:            relayInfo.UsingGroup,
+		Other:            other,
+	})
+}
+
 func PostClaudeConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage) {
+
 	useTimeSeconds := time.Now().Unix() - relayInfo.StartTime.Unix()
 	promptTokens := usage.PromptTokens
 	completionTokens := usage.CompletionTokens
@@ -241,44 +300,31 @@ func PostClaudeConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, 
 	totalTokens := promptTokens + completionTokens
 
 	var logContent string
+	// record all the consume log even if quota is 0
 	if totalTokens == 0 {
+		// in this case, must be some error happened
+		// we cannot just return, because we may have to return the pre-consumed quota
 		quota = 0
 		logContent += fmt.Sprintf("（可能是上游出错）")
 		logger.LogError(ctx, fmt.Sprintf("total tokens is 0, cannot consume quota, userId %d, channelId %d, "+
 			"tokenId %d, model %s， pre-consumed quota %d", relayInfo.UserId, relayInfo.ChannelId, relayInfo.TokenId, modelName, relayInfo.FinalPreConsumedQuota))
 	} else {
+		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, quota)
 		model.UpdateChannelUsedQuota(relayInfo.ChannelId, quota)
 	}
 
-	quotaFromBalance, subscriptionResult, subErr := relayhelper.ApplySubscriptionDeduction(relayInfo, quota)
-	if subErr != nil {
-		logger.LogError(ctx, "subscription deduction failed: "+subErr.Error())
-		quotaFromBalance = quota
-		subscriptionResult = nil
-	}
-
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		if relayInfo.FinalPreConsumedQuota > 0 {
-			refundErr := PostConsumeQuota(relayInfo, -relayInfo.FinalPreConsumedQuota, 0, false)
-			if refundErr != nil {
-				logger.LogError(ctx, "error refunding pre-consumed quota: "+refundErr.Error())
-			}
-			relayInfo.FinalPreConsumedQuota = 0
-		}
-	}
-
-	quotaDelta := quotaFromBalance - relayInfo.FinalPreConsumedQuota
+	quotaDelta := quota - relayInfo.FinalPreConsumedQuota
 
 	if quotaDelta > 0 {
 		logger.LogInfo(ctx, fmt.Sprintf("预扣费后补扣费：%s（实际消耗：%s，预扣费：%s）",
 			logger.FormatQuota(quotaDelta),
-			logger.FormatQuota(quotaFromBalance),
+			logger.FormatQuota(quota),
 			logger.FormatQuota(relayInfo.FinalPreConsumedQuota),
 		))
 	} else if quotaDelta < 0 {
 		logger.LogInfo(ctx, fmt.Sprintf("预扣费后返还扣费：%s（实际消耗：%s，预扣费：%s）",
 			logger.FormatQuota(-quotaDelta),
-			logger.FormatQuota(quotaFromBalance),
+			logger.FormatQuota(quota),
 			logger.FormatQuota(relayInfo.FinalPreConsumedQuota),
 		))
 	}
@@ -288,12 +334,6 @@ func PostClaudeConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, 
 		if err != nil {
 			logger.LogError(ctx, "error consuming token remain quota: "+err.Error())
 		}
-	}
-
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, subscriptionResult.SubscriptionQuota+quotaFromBalance)
-	} else if quotaFromBalance > 0 {
-		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, quotaFromBalance)
 	}
 
 	other := GenerateClaudeOtherInfo(ctx, relayInfo, modelRatio, groupRatio, completionRatio,
@@ -302,134 +342,10 @@ func PostClaudeConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, 
 		cacheCreationTokens5m, cacheCreationRatio5m,
 		cacheCreationTokens1h, cacheCreationRatio1h,
 		modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		other = relayhelper.BuildSubscriptionLogMeta(relayInfo, other, subscriptionResult)
-	}
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
 		PromptTokens:     promptTokens,
 		CompletionTokens: completionTokens,
-		ModelName:        modelName,
-		TokenName:        tokenName,
-		Quota:            quota,
-		Content:          logContent,
-		TokenId:          relayInfo.TokenId,
-		UseTimeSeconds:   int(useTimeSeconds),
-		IsStream:         relayInfo.IsStream,
-		Group:            relayInfo.UsingGroup,
-		Other:            other,
-	})
-
-}
-
-func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, modelName string,
-	usage *dto.RealtimeUsage, extraContent string) {
-	useTimeSeconds := time.Now().Unix() - relayInfo.StartTime.Unix()
-	textInputTokens := usage.InputTokenDetails.TextTokens
-	textOutTokens := usage.OutputTokenDetails.TextTokens
-
-	audioInputTokens := usage.InputTokenDetails.AudioTokens
-	audioOutTokens := usage.OutputTokenDetails.AudioTokens
-
-	tokenName := ctx.GetString("token_name")
-	completionRatio := decimal.NewFromFloat(ratio_setting.GetCompletionRatio(modelName))
-	audioRatio := decimal.NewFromFloat(ratio_setting.GetAudioRatio(relayInfo.OriginModelName))
-	audioCompletionRatio := decimal.NewFromFloat(ratio_setting.GetAudioCompletionRatio(modelName))
-
-	modelRatio := relayInfo.PriceData.ModelRatio
-	groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
-	modelPrice := relayInfo.PriceData.ModelPrice
-	usePrice := relayInfo.PriceData.UsePrice
-
-	quotaInfo := QuotaInfo{
-		InputDetails: TokenDetails{
-			TextTokens:  textInputTokens,
-			AudioTokens: audioInputTokens,
-		},
-		OutputDetails: TokenDetails{
-			TextTokens:  textOutTokens,
-			AudioTokens: audioOutTokens,
-		},
-		ModelName:  modelName,
-		UsePrice:   usePrice,
-		ModelRatio: modelRatio,
-		GroupRatio: groupRatio,
-	}
-
-	quota := calculateAudioQuota(quotaInfo)
-
-	totalTokens := usage.TotalTokens
-	var logContent string
-	if !usePrice {
-		logContent = fmt.Sprintf("模型倍率 %.2f，补全倍率 %.2f，音频倍率 %.2f，音频补全倍率 %.2f，分组倍率 %.2f",
-			modelRatio, completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), groupRatio)
-	} else {
-		logContent = fmt.Sprintf("模型价格 %.2f，分组倍率 %.2f", modelPrice, groupRatio)
-	}
-
-	if totalTokens == 0 {
-		quota = 0
-		logContent += fmt.Sprintf("（可能是上游超时）")
-		logger.LogError(ctx, fmt.Sprintf("total tokens is 0, cannot consume quota, userId %d, channelId %d, "+
-			"tokenId %d, model %s， pre-consumed quota %d", relayInfo.UserId, relayInfo.ChannelId, relayInfo.TokenId, modelName, relayInfo.FinalPreConsumedQuota))
-	} else {
-		model.UpdateChannelUsedQuota(relayInfo.ChannelId, quota)
-	}
-
-	quotaFromBalance, subscriptionResult, subErr := relayhelper.ApplySubscriptionDeduction(relayInfo, quota)
-	if subErr != nil {
-		logger.LogError(ctx, "subscription deduction failed: "+subErr.Error())
-		quotaFromBalance = quota
-		subscriptionResult = nil
-	}
-
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		if relayInfo.FinalPreConsumedQuota > 0 {
-			refundErr := PostConsumeQuota(relayInfo, -relayInfo.FinalPreConsumedQuota, 0, false)
-			if refundErr != nil {
-				logger.LogError(ctx, "error refunding pre-consumed quota: "+refundErr.Error())
-			}
-			relayInfo.FinalPreConsumedQuota = 0
-		}
-	}
-
-	quotaDelta := quotaFromBalance - relayInfo.FinalPreConsumedQuota
-	if quotaDelta > 0 {
-		logger.LogInfo(ctx, fmt.Sprintf("预扣费后补扣费：%s（实际消耗：%s，预扣费：%s）",
-			logger.FormatQuota(quotaDelta),
-			logger.FormatQuota(quotaFromBalance),
-			logger.FormatQuota(relayInfo.FinalPreConsumedQuota),
-		))
-	} else if quotaDelta < 0 {
-		logger.LogInfo(ctx, fmt.Sprintf("预扣费后返还扣费：%s（实际消耗：%s，预扣费：%s）",
-			logger.FormatQuota(-quotaDelta),
-			logger.FormatQuota(quotaFromBalance),
-			logger.FormatQuota(relayInfo.FinalPreConsumedQuota),
-		))
-	}
-
-	if quotaDelta != 0 {
-		err := PostConsumeQuota(relayInfo, quotaDelta, relayInfo.FinalPreConsumedQuota, true)
-		if err != nil {
-			logger.LogError(ctx, "error consuming token remain quota: "+err.Error())
-		}
-	}
-
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, subscriptionResult.SubscriptionQuota+quotaFromBalance)
-	} else if quotaFromBalance > 0 {
-		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, quotaFromBalance)
-	}
-
-	other := GenerateWssOtherInfo(ctx, relayInfo, usage, modelRatio, groupRatio,
-		completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		other = relayhelper.BuildSubscriptionLogMeta(relayInfo, other, subscriptionResult)
-	}
-	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
-		ChannelId:        relayInfo.ChannelId,
-		PromptTokens:     usage.InputTokens,
-		CompletionTokens: usage.OutputTokens,
 		ModelName:        modelName,
 		TokenName:        tokenName,
 		Quota:            quota,
@@ -465,6 +381,7 @@ func CalcOpenRouterCacheCreateTokens(usage dto.Usage, priceData types.PriceData)
 }
 
 func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage, extraContent string) {
+
 	useTimeSeconds := time.Now().Unix() - relayInfo.StartTime.Unix()
 	textInputTokens := usage.PromptTokensDetails.TextTokens
 	textOutTokens := usage.CompletionTokenDetails.TextTokens
@@ -517,38 +434,22 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 		logger.LogError(ctx, fmt.Sprintf("total tokens is 0, cannot consume quota, userId %d, channelId %d, "+
 			"tokenId %d, model %s， pre-consumed quota %d", relayInfo.UserId, relayInfo.ChannelId, relayInfo.TokenId, relayInfo.OriginModelName, relayInfo.FinalPreConsumedQuota))
 	} else {
+		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, quota)
 		model.UpdateChannelUsedQuota(relayInfo.ChannelId, quota)
 	}
 
-	quotaFromBalance, subscriptionResult, subErr := relayhelper.ApplySubscriptionDeduction(relayInfo, quota)
-	if subErr != nil {
-		logger.LogError(ctx, "subscription deduction failed: "+subErr.Error())
-		quotaFromBalance = quota
-		subscriptionResult = nil
-	}
-
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		if relayInfo.FinalPreConsumedQuota > 0 {
-			refundErr := PostConsumeQuota(relayInfo, -relayInfo.FinalPreConsumedQuota, 0, false)
-			if refundErr != nil {
-				logger.LogError(ctx, "error refunding pre-consumed quota: "+refundErr.Error())
-			}
-			relayInfo.FinalPreConsumedQuota = 0
-		}
-	}
-
-	quotaDelta := quotaFromBalance - relayInfo.FinalPreConsumedQuota
+	quotaDelta := quota - relayInfo.FinalPreConsumedQuota
 
 	if quotaDelta > 0 {
 		logger.LogInfo(ctx, fmt.Sprintf("预扣费后补扣费：%s（实际消耗：%s，预扣费：%s）",
 			logger.FormatQuota(quotaDelta),
-			logger.FormatQuota(quotaFromBalance),
+			logger.FormatQuota(quota),
 			logger.FormatQuota(relayInfo.FinalPreConsumedQuota),
 		))
 	} else if quotaDelta < 0 {
 		logger.LogInfo(ctx, fmt.Sprintf("预扣费后返还扣费：%s（实际消耗：%s，预扣费：%s）",
 			logger.FormatQuota(-quotaDelta),
-			logger.FormatQuota(quotaFromBalance),
+			logger.FormatQuota(quota),
 			logger.FormatQuota(relayInfo.FinalPreConsumedQuota),
 		))
 	}
@@ -560,21 +461,12 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 		}
 	}
 
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, subscriptionResult.SubscriptionQuota+quotaFromBalance)
-	} else if quotaFromBalance > 0 {
-		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, quotaFromBalance)
-	}
-
 	logModel := relayInfo.OriginModelName
 	if extraContent != "" {
 		logContent += ", " + extraContent
 	}
 	other := GenerateAudioOtherInfo(ctx, relayInfo, usage, modelRatio, groupRatio,
 		completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		other = relayhelper.BuildSubscriptionLogMeta(relayInfo, other, subscriptionResult)
-	}
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
 		PromptTokens:     usage.PromptTokens,

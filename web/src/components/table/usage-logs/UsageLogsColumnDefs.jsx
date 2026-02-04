@@ -668,19 +668,6 @@ export const getLogsColumns = ({
       },
     },
     {
-      key: COLUMN_KEYS.COST,
-      title: t('花费'),
-      dataIndex: 'quota',
-      fixed: 'right',
-      render: (text, record, index) => {
-        return record.type === 0 || record.type === 2 ? (
-            <>{renderQuota(text, 6)}</>
-        ) : (
-            <></>
-        );
-      },
-    },
-    {
       key: COLUMN_KEYS.DETAILS,
       title: t('详情'),
       dataIndex: 'content',

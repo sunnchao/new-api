@@ -15,7 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
-	relayhelper "github.com/QuantumNous/new-api/relay/helper"
+	"github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -44,7 +44,7 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 		c.Set("chat_completion_web_search_context_size", request.WebSearchOptions.SearchContextSize)
 	}
 
-	err = relayhelper.ModelMappedHelper(c, info, request)
+	err = helper.ModelMappedHelper(c, info, request)
 	if err != nil {
 		return types.NewError(err, types.ErrorCodeChannelModelMappedError, types.ErrOptionWithSkipRetry())
 	}
@@ -423,27 +423,20 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 		model.UpdateChannelUsedQuota(relayInfo.ChannelId, quota)
 	}
 
-	quotaFromBalance, subscriptionResult, subErr := relayhelper.ApplySubscriptionDeduction(relayInfo, quota)
-	if subErr != nil {
-		logger.LogError(ctx, "subscription deduction failed: "+subErr.Error())
-		quotaFromBalance = quota
-		subscriptionResult = nil
-	}
-
-	quotaDelta := quotaFromBalance - relayInfo.FinalPreConsumedQuota
+	quotaDelta := quota - relayInfo.FinalPreConsumedQuota
 
 	//logger.LogInfo(ctx, fmt.Sprintf("request quota delta: %s", logger.FormatQuota(quotaDelta)))
 
 	if quotaDelta > 0 {
 		logger.LogInfo(ctx, fmt.Sprintf("预扣费后补扣费：%s（实际消耗：%s，预扣费：%s）",
 			logger.FormatQuota(quotaDelta),
-			logger.FormatQuota(quotaFromBalance),
+			logger.FormatQuota(quota),
 			logger.FormatQuota(relayInfo.FinalPreConsumedQuota),
 		))
 	} else if quotaDelta < 0 {
 		logger.LogInfo(ctx, fmt.Sprintf("预扣费后返还扣费：%s（实际消耗：%s，预扣费：%s）",
 			logger.FormatQuota(-quotaDelta),
-			logger.FormatQuota(quotaFromBalance),
+			logger.FormatQuota(quota),
 			logger.FormatQuota(relayInfo.FinalPreConsumedQuota),
 		))
 	}
@@ -453,12 +446,6 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 		if err != nil {
 			logger.LogError(ctx, "error consuming token remain quota: "+err.Error())
 		}
-	}
-
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, subscriptionResult.SubscriptionQuota+quotaFromBalance)
-	} else if quotaFromBalance > 0 {
-		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, quotaFromBalance)
 	}
 
 	logModel := modelName
@@ -479,9 +466,6 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 	if isClaudeUsageSemantic {
 		other["claude"] = true
 		other["usage_semantic"] = "anthropic"
-	}
-	if subscriptionResult != nil && subscriptionResult.SubscriptionHandled && subscriptionResult.SubscriptionQuota > 0 {
-		other = relayhelper.BuildSubscriptionLogMeta(relayInfo, other, subscriptionResult)
 	}
 	if imageTokens != 0 {
 		other["image"] = true

@@ -136,7 +136,6 @@ export const useLogsData = () => {
           merged[COLUMN_KEYS.USERNAME] = false;
           merged[COLUMN_KEYS.RETRY] = false;
         }
-        merged[COLUMN_KEYS.DETAILS] = false;
         setVisibleColumns(merged);
       } catch (e) {
         console.error('Failed to parse saved column preferences', e);

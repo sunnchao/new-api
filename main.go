@@ -275,6 +275,5 @@ func InitResources() error {
 		return err
 	}
 
-	model.InitPackagesPlans()
 	return nil
 }
