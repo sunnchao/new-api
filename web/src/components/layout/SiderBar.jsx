@@ -131,11 +131,11 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         itemKey: 'topup',
         to: '/topup',
       },
-      {
-        text: t('packages.menu.title'),
-        itemKey: 'subscriptions',
-        to: '/subscriptions',
-      },
+      // {
+      //   text: t('packages.menu.title'),
+      //   itemKey: 'subscriptions',
+      //   to: '/subscriptions',
+      // },
       {
         text: t('个人设置'),
         itemKey: 'personal',
@@ -190,12 +190,12 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         to: '/user',
         className: isAdmin() ? '' : 'tableHiddle',
       },
-      {
-        text: t('packages.admin.title'),
-        itemKey: 'packages',
-        to: '/packages',
-        className: isAdmin() ? '' : 'tableHiddle',
-      },
+      // {
+      //   text: t('packages.admin.title'),
+      //   itemKey: 'packages',
+      //   to: '/packages',
+      //   className: isAdmin() ? '' : 'tableHiddle',
+      // },
       {
         text: t('系统设置'),
         itemKey: 'setting',
