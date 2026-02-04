@@ -68,7 +68,6 @@ const UsersFilters = ({
             placeholder={t('支持搜索用户的 ID、用户名、显示名称和邮箱地址')}
             showClear
             pure
-            size='small'
           />
         </div>
         <div className='w-full md:w-48'>
@@ -85,7 +84,6 @@ const UsersFilters = ({
             className='w-full'
             showClear
             pure
-            size='small'
           />
         </div>
         <div className='flex gap-2 w-full md:w-auto'>
@@ -94,7 +92,6 @@ const UsersFilters = ({
             htmlType='submit'
             loading={loading || searching}
             className='flex-1 md:flex-initial md:w-auto'
-            size='small'
           >
             {t('查询')}
           </Button>
@@ -102,7 +99,6 @@ const UsersFilters = ({
             type='tertiary'
             onClick={handleReset}
             className='flex-1 md:flex-initial md:w-auto'
-            size='small'
           >
             {t('重置')}
           </Button>
