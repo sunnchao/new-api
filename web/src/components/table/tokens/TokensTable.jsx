@@ -47,6 +47,8 @@ const TokensTable = (tokensData) => {
     setShowEdit,
     refresh,
     t,
+    groupInfoMap,
+    userGroup,
   } = tokensData;
 
   // Get all columns
@@ -61,6 +63,8 @@ const TokensTable = (tokensData) => {
       setEditingToken,
       setShowEdit,
       refresh,
+      groupInfoMap,
+      userGroup,
     });
   }, [
     t,
@@ -72,6 +76,8 @@ const TokensTable = (tokensData) => {
     setEditingToken,
     setShowEdit,
     refresh,
+    groupInfoMap,
+    userGroup,
   ]);
 
   // Handle compact mode by removing fixed positioning

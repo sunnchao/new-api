@@ -41,6 +41,7 @@ import {
   Form,
   Col,
   Row, Divider,
+  Select,
 } from '@douyinfe/semi-ui';
 import {
   IconCreditCard,
@@ -48,6 +49,8 @@ import {
   IconSave,
   IconClose,
   IconKey,
+  IconPlus,
+  IconMinus,
 } from '@douyinfe/semi-icons';
 import { useTranslation } from 'react-i18next';
 import { StatusContext } from '../../../../context/Status';
@@ -62,6 +65,7 @@ const EditTokenModal = (props) => {
   const formApiRef = useRef(null);
   const [models, setModels] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [backupGroups, setBackupGroups] = useState([]);
   const isEdit = props.editingToken.id !== undefined;
 
   const getInitValues = () => ({
@@ -169,6 +173,7 @@ const EditTokenModal = (props) => {
       } else {
         data.backup_group = [];
       }
+      setBackupGroups(data.backup_group || []);
       if (formApiRef.current) {
         formApiRef.current.setValues({ ...getInitValues(), ...data });
       }
@@ -182,6 +187,7 @@ const EditTokenModal = (props) => {
     if (formApiRef.current) {
       if (!isEdit) {
         formApiRef.current.setValues(getInitValues());
+        setBackupGroups([]);
       }
     }
     loadModels();
@@ -194,11 +200,41 @@ const EditTokenModal = (props) => {
         loadToken();
       } else {
         formApiRef.current?.setValues(getInitValues());
+        setBackupGroups([]);
       }
     } else {
       formApiRef.current?.reset();
+      setBackupGroups([]);
     }
   }, [props.visiable, props.editingToken.id]);
+
+  const handleAddBackupGroup = () => {
+    setBackupGroups((prev) => [...prev, '']);
+  };
+
+  const handleBackupGroupChange = (index, value) => {
+    setBackupGroups((prev) => {
+      const next = [...prev];
+      next[index] = value || '';
+      return next;
+    });
+  };
+
+  const handleRemoveBackupGroup = (index) => {
+    setBackupGroups((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const getBackupGroupOptions = (currentIndex, currentGroup) => {
+    const selectedGroups = backupGroups.filter(Boolean);
+    return groups
+      .filter((option) => option.value !== currentGroup)
+      .filter((option) => option.value !== 'auto')
+      .filter(
+        (option) =>
+          !selectedGroups.includes(option.value) ||
+          option.value === backupGroups[currentIndex],
+      );
+  };
 
   const generateRandomSuffix = () => {
     const characters =
@@ -229,9 +265,10 @@ const EditTokenModal = (props) => {
       }
       localInputs.model_limits = localInputs.model_limits.join(',');
       localInputs.model_limits_enabled = localInputs.model_limits.length > 0;
-      if (localInputs.backup_group) {
-        localInputs.backup_group = localInputs.backup_group?.join(',');
-      }
+      const mergedBackupGroups = Array.from(
+        new Set(backupGroups.filter(Boolean)),
+      );
+      localInputs.backup_group = mergedBackupGroups.join(',');
       let res = await API.put(`/api/token/`, {
         ...localInputs,
         id: parseInt(props.editingToken.id),
@@ -270,9 +307,10 @@ const EditTokenModal = (props) => {
         }
         localInputs.model_limits = localInputs.model_limits.join(',');
         localInputs.model_limits_enabled = localInputs.model_limits.length > 0;
-        if (localInputs.backup_group) {
-          localInputs.backup_group = localInputs.backup_group?.join(',');
-        }
+        const mergedBackupGroups = Array.from(
+          new Set(backupGroups.filter(Boolean)),
+        );
+        localInputs.backup_group = mergedBackupGroups.join(',');
         let res = await API.post(`/api/token/`, localInputs);
         const { success, message } = res.data;
         if (success) {
@@ -374,8 +412,9 @@ const EditTokenModal = (props) => {
                     />
                   </Col>
                   <Col span={24}>
-                    {groups.length > 0 ? [
-                      <Form.Select
+                    {groups.length > 0 ? (
+                      <>
+                        <Form.Select
                           field='group'
                           label={t('令牌分组')}
                           placeholder={t('令牌分组，默认为用户的分组')}
@@ -383,20 +422,50 @@ const EditTokenModal = (props) => {
                           renderOptionItem={renderGroupOption}
                           showClear
                           style={{ width: '100%' }}
-                      />,
-                      (
-                          values.group === "auto" ? <></> : <Form.Select
-                              field='backup_group'
-                              label={t('备用分组')}
-                              placeholder={t('令牌备用分组，默认为用户的分组')}
-                              optionList={groups.filter(g => g.value !== values.group && g.value !== 'auto')}
-                              renderOptionItem={renderGroupOption}
-                              showClear
-                              style={{ width: '100%' }}
-                              multiple
-                          />
-                      )
-                    ] : (
+                        />
+                        {values.group === 'auto' ? null : (
+                          <Form.Slot label={t('备用分组')}>
+                            <div className='flex flex-col gap-2 w-full'>
+                              {backupGroups.map((group, index) => (
+                                <div
+                                  key={`${group}-${index}`}
+                                  className='flex items-center gap-2 w-full'
+                                >
+                                  <Select
+                                    value={group || undefined}
+                                    placeholder={t('请选择备用分组')}
+                                    optionList={getBackupGroupOptions(
+                                      index,
+                                      values.group,
+                                    )}
+                                    renderOptionItem={renderGroupOption}
+                                    showClear
+                                    style={{ width: '100%' }}
+                                    onChange={(value) =>
+                                      handleBackupGroupChange(index, value)
+                                    }
+                                  />
+                                  <Button
+                                    type='tertiary'
+                                    icon={<IconMinus />}
+                                    onClick={() =>
+                                      handleRemoveBackupGroup(index)
+                                    }
+                                  />
+                                </div>
+                              ))}
+                              <Button
+                                type='tertiary'
+                                icon={<IconPlus />}
+                                onClick={handleAddBackupGroup}
+                              >
+                                {t('添加备用分组')}
+                              </Button>
+                            </div>
+                          </Form.Slot>
+                        )}
+                      </>
+                    ) : (
                       <Form.Select
                         placeholder={t('管理员未设置用户可选分组')}
                         disabled

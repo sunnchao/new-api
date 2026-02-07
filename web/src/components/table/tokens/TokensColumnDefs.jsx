@@ -88,7 +88,18 @@ const renderStatus = (text, record, t) => {
 };
 
 // Render group column
-const renderGroupColumn = (text, record, t) => {
+const formatGroupLabel = (group, groupInfoMap, userGroup, t) => {
+  const resolvedKey = group || userGroup || '';
+  const info = groupInfoMap?.[resolvedKey];
+  const name = info?.desc || resolvedKey || t('用户分组');
+  const ratio = info?.ratio;
+  if (ratio === undefined || ratio === null) {
+    return name;
+  }
+  return `${name} * ${ratio}`;
+};
+
+const renderGroupColumn = (text, record, t, groupInfoMap, userGroup) => {
   if (text === 'auto') {
     return (
       <Tooltip
@@ -104,7 +115,18 @@ const renderGroupColumn = (text, record, t) => {
       </Tooltip>
     );
   }
-  return renderGroup(text, record.backup_group);
+  const groups = (text || '').split(',').filter(Boolean);
+  const backupGroups = (record?.backup_group || '').split(',').filter(Boolean);
+  if (groups.length === 0 && backupGroups.length === 0) {
+    groups.push('');
+  }
+  const displayGroups = [...groups, ...backupGroups]
+    .map((group) => formatGroupLabel(group, groupInfoMap, userGroup, t))
+    .filter(Boolean);
+  if (displayGroups.length === 0) {
+    return renderGroup('');
+  }
+  return renderGroup(displayGroups.join(','));
 };
 
 // Render token key column with show/hide and copy functionality
@@ -434,6 +456,8 @@ export const getTokensColumns = ({
   setEditingToken,
   setShowEdit,
   refresh,
+  groupInfoMap,
+  userGroup,
 }) => {
   return [
     {
@@ -455,7 +479,8 @@ export const getTokensColumns = ({
       title: t('分组'),
       dataIndex: 'group',
       key: 'group',
-      render: (text, record) => renderGroupColumn(text, record, t),
+      render: (text, record) =>
+        renderGroupColumn(text, record, t, groupInfoMap, userGroup),
     },
     {
       title: t('密钥'),

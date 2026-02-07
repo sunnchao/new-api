@@ -88,12 +88,14 @@ const ModelPricingTable = ({
       {
         title: t('分组'),
         dataIndex: 'group',
-        render: (text) => (
-          <Tag color='white' size='small' shape='circle'>
-            {text}
-            {t('分组')}
-          </Tag>
-        ),
+        render: (text) => {
+          const label = usableGroup?.[text] || text;
+          return (
+            <Tag color='white' size='small' shape='circle'>
+              {label}
+            </Tag>
+          );
+        },
       },
     ];
 
@@ -201,8 +203,7 @@ const ModelPricingTable = ({
           {autoChain.map((g, idx) => (
             <React.Fragment key={g}>
               <Tag color='white' size='small' shape='circle'>
-                {g}
-                {t('分组')}
+                {usableGroup?.[g] || g}
               </Tag>
               {idx < autoChain.length - 1 && <span className='text-sm'>→</span>}
             </React.Fragment>

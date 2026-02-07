@@ -17,7 +17,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useContext,
+} from 'react';
 import {
   Notification,
   Button,
@@ -41,6 +47,7 @@ import EditTokenModal from './modals/EditTokenModal';
 import { useTokensData } from '../../../hooks/tokens/useTokensData';
 import { useIsMobile } from '../../../hooks/common/useIsMobile';
 import { createCardProPagination } from '../../../helpers/utils';
+import { StatusContext } from '../../../context/Status';
 
 function TokensPage() {
   // Define the function first, then pass it into the hook to avoid TDZ errors
@@ -48,6 +55,7 @@ function TokensPage() {
   const tokensData = useTokensData((key) =>
     openFluentNotificationRef.current?.(key),
   );
+  const [statusState] = useContext(StatusContext);
   const isMobile = useIsMobile();
   const latestRef = useRef({
     tokens: [],
@@ -61,6 +69,24 @@ function TokensPage() {
   const [fluentNoticeOpen, setFluentNoticeOpen] = useState(false);
   const [prefillKey, setPrefillKey] = useState('');
   const [groups, setGroups] = useState([]);
+  const groupInfoMap = useMemo(() => {
+    const map = {};
+    groups.forEach((group) => {
+      if (!group) return;
+      map[group.value] = {
+        desc: group.label,
+        ratio: group.ratio,
+      };
+    });
+    return map;
+  }, [groups]);
+  const userGroup = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'))?.group || '';
+    } catch (_) {
+      return '';
+    }
+  }, []);
 
   // Keep latest data for handlers inside notifications
   useEffect(() => {
@@ -116,11 +142,13 @@ function TokensPage() {
     let res = await API.get(`/api/user/self/groups`);
     const { success, message, data } = res.data;
     if (success) {
-      let localGroupOptions = Object.entries(data).map(([group, info]) => ({
-        label: info.desc,
-        value: group,
-        ratio: info.ratio,
-      }));
+      let localGroupOptions = Object.entries(data || {}).map(
+        ([group, info]) => ({
+          label: info?.desc || group,
+          value: group,
+          ratio: info?.ratio,
+        }),
+      );
       if (statusState?.status?.default_use_auto_group) {
         if (localGroupOptions.some((group) => group.value === 'auto')) {
           localGroupOptions.sort((a, b) => (a.value === 'auto' ? -1 : 1));
@@ -131,9 +159,13 @@ function TokensPage() {
       //   formApiRef.current.setValue('group', 'auto');
       // }
     } else {
-      showError(t(message));
+      showError(tokensData.t(message));
     }
   };
+
+  useEffect(() => {
+    loadGroups().finally(() => {});
+  }, []);
 
   function openFluentNotification(key) {
     const { t } = latestRef.current;
@@ -432,7 +464,11 @@ function TokensPage() {
         })}
         t={tokensData.t}
       >
-        <TokensTable {...tokensData} />
+        <TokensTable
+          {...tokensData}
+          groupInfoMap={groupInfoMap}
+          userGroup={userGroup}
+        />
       </CardPro>
     </>
   );
