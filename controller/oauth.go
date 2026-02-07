@@ -249,6 +249,12 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	user.Role = common.RoleCommonUser
 	user.Status = common.UserStatusEnabled
 
+	if avatarUrl, ok := oauthUser.Extra["avatar_url"].(string); ok && avatarUrl != "" {
+		if user.AvatarUrl == "" {
+			user.AvatarUrl = avatarUrl
+		}
+	}
+
 	// Handle affiliate code
 	affCode := session.Get("aff")
 	inviterId := 0

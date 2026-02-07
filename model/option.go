@@ -121,6 +121,7 @@ func InitOptionMap() {
 	common.OptionMap["GroupRatio"] = ratio_setting.GroupRatio2JSONString()
 	common.OptionMap["GroupGroupRatio"] = ratio_setting.GroupGroupRatio2JSONString()
 	common.OptionMap["UserUsableGroups"] = setting.UserUsableGroups2JSONString()
+	common.OptionMap["UserUnselectableGroups"] = setting.UserUnselectableGroups2JSONString()
 	common.OptionMap["CompletionRatio"] = ratio_setting.CompletionRatio2JSONString()
 	common.OptionMap["ImageRatio"] = ratio_setting.ImageRatio2JSONString()
 	common.OptionMap["AudioRatio"] = ratio_setting.AudioRatio2JSONString()
@@ -168,6 +169,35 @@ func loadOptionsFromDatabase() {
 		if err != nil {
 			common.SysLog("failed to update option map: " + err.Error())
 		}
+	}
+	migrateClaudeLongPromptRolloutOption()
+}
+
+func isEmptyOptionValue(value string) bool {
+	v := strings.TrimSpace(value)
+	return v == "" || v == "[]" || v == "null"
+}
+
+func migrateClaudeLongPromptRolloutOption() {
+	const (
+		newKey = "claude.long_prompt_pricing_rollout_user_ids"
+		oldKey = "claude.long_prompt_pricing_rollout_percent"
+	)
+
+	common.OptionMapRWMutex.RLock()
+	newValue := common.OptionMap[newKey]
+	oldValue := common.OptionMap[oldKey]
+	common.OptionMapRWMutex.RUnlock()
+
+	if isEmptyOptionValue(oldValue) {
+		return
+	}
+	if !isEmptyOptionValue(newValue) {
+		return
+	}
+
+	if err := UpdateOption(newKey, oldValue); err != nil {
+		common.SysLog("failed to migrate option " + oldKey + " to " + newKey + ": " + err.Error())
 	}
 }
 
@@ -424,6 +454,8 @@ func updateOptionMap(key string, value string) (err error) {
 		err = ratio_setting.UpdateGroupGroupRatioByJSONString(value)
 	case "UserUsableGroups":
 		err = setting.UpdateUserUsableGroupsByJSONString(value)
+	case "UserUnselectableGroups":
+		err = setting.UpdateUserUnselectableGroupsByJSONString(value)
 	case "CompletionRatio":
 		err = ratio_setting.UpdateCompletionRatioByJSONString(value)
 	case "ModelPrice":

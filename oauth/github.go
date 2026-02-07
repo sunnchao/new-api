@@ -30,10 +30,15 @@ type gitHubOAuthResponse struct {
 }
 
 type gitHubUser struct {
-	Id    int64  `json:"id"`    // GitHub numeric ID (permanent, never changes)
-	Login string `json:"login"` // GitHub username (can be changed by user)
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Id        int64  `json:"id"`    // GitHub numeric ID (permanent, never changes)
+	Login     string `json:"login"` // GitHub username (can be changed by user)
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	AvatarUrl string `json:"avatar_url"`
+	Location  string `json:"location"`
+	Type      string `json:"type"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 func (p *GitHubProvider) GetName() string {
@@ -143,7 +148,11 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*O
 		DisplayName:    githubUser.Name,
 		Email:          githubUser.Email,
 		Extra: map[string]any{
-			"legacy_id": githubUser.Login, // Store login for migration from old accounts
+			"legacy_id":        githubUser.Login, // Store login for migration from old accounts
+			"github_user_name": githubUser.Name,
+			"github_id_new":    githubUser.Id,
+			"github_email":     githubUser.Email,
+			"avatar_url":       githubUser.AvatarUrl,
 		},
 	}, nil
 }

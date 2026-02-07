@@ -55,20 +55,31 @@ export default function GroupRatioVisualEditor(props) {
       const userUsableGroups = JSON.parse(
         props.options.UserUsableGroups || '{}',
       );
+      const userUnselectableGroups = JSON.parse(
+        props.options.UserUnselectableGroups || '{}',
+      );
       const groupNames = new Set([
         ...Object.keys(groupRatio),
         ...Object.keys(userUsableGroups),
+        ...Object.keys(userUnselectableGroups),
       ]);
 
       const groupData = Array.from(groupNames).map((name) => {
         const ratio = groupRatio[name] === undefined ? '' : groupRatio[name];
-        const userLabel =
-          userUsableGroups[name] === undefined ? '' : userUsableGroups[name];
+        const userVisible = userUsableGroups[name] !== undefined;
+        const userHidden =
+          !userVisible && userUnselectableGroups[name] !== undefined;
+        const userLabel = userVisible
+          ? userUsableGroups[name]
+          : userHidden
+            ? userUnselectableGroups[name]
+            : '';
         return {
           name,
           ratio: ratio === '' ? '' : String(ratio),
           userLabel: userLabel === '' ? '' : String(userLabel),
-          userVisible: userUsableGroups[name] !== undefined,
+          userVisible,
+          userHidden,
         };
       });
 
@@ -97,6 +108,7 @@ export default function GroupRatioVisualEditor(props) {
     const output = {
       GroupRatio: {},
       UserUsableGroups: {},
+      UserUnselectableGroups: {},
     };
 
     try {
@@ -109,12 +121,22 @@ export default function GroupRatioVisualEditor(props) {
             group.userLabel && group.userLabel.trim() !== ''
               ? group.userLabel.trim()
               : group.name;
+        } else if (group.userHidden) {
+          output.UserUnselectableGroups[group.name] =
+            group.userLabel && group.userLabel.trim() !== ''
+              ? group.userLabel.trim()
+              : group.name;
         }
       });
 
       const finalOutput = {
         GroupRatio: JSON.stringify(output.GroupRatio, null, 2),
         UserUsableGroups: JSON.stringify(output.UserUsableGroups, null, 2),
+        UserUnselectableGroups: JSON.stringify(
+          output.UserUnselectableGroups,
+          null,
+          2,
+        ),
       };
 
       const requestQueue = Object.entries(finalOutput).map(([key, value]) =>
@@ -184,11 +206,14 @@ export default function GroupRatioVisualEditor(props) {
       setGroups((prev) =>
         prev.map((group, index) => {
           if (index !== existingGroupIndex) return group;
+          const userVisible = Boolean(values.userVisible);
+          const userHidden = !userVisible && Boolean(values.userHidden);
           return {
             name: values.name,
             ratio: values.ratio || '',
             userLabel: values.userLabel || '',
-            userVisible: Boolean(values.userVisible),
+            userVisible,
+            userHidden,
           };
         }),
       );
@@ -209,6 +234,7 @@ export default function GroupRatioVisualEditor(props) {
         ratio: values.ratio || '',
         userLabel: values.userLabel || '',
         userVisible: Boolean(values.userVisible),
+        userHidden: !values.userVisible && Boolean(values.userHidden),
       },
       ...prev,
     ]);
@@ -238,7 +264,11 @@ export default function GroupRatioVisualEditor(props) {
             setGroups((prev) =>
               prev.map((group) =>
                 group.name === record.name
-                  ? { ...group, userVisible: checked }
+                  ? {
+                      ...group,
+                      userVisible: checked,
+                      userHidden: checked ? false : group.userHidden,
+                    }
                   : group,
               ),
             );
@@ -352,7 +382,11 @@ export default function GroupRatioVisualEditor(props) {
             field='userVisible'
             label={t('对用户可见')}
             onChange={(checked) =>
-              setCurrentGroup((prev) => ({ ...(prev || {}), userVisible: checked }))
+              setCurrentGroup((prev) => ({
+                ...(prev || {}),
+                userVisible: checked,
+                userHidden: checked ? false : prev?.userHidden,
+              }))
             }
             initValue={currentGroup?.userVisible || false}
           />

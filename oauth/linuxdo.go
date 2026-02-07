@@ -26,12 +26,13 @@ func init() {
 type LinuxDOProvider struct{}
 
 type linuxdoUser struct {
-	Id         int    `json:"id"`
-	Username   string `json:"username"`
-	Name       string `json:"name"`
-	Active     bool   `json:"active"`
-	TrustLevel int    `json:"trust_level"`
-	Silenced   bool   `json:"silenced"`
+	Id             int    `json:"id"`
+	Username       string `json:"username"`
+	Name           string `json:"name"`
+	Active         bool   `json:"active"`
+	TrustLevel     int    `json:"trust_level"`
+	Silenced       bool   `json:"silenced"`
+	AvatarTemplate string `json:"avatar_template"`
 }
 
 func (p *LinuxDOProvider) GetName() string {
@@ -163,6 +164,7 @@ func (p *LinuxDOProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*
 			"trust_level": linuxdoUser.TrustLevel,
 			"active":      linuxdoUser.Active,
 			"silenced":    linuxdoUser.Silenced,
+			"avatar_url":  linuxdoUser.AvatarTemplate,
 		},
 	}, nil
 }

@@ -63,7 +63,7 @@ const PricingGroups = ({
     }
     return {
       value: g,
-      label: g === 'all' ? t('全部分组') : g,
+      label: g === 'all' ? t('全部分组') : usableGroup[g] || g,
       tagCount: ratioDisplay,
       disabled: modelCount === 0,
     };

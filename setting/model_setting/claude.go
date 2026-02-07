@@ -18,6 +18,18 @@ type ClaudeSettings struct {
 	DefaultMaxTokens                      map[string]int                 `json:"default_max_tokens"`
 	ThinkingAdapterEnabled                bool                           `json:"thinking_adapter_enabled"`
 	ThinkingAdapterBudgetTokensPercentage float64                        `json:"thinking_adapter_budget_tokens_percentage"`
+
+	// LongPromptPricing* controls the pricing tier when total prompt tokens exceed a threshold.
+	// Note: bool config keys should end with enabled/Enabled for the UI to parse as boolean.
+	LongPromptPricingEnabled        bool  `json:"long_prompt_pricing_enabled"`
+	LongPromptPricingRolloutUserIds []int `json:"long_prompt_pricing_rollout_user_ids"`
+	// LongPromptPricingRolloutPercentUserIds is a deprecated alias for rollout allowlist.
+	// Keep it for backward compatibility with legacy option key:
+	// `claude.long_prompt_pricing_rollout_percent`.
+	LongPromptPricingRolloutPercentUserIds []int   `json:"long_prompt_pricing_rollout_percent"`
+	LongPromptPricingThresholdTokens       int     `json:"long_prompt_pricing_threshold_tokens"`
+	LongPromptPricingInputPriceMultiplier  float64 `json:"long_prompt_pricing_input_price_multiplier"`
+	LongPromptPricingOutputPriceMultiplier float64 `json:"long_prompt_pricing_output_price_multiplier"`
 }
 
 // 默认配置
@@ -28,6 +40,13 @@ var defaultClaudeSettings = ClaudeSettings{
 		"default": 8192,
 	},
 	ThinkingAdapterBudgetTokensPercentage: 0.8,
+
+	LongPromptPricingEnabled:               true,
+	LongPromptPricingRolloutUserIds:        []int{},
+	LongPromptPricingRolloutPercentUserIds: []int{},
+	LongPromptPricingThresholdTokens:       200000,
+	LongPromptPricingInputPriceMultiplier:  2.0,
+	LongPromptPricingOutputPriceMultiplier: 1.5,
 }
 
 // 全局实例
@@ -45,6 +64,48 @@ func GetClaudeSettings() *ClaudeSettings {
 		claudeSettings.DefaultMaxTokens["default"] = 8192
 	}
 	return &claudeSettings
+}
+
+func (c *ClaudeSettings) GetLongPromptPricingEnabled() bool {
+	return c.LongPromptPricingEnabled
+}
+
+func (c *ClaudeSettings) GetLongPromptPricingRolloutUserIds() []int {
+	// Canonical key: `claude.long_prompt_pricing_rollout_user_ids`.
+	// Fallback to deprecated alias for backward compatibility.
+	if len(c.LongPromptPricingRolloutUserIds) > 0 {
+		return c.LongPromptPricingRolloutUserIds
+	}
+	return c.LongPromptPricingRolloutPercentUserIds
+}
+
+func (c *ClaudeSettings) GetLongPromptPricingThresholdTokens() int {
+	if c.LongPromptPricingThresholdTokens <= 0 {
+		return 200000
+	}
+	return c.LongPromptPricingThresholdTokens
+}
+
+func (c *ClaudeSettings) GetLongPromptPricingInputPriceMultiplier() float64 {
+	if c.LongPromptPricingInputPriceMultiplier <= 0 {
+		return 2.0
+	}
+	return c.LongPromptPricingInputPriceMultiplier
+}
+
+func (c *ClaudeSettings) GetLongPromptPricingOutputPriceMultiplier() float64 {
+	if c.LongPromptPricingOutputPriceMultiplier <= 0 {
+		return 1.5
+	}
+	return c.LongPromptPricingOutputPriceMultiplier
+}
+
+func (c *ClaudeSettings) GetLongPromptPricingCompletionRatioMultiplier() float64 {
+	inputMultiplier := c.GetLongPromptPricingInputPriceMultiplier()
+	if inputMultiplier <= 0 {
+		return 0.75
+	}
+	return c.GetLongPromptPricingOutputPriceMultiplier() / inputMultiplier
 }
 
 func (c *ClaudeSettings) WriteHeaders(originModel string, httpHeader *http.Header) {

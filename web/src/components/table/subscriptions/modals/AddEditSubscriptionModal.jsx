@@ -64,6 +64,15 @@ const resetPeriodOptions = [
   { value: 'custom', label: '自定义(秒)' },
 ];
 
+const normalizeGroupList = (value) => {
+  const source = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(',')
+      : [];
+  return [...new Set(source.map((item) => `${item}`.trim()).filter(Boolean))];
+};
+
 const AddEditSubscriptionModal = ({
   visible,
   handleClose,
@@ -95,6 +104,7 @@ const AddEditSubscriptionModal = ({
     max_purchase_per_user: 0,
     total_amount: 0,
     upgrade_group: '',
+    allowed_groups: [],
     stripe_price_id: '',
     creem_product_id: '',
   });
@@ -121,6 +131,7 @@ const AddEditSubscriptionModal = ({
         quotaToDisplayAmount(p.total_amount || 0).toFixed(2),
       ),
       upgrade_group: p.upgrade_group || '',
+      allowed_groups: normalizeGroupList(p.allowed_groups),
       stripe_price_id: p.stripe_price_id || '',
       creem_product_id: p.creem_product_id || '',
     };
@@ -164,6 +175,7 @@ const AddEditSubscriptionModal = ({
           max_purchase_per_user: Number(values.max_purchase_per_user || 0),
           total_amount: displayAmountToQuota(values.total_amount),
           upgrade_group: values.upgrade_group || '',
+          allowed_groups: normalizeGroupList(values.allowed_groups).join(','),
         },
       };
       if (editingPlan?.plan?.id) {
@@ -340,6 +352,26 @@ const AddEditSubscriptionModal = ({
                           </Select.Option>
                         ))}
                       </Form.Select>
+                    </Col>
+
+                    <Col span={24}>
+                      <Form.Select
+                        field='allowed_groups'
+                        label={t('指定分组')}
+                        multiple
+                        showClear
+                        filter
+                        showSearch
+                        loading={groupLoading}
+                        placeholder={t('留空表示所有分组')}
+                        optionList={(groupOptions || []).map((g) => ({
+                          label: g,
+                          value: g,
+                        }))}
+                        extraText={t(
+                          '仅允许这些分组使用该套餐；留空表示不限制。',
+                        )}
+                      />
                     </Col>
 
                     <Col span={12}>

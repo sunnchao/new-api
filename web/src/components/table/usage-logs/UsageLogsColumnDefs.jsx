@@ -475,7 +475,7 @@ export const getLogsColumns = ({
       title: t('模型'),
       dataIndex: 'model_name',
       render: (text, record, index) => {
-        return record.type === 0 || record.type === 2 ? (
+        return record.type === 0 || record.type === 2 || record.type === 6 || record.type === 9 ? (
           <>{renderModelName(record, copyText, t)}</>
         ) : (
           <></>

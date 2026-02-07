@@ -64,9 +64,18 @@ function formatResetPeriod(plan, t) {
   return t('不重置');
 }
 
+function parseAllowedGroups(value) {
+  if (!value) return [];
+  return `${value}`
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 const renderPlanTitle = (text, record, t) => {
   const subtitle = record?.plan?.subtitle;
   const plan = record?.plan;
+  const allowedGroups = parseAllowedGroups(plan?.allowed_groups);
   const popoverContent = (
     <div style={{ width: 260 }}>
       <Text strong>{text}</Text>
@@ -91,6 +100,10 @@ const renderPlanTitle = (text, record, t) => {
         )}
         <Text type='tertiary'>{t('升级分组')}</Text>
         <Text>{plan?.upgrade_group ? plan.upgrade_group : t('不升级')}</Text>
+        <Text type='tertiary'>{t('指定分组')}</Text>
+        <Text>
+          {allowedGroups.length > 0 ? allowedGroups.join(', ') : t('所有分组')}
+        </Text>
         <Text type='tertiary'>{t('购买上限')}</Text>
         <Text>
           {plan?.max_purchase_per_user > 0
@@ -189,6 +202,22 @@ const renderUpgradeGroup = (text, record, t) => {
     <Text type={group ? 'secondary' : 'tertiary'}>
       {group ? group : t('不升级')}
     </Text>
+  );
+};
+
+const renderAllowedGroups = (text, record, t) => {
+  const groups = parseAllowedGroups(record?.plan?.allowed_groups);
+  if (groups.length === 0) {
+    return <Text type='tertiary'>{t('所有分组')}</Text>;
+  }
+  return (
+    <Space spacing={4} wrap>
+      {groups.map((group) => (
+        <Tag key={`${record?.plan?.id}-${group}`} size='small' color='cyan'>
+          {group}
+        </Tag>
+      ))}
+    </Space>
   );
 };
 
@@ -344,6 +373,11 @@ export const getSubscriptionsColumns = ({
       title: t('升级分组'),
       width: 100,
       render: (text, record) => renderUpgradeGroup(text, record, t),
+    },
+    {
+      title: t('指定分组'),
+      width: 180,
+      render: (text, record) => renderAllowedGroups(text, record, t),
     },
     {
       title: t('操作'),

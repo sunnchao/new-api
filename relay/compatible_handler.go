@@ -254,6 +254,41 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 	modelPrice := relayInfo.PriceData.ModelPrice
 	cachedCreationRatio := relayInfo.PriceData.CacheCreationRatio
 
+	isClaudeUsageSemantic := relayInfo.ChannelType == constant.ChannelTypeAnthropic
+	// Claude pricing has a long-prompt tier (threshold configurable) that changes input/output prices.
+	// Apply it in ratio mode, gated by rollout allowlist.
+	appliedClaudeLongPromptTier := false
+	claudePromptTokensForTier := promptTokens
+	if isClaudeUsageSemantic {
+		// Anthropic usage semantics: input_tokens does not include cache read/write tokens.
+		claudePromptTokensForTier = promptTokens + cacheTokens + cachedCreationTokens
+	}
+	claudeLongPromptThresholdTokens := 0
+	claudeLongPromptInputMultiplier := 0.0
+	claudeLongPromptOutputMultiplier := 0.0
+	claudeLongPromptRolloutMode := ""
+	claudeLongPromptAllowlistSize := 0
+	if !relayInfo.PriceData.UsePrice && common.IsClaudeModel(modelName) {
+		claudeCfg := model_setting.GetClaudeSettings()
+		allowlist := claudeCfg.GetLongPromptPricingRolloutUserIds()
+		claudeLongPromptAllowlistSize = len(allowlist)
+		claudeLongPromptThresholdTokens = claudeCfg.GetLongPromptPricingThresholdTokens()
+		claudeLongPromptInputMultiplier = claudeCfg.GetLongPromptPricingInputPriceMultiplier()
+		claudeLongPromptOutputMultiplier = claudeCfg.GetLongPromptPricingOutputPriceMultiplier()
+		if claudeCfg.GetLongPromptPricingEnabled() &&
+			common.ShouldApplyClaudeLongPromptRollout(relayInfo.UserId, allowlist) {
+			claudeLongPromptRolloutMode = "allowlist"
+			modelRatio, completionRatio, appliedClaudeLongPromptTier = common.ApplyClaudeLongPromptTier(
+				claudePromptTokensForTier,
+				claudeLongPromptThresholdTokens,
+				claudeLongPromptInputMultiplier,
+				claudeLongPromptOutputMultiplier,
+				modelRatio,
+				completionRatio,
+			)
+		}
+	}
+
 	// Convert values to decimal for precise calculation
 	dPromptTokens := decimal.NewFromInt(int64(promptTokens))
 	dCacheTokens := decimal.NewFromInt(int64(cacheTokens))
@@ -334,7 +369,6 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 
 	var audioInputQuota decimal.Decimal
 	var audioInputPrice float64
-	isClaudeUsageSemantic := relayInfo.ChannelType == constant.ChannelTypeAnthropic
 	if !relayInfo.PriceData.UsePrice {
 		baseTokens := dPromptTokens
 		// 减去 cached tokens
@@ -461,6 +495,17 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 	other := service.GenerateTextOtherInfo(ctx, relayInfo, modelRatio, groupRatio, completionRatio, cacheTokens, cacheRatio, modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
 	if adminRejectReason != "" {
 		other["reject_reason"] = adminRejectReason
+	}
+	if appliedClaudeLongPromptTier {
+		other["claude_long_prompt"] = true
+		other["claude_prompt_tokens_for_tier"] = claudePromptTokensForTier
+		other["claude_long_prompt_threshold"] = claudeLongPromptThresholdTokens
+		if claudeLongPromptRolloutMode != "" {
+			other["claude_long_prompt_rollout_mode"] = claudeLongPromptRolloutMode
+		}
+		other["claude_long_prompt_allowlist_size"] = claudeLongPromptAllowlistSize
+		other["claude_long_prompt_input_multiplier"] = claudeLongPromptInputMultiplier
+		other["claude_long_prompt_output_multiplier"] = claudeLongPromptOutputMultiplier
 	}
 	// For chat-based calls to the Claude model, tagging is required. Using Claude's rendering logs, the two approaches handle input rendering differently.
 	if isClaudeUsageSemantic {

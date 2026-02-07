@@ -9,6 +9,12 @@ import (
 
 func GetUserUsableGroups(userGroup string) map[string]string {
 	groupsCopy := setting.GetUserUsableGroupsCopy()
+	unselectableGroups := setting.GetUserUnselectableGroupsCopy()
+	for groupName, desc := range unselectableGroups {
+		if _, ok := groupsCopy[groupName]; !ok {
+			groupsCopy[groupName] = desc
+		}
+	}
 	if userGroup != "" {
 		specialSettings, b := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup.Get(userGroup)
 		if b {

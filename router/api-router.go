@@ -63,7 +63,12 @@ func SetApiRouter(router *gin.Engine) {
 			userRoute.GET("/logout", controller.Logout)
 			userRoute.POST("/epay/notify", controller.EpayNotify)
 			userRoute.GET("/epay/notify", controller.EpayNotify)
-			userRoute.GET("/groups", controller.GetUserGroups)
+
+			adminUserRoute := userRoute.Group("/")
+			adminUserRoute.Use(middleware.AdminAuth())
+			{
+				adminUserRoute.GET("/groups", controller.GetUserGroups)
+			}
 
 			selfRoute := userRoute.Group("/")
 			selfRoute.Use(middleware.UserAuth())

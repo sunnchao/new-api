@@ -93,6 +93,14 @@ const SubscriptionPlansCard = ({
 
   const epayMethods = useMemo(() => getEpayMethods(payMethods), [payMethods]);
 
+  const parseAllowedGroups = (value) => {
+    if (!value) return [];
+    return `${value}`
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+
   const openBuy = (p) => {
     setSelectedPlan(p);
     setSelectedEpayMethod(epayMethods?.[0]?.type || '');
@@ -397,6 +405,9 @@ const SubscriptionPlansCard = ({
                         : 0;
                     const planTitle =
                       planTitleMap.get(subscription?.plan_id) || '';
+                    const allowedGroups = parseAllowedGroups(
+                      subscription?.allowed_groups,
+                    );
                     const remainDays = getRemainingDays(sub);
                     const usagePercent = getUsagePercent(sub);
                     const now = Date.now() / 1000;
@@ -462,6 +473,20 @@ const SubscriptionPlansCard = ({
                             </span>
                           )}
                         </div>
+                        <div className='text-xs text-gray-500 mb-2'>
+                          {t('允许分组')}:
+                          {allowedGroups.length > 0 ? (
+                            <Space wrap size='small' className='ml-1'>
+                              {allowedGroups.map((group) => (
+                                <Tag key={`${subscription?.id}-${group}`} size='small'>
+                                  {group}
+                                </Tag>
+                              ))}
+                            </Space>
+                          ) : (
+                            <span className='ml-1'>{t('所有分组')}</span>
+                          )}
+                        </div>
                         {!isLast && <Divider margin={12} />}
                       </div>
                     );
@@ -501,6 +526,11 @@ const SubscriptionPlansCard = ({
                   formatSubscriptionResetPeriod(plan, t) === t('不重置')
                     ? null
                     : `${t('额度重置')}: ${formatSubscriptionResetPeriod(plan, t)}`;
+                  const allowedGroups = parseAllowedGroups(plan?.allowed_groups);
+                  const allowedGroupsLabel =
+                      allowedGroups.length > 0
+                          ? `${t('指定分组')}: ${allowedGroups.join(', ')}`
+                          : null;
                 const planBenefits = [
                   {
                     label: `${t('有效期')}: ${formatSubscriptionDuration(plan, t)}`,
@@ -513,7 +543,8 @@ const SubscriptionPlansCard = ({
                       }
                     : { label: totalLabel },
                   limitLabel ? { label: limitLabel } : null,
-                  upgradeLabel ? { label: upgradeLabel } : null,
+                    upgradeLabel ? { label: upgradeLabel } : null,
+                    allowedGroupsLabel ? { label: allowedGroupsLabel } : null,
                 ].filter(Boolean);
 
                 return (

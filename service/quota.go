@@ -14,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/QuantumNous/new-api/types"
@@ -263,11 +264,48 @@ func PostClaudeConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, 
 	cacheCreationTokens5m := usage.ClaudeCacheCreation5mTokens
 	cacheCreationTokens1h := usage.ClaudeCacheCreation1hTokens
 
+	// Claude pricing has a long-prompt tier (threshold configurable) that changes input/output prices.
+	// Apply it in ratio mode only, and gate by rollout allowlist.
+	tierPromptTokens := promptTokens
+	if relayInfo.ChannelType == constant.ChannelTypeAnthropic {
+		// Anthropic usage semantics: input_tokens does not include cache read/write tokens.
+		tierPromptTokens = promptTokens + cacheTokens + cacheCreationTokens
+	}
+	appliedClaudeLongPromptTier := false
+	claudeLongPromptThresholdTokens := 0
+	claudeLongPromptInputMultiplier := 0.0
+	claudeLongPromptOutputMultiplier := 0.0
+	claudeLongPromptRolloutMode := ""
+	claudeLongPromptAllowlistSize := 0
+	if !relayInfo.PriceData.UsePrice && common.IsClaudeModel(modelName) {
+		claudeCfg := model_setting.GetClaudeSettings()
+		allowlist := claudeCfg.GetLongPromptPricingRolloutUserIds()
+		claudeLongPromptAllowlistSize = len(allowlist)
+		claudeLongPromptThresholdTokens = claudeCfg.GetLongPromptPricingThresholdTokens()
+		claudeLongPromptInputMultiplier = claudeCfg.GetLongPromptPricingInputPriceMultiplier()
+		claudeLongPromptOutputMultiplier = claudeCfg.GetLongPromptPricingOutputPriceMultiplier()
+		if claudeCfg.GetLongPromptPricingEnabled() &&
+			common.ShouldApplyClaudeLongPromptRollout(relayInfo.UserId, allowlist) {
+			claudeLongPromptRolloutMode = "allowlist"
+			modelRatio, completionRatio, appliedClaudeLongPromptTier = common.ApplyClaudeLongPromptTier(
+				tierPromptTokens,
+				claudeLongPromptThresholdTokens,
+				claudeLongPromptInputMultiplier,
+				claudeLongPromptOutputMultiplier,
+				modelRatio,
+				completionRatio,
+			)
+		}
+	}
+
 	if relayInfo.ChannelType == constant.ChannelTypeOpenRouter {
 		promptTokens -= cacheTokens
 		isUsingCustomSettings := relayInfo.PriceData.UsePrice || hasCustomModelRatio(modelName, relayInfo.PriceData.ModelRatio)
 		if cacheCreationTokens == 0 && relayInfo.PriceData.CacheCreationRatio != 1 && usage.Cost != 0 && !isUsingCustomSettings {
-			maybeCacheCreationTokens := CalcOpenRouterCacheCreateTokens(*usage, relayInfo.PriceData)
+			effectivePriceData := relayInfo.PriceData
+			effectivePriceData.ModelRatio = modelRatio
+			effectivePriceData.CompletionRatio = completionRatio
+			maybeCacheCreationTokens := CalcOpenRouterCacheCreateTokens(*usage, effectivePriceData)
 			if maybeCacheCreationTokens >= 0 && promptTokens >= maybeCacheCreationTokens {
 				cacheCreationTokens = maybeCacheCreationTokens
 			}
@@ -342,6 +380,17 @@ func PostClaudeConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, 
 		cacheCreationTokens5m, cacheCreationRatio5m,
 		cacheCreationTokens1h, cacheCreationRatio1h,
 		modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
+	if appliedClaudeLongPromptTier {
+		other["claude_long_prompt"] = true
+		other["claude_prompt_tokens_for_tier"] = tierPromptTokens
+		other["claude_long_prompt_threshold"] = claudeLongPromptThresholdTokens
+		if claudeLongPromptRolloutMode != "" {
+			other["claude_long_prompt_rollout_mode"] = claudeLongPromptRolloutMode
+		}
+		other["claude_long_prompt_allowlist_size"] = claudeLongPromptAllowlistSize
+		other["claude_long_prompt_input_multiplier"] = claudeLongPromptInputMultiplier
+		other["claude_long_prompt_output_multiplier"] = claudeLongPromptOutputMultiplier
+	}
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
 		PromptTokens:     promptTokens,

@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
@@ -17,10 +18,12 @@ func GetPricing(c *gin.Context) {
 		groupRatio[s] = f
 	}
 	var group string
+	isAdmin := false
 	if exists {
 		user, err := model.GetUserCache(userId.(int))
 		if err == nil {
 			group = user.Group
+			isAdmin = model.IsAdmin(userId.(int))
 			for g := range groupRatio {
 				ratio, ok := ratio_setting.GetGroupGroupRatio(group, g)
 				if ok {
@@ -31,6 +34,20 @@ func GetPricing(c *gin.Context) {
 	}
 
 	usableGroup = service.GetUserUsableGroups(group)
+	autoGroups := service.GetUserAutoGroup(group)
+	if !isAdmin {
+		userUnselectableGroups := setting.GetUserUnselectableGroupsCopy()
+		for groupName := range userUnselectableGroups {
+			delete(usableGroup, groupName)
+		}
+		filteredAutoGroups := make([]string, 0, len(autoGroups))
+		for _, groupName := range autoGroups {
+			if _, hidden := userUnselectableGroups[groupName]; !hidden {
+				filteredAutoGroups = append(filteredAutoGroups, groupName)
+			}
+		}
+		autoGroups = filteredAutoGroups
+	}
 	// check groupRatio contains usableGroup
 	for group := range ratio_setting.GetGroupRatioCopy() {
 		if _, ok := usableGroup[group]; !ok {
@@ -45,7 +62,7 @@ func GetPricing(c *gin.Context) {
 		"group_ratio":        groupRatio,
 		"usable_group":       usableGroup,
 		"supported_endpoint": model.GetSupportedEndpointMap(),
-		"auto_groups":        service.GetUserAutoGroup(group),
+		"auto_groups":        autoGroups,
 	})
 }
 

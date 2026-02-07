@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -33,9 +34,10 @@ type discordOAuthResponse struct {
 }
 
 type discordUser struct {
-	UID  string `json:"id"`
-	ID   string `json:"username"`
-	Name string `json:"global_name"`
+	UID    string `json:"id"`
+	ID     string `json:"username"`
+	Name   string `json:"global_name"`
+	Avatar string `json:"avatar"`
 }
 
 func (p *DiscordProvider) GetName() string {
@@ -151,6 +153,9 @@ func (p *DiscordProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*
 		ProviderUserID: discordUser.UID,
 		Username:       discordUser.ID,
 		DisplayName:    discordUser.Name,
+		Extra: map[string]any{
+			"avatar_url": getDiscordAvatarURL(discordUser.UID, discordUser.Avatar),
+		},
 	}, nil
 }
 
@@ -169,4 +174,17 @@ func (p *DiscordProvider) SetProviderUserID(user *model.User, providerUserID str
 
 func (p *DiscordProvider) GetProviderPrefix() string {
 	return "discord_"
+}
+
+func getDiscordAvatarURL(userID, avatarHash string) string {
+	if avatarHash != "" {
+		ext := "png"
+		if strings.HasPrefix(avatarHash, "a_") {
+			ext = "gif"
+		}
+		return fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.%s", userID, avatarHash, ext)
+	}
+	uid, _ := strconv.ParseInt(userID, 10, 64)
+	defaultIndex := (uid >> 22) % 6
+	return fmt.Sprintf("https://cdn.discordapp.com/embed/avatars/%d.png", defaultIndex)
 }

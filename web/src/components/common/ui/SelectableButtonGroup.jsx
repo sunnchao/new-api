@@ -244,6 +244,8 @@ const SelectableButtonGroup = ({
                     color='white'
                     shape='circle'
                     size='small'
+                    style={{
+                    }}
                   >
                     {item.tagCount}
                   </Tag>

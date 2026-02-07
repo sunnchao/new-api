@@ -45,6 +45,14 @@ function formatTs(ts) {
   return new Date(ts * 1000).toLocaleString();
 }
 
+function parseAllowedGroups(value) {
+  if (!value) return [];
+  return `${value}`
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function renderStatusTag(sub, t) {
   const now = Date.now() / 1000;
   const end = sub?.end_time || 0;
@@ -308,6 +316,31 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
             <Text type={total > 0 ? 'secondary' : 'tertiary'}>
               {total > 0 ? `${used}/${total}` : t('不限')}
             </Text>
+          );
+        },
+      },
+      {
+        title: t('允许分组'),
+        key: 'allowed_groups',
+        width: 220,
+        render: (_, record) => {
+          const sub = record?.subscription;
+          const groups = parseAllowedGroups(sub?.allowed_groups);
+          if (groups.length === 0) {
+            return (
+              <Tag size='small' color='green'>
+                {t('所有分组')}
+              </Tag>
+            );
+          }
+          return (
+            <Space wrap size='small'>
+              {groups.map((group) => (
+                <Tag key={`${sub?.id}-${group}`} size='small' color='cyan'>
+                  {group}
+                </Tag>
+              ))}
+            </Space>
           );
         },
       },

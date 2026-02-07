@@ -46,60 +46,107 @@ const CLAUDE_DEFAULT_MAX_TOKENS = {
   'claude-3-7-sonnet-20250219-thinking': 8192,
 };
 
+const DEFAULT_CLAUDE_INPUTS = {
+  'claude.model_headers_settings': '',
+  'claude.thinking_adapter_enabled': true,
+  'claude.default_max_tokens': '',
+  'claude.thinking_adapter_budget_tokens_percentage': 0.8,
+
+  // Claude long prompt pricing tier (prompt tokens > threshold)
+  'claude.long_prompt_pricing_enabled': true,
+  'claude.long_prompt_pricing_rollout_user_ids': '[]',
+  'claude.long_prompt_pricing_threshold_tokens': 200000,
+  'claude.long_prompt_pricing_input_price_multiplier': 2.0,
+  'claude.long_prompt_pricing_output_price_multiplier': 1.5,
+};
+
 export default function SettingClaudeModel(props) {
   const { t } = useTranslation();
 
   const [loading, setLoading] = useState(false);
-  const [inputs, setInputs] = useState({
-    'claude.model_headers_settings': '',
-    'claude.thinking_adapter_enabled': true,
-    'claude.default_max_tokens': '',
-    'claude.thinking_adapter_budget_tokens_percentage': 0.8,
-  });
+  const [inputs, setInputs] = useState(DEFAULT_CLAUDE_INPUTS);
   const refForm = useRef();
-  const [inputsRow, setInputsRow] = useState(inputs);
+  const [inputsRow, setInputsRow] = useState(DEFAULT_CLAUDE_INPUTS);
 
-  function onSubmit() {
-    const updateArray = compareObjects(inputs, inputsRow);
-    if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
-    const requestQueue = updateArray.map((item) => {
-      let value = String(inputs[item.key]);
+  const inputMultiplier = Number(
+    inputs['claude.long_prompt_pricing_input_price_multiplier'],
+  );
+  const outputMultiplier = Number(
+    inputs['claude.long_prompt_pricing_output_price_multiplier'],
+  );
+  const completionRatioMultiplier =
+    inputMultiplier > 0 ? outputMultiplier / inputMultiplier : NaN;
+  const completionRatioMultiplierText = Number.isFinite(
+    completionRatioMultiplier,
+  )
+    ? completionRatioMultiplier.toFixed(4)
+    : '-';
 
-      return API.put('/api/option/', {
-        key: item.key,
-        value,
-      });
-    });
-    setLoading(true);
-    Promise.all(requestQueue)
-      .then((res) => {
-        if (requestQueue.length === 1) {
-          if (res.includes(undefined)) return;
-        } else if (requestQueue.length > 1) {
-          if (res.includes(undefined))
-            return showError(t('部分保存失败，请重试'));
-        }
-        showSuccess(t('保存成功'));
-        props.refresh();
+  async function onSubmit() {
+    await refForm.current
+      .validate()
+      .then(() => {
+        const updateArray = compareObjects(inputs, inputsRow);
+        if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
+        const requestQueue = updateArray.map((item) => {
+          let value = String(inputs[item.key]);
+
+          if (
+            item.key === 'claude.long_prompt_pricing_rollout_user_ids' &&
+            value.trim() === ''
+          ) {
+            value = '[]';
+          }
+
+          return API.put('/api/option/', {
+            key: item.key,
+            value,
+          });
+        });
+        setLoading(true);
+        Promise.all(requestQueue)
+          .then((res) => {
+            if (requestQueue.length === 1) {
+              if (res.includes(undefined)) return;
+            } else if (requestQueue.length > 1) {
+              if (res.includes(undefined))
+                return showError(t('部分保存失败，请重试'));
+            }
+            showSuccess(t('保存成功'));
+            props.refresh();
+          })
+          .catch(() => {
+            showError(t('保存失败，请重试'));
+          })
+          .finally(() => {
+            setLoading(false);
+          });
       })
-      .catch(() => {
-        showError(t('保存失败，请重试'));
-      })
-      .finally(() => {
-        setLoading(false);
+      .catch((error) => {
+        console.error('Validation failed:', error);
+        showError(t('请检查输入'));
       });
   }
 
   useEffect(() => {
-    const currentInputs = {};
+    const currentInputs = { ...DEFAULT_CLAUDE_INPUTS };
     for (let key in props.options) {
-      if (Object.keys(inputs).includes(key)) {
+      if (Object.prototype.hasOwnProperty.call(DEFAULT_CLAUDE_INPUTS, key)) {
         currentInputs[key] = props.options[key];
       }
     }
+    // Backward compatibility: legacy key before rename.
+    if (
+      (!props.options['claude.long_prompt_pricing_rollout_user_ids'] ||
+        props.options['claude.long_prompt_pricing_rollout_user_ids'] === '') &&
+      props.options['claude.long_prompt_pricing_rollout_percent']
+    ) {
+      currentInputs['claude.long_prompt_pricing_rollout_user_ids'] =
+        props.options['claude.long_prompt_pricing_rollout_percent'];
+    }
     setInputs(currentInputs);
     setInputsRow(structuredClone(currentInputs));
-    refForm.current.setValues(currentInputs);
+    refForm.current?.setValues(currentInputs);
   }, [props.options]);
 
   return (
@@ -142,6 +189,7 @@ export default function SettingClaudeModel(props) {
                 />
               </Col>
             </Row>
+
             <Row>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.TextArea
@@ -172,6 +220,7 @@ export default function SettingClaudeModel(props) {
                 />
               </Col>
             </Row>
+
             <Row>
               <Col span={16}>
                 <Form.Switch
@@ -186,6 +235,7 @@ export default function SettingClaudeModel(props) {
                 />
               </Col>
             </Row>
+
             <Row>
               <Col span={16}>
                 {/*//展示MaxTokens和BudgetTokens的计算公式, 并展示实际数字*/}
@@ -196,6 +246,7 @@ export default function SettingClaudeModel(props) {
                 </Text>
               </Col>
             </Row>
+
             <Row>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
@@ -213,6 +264,136 @@ export default function SettingClaudeModel(props) {
                 />
               </Col>
             </Row>
+
+            <Form.Section text={t('Claude长 Prompt 分档计费')}>
+              <Row>
+                <Col span={16}>
+                  <Text>
+                    {t(
+                      '当 Prompt 总 tokens 超过阈值时，按第二阶段价格计费（支持灰度；固定价 UsePrice 模式不受影响）。',
+                    )}
+                  </Text>
+                </Col>
+              </Row>
+
+              <Row>
+                <Col span={16}>
+                  <Form.Switch
+                    label={t('启用长 Prompt 分档')}
+                    field={'claude.long_prompt_pricing_enabled'}
+                    onChange={(value) =>
+                      setInputs({
+                        ...inputs,
+                        'claude.long_prompt_pricing_enabled': value,
+                      })
+                    }
+                  />
+                </Col>
+              </Row>
+
+              <Row>
+                <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                  <Form.TextArea
+                    label={t('灰度白名单 (User IDs)')}
+                    field={'claude.long_prompt_pricing_rollout_user_ids'}
+                    placeholder={'[1, 2, 3]'}
+                    extraText={t(
+                      '仅对白名单用户生效（直接匹配 user_id）；为空则不生效',
+                    )}
+                    autosize={{ minRows: 2, maxRows: 6 }}
+                    trigger='blur'
+                    stopValidateWithError
+                    rules={[
+                      {
+                        validator: (rule, value) => {
+                          if (value === '') return true;
+                          if (!verifyJSON(value)) return false;
+                          try {
+                            const parsed = JSON.parse(value);
+                            return (
+                              Array.isArray(parsed) &&
+                              parsed.every((v) => Number.isInteger(v))
+                            );
+                          } catch (e) {
+                            return false;
+                          }
+                        },
+                        message: t('不是合法的 JSON 字符串'),
+                      },
+                    ]}
+                    onChange={(value) =>
+                      setInputs({
+                        ...inputs,
+                        'claude.long_prompt_pricing_rollout_user_ids': value,
+                      })
+                    }
+                  />
+                </Col>
+              </Row>
+
+              <Row>
+                <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                  <Form.InputNumber
+                    label={t('触发阈值 (Tokens)')}
+                    field={'claude.long_prompt_pricing_threshold_tokens'}
+                    min={1}
+                    extraText={t('例如 200000 代表 >200K tokens 触发第二阶段')}
+                    onChange={(value) =>
+                      setInputs({
+                        ...inputs,
+                        'claude.long_prompt_pricing_threshold_tokens': value,
+                      })
+                    }
+                  />
+                </Col>
+              </Row>
+
+              <Row>
+                <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                  <Form.InputNumber
+                    label={t('输入价格倍率')}
+                    field={'claude.long_prompt_pricing_input_price_multiplier'}
+                    min={0.0001}
+                    step={0.01}
+                    extraText={t('官方示例：输入 x2')}
+                    onChange={(value) =>
+                      setInputs({
+                        ...inputs,
+                        'claude.long_prompt_pricing_input_price_multiplier':
+                          value,
+                      })
+                    }
+                  />
+                </Col>
+
+                <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                  <Form.InputNumber
+                    label={t('输出价格倍率')}
+                    field={'claude.long_prompt_pricing_output_price_multiplier'}
+                    min={0.0001}
+                    step={0.01}
+                    extraText={t('官方示例：输出 x1.5')}
+                    onChange={(value) =>
+                      setInputs({
+                        ...inputs,
+                        'claude.long_prompt_pricing_output_price_multiplier':
+                          value,
+                      })
+                    }
+                  />
+                </Col>
+              </Row>
+
+              <Row>
+                <Col span={24}>
+                  <Text type='tertiary'>
+                    {t('输出补全倍率额外系数 (output/input) = ')}
+                    {completionRatioMultiplierText}
+                    {'  (示例: 1.5/2.0 = 0.75)'}
+                  </Text>
+                </Col>
+              </Row>
+            </Form.Section>
 
             <Row>
               <Button size='default' onClick={onSubmit}>

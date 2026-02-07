@@ -6,6 +6,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/types"
@@ -94,7 +95,19 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		audioRatio = ratio_setting.GetAudioRatio(info.OriginModelName)
 		audioCompletionRatio = ratio_setting.GetAudioCompletionRatio(info.OriginModelName)
 		ratio := modelRatio * groupRatioInfo.GroupRatio
-		preConsumedQuota = int(float64(preConsumedTokens) * ratio)
+		ratioForPreConsume := ratio
+		// Claude pricing has a long-prompt tier that changes when total prompt tokens exceed a threshold.
+		// Pre-consume uses an estimated prompt token count, so we apply the tier based on the request's
+		// estimated prompt tokens (NOT including max_tokens).
+		if common.IsClaudeModel(info.OriginModelName) {
+			claudeCfg := model_setting.GetClaudeSettings()
+			if claudeCfg.GetLongPromptPricingEnabled() &&
+				common.ShouldApplyClaudeLongPromptRollout(info.UserId, claudeCfg.GetLongPromptPricingRolloutUserIds()) &&
+				common.IsClaudeLongPrompt(promptTokens, claudeCfg.GetLongPromptPricingThresholdTokens()) {
+				ratioForPreConsume *= claudeCfg.GetLongPromptPricingInputPriceMultiplier()
+			}
+		}
+		preConsumedQuota = int(float64(preConsumedTokens) * ratioForPreConsume)
 	} else {
 		if meta.ImagePriceRatio != 0 {
 			modelPrice = modelPrice * meta.ImagePriceRatio

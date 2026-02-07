@@ -35,6 +35,7 @@ export default function GroupRatioSettings(props) {
   const [inputs, setInputs] = useState({
     GroupRatio: '',
     UserUsableGroups: '',
+    UserUnselectableGroups: '',
     GroupGroupRatio: '',
     'group_ratio_setting.group_special_usable_group': '',
     AutoGroups: '',
@@ -158,6 +159,30 @@ export default function GroupRatioSettings(props) {
               ]}
               onChange={(value) =>
                 setInputs({ ...inputs, UserUsableGroups: value })
+              }
+            />
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} sm={16}>
+            <Form.TextArea
+              label={t('用户不可选分组')}
+              placeholder={t('为一个 JSON 文本，键为分组名称，值为分组描述')}
+              extraText={t(
+                '用户不可选分组，格式为 JSON 字符串，例如：{"internal": "内部"}，表示普通用户不可见 internal 分组',
+              )}
+              field={'UserUnselectableGroups'}
+              autosize={{ minRows: 6, maxRows: 12 }}
+              trigger='blur'
+              stopValidateWithError
+              rules={[
+                {
+                  validator: (rule, value) => verifyJSON(value),
+                  message: t('不是合法的 JSON 字符串'),
+                },
+              ]}
+              onChange={(value) =>
+                setInputs({ ...inputs, UserUnselectableGroups: value })
               }
             />
           </Col>
