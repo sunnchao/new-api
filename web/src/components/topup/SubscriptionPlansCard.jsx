@@ -129,7 +129,11 @@ const SubscriptionPlansCard = ({
         showSuccess(t('已打开支付页面'));
         closeBuy();
       } else {
-        showError(res.data?.data || res.data?.message || t('支付失败'));
+        const errorMsg =
+          typeof res.data?.data === 'string'
+            ? res.data.data
+            : res.data?.message || t('支付失败');
+        showError(errorMsg);
       }
     } catch (e) {
       showError(t('支付请求失败'));
@@ -179,7 +183,11 @@ const SubscriptionPlansCard = ({
         showSuccess(t('已打开支付页面'));
         closeBuy();
       } else {
-        showError(res.data?.data || res.data?.message || t('支付失败'));
+        const errorMsg =
+          typeof res.data?.data === 'string'
+            ? res.data.data
+            : res.data?.message || t('支付失败');
+        showError(errorMsg);
       }
     } catch (e) {
       showError(t('支付请求失败'));
@@ -204,7 +212,11 @@ const SubscriptionPlansCard = ({
         showSuccess(t('已发起支付'));
         closeBuy();
       } else {
-        showError(res.data?.data || res.data?.message || t('支付失败'));
+        const errorMsg =
+          typeof res.data?.data === 'string'
+            ? res.data.data
+            : res.data?.message || t('支付失败');
+        showError(errorMsg);
       }
     } catch (e) {
       showError(t('支付请求失败'));
@@ -295,9 +307,13 @@ const SubscriptionPlansCard = ({
             </div>
           </Card>
           {/* 套餐列表骨架屏 */}
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 w-full'>
             {[1, 2, 3].map((i) => (
-              <Card key={i} className='!rounded-xl' bodyStyle={{ padding: 16 }}>
+              <Card
+                key={i}
+                className='!rounded-xl w-full h-full'
+                bodyStyle={{ padding: 16 }}
+              >
                 <Skeleton.Title
                   active
                   style={{ width: '60%', height: 24, marginBottom: 8 }}
@@ -461,88 +477,87 @@ const SubscriptionPlansCard = ({
 
           {/* 可购买套餐 - 标准定价卡片 */}
           {plans.length > 0 ? (
-            <div className={'w-full'}>
-              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4'>
-                {plans.map((p, index) => {
-                  const plan = p?.plan;
-                  const totalAmount = Number(plan?.total_amount || 0);
-                  const { symbol, rate } = getCurrencyConfig();
-                  const price = Number(plan?.price_amount || 0);
-                  const convertedPrice = price * rate;
-                  const displayPrice = convertedPrice.toFixed(
-                      Number.isInteger(convertedPrice) ? 0 : 2,
-                  );
-                  const isPopular = index === 0 && plans.length > 1;
-                  const limit = Number(plan?.max_purchase_per_user || 0);
-                  const limitLabel = limit > 0 ? `${t('限购')} ${limit}` : null;
-                  const totalLabel =
-                      totalAmount > 0
-                          ? `${t('总额度')}: ${renderQuota(totalAmount)}`
-                          : `${t('总额度')}: ${t('不限')}`;
-                  const upgradeLabel = plan?.upgrade_group
-                      ? `${t('升级分组')}: ${plan.upgrade_group}`
-                      : null;
-                  const resetLabel =
-                      formatSubscriptionResetPeriod(plan, t) === t('不重置')
-                          ? null
-                          : `${t('额度重置')}: ${formatSubscriptionResetPeriod(plan, t)}`;
-                  const planBenefits = [
-                    {
-                      label: `${t('有效期')}: ${formatSubscriptionDuration(plan, t)}`,
-                    },
-                    resetLabel ? { label: resetLabel } : null,
-                    totalAmount > 0
-                        ? {
-                          label: totalLabel,
-                          tooltip: `${t('原生额度')}：${totalAmount}`,
-                        }
-                        : { label: totalLabel },
-                    limitLabel ? { label: limitLabel } : null,
-                    upgradeLabel ? { label: upgradeLabel } : null,
-                  ].filter(Boolean);
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 w-full'>
+              {plans.map((p, index) => {
+                const plan = p?.plan;
+                const totalAmount = Number(plan?.total_amount || 0);
+                const { symbol, rate } = getCurrencyConfig();
+                const price = Number(plan?.price_amount || 0);
+                const convertedPrice = price * rate;
+                const displayPrice = convertedPrice.toFixed(
+                  Number.isInteger(convertedPrice) ? 0 : 2,
+                );
+                const isPopular = index === 0 && plans.length > 1;
+                const limit = Number(plan?.max_purchase_per_user || 0);
+                const limitLabel = limit > 0 ? `${t('限购')} ${limit}` : null;
+                const totalLabel =
+                  totalAmount > 0
+                    ? `${t('总额度')}: ${renderQuota(totalAmount)}`
+                    : `${t('总额度')}: ${t('不限')}`;
+                const upgradeLabel = plan?.upgrade_group
+                  ? `${t('升级分组')}: ${plan.upgrade_group}`
+                  : null;
+                const resetLabel =
+                  formatSubscriptionResetPeriod(plan, t) === t('不重置')
+                    ? null
+                    : `${t('额度重置')}: ${formatSubscriptionResetPeriod(plan, t)}`;
+                const planBenefits = [
+                  {
+                    label: `${t('有效期')}: ${formatSubscriptionDuration(plan, t)}`,
+                  },
+                  resetLabel ? { label: resetLabel } : null,
+                  totalAmount > 0
+                    ? {
+                        label: totalLabel,
+                        tooltip: `${t('原生额度')}：${totalAmount}`,
+                      }
+                    : { label: totalLabel },
+                  limitLabel ? { label: limitLabel } : null,
+                  upgradeLabel ? { label: upgradeLabel } : null,
+                ].filter(Boolean);
 
-                  return (
-                      <Card
-                          key={plan?.id}
-                          className={`!rounded-xl transition-all hover:shadow-lg ${
-                              isPopular ? 'ring-2 ring-purple-500' : ''
-                          }`}
-                          bodyStyle={{ padding: 0 }}
-                      >
-                        <div className='p-4'>
-                          {/* 推荐标签 */}
-                          {isPopular && (
-                              <div className='text-center mb-2'>
-                                <Tag color='purple' shape='circle' size='small'>
-                                  <Sparkles size={10} className='mr-1' />
-                                  {t('推荐')}
-                                </Tag>
-                              </div>
-                          )}
-                          {/* 套餐名称 */}
-                          <div className='text-center mb-3'>
-                            <Typography.Title
-                                heading={5}
-                                ellipsis={{ rows: 1, showTooltip: true }}
-                                style={{ margin: 0 }}
-                            >
-                              {plan?.title || t('订阅套餐')}
-                            </Typography.Title>
-                            {plan?.subtitle && (
-                                <Text
-                                    type='tertiary'
-                                    size='small'
-                                    ellipsis={{ rows: 1, showTooltip: true }}
-                                    style={{ display: 'block' }}
-                                >
-                                  {plan.subtitle}
-                                </Text>
-                            )}
-                          </div>
+                return (
+                  <Card
+                    key={plan?.id}
+                    className={`!rounded-xl transition-all hover:shadow-lg w-full h-full ${
+                      isPopular ? 'ring-2 ring-purple-500' : ''
+                    }`}
+                    bodyStyle={{ padding: 0 }}
+                  >
+                    <div className='p-4 h-full flex flex-col'>
+                      {/* 推荐标签 */}
+                      {isPopular && (
+                        <div className='mb-2'>
+                          <Tag color='purple' shape='circle' size='small'>
+                            <Sparkles size={10} className='mr-1' />
+                            {t('推荐')}
+                          </Tag>
+                        </div>
+                      )}
+                      {/* 套餐名称 */}
+                      <div className='mb-3'>
+                        <Typography.Title
+                          heading={5}
+                          ellipsis={{ rows: 1, showTooltip: true }}
+                          style={{ margin: 0 }}
+                        >
+                          {plan?.title || t('订阅套餐')}
+                        </Typography.Title>
+                        {plan?.subtitle && (
+                          <Text
+                            type='tertiary'
+                            size='small'
+                            ellipsis={{ rows: 1, showTooltip: true }}
+                            style={{ display: 'block' }}
+                          >
+                            {plan.subtitle}
+                          </Text>
+                        )}
+                      </div>
 
-                          {/* 价格区域 */}
-                          <div className='text-center py-2'>
-                            <div className='flex items-baseline justify-center'>
+                      {/* 价格区域 */}
+                      <div className='py-2'>
+                        <div className='flex items-baseline justify-start'>
                           <span className='text-xl font-bold text-purple-600'>
                             {symbol}
                           </span>
@@ -552,70 +567,71 @@ const SubscriptionPlansCard = ({
                             </div>
                           </div>
 
-                          {/* 套餐权益描述 */}
-                          <div className='flex flex-col items-center gap-1 pb-2'>
-                            {planBenefits.map((item) => {
-                              const content = (
-                                  <div className='flex items-center gap-2 text-xs text-gray-500'>
-                                    <Badge dot type='tertiary' />
-                                    <span>{item.label}</span>
-                                  </div>
-                              );
-                              if (!item.tooltip) {
-                                return (
-                                    <div
-                                        key={item.label}
-                                        className='w-full flex justify-center'
-                                    >
-                                      {content}
-                                    </div>
-                                );
-                              }
-                              return (
-                                  <Tooltip key={item.label} content={item.tooltip}>
-                                    <div className='w-full flex justify-center'>
-                                      {content}
-                                    </div>
-                                  </Tooltip>
-                              );
-                            })}
-                          </div>
-
-                          <Divider margin={12} />
-
-                          {/* 购买按钮 */}
-                          {(() => {
-                            const count = getPlanPurchaseCount(p?.plan?.id);
-                            const reached = limit > 0 && count >= limit;
-                            const tip = reached
-                                ? t('已达到购买上限') + ` (${count}/${limit})`
-                                : '';
-                            const buttonEl = (
-                                <Button
-                                    theme='solid'
-                                    type='primary'
-                                    block
-                                    disabled={reached}
-                                    onClick={() => {
-                                      if (!reached) openBuy(p);
-                                    }}
-                                >
-                                  {reached ? t('已达上限') : t('立即订阅')}
-                                </Button>
+                      {/* 套餐权益描述 */}
+                      <div className='flex flex-col items-start gap-1 pb-2'>
+                        {planBenefits.map((item) => {
+                          const content = (
+                            <div className='flex items-center gap-2 text-xs text-gray-500'>
+                              <Badge dot type='tertiary' />
+                              <span>{item.label}</span>
+                            </div>
+                          );
+                          if (!item.tooltip) {
+                            return (
+                              <div
+                                key={item.label}
+                                className='w-full flex justify-start'
+                              >
+                                {content}
+                              </div>
                             );
-                            return reached ? (
-                                <Tooltip content={tip} position='top'>
-                                  {buttonEl}
-                                </Tooltip>
-                            ) : (
-                                buttonEl
-                            );
-                          })()}
-                        </div>
-                      </Card>
-                  );
-                })}
-              </div>
+                          }
+                          return (
+                            <Tooltip key={item.label} content={item.tooltip}>
+                              <div className='w-full flex justify-start'>
+                                {content}
+                              </div>
+                            </Tooltip>
+                          );
+                        })}
+                      </div>
+
+                      <div className='mt-auto'>
+                        <Divider margin={12} />
+
+                        {/* 购买按钮 */}
+                        {(() => {
+                          const count = getPlanPurchaseCount(p?.plan?.id);
+                          const reached = limit > 0 && count >= limit;
+                          const tip = reached
+                            ? t('已达到购买上限') + ` (${count}/${limit})`
+                            : '';
+                          const buttonEl = (
+                            <Button
+                              theme='outline'
+                              type='tertiary'
+                              block
+                              disabled={reached}
+                              onClick={() => {
+                                if (!reached) openBuy(p);
+                              }}
+                            >
+                              {reached ? t('已达上限') : t('立即订阅')}
+                            </Button>
+                          );
+                          return reached ? (
+                            <Tooltip content={tip} position='top'>
+                              {buttonEl}
+                            </Tooltip>
+                          ) : (
+                            buttonEl
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           ) : (
             <div className='text-center text-gray-400 text-sm py-4'>
