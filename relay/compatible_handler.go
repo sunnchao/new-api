@@ -254,41 +254,6 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 	modelPrice := relayInfo.PriceData.ModelPrice
 	cachedCreationRatio := relayInfo.PriceData.CacheCreationRatio
 
-	isClaudeUsageSemantic := relayInfo.ChannelType == constant.ChannelTypeAnthropic
-	// Claude pricing has a long-prompt tier (threshold configurable) that changes input/output prices.
-	// Apply it in ratio mode, gated by rollout allowlist.
-	appliedClaudeLongPromptTier := false
-	claudePromptTokensForTier := promptTokens
-	if isClaudeUsageSemantic {
-		// Anthropic usage semantics: input_tokens does not include cache read/write tokens.
-		claudePromptTokensForTier = promptTokens + cacheTokens + cachedCreationTokens
-	}
-	claudeLongPromptThresholdTokens := 0
-	claudeLongPromptInputMultiplier := 0.0
-	claudeLongPromptOutputMultiplier := 0.0
-	claudeLongPromptRolloutMode := ""
-	claudeLongPromptAllowlistSize := 0
-	if !relayInfo.PriceData.UsePrice && common.IsClaudeModel(modelName) {
-		claudeCfg := model_setting.GetClaudeSettings()
-		allowlist := claudeCfg.GetLongPromptPricingRolloutUserIds()
-		claudeLongPromptAllowlistSize = len(allowlist)
-		claudeLongPromptThresholdTokens = claudeCfg.GetLongPromptPricingThresholdTokens()
-		claudeLongPromptInputMultiplier = claudeCfg.GetLongPromptPricingInputPriceMultiplier()
-		claudeLongPromptOutputMultiplier = claudeCfg.GetLongPromptPricingOutputPriceMultiplier()
-		if claudeCfg.GetLongPromptPricingEnabled() &&
-			common.ShouldApplyClaudeLongPromptRollout(relayInfo.UserId, allowlist) {
-			claudeLongPromptRolloutMode = "allowlist"
-			modelRatio, completionRatio, appliedClaudeLongPromptTier = common.ApplyClaudeLongPromptTier(
-				claudePromptTokensForTier,
-				claudeLongPromptThresholdTokens,
-				claudeLongPromptInputMultiplier,
-				claudeLongPromptOutputMultiplier,
-				modelRatio,
-				completionRatio,
-			)
-		}
-	}
-
 	// Convert values to decimal for precise calculation
 	dPromptTokens := decimal.NewFromInt(int64(promptTokens))
 	dCacheTokens := decimal.NewFromInt(int64(cacheTokens))
@@ -369,6 +334,7 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 
 	var audioInputQuota decimal.Decimal
 	var audioInputPrice float64
+	isClaudeUsageSemantic := relayInfo.FinalRequestRelayFormat == types.RelayFormatClaude
 	if !relayInfo.PriceData.UsePrice {
 		baseTokens := dPromptTokens
 		// 减去 cached tokens
@@ -457,29 +423,8 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 		model.UpdateChannelUsedQuota(relayInfo.ChannelId, quota)
 	}
 
-	quotaDelta := quota - relayInfo.FinalPreConsumedQuota
-
-	//logger.LogInfo(ctx, fmt.Sprintf("request quota delta: %s", logger.FormatQuota(quotaDelta)))
-
-	if quotaDelta > 0 {
-		logger.LogInfo(ctx, fmt.Sprintf("预扣费后补扣费：%s（实际消耗：%s，预扣费：%s）",
-			logger.FormatQuota(quotaDelta),
-			logger.FormatQuota(quota),
-			logger.FormatQuota(relayInfo.FinalPreConsumedQuota),
-		))
-	} else if quotaDelta < 0 {
-		logger.LogInfo(ctx, fmt.Sprintf("预扣费后返还扣费：%s（实际消耗：%s，预扣费：%s）",
-			logger.FormatQuota(-quotaDelta),
-			logger.FormatQuota(quota),
-			logger.FormatQuota(relayInfo.FinalPreConsumedQuota),
-		))
-	}
-
-	if quotaDelta != 0 {
-		err := service.PostConsumeQuota(relayInfo, quotaDelta, relayInfo.FinalPreConsumedQuota, true)
-		if err != nil {
-			logger.LogError(ctx, "error consuming token remain quota: "+err.Error())
-		}
+	if err := service.SettleBilling(ctx, relayInfo, quota); err != nil {
+		logger.LogError(ctx, "error settling billing: "+err.Error())
 	}
 
 	logModel := modelName
