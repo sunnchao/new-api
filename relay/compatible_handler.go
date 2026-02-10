@@ -441,17 +441,6 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 	if adminRejectReason != "" {
 		other["reject_reason"] = adminRejectReason
 	}
-	if appliedClaudeLongPromptTier {
-		other["claude_long_prompt"] = true
-		other["claude_prompt_tokens_for_tier"] = claudePromptTokensForTier
-		other["claude_long_prompt_threshold"] = claudeLongPromptThresholdTokens
-		if claudeLongPromptRolloutMode != "" {
-			other["claude_long_prompt_rollout_mode"] = claudeLongPromptRolloutMode
-		}
-		other["claude_long_prompt_allowlist_size"] = claudeLongPromptAllowlistSize
-		other["claude_long_prompt_input_multiplier"] = claudeLongPromptInputMultiplier
-		other["claude_long_prompt_output_multiplier"] = claudeLongPromptOutputMultiplier
-	}
 	// For chat-based calls to the Claude model, tagging is required. Using Claude's rendering logs, the two approaches handle input rendering differently.
 	if isClaudeUsageSemantic {
 		other["claude"] = true

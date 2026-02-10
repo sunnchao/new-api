@@ -166,7 +166,7 @@ func (s *BillingSession) preConsume(c *gin.Context, quota int) *types.NewAPIErro
 	}
 
 	// ---- 2) 预扣资金来源 ----
-	if err := s.funding.PreConsume(effectiveQuota); err != nil {
+	if err := s.funding.PreConsume(effectiveQuota, s.relayInfo.UsingGroup); err != nil {
 		// 预扣费失败，回滚令牌额度
 		if s.tokenConsumed > 0 && !s.relayInfo.IsPlayground {
 			if rollbackErr := model.IncreaseTokenQuota(s.relayInfo.TokenId, s.relayInfo.TokenKey, s.tokenConsumed); rollbackErr != nil {

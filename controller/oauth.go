@@ -289,7 +289,7 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 		}
 
 		// Perform post-transaction tasks (logs, sidebar config, inviter rewards)
-		user.FinalizeOAuthUserCreation(inviterId)
+		user.FinalizeOAuthUserCreation(inviterId, c.ClientIP())
 	} else {
 		// Built-in provider: create user and update provider ID in a transaction
 		err := model.DB.Transaction(func(tx *gorm.DB) error {
@@ -301,12 +301,12 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 			// Set the provider user ID on the user model and update
 			provider.SetProviderUserID(user, oauthUser.ProviderUserID)
 			if err := tx.Model(user).Updates(map[string]interface{}{
-				"github_id":    user.GitHubId,
-				"discord_id":   user.DiscordId,
-				"oidc_id":      user.OidcId,
-				"linux_do_id":  user.LinuxDOId,
-				"wechat_id":    user.WeChatId,
-				"telegram_id":  user.TelegramId,
+				"github_id":   user.GitHubId,
+				"discord_id":  user.DiscordId,
+				"oidc_id":     user.OidcId,
+				"linux_do_id": user.LinuxDOId,
+				"wechat_id":   user.WeChatId,
+				"telegram_id": user.TelegramId,
 			}).Error; err != nil {
 				return err
 			}
@@ -318,7 +318,7 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 		}
 
 		// Perform post-transaction tasks
-		user.FinalizeOAuthUserCreation(inviterId)
+		user.FinalizeOAuthUserCreation(inviterId, c.ClientIP())
 	}
 
 	return user, nil
