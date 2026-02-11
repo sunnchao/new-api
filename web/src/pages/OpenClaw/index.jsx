@@ -173,7 +173,7 @@ const OpenClawTutorial = () => {
   "providers": {
     "chirou": {
       "baseUrl": "https://api.wochirou.com",
-      "apiKey": "sk-free",
+      "apiKey": "你自己的 API Key",
       "api": "anthropic-messages",
       "models": [
         {
@@ -398,7 +398,7 @@ const OpenClawTutorial = () => {
           </Paragraph>
         </div>
 
-        <Space className='mb-8'>
+        <Space>
           <Button type='primary' size='large' theme='solid' onClick={() => openOfficialWebsite()}>
             前往官网
           </Button>
@@ -409,20 +409,7 @@ const OpenClawTutorial = () => {
             查看文档
             <ArrowRight size={16} className='ml-2' />
           </Button>
-        </Space>
-
-        <div className='p-6 rounded-xl' style={{ background: 'var(--semi-color-fill-1)', border: '1px solid var(--semi-color-border)' }}>
-          <div className='flex items-center gap-2 mb-4'>
-            <Terminal size={20} className='text-gray-500' />
-            <Text strong>终端示例</Text>
-          </div>
-          <div className='p-4 bg-gray-900 text-gray-100 rounded-lg font-mono text-sm overflow-x-auto'>
-            <div className='mb-2'>$ openclaw</div>
-            <div className='text-green-400 mb-3'>Hello! I'm OpenClaw. How can I help you with your project today?</div>
-            <div className='mb-2'>Refactor the user authentication module</div>
-            <div className='text-blue-300'>I'll help you refactor the auth module. First, let me analyze the current implementation in src/auth...</div>
-          </div>
-        </div>
+        </Space>t
       </div>
 
       <Card
