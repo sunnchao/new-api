@@ -56,6 +56,7 @@ import CodexCodeTutorial from './pages/CodexCode';
 import GeminiCodeTutorial from './pages/GeminiCode';
 import ClaudeCodeAdmin from './pages/ClaudeCode/Admin';
 import ClaudeCodeSubscription from './pages/ClaudeCode/Subscription';
+import OpenClawTutorial from './pages/OpenClaw';
 
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -433,6 +434,14 @@ function App() {
                 <ClaudeCodeSubscription />
               </Suspense>
             </PrivateRoute>
+          }
+        />
+        <Route
+          path='/openclaw'
+          element={
+            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <OpenClawTutorial />
+            </Suspense>
           }
         />
         <Route path='*' element={<NotFound />} />
