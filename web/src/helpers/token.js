@@ -44,11 +44,11 @@ export async function fetchTokenKeys() {
  */
 export async function fetchTokens() {
   try {
-    const response = await API.get('/api/token/search?keyword=');
+    const response = await API.get('/api/token/search?page_size=999');
     const { success, data } = response.data;
     if (!success) throw new Error('Failed to fetch tokens');
 
-    const tokenItems = Array.isArray(data) ? data : [];
+    const tokenItems = Array.isArray(data.items) ? data.items : [];
     return tokenItems.filter((token) => token.status === 1);
   } catch (error) {
     console.error('Error fetching tokens:', error);
