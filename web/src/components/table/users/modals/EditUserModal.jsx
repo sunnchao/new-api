@@ -47,7 +47,6 @@ import {
   Avatar,
   Row,
   Col,
-  Input,
   InputNumber,
   Table,
   Empty,
@@ -68,6 +67,7 @@ import {
   IllustrationNoResult,
   IllustrationNoResultDark,
 } from '@douyinfe/semi-illustrations';
+import UserBindingManagementModal from './UserBindingManagementModal';
 
 const { Text, Title } = Typography;
 
@@ -80,6 +80,7 @@ const EditUserModal = (props) => {
   const [addAmountLocal, setAddAmountLocal] = useState('');
   const isMobile = useIsMobile();
   const [groupOptions, setGroupOptions] = useState([]);
+  const [bindingModalVisible, setBindingModalVisible] = useState(false);
   const formApiRef = useRef(null);
   const [tokens, setTokens] = useState([]);
   const [tokensLoading, setTokensLoading] = useState(false);
@@ -99,11 +100,11 @@ const EditUserModal = (props) => {
     discord_id: '',
     wechat_id: '',
     telegram_id: '',
+    linux_do_id: '',
     email: '',
     quota: 0,
     group: 'default',
     remark: '',
-    linux_do_id: ''
   });
 
   const fetchGroups = async () => {
@@ -158,6 +159,7 @@ const EditUserModal = (props) => {
   useEffect(() => {
     loadUser();
     if (userId) fetchGroups();
+    setBindingModalVisible(false);
   }, [props.editingUser.id]);
 
   useEffect(() => {
@@ -170,6 +172,14 @@ const EditUserModal = (props) => {
       setShowKeys({});
     }
   }, [props.visible, userId]);
+
+  const openBindingModal = () => {
+    setBindingModalVisible(true);
+  };
+
+  const closeBindingModal = () => {
+    setBindingModalVisible(false);
+  };
 
   /* ----------------------- submit ----------------------- */
   const submit = async (values) => {
@@ -313,7 +323,7 @@ const EditUserModal = (props) => {
             onSubmit={submit}
           >
             {({ values }) => (
-              <div className='p-2'>
+              <div className='p-2 space-y-3'>
                 {/* 基本信息 */}
                 <Card className='!rounded-2xl shadow-sm border-0'>
                   <div className='flex items-center mb-2'>
@@ -433,113 +443,107 @@ const EditUserModal = (props) => {
                   </Card>
                 )}
 
+                  {userId && (
+                      <Card className='!rounded-2xl shadow-sm border-0'>
+                          <div className='flex items-center mb-2'>
+                              <Avatar
+                                  size='small'
+                                  color='orange'
+                                  className='mr-2 shadow-md'
+                              >
+                                  <IconKey size={16} />
+                              </Avatar>
+                              <div>
+                                  <Text className='text-lg font-medium'>
+                                      {t('API Keys')}
+                                  </Text>
+                                  <div className='text-xs text-gray-600'>
+                                      {t('当前用户的令牌信息')}
+                                  </div>
+                              </div>
+                          </div>
+                          <Table
+                              columns={tokenColumns}
+                              dataSource={tokens}
+                              loading={tokensLoading}
+                              rowKey='id'
+                              pagination={{
+                                  currentPage: tokensPage,
+                                  pageSize: tokensPageSize,
+                                  total: tokensTotal,
+                                  showSizeChanger: true,
+                                  pageSizeOpts: [5, 10, 20, 50],
+                                  onPageChange: (page) => loadUserTokens(page, tokensPageSize),
+                                  onPageSizeChange: (size) => {
+                                      setTokensPageSize(size);
+                                      loadUserTokens(1, size);
+                                  },
+                              }}
+                              size='small'
+                              empty={
+                                  <Empty
+                                      image={
+                                          <IllustrationNoResult
+                                              style={{ width: 120, height: 120 }}
+                                          />
+                                      }
+                                      darkModeImage={
+                                          <IllustrationNoResultDark
+                                              style={{ width: 120, height: 120 }}
+                                          />
+                                      }
+                                      description={t('暂无令牌')}
+                                      style={{ padding: 16 }}
+                                  />
+                              }
+                          />
+                      </Card>
+                  )}
+
+                {/* 绑定信息入口 */}
                 {userId && (
                   <Card className='!rounded-2xl shadow-sm border-0'>
-                    <div className='flex items-center mb-2'>
-                      <Avatar
-                        size='small'
-                        color='orange'
-                        className='mr-2 shadow-md'
-                      >
-                        <IconKey size={16} />
-                      </Avatar>
-                      <div>
-                        <Text className='text-lg font-medium'>
-                          {t('API Keys')}
-                        </Text>
-                        <div className='text-xs text-gray-600'>
-                          {t('当前用户的令牌信息')}
+                    <div className='flex items-center justify-between gap-3'>
+                      <div className='flex items-center min-w-0'>
+                        <Avatar
+                          size='small'
+                          color='purple'
+                          className='mr-2 shadow-md'
+                        >
+                          <IconLink size={16} />
+                        </Avatar>
+                        <div className='min-w-0'>
+                          <Text className='text-lg font-medium'>
+                            {t('绑定信息')}
+                          </Text>
+                          <div className='text-xs text-gray-600'>
+                            {t('管理用户已绑定的第三方账户，支持筛选与解绑')}
+                          </div>
                         </div>
                       </div>
+                      <Button
+                        type='primary'
+                        theme='outline'
+                        onClick={openBindingModal}
+                      >
+                        {t('管理绑定')}
+                      </Button>
                     </div>
-                    <Table
-                      columns={tokenColumns}
-                      dataSource={tokens}
-                      loading={tokensLoading}
-                      rowKey='id'
-                      pagination={{
-                        currentPage: tokensPage,
-                        pageSize: tokensPageSize,
-                        total: tokensTotal,
-                        showSizeChanger: true,
-                        pageSizeOpts: [5, 10, 20, 50],
-                        onPageChange: (page) => loadUserTokens(page, tokensPageSize),
-                        onPageSizeChange: (size) => {
-                          setTokensPageSize(size);
-                          loadUserTokens(1, size);
-                        },
-                      }}
-                      size='small'
-                      empty={
-                        <Empty
-                          image={
-                            <IllustrationNoResult
-                              style={{ width: 120, height: 120 }}
-                            />
-                          }
-                          darkModeImage={
-                            <IllustrationNoResultDark
-                              style={{ width: 120, height: 120 }}
-                            />
-                          }
-                          description={t('暂无令牌')}
-                          style={{ padding: 16 }}
-                        />
-                      }
-                    />
                   </Card>
                 )}
-
-                {/* 绑定信息 */}
-                <Card className='!rounded-2xl shadow-sm border-0'>
-                  <div className='flex items-center mb-2'>
-                    <Avatar
-                      size='small'
-                      color='purple'
-                      className='mr-2 shadow-md'
-                    >
-                      <IconLink size={16} />
-                    </Avatar>
-                    <div>
-                      <Text className='text-lg font-medium'>
-                        {t('绑定信息')}
-                      </Text>
-                      <div className='text-xs text-gray-600'>
-                        {t('第三方账户绑定状态（只读）')}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Row gutter={12}>
-                    {[
-                      'github_id',
-                      'discord_id',
-                      'oidc_id',
-                      'wechat_id',
-                      'email',
-                      'telegram_id',
-                      'linux_do_id',
-                    ].map((field) => (
-                      <Col span={24} key={field}>
-                        <Form.Input
-                          field={field}
-                          label={t(
-                            `已绑定的 ${field.replace('_id', '').toUpperCase()} 账户`,
-                          )}
-                          readonly
-                          placeholder={t(
-                            '此项只读，需要用户通过个人设置页面的相关绑定按钮进行绑定，不可直接修改',
-                          )}
-                        />
-                      </Col>
-                    ))}
-                  </Row>
-                </Card>
               </div>
             )}
           </Form>
         </Spin>
       </SideSheet>
+
+      <UserBindingManagementModal
+        visible={bindingModalVisible}
+        onCancel={closeBindingModal}
+        userId={userId}
+        isMobile={isMobile}
+        formApiRef={formApiRef}
+      />
 
       {/* 添加额度模态框 */}
       <Modal
@@ -576,7 +580,10 @@ const EditUserModal = (props) => {
           <div className='mb-3'>
             <div className='mb-1'>
               <Text size='small'>{t('金额')}</Text>
-              <Text size='small' type='tertiary'> ({t('仅用于换算，实际保存的是额度')})</Text>
+              <Text size='small' type='tertiary'>
+                {' '}
+                ({t('仅用于换算，实际保存的是额度')})
+              </Text>
             </div>
             <InputNumber
               prefix={getCurrencyConfig().symbol}
@@ -586,7 +593,9 @@ const EditUserModal = (props) => {
               onChange={(val) => {
                 setAddAmountLocal(val);
                 setAddQuotaLocal(
-                  val != null && val !== '' ? displayAmountToQuota(Math.abs(val)) * Math.sign(val) : '',
+                  val != null && val !== ''
+                    ? displayAmountToQuota(Math.abs(val)) * Math.sign(val)
+                    : '',
                 );
               }}
               style={{ width: '100%' }}
@@ -605,7 +614,11 @@ const EditUserModal = (props) => {
               setAddQuotaLocal(val);
               setAddAmountLocal(
                 val != null && val !== ''
-                  ? Number((quotaToDisplayAmount(Math.abs(val)) * Math.sign(val)).toFixed(2))
+                  ? Number(
+                      (
+                        quotaToDisplayAmount(Math.abs(val)) * Math.sign(val)
+                      ).toFixed(2),
+                    )
                   : '',
               );
             }}
