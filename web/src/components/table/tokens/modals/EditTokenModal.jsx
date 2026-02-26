@@ -68,6 +68,29 @@ const EditTokenModal = (props) => {
   const [backupGroups, setBackupGroups] = useState([]);
   const isEdit = props.editingToken.id !== undefined;
 
+  const normalizeBackupGroupOrder = (groupList, primaryGroup = '') => {
+    const normalized = [];
+    const seen = new Set();
+    const currentPrimaryGroup = (primaryGroup || '').trim();
+
+    (groupList || []).forEach((group) => {
+      const groupName = (group || '').trim();
+      if (!groupName || groupName === 'auto') {
+        return;
+      }
+      if (currentPrimaryGroup !== '' && groupName === currentPrimaryGroup) {
+        return;
+      }
+      if (seen.has(groupName)) {
+        return;
+      }
+      seen.add(groupName);
+      normalized.push(groupName);
+    });
+
+    return normalized;
+  };
+
   const getInitValues = () => ({
     name: '',
     remain_quota: 0,
@@ -168,11 +191,10 @@ const EditTokenModal = (props) => {
       } else {
         data.model_limits = [];
       }
-      if (data.backup_group !== '') {
-        data.backup_group = data.backup_group.split(',');
-      } else {
-        data.backup_group = [];
-      }
+      data.backup_group = normalizeBackupGroupOrder(
+        data.backup_group !== '' ? data.backup_group.split(',') : [],
+        data.group,
+      );
       setBackupGroups(data.backup_group || []);
       if (formApiRef.current) {
         formApiRef.current.setValues({ ...getInitValues(), ...data });
@@ -265,8 +287,9 @@ const EditTokenModal = (props) => {
       }
       localInputs.model_limits = localInputs.model_limits.join(',');
       localInputs.model_limits_enabled = localInputs.model_limits.length > 0;
-      const mergedBackupGroups = Array.from(
-        new Set(backupGroups.filter(Boolean)),
+      const mergedBackupGroups = normalizeBackupGroupOrder(
+        backupGroups,
+        localInputs.group,
       );
       localInputs.backup_group = mergedBackupGroups.join(',');
       let res = await API.put(`/api/token/`, {
@@ -307,8 +330,9 @@ const EditTokenModal = (props) => {
         }
         localInputs.model_limits = localInputs.model_limits.join(',');
         localInputs.model_limits_enabled = localInputs.model_limits.length > 0;
-        const mergedBackupGroups = Array.from(
-          new Set(backupGroups.filter(Boolean)),
+        const mergedBackupGroups = normalizeBackupGroupOrder(
+          backupGroups,
+          localInputs.group,
         );
         localInputs.backup_group = mergedBackupGroups.join(',');
         let res = await API.post(`/api/token/`, localInputs);

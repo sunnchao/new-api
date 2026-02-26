@@ -99,9 +99,15 @@ const formatGroupLabel = (group, groupInfoMap, userGroup, t) => {
   return `${name} * ${ratio}`;
 };
 
+const parseGroupList = (value) =>
+  (value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
 const renderGroupColumn = (text, record, t, groupInfoMap, userGroup) => {
   if (text === 'auto') {
-    return (
+    const autoGroupTag = (
       <Tooltip
         content={t(
           '当前分组为 auto，会自动选择最优分组，当一个组不可用时自动降级到下一个组（熔断机制）',
@@ -114,12 +120,25 @@ const renderGroupColumn = (text, record, t, groupInfoMap, userGroup) => {
         </Tag>
       </Tooltip>
     );
+    const backupGroups = parseGroupList(record?.backup_group);
+    if (backupGroups.length === 0) {
+      return autoGroupTag;
+    }
+    const backupDisplayGroups = backupGroups
+      .map((group) => formatGroupLabel(group, groupInfoMap, userGroup, t))
+      .filter(Boolean);
+    if (backupDisplayGroups.length === 0) {
+      return autoGroupTag;
+    }
+    return (
+      <span className='inline-flex items-center flex-wrap gap-1'>
+        {autoGroupTag}
+        {renderGroup(backupDisplayGroups.join(','))}
+      </span>
+    );
   }
-  const groups = (text || '').split(',').filter(Boolean);
-  const backupGroups = (record?.backup_group || '').split(',').filter(Boolean);
-  if (groups.length === 0 && backupGroups.length === 0) {
-    groups.push('');
-  }
+  const groups = parseGroupList(text);
+  const backupGroups = parseGroupList(record?.backup_group);
   const displayGroups = [...groups, ...backupGroups]
     .map((group) => formatGroupLabel(group, groupInfoMap, userGroup, t))
     .filter(Boolean);

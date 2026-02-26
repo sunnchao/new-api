@@ -168,17 +168,25 @@ func ListModels(c *gin.Context, modelType int) {
 			group = tokenGroup
 		}
 		var models []string
-		if tokenGroup == "auto" {
-			for _, autoGroup := range service.GetUserAutoGroup(userGroup) {
-				groupModels := model.GetGroupEnabledModels(autoGroup)
-				for _, g := range groupModels {
-					if !common.StringsContains(models, g) {
-						models = append(models, g)
-					}
+		addModels := func(groupModels []string) {
+			for _, modelName := range groupModels {
+				if !common.StringsContains(models, modelName) {
+					models = append(models, modelName)
 				}
 			}
+		}
+		if tokenGroup == "auto" {
+			for _, autoGroup := range service.GetUserAutoGroup(userGroup) {
+				addModels(model.GetGroupEnabledModels(autoGroup))
+			}
 		} else {
-			models = model.GetGroupEnabledModels(group)
+			// 主分组优先
+			addModels(model.GetGroupEnabledModels(group))
+			// 非 auto 场景下追加备用分组模型
+			backupTokenGroup := common.GetContextKeyString(c, constant.ContextKeyBackupTokenGroup)
+			for _, backupGroup := range service.GetTokenBackupGroup(backupTokenGroup, userGroup) {
+				addModels(model.GetGroupEnabledModels(backupGroup))
+			}
 		}
 		for _, modelName := range models {
 			if !acceptUnsetRatioModel {

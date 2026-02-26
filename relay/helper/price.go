@@ -24,15 +24,12 @@ func HandleGroupRatio(ctx *gin.Context, relayInfo *relaycommon.RelayInfo) types.
 		GroupSpecialRatio: -1,
 	}
 
-	// check auto group
+	// Prefer auto_group; fallback to backup_auto_group only when auto_group is absent.
 	autoGroup, exists := ctx.Get("auto_group")
 	if exists {
 		logger.LogDebug(ctx, fmt.Sprintf("final group: %s", autoGroup))
 		relayInfo.UsingGroup = autoGroup.(string)
-	}
-
-	backupGroup, exists := ctx.Get("backup_auto_group")
-	if exists {
+	} else if backupGroup, backupExists := ctx.Get("backup_auto_group"); backupExists {
 		logger.LogDebug(ctx, fmt.Sprintf("final group: %s", backupGroup))
 		relayInfo.UsingGroup = backupGroup.(string)
 	}

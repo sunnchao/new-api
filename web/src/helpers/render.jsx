@@ -803,13 +803,22 @@ export function renderGroup(group, backup_group = "") {
     premium: 'red',
   };
 
-  const groups = group.split(',').sort();
-  const backupGroups = backup_group.split(',').sort();
-  if (backupGroups.length) {
-    backupGroups.filter(_ => !!_).forEach((group) => {
-      groups.push(group);
-    })
-  }
+  const groups = group
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
+  const backupGroups = backup_group
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
+
+  const seenGroups = new Set(groups);
+  backupGroups.forEach((groupName) => {
+    if (!seenGroups.has(groupName)) {
+      seenGroups.add(groupName);
+      groups.push(groupName);
+    }
+  });
 
   return (
     <span key={group}>

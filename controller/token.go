@@ -203,6 +203,7 @@ func AddToken(c *gin.Context) {
 		AllowIps:           token.AllowIps,
 		Group:              token.Group,
 		CrossGroupRetry:    token.CrossGroupRetry,
+		BackupGroup:        token.BackupGroup,
 	}
 	err = cleanToken.Insert()
 	if err != nil {
