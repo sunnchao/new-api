@@ -419,7 +419,7 @@ export const getLogsColumns = ({
         }
 
         return isAdminUser &&
-          (record.type === 0 || record.type === 2 || record.type === 6 || record.type === 9 || record.type === 10) ? (
+          (record.type === 0 || record.type === 2 || record.type === 6 || record.type === 9 || record.type === 7) ? (
           <Space>
             <span style={{ position: 'relative', display: 'inline-block' }}>
               <Tooltip content={record.channel_name || t('未知渠道')}>
@@ -509,7 +509,7 @@ export const getLogsColumns = ({
       title: t('令牌'),
       dataIndex: 'token_name',
       render: (text, record, index) => {
-        return record.type === 0 || record.type === 2 || record.type === 10 ? (
+        return record.type === 0 || record.type === 2 || record.type === 7 ? (
           <div>
             <Tag
               color='grey'
@@ -532,7 +532,7 @@ export const getLogsColumns = ({
       title: t('分组'),
       dataIndex: 'group',
       render: (text, record, index) => {
-        if (record.type === 0 || record.type === 2 || record.type === 5 || record.type === 6 || record.type === 10) {
+        if (record.type === 0 || record.type === 2 || record.type === 5 || record.type === 6 || record.type === 7) {
           if (record.group) {
             return <>{renderGroup(record.group)}</>;
           } else {
@@ -572,7 +572,7 @@ export const getLogsColumns = ({
       title: t('模型'),
       dataIndex: 'model_name',
       render: (text, record, index) => {
-        return record.type === 0 || record.type === 2 || record.type === 6 || record.type === 9 || record.type === 10 ? (
+        return record.type === 0 || record.type === 2 || record.type === 6 || record.type === 9 || record.type === 7 ? (
           <>{renderModelName(record, copyText, t)}</>
         ) : (
           <></>
@@ -639,7 +639,7 @@ export const getLogsColumns = ({
           cacheText = `${t('缓存写')} ${formatTokenCount(cacheSummary.cacheWriteTokens)}`;
         }
 
-        return record.type === 0 || record.type === 2 || record.type === 10 ? (
+        return record.type === 0 || record.type === 2 || record.type === 7 ? (
           <div
             style={{
               display: 'inline-flex',
@@ -673,7 +673,7 @@ export const getLogsColumns = ({
       dataIndex: 'completion_tokens',
       render: (text, record, index) => {
         return parseInt(text) > 0 &&
-          (record.type === 0 || record.type === 2 || record.type === 10) ? (
+          (record.type === 0 || record.type === 2 || record.type === 7) ? (
           <>{<span> {text} </span>}</>
         ) : (
           <></>
@@ -772,7 +772,7 @@ export const getLogsColumns = ({
       fixed: 'right',
       render: (text, record, index) => {
         let other = getLogOther(record.other);
-        if (record.type === 10) {
+        if (record.type === 7) {
           return (
             <Typography.Paragraph
               ellipsis={{ rows: 2 }}
