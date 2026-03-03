@@ -23,7 +23,7 @@ type Token struct {
 	RemainQuota        int    `json:"remain_quota" gorm:"default:0"`
 	UnlimitedQuota     bool   `json:"unlimited_quota"`
 	ModelLimitsEnabled bool   `json:"model_limits_enabled"`
-	ModelLimits        string `json:"model_limits" gorm:"type:varchar(1024);default:''"`
+	ModelLimits        string `json:"model_limits" gorm:"type:text;default:''"`
 	// MjModel is an optional Midjourney drawing mode override for this token.
 	// Valid values: "", "fast", "relax", "turbo".
 	MjModel         string         `json:"mj_model" gorm:"type:varchar(16);default:''"`

@@ -44,6 +44,7 @@ import TokensActions from './TokensActions';
 import TokensFilters from './TokensFilters';
 import TokensDescription from './TokensDescription';
 import EditTokenModal from './modals/EditTokenModal';
+import CCSwitchModal from './modals/CCSwitchModal';
 import { useTokensData } from '../../../hooks/tokens/useTokensData';
 import { useIsMobile } from '../../../hooks/common/useIsMobile';
 import { createCardProPagination } from '../../../helpers/utils';
@@ -52,8 +53,10 @@ import { StatusContext } from '../../../context/Status';
 function TokensPage() {
   // Define the function first, then pass it into the hook to avoid TDZ errors
   const openFluentNotificationRef = useRef(null);
-  const tokensData = useTokensData((key) =>
-    openFluentNotificationRef.current?.(key),
+  const openCCSwitchModalRef = useRef(null);
+  const tokensData = useTokensData(
+    (key) => openFluentNotificationRef.current?.(key),
+    (key) => openCCSwitchModalRef.current?.(key),
   );
   const [statusState] = useContext(StatusContext);
   const isMobile = useIsMobile();
@@ -68,6 +71,8 @@ function TokensPage() {
   const [selectedModel, setSelectedModel] = useState('');
   const [fluentNoticeOpen, setFluentNoticeOpen] = useState(false);
   const [prefillKey, setPrefillKey] = useState('');
+  const [ccSwitchVisible, setCCSwitchVisible] = useState(false);
+  const [ccSwitchKey, setCCSwitchKey] = useState('');
   const [groups, setGroups] = useState([]);
   const groupInfoMap = useMemo(() => {
     const map = {};
@@ -239,6 +244,15 @@ function TokensPage() {
   }
   // assign after definition so hook callback can call it safely
   openFluentNotificationRef.current = openFluentNotification;
+
+  function openCCSwitchModal(key) {
+    if (modelOptions.length === 0) {
+      loadModels();
+    }
+    setCCSwitchKey(key || '');
+    setCCSwitchVisible(true);
+  }
+  openCCSwitchModalRef.current = openCCSwitchModal;
 
   // Prefill to Fluent handler
   const handlePrefillToFluent = () => {
@@ -418,6 +432,13 @@ function TokensPage() {
         editingToken={editingToken}
         visiable={showEdit}
         handleClose={closeEdit}
+      />
+
+      <CCSwitchModal
+        visible={ccSwitchVisible}
+        onClose={() => setCCSwitchVisible(false)}
+        tokenKey={ccSwitchKey}
+        modelOptions={modelOptions}
       />
 
       <CardPro
