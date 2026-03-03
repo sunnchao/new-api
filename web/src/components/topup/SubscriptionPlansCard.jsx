@@ -366,7 +366,6 @@ const SubscriptionPlansCard = ({
                 <Select
                   value={displayBillingPreference}
                   onChange={onChangeBillingPreference}
-                  size='small'
                   optionList={[
                     {
                       value: 'subscription_first',
@@ -387,7 +386,6 @@ const SubscriptionPlansCard = ({
                   ]}
                 />
                 <Button
-                  size='small'
                   theme='light'
                   type='tertiary'
                   icon={

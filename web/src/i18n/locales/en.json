@@ -3300,6 +3300,6 @@
     "待处理": "Pending",
     "OpenClaw": "OpenClaw",
     "用户不可选分组": "User unselectable groups",
-    "用户不可选分组，格式为 JSON 字符串，例如：{\"internal\": \"内部\"}，表示普通用户不可见 internal 分组": "User unselectable groups, in JSON string format, e.g. {\"internal\": \"Internal\"}, meaning normal users will not see the internal group",
+    "用户不可选分组，格式为 JSON 字符串，例如：{\"internal\": \"内部\"}，表示普通用户不可见 internal 分组": "User unselectable groups, in JSON string format, e.g. {\"internal\": \"Internal\"}, meaning normal users will not see the internal group"
   }
 }
