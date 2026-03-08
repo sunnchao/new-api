@@ -290,7 +290,7 @@ export default function GroupRatioSettings(props) {
           </Col>
         </Row>
       </Form>
-      <Button onClick={onSubmit}>{t('保存分组倍率设置')}</Button>
+      <Button onClick={onSubmit}>{t('保存分组相关设置')}</Button>
     </Spin>
   );
 }
