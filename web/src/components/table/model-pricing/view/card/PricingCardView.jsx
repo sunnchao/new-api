@@ -41,6 +41,7 @@ import {
   getLobeHubIcon,
 } from '../../../../../helpers';
 import PricingCardSkeleton from './PricingCardSkeleton';
+import TierPricingBadge from './TierPricingBadge';
 import { useMinimumLoadingTime } from '../../../../../hooks/common/useMinimumLoadingTime';
 import { renderLimitedItems } from '../../../../common/ui/RenderUtils';
 import { useIsMobile } from '../../../../../hooks/common/useIsMobile';
@@ -75,6 +76,7 @@ const PricingCardView = ({
   selectedRowKeys = [],
   setSelectedRowKeys,
   openModelDetail,
+  tierPricingConfig,
 }) => {
   const showSkeleton = useMinimumLoadingTime(loading);
   const startIndex = (currentPage - 1) * pageSize;
@@ -209,6 +211,18 @@ const PricingCardView = ({
     );
   };
 
+  // 渲染阶梯计费标签
+  const renderTierPricingTag = (model) => {
+    if (!tierPricingConfig?.enabled) return null;
+    return (
+      <TierPricingBadge
+        modelName={model.model_name}
+        tierPricingConfig={tierPricingConfig}
+        t={t}
+      />
+    );
+  };
+
   // 显示骨架屏
   if (showSkeleton) {
     return (
@@ -310,6 +324,12 @@ const PricingCardView = ({
 
                 {/* 底部区域 */}
                 <div className='mt-auto'>
+                  {/* 阶梯计费标签 */}
+                  {renderTierPricingTag(model) && (
+                    <div className='mb-2'>
+                      {renderTierPricingTag(model)}
+                    </div>
+                  )}
                   {/* 标签区域 */}
                   {renderTags(model)}
 

@@ -51,6 +51,7 @@ export const useModelPricingData = () => {
   const [usableGroup, setUsableGroup] = useState({});
   const [endpointMap, setEndpointMap] = useState({});
   const [autoGroups, setAutoGroups] = useState([]);
+  const [tierPricingConfig, setTierPricingConfig] = useState({ enabled: false, rules: [] });
 
   const [statusState] = useContext(StatusContext);
   const [userState] = useContext(UserContext);
@@ -260,6 +261,32 @@ export const useModelPricingData = () => {
     setLoading(false);
   };
 
+  const loadTierPricingConfig = async () => {
+    try {
+      const res = await API.get('/api/option/');
+      if (res.data.success) {
+        const options = res.data.data;
+        let enabled = false;
+        let rules = [];
+        options.forEach((item) => {
+          if (item.key === 'tier_pricing.enabled') {
+            enabled = item.value === 'true' || item.value === true;
+          }
+          if (item.key === 'tier_pricing.rules') {
+            try {
+              rules = JSON.parse(item.value || '[]');
+            } catch (e) {
+              rules = [];
+            }
+          }
+        });
+        setTierPricingConfig({ enabled, rules });
+      }
+    } catch (e) {
+      console.error('Failed to load tier pricing config:', e);
+    }
+  };
+
   const refresh = async () => {
     await loadPricing();
   };
@@ -317,6 +344,7 @@ export const useModelPricingData = () => {
 
   useEffect(() => {
     refresh().then();
+    loadTierPricingConfig().then();
   }, []);
 
   // 当筛选条件变化时重置到第一页
@@ -374,6 +402,7 @@ export const useModelPricingData = () => {
     usableGroup,
     endpointMap,
     autoGroups,
+    tierPricingConfig,
 
     // 计算属性
     priceRate,
