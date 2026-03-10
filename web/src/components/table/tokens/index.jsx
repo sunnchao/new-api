@@ -66,6 +66,7 @@ function TokensPage() {
     t: (k) => k,
     selectedModel: '',
     prefillKey: '',
+    fetchTokenKey: async () => '',
   });
   const [modelOptions, setModelOptions] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
@@ -101,6 +102,7 @@ function TokensPage() {
       t: tokensData.t,
       selectedModel,
       prefillKey,
+      fetchTokenKey: tokensData.fetchTokenKey,
     };
   }, [
     tokensData.tokens,
@@ -108,6 +110,7 @@ function TokensPage() {
     tokensData.t,
     selectedModel,
     prefillKey,
+    tokensData.fetchTokenKey,
   ]);
 
   const loadModels = async () => {
@@ -255,13 +258,14 @@ function TokensPage() {
   openCCSwitchModalRef.current = openCCSwitchModal;
 
   // Prefill to Fluent handler
-  const handlePrefillToFluent = () => {
+  const handlePrefillToFluent = async () => {
     const {
       tokens,
       selectedKeys,
       t,
       selectedModel: chosenModel,
       prefillKey: overrideKey,
+      fetchTokenKey,
     } = latestRef.current;
     const container = document.getElementById('fluent-new-api-container');
     if (!container) {
@@ -298,7 +302,11 @@ function TokensPage() {
         Toast.warning(t('没有可用令牌用于填充'));
         return;
       }
-      apiKeyToUse = 'sk-' + token.key;
+      try {
+        apiKeyToUse = 'sk-' + (await fetchTokenKey(token));
+      } catch (_) {
+        return;
+      }
     }
 
     const payload = {
@@ -408,7 +416,6 @@ function TokensPage() {
     setShowEdit,
     batchCopyTokens,
     batchDeleteTokens,
-    copyText,
 
     // Filters state
     formInitValues,
@@ -458,7 +465,6 @@ function TokensPage() {
               setShowEdit={setShowEdit}
               batchCopyTokens={batchCopyTokens}
               batchDeleteTokens={batchDeleteTokens}
-              copyText={copyText}
               t={t}
             />
 
