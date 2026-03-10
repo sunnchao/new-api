@@ -105,50 +105,7 @@ export const useLogsData = () => {
     logType: '0',
   };
 
-  // Column visibility state
-  const [visibleColumns, setVisibleColumns] = useState({});
-  const [showColumnSelector, setShowColumnSelector] = useState(false);
-
-  // Compact mode
-  const [compactMode, setCompactMode] = useTableCompactMode('logs');
-
-  // User info modal state
-  const [showUserInfo, setShowUserInfoModal] = useState(false);
-  const [userInfoData, setUserInfoData] = useState(null);
   const [loadingUserId, setLoadingUserId] = useState(null);
-
-  // Channel affinity usage cache stats modal state (admin only)
-  const [
-    showChannelAffinityUsageCacheModal,
-    setShowChannelAffinityUsageCacheModal,
-  ] = useState(false);
-  const [channelAffinityUsageCacheTarget, setChannelAffinityUsageCacheTarget] =
-    useState(null);
-
-  // Load saved column preferences from localStorage
-  useEffect(() => {
-    const savedColumns = localStorage.getItem(STORAGE_KEY);
-    if (savedColumns) {
-      try {
-        const parsed = JSON.parse(savedColumns);
-        const defaults = getDefaultColumnVisibility();
-        const merged = { ...defaults, ...parsed };
-
-        // For non-admin users, force-hide admin-only columns (does not touch admin settings)
-        if (!isAdminUser) {
-          merged[COLUMN_KEYS.CHANNEL] = false;
-          merged[COLUMN_KEYS.USERNAME] = false;
-          merged[COLUMN_KEYS.RETRY] = false;
-        }
-        setVisibleColumns(merged);
-      } catch (e) {
-        console.error('Failed to parse saved column preferences', e);
-        initDefaultColumns();
-      }
-    } else {
-      initDefaultColumns();
-    }
-  }, []);
 
   // Get default column visibility based on user role
   const getDefaultColumnVisibility = () => {

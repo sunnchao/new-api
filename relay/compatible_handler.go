@@ -256,6 +256,25 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 	groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
 	modelPrice := relayInfo.PriceData.ModelPrice
 	cachedCreationRatio := relayInfo.PriceData.CacheCreationRatio
+	tierPromptTokens := promptTokens
+	if relayInfo.ChannelType == constant.ChannelTypeAnthropic {
+		// Anthropic usage: input tokens exclude cache read/write tokens.
+		tierPromptTokens = promptTokens + cacheTokens + cachedCreationTokens
+	}
+	tierResult := model_setting.TokenTierResolveResult{}
+	if !relayInfo.PriceData.UsePrice {
+		tierResult = model_setting.ResolveTokenTierPricing(model_setting.TokenTierResolveInput{
+			UserID:          relayInfo.UserId,
+			ModelName:       modelName,
+			PromptTokens:    tierPromptTokens,
+			ModelRatio:      modelRatio,
+			CompletionRatio: completionRatio,
+		})
+		if tierResult.Applied {
+			modelRatio = tierResult.ModelRatio
+			completionRatio = tierResult.CompletionRatio
+		}
+	}
 
 	// Convert values to decimal for precise calculation
 	dPromptTokens := decimal.NewFromInt(int64(promptTokens))
@@ -453,6 +472,29 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 		other["image"] = true
 		other["image_ratio"] = imageRatio
 		other["image_output"] = imageTokens
+	}
+	if tierResult.Applied {
+		other["token_tier"] = true
+		other["token_tier_source"] = tierResult.Source
+		other["token_tier_prompt_tokens"] = tierPromptTokens
+		if tierResult.RuleID != "" {
+			other["token_tier_rule_id"] = tierResult.RuleID
+		}
+		if tierResult.ThresholdTokens > 0 {
+			other["token_tier_threshold"] = tierResult.ThresholdTokens
+		}
+		if tierResult.RolloutMode != "" {
+			other["token_tier_rollout_mode"] = tierResult.RolloutMode
+		}
+		if tierResult.RolloutAllowlistSize > 0 {
+			other["token_tier_rollout_allowlist_size"] = tierResult.RolloutAllowlistSize
+		}
+		if tierResult.InputPriceMultiplier > 0 {
+			other["token_tier_input_multiplier"] = tierResult.InputPriceMultiplier
+		}
+		if tierResult.OutputPriceMultiplier > 0 {
+			other["token_tier_output_multiplier"] = tierResult.OutputPriceMultiplier
+		}
 	}
 	if cachedCreationTokens != 0 {
 		other["cache_creation_tokens"] = cachedCreationTokens

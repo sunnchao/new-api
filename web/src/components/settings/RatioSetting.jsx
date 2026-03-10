@@ -27,6 +27,7 @@ import ModelSettingsVisualEditor from '../../pages/Setting/Ratio/ModelSettingsVi
 import ModelRatioNotSetEditor from '../../pages/Setting/Ratio/ModelRationNotSetEditor';
 import UpstreamRatioSync from '../../pages/Setting/Ratio/UpstreamRatioSync';
 import GroupRatioVisualEditor from '../../pages/Setting/Ratio/GroupRatioVisualEditor';
+import TierPricingVisualEditor from '../../pages/Setting/Ratio/TierPricingVisualEditor';
 
 import { API, showError, toBoolean } from '../../helpers';
 
@@ -50,6 +51,8 @@ const RatioSetting = () => {
     UserUsableGroups: '',
     UserUnselectableGroups: '',
     'group_ratio_setting.group_special_usable_group': '',
+    'tier_pricing.enabled': false,
+    'tier_pricing.rules': '[]',
   });
 
   const [loading, setLoading] = useState(false);
@@ -67,8 +70,17 @@ const RatioSetting = () => {
             // 如果后端返回的不是合法 JSON，直接展示
           }
         }
-        if (['DefaultUseAutoGroup', 'ExposeRatioEnabled'].includes(item.key)) {
+        if (['DefaultUseAutoGroup', 'ExposeRatioEnabled', 'tier_pricing.enabled'].includes(item.key)) {
           newInputs[item.key] = toBoolean(item.value);
+        } else if (item.key === 'tier_pricing.rules') {
+          if (item.value !== '') {
+            try {
+              item.value = JSON.stringify(JSON.parse(item.value), null, 2);
+            } catch (e) {
+              // Keep raw value
+            }
+          }
+          newInputs[item.key] = item.value;
         } else {
           newInputs[item.key] = item.value;
         }
@@ -117,6 +129,9 @@ const RatioSetting = () => {
           </Tabs.TabPane>
           <Tabs.TabPane tab={t('上游倍率同步')} itemKey='upstream_sync'>
             <UpstreamRatioSync options={inputs} refresh={onRefresh} />
+          </Tabs.TabPane>
+          <Tabs.TabPane tab={t('阶梯计费')} itemKey='tier_pricing'>
+            <TierPricingVisualEditor options={inputs} refresh={onRefresh} />
           </Tabs.TabPane>
         </Tabs>
       </Card>

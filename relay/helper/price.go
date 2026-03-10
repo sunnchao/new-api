@@ -93,16 +93,15 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		audioCompletionRatio = ratio_setting.GetAudioCompletionRatio(info.OriginModelName)
 		ratio := modelRatio * groupRatioInfo.GroupRatio
 		ratioForPreConsume := ratio
-		// Claude pricing has a long-prompt tier that changes when total prompt tokens exceed a threshold.
-		// Pre-consume uses an estimated prompt token count, so we apply the tier based on the request's
-		// estimated prompt tokens (NOT including max_tokens).
-		if common.IsClaudeModel(info.OriginModelName) {
-			claudeCfg := model_setting.GetClaudeSettings()
-			if claudeCfg.GetLongPromptPricingEnabled() &&
-				common.ShouldApplyClaudeLongPromptRollout(info.UserId, claudeCfg.GetLongPromptPricingRolloutUserIds()) &&
-				common.IsClaudeLongPrompt(promptTokens, claudeCfg.GetLongPromptPricingThresholdTokens()) {
-				ratioForPreConsume *= claudeCfg.GetLongPromptPricingInputPriceMultiplier()
-			}
+		tierResult := model_setting.ResolveTokenTierPricing(model_setting.TokenTierResolveInput{
+			UserID:          info.UserId,
+			ModelName:       info.OriginModelName,
+			PromptTokens:    promptTokens,
+			ModelRatio:      modelRatio,
+			CompletionRatio: completionRatio,
+		})
+		if tierResult.Applied {
+			ratioForPreConsume = tierResult.ModelRatio * groupRatioInfo.GroupRatio
 		}
 		preConsumedQuota = int(float64(preConsumedTokens) * ratioForPreConsume)
 	} else {

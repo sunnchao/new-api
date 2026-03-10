@@ -31,13 +31,14 @@ type TokenDetails struct {
 }
 
 type QuotaInfo struct {
-	InputDetails  TokenDetails
-	OutputDetails TokenDetails
-	ModelName     string
-	UsePrice      bool
-	ModelPrice    float64
-	ModelRatio    float64
-	GroupRatio    float64
+	InputDetails    TokenDetails
+	OutputDetails   TokenDetails
+	ModelName       string
+	UsePrice        bool
+	ModelPrice      float64
+	ModelRatio      float64
+	CompletionRatio float64
+	GroupRatio      float64
 }
 
 func hasCustomModelRatio(modelName string, currentRatio float64) bool {
@@ -58,7 +59,11 @@ func calculateAudioQuota(info QuotaInfo) int {
 		return int(quota.IntPart())
 	}
 
-	completionRatio := decimal.NewFromFloat(ratio_setting.GetCompletionRatio(info.ModelName))
+	completionRatioValue := info.CompletionRatio
+	if completionRatioValue <= 0 {
+		completionRatioValue = ratio_setting.GetCompletionRatio(info.ModelName)
+	}
+	completionRatio := decimal.NewFromFloat(completionRatioValue)
 	audioRatio := decimal.NewFromFloat(ratio_setting.GetAudioRatio(info.ModelName))
 	audioCompletionRatio := decimal.NewFromFloat(ratio_setting.GetAudioCompletionRatio(info.ModelName))
 
@@ -108,6 +113,20 @@ func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usag
 	audioOutTokens := usage.OutputTokenDetails.AudioTokens
 	groupRatio := ratio_setting.GetGroupRatio(relayInfo.UsingGroup)
 	modelRatio, _, _ := ratio_setting.GetModelRatio(modelName)
+	completionRatio := ratio_setting.GetCompletionRatio(modelName)
+	if !relayInfo.UsePrice {
+		tierResult := model_setting.ResolveTokenTierPricing(model_setting.TokenTierResolveInput{
+			UserID:          relayInfo.UserId,
+			ModelName:       modelName,
+			PromptTokens:    usage.InputTokens,
+			ModelRatio:      modelRatio,
+			CompletionRatio: completionRatio,
+		})
+		if tierResult.Applied {
+			modelRatio = tierResult.ModelRatio
+			completionRatio = tierResult.CompletionRatio
+		}
+	}
 
 	autoGroup, exists := common.GetContextKey(ctx, constant.ContextKeyAutoGroup)
 	if exists {
@@ -135,10 +154,11 @@ func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usag
 			TextTokens:  textOutTokens,
 			AudioTokens: audioOutTokens,
 		},
-		ModelName:  modelName,
-		UsePrice:   relayInfo.UsePrice,
-		ModelRatio: modelRatio,
-		GroupRatio: actualGroupRatio,
+		ModelName:       modelName,
+		UsePrice:        relayInfo.UsePrice,
+		ModelRatio:      modelRatio,
+		CompletionRatio: completionRatio,
+		GroupRatio:      actualGroupRatio,
 	}
 
 	quota := calculateAudioQuota(quotaInfo)
@@ -170,14 +190,31 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 	audioOutTokens := usage.OutputTokenDetails.AudioTokens
 
 	tokenName := ctx.GetString("token_name")
-	completionRatio := decimal.NewFromFloat(ratio_setting.GetCompletionRatio(modelName))
-	audioRatio := decimal.NewFromFloat(ratio_setting.GetAudioRatio(relayInfo.OriginModelName))
-	audioCompletionRatio := decimal.NewFromFloat(ratio_setting.GetAudioCompletionRatio(modelName))
+	completionRatioValue := ratio_setting.GetCompletionRatio(modelName)
+	audioRatioValue := ratio_setting.GetAudioRatio(relayInfo.OriginModelName)
+	audioCompletionRatioValue := ratio_setting.GetAudioCompletionRatio(modelName)
 
 	modelRatio := relayInfo.PriceData.ModelRatio
 	groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
 	modelPrice := relayInfo.PriceData.ModelPrice
 	usePrice := relayInfo.PriceData.UsePrice
+	tierResult := model_setting.TokenTierResolveResult{}
+	if !usePrice {
+		tierResult = model_setting.ResolveTokenTierPricing(model_setting.TokenTierResolveInput{
+			UserID:          relayInfo.UserId,
+			ModelName:       modelName,
+			PromptTokens:    usage.InputTokens,
+			ModelRatio:      modelRatio,
+			CompletionRatio: completionRatioValue,
+		})
+		if tierResult.Applied {
+			modelRatio = tierResult.ModelRatio
+			completionRatioValue = tierResult.CompletionRatio
+		}
+	}
+	completionRatio := decimal.NewFromFloat(completionRatioValue)
+	audioRatio := decimal.NewFromFloat(audioRatioValue)
+	audioCompletionRatio := decimal.NewFromFloat(audioCompletionRatioValue)
 
 	quotaInfo := QuotaInfo{
 		InputDetails: TokenDetails{
@@ -188,10 +225,11 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 			TextTokens:  textOutTokens,
 			AudioTokens: audioOutTokens,
 		},
-		ModelName:  modelName,
-		UsePrice:   usePrice,
-		ModelRatio: modelRatio,
-		GroupRatio: groupRatio,
+		ModelName:       modelName,
+		UsePrice:        usePrice,
+		ModelRatio:      modelRatio,
+		CompletionRatio: completionRatioValue,
+		GroupRatio:      groupRatio,
 	}
 
 	quota := calculateAudioQuota(quotaInfo)
@@ -223,7 +261,30 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 		logContent += ", " + extraContent
 	}
 	other := GenerateWssOtherInfo(ctx, relayInfo, usage, modelRatio, groupRatio,
-		completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
+		completionRatioValue, audioRatioValue, audioCompletionRatioValue, modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
+	if tierResult.Applied {
+		other["token_tier"] = true
+		other["token_tier_source"] = tierResult.Source
+		other["token_tier_prompt_tokens"] = usage.InputTokens
+		if tierResult.RuleID != "" {
+			other["token_tier_rule_id"] = tierResult.RuleID
+		}
+		if tierResult.ThresholdTokens > 0 {
+			other["token_tier_threshold"] = tierResult.ThresholdTokens
+		}
+		if tierResult.RolloutMode != "" {
+			other["token_tier_rollout_mode"] = tierResult.RolloutMode
+		}
+		if tierResult.RolloutAllowlistSize > 0 {
+			other["token_tier_rollout_allowlist_size"] = tierResult.RolloutAllowlistSize
+		}
+		if tierResult.InputPriceMultiplier > 0 {
+			other["token_tier_input_multiplier"] = tierResult.InputPriceMultiplier
+		}
+		if tierResult.OutputPriceMultiplier > 0 {
+			other["token_tier_output_multiplier"] = tierResult.OutputPriceMultiplier
+		}
+	}
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
 		PromptTokens:     usage.InputTokens,
@@ -265,37 +326,23 @@ func PostClaudeConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, 
 	cacheCreationTokens5m := usage.ClaudeCacheCreation5mTokens
 	cacheCreationTokens1h := usage.ClaudeCacheCreation1hTokens
 
-	// Claude pricing has a long-prompt tier (threshold configurable) that changes input/output prices.
-	// Apply it in ratio mode only, and gate by rollout allowlist.
 	tierPromptTokens := promptTokens
 	if relayInfo.ChannelType == constant.ChannelTypeAnthropic {
 		// Anthropic usage semantics: input_tokens does not include cache read/write tokens.
 		tierPromptTokens = promptTokens + cacheTokens + cacheCreationTokens
 	}
-	appliedClaudeLongPromptTier := false
-	claudeLongPromptThresholdTokens := 0
-	claudeLongPromptInputMultiplier := 0.0
-	claudeLongPromptOutputMultiplier := 0.0
-	claudeLongPromptRolloutMode := ""
-	claudeLongPromptAllowlistSize := 0
-	if !relayInfo.PriceData.UsePrice && common.IsClaudeModel(modelName) {
-		claudeCfg := model_setting.GetClaudeSettings()
-		allowlist := claudeCfg.GetLongPromptPricingRolloutUserIds()
-		claudeLongPromptAllowlistSize = len(allowlist)
-		claudeLongPromptThresholdTokens = claudeCfg.GetLongPromptPricingThresholdTokens()
-		claudeLongPromptInputMultiplier = claudeCfg.GetLongPromptPricingInputPriceMultiplier()
-		claudeLongPromptOutputMultiplier = claudeCfg.GetLongPromptPricingOutputPriceMultiplier()
-		if claudeCfg.GetLongPromptPricingEnabled() &&
-			common.ShouldApplyClaudeLongPromptRollout(relayInfo.UserId, allowlist) {
-			claudeLongPromptRolloutMode = "allowlist"
-			modelRatio, completionRatio, appliedClaudeLongPromptTier = common.ApplyClaudeLongPromptTier(
-				tierPromptTokens,
-				claudeLongPromptThresholdTokens,
-				claudeLongPromptInputMultiplier,
-				claudeLongPromptOutputMultiplier,
-				modelRatio,
-				completionRatio,
-			)
+	tierResult := model_setting.TokenTierResolveResult{}
+	if !relayInfo.PriceData.UsePrice {
+		tierResult = model_setting.ResolveTokenTierPricing(model_setting.TokenTierResolveInput{
+			UserID:          relayInfo.UserId,
+			ModelName:       modelName,
+			PromptTokens:    tierPromptTokens,
+			ModelRatio:      modelRatio,
+			CompletionRatio: completionRatio,
+		})
+		if tierResult.Applied {
+			modelRatio = tierResult.ModelRatio
+			completionRatio = tierResult.CompletionRatio
 		}
 	}
 
@@ -362,16 +409,47 @@ func PostClaudeConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, 
 		cacheCreationTokens5m, cacheCreationRatio5m,
 		cacheCreationTokens1h, cacheCreationRatio1h,
 		modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
-	if appliedClaudeLongPromptTier {
-		other["claude_long_prompt"] = true
-		other["claude_prompt_tokens_for_tier"] = tierPromptTokens
-		other["claude_long_prompt_threshold"] = claudeLongPromptThresholdTokens
-		if claudeLongPromptRolloutMode != "" {
-			other["claude_long_prompt_rollout_mode"] = claudeLongPromptRolloutMode
+	if tierResult.Applied {
+		other["token_tier"] = true
+		other["token_tier_source"] = tierResult.Source
+		other["token_tier_prompt_tokens"] = tierPromptTokens
+		if tierResult.RuleID != "" {
+			other["token_tier_rule_id"] = tierResult.RuleID
 		}
-		other["claude_long_prompt_allowlist_size"] = claudeLongPromptAllowlistSize
-		other["claude_long_prompt_input_multiplier"] = claudeLongPromptInputMultiplier
-		other["claude_long_prompt_output_multiplier"] = claudeLongPromptOutputMultiplier
+		if tierResult.ThresholdTokens > 0 {
+			other["token_tier_threshold"] = tierResult.ThresholdTokens
+		}
+		if tierResult.RolloutMode != "" {
+			other["token_tier_rollout_mode"] = tierResult.RolloutMode
+		}
+		if tierResult.RolloutAllowlistSize > 0 {
+			other["token_tier_rollout_allowlist_size"] = tierResult.RolloutAllowlistSize
+		}
+		if tierResult.InputPriceMultiplier > 0 {
+			other["token_tier_input_multiplier"] = tierResult.InputPriceMultiplier
+		}
+		if tierResult.OutputPriceMultiplier > 0 {
+			other["token_tier_output_multiplier"] = tierResult.OutputPriceMultiplier
+		}
+		if tierResult.Source == model_setting.TokenTierSourceClaudeLegacy {
+			other["claude_long_prompt"] = true
+			other["claude_prompt_tokens_for_tier"] = tierPromptTokens
+			if tierResult.ThresholdTokens > 0 {
+				other["claude_long_prompt_threshold"] = tierResult.ThresholdTokens
+			}
+			if tierResult.RolloutMode != "" {
+				other["claude_long_prompt_rollout_mode"] = tierResult.RolloutMode
+			}
+			if tierResult.RolloutAllowlistSize > 0 {
+				other["claude_long_prompt_allowlist_size"] = tierResult.RolloutAllowlistSize
+			}
+			if tierResult.InputPriceMultiplier > 0 {
+				other["claude_long_prompt_input_multiplier"] = tierResult.InputPriceMultiplier
+			}
+			if tierResult.OutputPriceMultiplier > 0 {
+				other["claude_long_prompt_output_multiplier"] = tierResult.OutputPriceMultiplier
+			}
+		}
 	}
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
@@ -421,14 +499,31 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	audioOutTokens := usage.CompletionTokenDetails.AudioTokens
 
 	tokenName := ctx.GetString("token_name")
-	completionRatio := decimal.NewFromFloat(ratio_setting.GetCompletionRatio(relayInfo.OriginModelName))
-	audioRatio := decimal.NewFromFloat(ratio_setting.GetAudioRatio(relayInfo.OriginModelName))
-	audioCompletionRatio := decimal.NewFromFloat(ratio_setting.GetAudioCompletionRatio(relayInfo.OriginModelName))
+	completionRatioValue := ratio_setting.GetCompletionRatio(relayInfo.OriginModelName)
+	audioRatioValue := ratio_setting.GetAudioRatio(relayInfo.OriginModelName)
+	audioCompletionRatioValue := ratio_setting.GetAudioCompletionRatio(relayInfo.OriginModelName)
 
 	modelRatio := relayInfo.PriceData.ModelRatio
 	groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
 	modelPrice := relayInfo.PriceData.ModelPrice
 	usePrice := relayInfo.PriceData.UsePrice
+	tierResult := model_setting.TokenTierResolveResult{}
+	if !usePrice {
+		tierResult = model_setting.ResolveTokenTierPricing(model_setting.TokenTierResolveInput{
+			UserID:          relayInfo.UserId,
+			ModelName:       relayInfo.OriginModelName,
+			PromptTokens:    usage.PromptTokens,
+			ModelRatio:      modelRatio,
+			CompletionRatio: completionRatioValue,
+		})
+		if tierResult.Applied {
+			modelRatio = tierResult.ModelRatio
+			completionRatioValue = tierResult.CompletionRatio
+		}
+	}
+	completionRatio := decimal.NewFromFloat(completionRatioValue)
+	audioRatio := decimal.NewFromFloat(audioRatioValue)
+	audioCompletionRatio := decimal.NewFromFloat(audioCompletionRatioValue)
 
 	quotaInfo := QuotaInfo{
 		InputDetails: TokenDetails{
@@ -439,10 +534,11 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 			TextTokens:  textOutTokens,
 			AudioTokens: audioOutTokens,
 		},
-		ModelName:  relayInfo.OriginModelName,
-		UsePrice:   usePrice,
-		ModelRatio: modelRatio,
-		GroupRatio: groupRatio,
+		ModelName:       relayInfo.OriginModelName,
+		UsePrice:        usePrice,
+		ModelRatio:      modelRatio,
+		CompletionRatio: completionRatioValue,
+		GroupRatio:      groupRatio,
 	}
 
 	quota := calculateAudioQuota(quotaInfo)
@@ -478,7 +574,34 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 		logContent += ", " + extraContent
 	}
 	other := GenerateAudioOtherInfo(ctx, relayInfo, usage, modelRatio, groupRatio,
-		completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
+		completionRatioValue, audioRatioValue, audioCompletionRatioValue, modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
+	if tierResult.Applied {
+		other["token_tier"] = true
+		other["token_tier_source"] = tierResult.Source
+		other["token_tier_prompt_tokens"] = usage.PromptTokens
+		if tierResult.RuleID != "" {
+			other["token_tier_rule_id"] = tierResult.RuleID
+		}
+		if tierResult.ThresholdTokens > 0 {
+			other["token_tier_threshold"] = tierResult.ThresholdTokens
+		}
+		if tierResult.RolloutMode != "" {
+			other["token_tier_rollout_mode"] = tierResult.RolloutMode
+		}
+		if tierResult.RolloutAllowlistSize > 0 {
+			other["token_tier_rollout_allowlist_size"] = tierResult.RolloutAllowlistSize
+		}
+		if tierResult.InputPriceMultiplier > 0 {
+			other["token_tier_input_multiplier"] = tierResult.InputPriceMultiplier
+		}
+		if tierResult.OutputPriceMultiplier > 0 {
+			other["token_tier_output_multiplier"] = tierResult.OutputPriceMultiplier
+		}
+		if tierResult.Source == model_setting.TokenTierSourceClaudeLegacy {
+			other["claude_long_prompt"] = true
+			other["claude_prompt_tokens_for_tier"] = usage.PromptTokens
+		}
+	}
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
 		PromptTokens:     usage.PromptTokens,
