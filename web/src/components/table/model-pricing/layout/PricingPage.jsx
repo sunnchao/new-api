@@ -29,7 +29,7 @@ const PricingPage = () => {
   const pricingData = useModelPricingData();
   const { Sider, Content } = Layout;
   const isMobile = useIsMobile();
-  const [showRatio, setShowRatio] = React.useState(false);
+  const [showRatio, setShowRatio] = React.useState(true);
   const [viewMode, setViewMode] = React.useState('card');
   const allProps = {
     ...pricingData,
