@@ -43,13 +43,14 @@ func MaskTokenKey(key string) string {
 	if key == "" {
 		return ""
 	}
-	if len(key) <= 4 {
-		return strings.Repeat("*", len(key))
-	}
-	if len(key) <= 8 {
-		return key[:2] + "****" + key[len(key)-2:]
-	}
-	return key[:4] + "**********" + key[len(key)-4:]
+	return key
+	//if len(key) <= 4 {
+	//	return strings.Repeat("*", len(key))
+	//}
+	//if len(key) <= 8 {
+	//	return key[:2] + "****" + key[len(key)-2:]
+	//}
+	//return key[:4] + "**********" + key[len(key)-4:]
 }
 
 func (token *Token) GetFullKey() string {
