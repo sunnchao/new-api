@@ -1344,6 +1344,7 @@ function renderPriceSimpleCore({
   isSystemPromptOverride = false,
   displayMode = 'price',
   outputMode = 'text',
+                                 completion_ratio = 1
 }) {
   const { ratio: effectiveGroupRatio, label: ratioLabel } = getEffectiveRatio(
     groupRatio,
@@ -1386,6 +1387,12 @@ function renderPriceSimpleCore({
         tone: 'secondary',
         text: i18next.t('输入 {{price}} / 1M tokens', {
           price: formatCompactDisplayPrice(modelRatio * 2.0),
+        }),
+      });
+      segments.push({
+        tone: 'secondary',
+        text: i18next.t('输出 {{price}} / 1M tokens', {
+          price: formatCompactDisplayPrice(modelRatio * completion_ratio * 2.0),
         }),
       });
 
@@ -2257,6 +2264,7 @@ export function renderModelPriceSimple(
   provider = 'openai',
   displayMode = 'price',
   outputMode = 'text',
+  completion_ratio = 1
 ) {
   return renderPriceSimpleCore({
     modelRatio,
@@ -2276,6 +2284,7 @@ export function renderModelPriceSimple(
     isSystemPromptOverride,
     displayMode,
     outputMode,
+    completion_ratio
   });
 }
 
