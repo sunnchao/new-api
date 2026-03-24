@@ -42,17 +42,17 @@ type Log struct {
 
 // don't use iota, avoid change log type value
 const (
-	LogTypeUnknown = iota
-	LogTypeTopup
-	LogTypeConsume
-	LogTypeManage
-	LogTypeSystem
-	LogTypeCheckin
-	LogTypeError
-	LogTypeRefund
-	LogTypeArchive
-	LogTypeErrorForAdmin
-	LogTypeSubscriptionPay
+	LogTypeUnknown         = 0
+	LogTypeTopup           = 1
+	LogTypeConsume         = 2
+	LogTypeManage          = 3
+	LogTypeSystem          = 4
+	LogTypeCheckin         = 5
+	LogTypeError           = 6
+	LogTypeRefund          = 7
+	LogTypeArchive         = 8
+	LogTypeErrorForAdmin   = 9
+	LogTypeSubscriptionPay = 10
 )
 
 func formatUserLogs(logs []*Log, startIdx int) {

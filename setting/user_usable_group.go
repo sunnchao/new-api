@@ -78,6 +78,8 @@ func UpdateUserUnselectableGroupsByJSONString(jsonStr string) error {
 
 func GetUsableGroupDescription(groupName string) string {
 	userUsableGroupsMutex.RLock()
+	defer userUsableGroupsMutex.RUnlock()
+
 	if desc, ok := userUsableGroups[groupName]; ok {
 		userUsableGroupsMutex.RUnlock()
 		return desc

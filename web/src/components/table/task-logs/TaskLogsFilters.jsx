@@ -55,7 +55,6 @@ const TaskLogsFilters = ({
               placeholder={[t('开始时间'), t('结束时间')]}
               showClear
               pure
-              size='default'
               presets={DATE_RANGE_PRESETS.map((preset) => ({
                 text: t(preset.text),
                 start: preset.start(),
@@ -71,7 +70,6 @@ const TaskLogsFilters = ({
             placeholder={t('任务 ID')}
             showClear
             pure
-            size='default'
           />
 
           {/* 渠道 ID - 仅管理员可见 */}
@@ -82,7 +80,6 @@ const TaskLogsFilters = ({
                 placeholder={t('渠道 ID')}
                 showClear
                 pure
-                size='default'
               />
           )}
         </div>
@@ -95,7 +92,6 @@ const TaskLogsFilters = ({
               type='tertiary'
               htmlType='submit'
               loading={loading}
-              size='default'
             >
               {t('查询')}
             </Button>
@@ -110,14 +106,12 @@ const TaskLogsFilters = ({
                   }, 100);
                 }
               }}
-              size='default'
             >
               {t('重置')}
             </Button>
             <Button
               type='tertiary'
               onClick={() => setShowColumnSelector(true)}
-              size='default'
             >
               {t('列设置')}
             </Button>

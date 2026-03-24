@@ -208,10 +208,6 @@ func (e *NewAPIError) ToOpenAIError() OpenAIError {
 	if result.Message == "" {
 		result.Message = string(e.errorType)
 	}
-
-	// Apply error filtering for user-friendly messages
-	//result = filterOpenAIError(result, e.StatusCode)
-
 	return result
 }
 
@@ -241,10 +237,6 @@ func (e *NewAPIError) ToClaudeError() ClaudeError {
 	if result.Message == "" {
 		result.Message = string(e.errorType)
 	}
-
-	// Apply error filtering for user-friendly messages
-	//result = filterClaudeError(result, e.StatusCode)
-
 	return result
 }
 

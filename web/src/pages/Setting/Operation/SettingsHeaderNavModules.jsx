@@ -44,7 +44,7 @@ export default function SettingsHeaderNavModules(props) {
     console: true,
     pricing: {
       enabled: true,
-      requireAuth: false,
+      requireAuth: false, // 默认不需要登录鉴权
     },
     vibecoding: true,
     docs: true,
@@ -179,7 +179,7 @@ export default function SettingsHeaderNavModules(props) {
       key: 'pricing',
       title: t('模型广场'),
       description: t('模型定价，需要登录访问'),
-      hasSubConfig: true,
+        hasSubConfig: true, // 标识该模块有子配置
     },
     {
       key: 'vibecoding',

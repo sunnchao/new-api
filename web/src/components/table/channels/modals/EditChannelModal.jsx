@@ -843,7 +843,7 @@ const EditChannelModal = (props) => {
             parsedSettings.thinking_to_content || false;
           data.proxy = parsedSettings.proxy || '';
           data.pass_through_body_enabled =
-            parsedSettings.pass_through_body_enabled || false;  
+            parsedSettings.pass_through_body_enabled || false;
           data.pass_through_header_enabled =
             parsedSettings.pass_through_header_enabled || false;
           data.system_prompt = parsedSettings.system_prompt || '';

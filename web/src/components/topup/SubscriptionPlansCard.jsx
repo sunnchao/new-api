@@ -618,11 +618,11 @@ const SubscriptionPlansCard = ({
                           <span className='text-xl font-bold text-purple-600'>
                             {symbol}
                           </span>
-                              <span className='text-3xl font-bold text-purple-600'>
+                          <span className='text-3xl font-bold text-purple-600'>
                             {displayPrice}
                           </span>
-                            </div>
-                          </div>
+                        </div>
+                      </div>
 
                       {/* 套餐权益描述 */}
                       <div className='flex flex-col items-start gap-1 pb-2'>

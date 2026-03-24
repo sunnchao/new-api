@@ -459,7 +459,6 @@ function getUsageLogDetailSummary(record, text, billingDisplayMode, t) {
     };
   }
 
-  debugger
   return {
     segments: other?.claude
       ? renderModelPriceSimple(

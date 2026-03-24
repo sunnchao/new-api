@@ -183,9 +183,6 @@ func DoMidjourneyHttpRequest(c *gin.Context, timeout time.Duration, fullRequestU
 		//req, err := http.NewRequest(c.Request.Method, fullRequestURL, requestBody)
 		// make new request with mapResult
 	}
-	// Enforce Midjourney drawing mode via context key "mj_model".
-	// Priority is handled in middleware (token > url > default). Here we translate it into
-	// prompt flags ("--fast/--relax/--turbo") and strip any user-provided mode flags to avoid conflicts.
 	if prompt, ok := mapResult["prompt"].(string); ok {
 		prompt = strings.Replace(prompt, "--fast", "", -1)
 		prompt = strings.Replace(prompt, "--relax", "", -1)

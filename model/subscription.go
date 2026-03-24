@@ -546,6 +546,9 @@ func CompleteSubscriptionOrder(tradeNo string, providerPayload string, clientIP 
 		if err != nil {
 			return err
 		}
+		if err := upsertSubscriptionTopUpTx(tx, &order); err != nil {
+			return err
+		}
 		// Balance payment is an internal quota deduction; do not create a top_ups record.
 		// Online payments (epay/stripe/creem) still write a top_ups row for billing history.
 		if strings.TrimSpace(order.PaymentMethod) != "balance" {

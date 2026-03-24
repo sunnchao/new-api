@@ -412,7 +412,7 @@ func MjAuth() func(c *gin.Context) {
 		if tokenModel := c.GetString("token_mj_model"); tokenModel != "" {
 			model, ok := common.NormalizeMjModel(tokenModel)
 			if !ok || model == "" {
-				abortWithMidjourneyMessage(c, 4, "无效的MJ绘画模式（令牌设置）")
+				abortWithMidjourneyMessage(c, http.StatusServiceUnavailable, 4, "无效的MJ绘画模式（令牌设置）")
 				return
 			}
 			c.Set("mj_model", model)
@@ -424,7 +424,7 @@ func MjAuth() func(c *gin.Context) {
 		if queryModel := c.Query("mj_model"); queryModel != "" {
 			model, ok := common.NormalizeMjModel(queryModel)
 			if !ok || model == "" {
-				abortWithMidjourneyMessage(c, 4, "无效的MJ绘画模式")
+				abortWithMidjourneyMessage(c, http.StatusServiceUnavailable, 4, "无效的MJ绘画模式")
 				return
 			}
 			c.Set("mj_model", model)
@@ -435,7 +435,7 @@ func MjAuth() func(c *gin.Context) {
 		// 3) Backward compatible path mode: /{mj-fast|mj-relax|mj-turbo}/mj/*
 		model := c.Param("mode")
 		if model != "" && model != "mj-fast" && model != "mj-turbo" && model != "mj-relax" {
-			abortWithMidjourneyMessage(c, 4, "无效的MJ绘画模式")
+			abortWithMidjourneyMessage(c, http.StatusServiceUnavailable, 4, "无效的MJ绘画模式")
 			return
 		}
 		if model == "" {

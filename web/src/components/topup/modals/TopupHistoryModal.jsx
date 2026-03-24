@@ -44,6 +44,7 @@ const { Text } = Typography;
 const STATUS_CONFIG = {
   success: { type: 'success', key: '成功' },
   pending: { type: 'warning', key: '待支付' },
+  failed: { type: 'danger', key: '失败' },
   expired: { type: 'danger', key: '已过期' },
 };
 
@@ -52,6 +53,7 @@ const PAYMENT_METHOD_MAP = {
   stripe: 'Stripe',
   creem: 'Creem',
   balance: '余额',
+  waffo: 'Waffo',
   alipay: '支付宝',
   wxpay: '微信',
 };
@@ -215,17 +217,21 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
         title: t('操作'),
         key: 'action',
         render: (_, record) => {
-          if (record.status !== 'pending') return null;
-          return (
-            <Button
-              size='small'
-              type='primary'
-              theme='outline'
-              onClick={() => confirmAdminComplete(record.trade_no)}
-            >
-              {t('补单')}
-            </Button>
-          );
+            const actions = [];
+            if (record.status === 'pending') {
+                actions.push(
+                    <Button
+                        key="complete"
+                        size='small'
+                        type='primary'
+                        theme='outline'
+                        onClick={() => confirmAdminComplete(record.trade_no)}
+                    >
+                        {t('补单')}
+                    </Button>
+                );
+            }
+            return actions.length > 0 ? <>{actions}</> : null;
         },
       });
     }

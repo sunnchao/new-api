@@ -56,7 +56,6 @@ const LogsFilters = ({
               placeholder={[t('开始时间'), t('结束时间')]}
               showClear
               pure
-              size='default'
               presets={DATE_RANGE_PRESETS.map((preset) => ({
                 text: t(preset.text),
                 start: preset.start(),
@@ -72,7 +71,6 @@ const LogsFilters = ({
             placeholder={t('令牌名称')}
             showClear
             pure
-            size='default'
           />
 
           <Form.Input
@@ -81,7 +79,6 @@ const LogsFilters = ({
             placeholder={t('模型名称')}
             showClear
             pure
-            size='default'
           />
 
           <Form.Input
@@ -90,7 +87,6 @@ const LogsFilters = ({
             placeholder={t('分组')}
             showClear
             pure
-            size='default'
           />
 
           <Form.Input
@@ -110,7 +106,6 @@ const LogsFilters = ({
                 placeholder={t('渠道 ID')}
                 showClear
                 pure
-                size='default'
               />
               <Form.Input
                 field='username'
@@ -118,7 +113,6 @@ const LogsFilters = ({
                 placeholder={t('用户名称')}
                 showClear
                 pure
-                size='default'
               />
             </>
           )}
@@ -140,7 +134,6 @@ const LogsFilters = ({
                   refresh();
                 }, 0);
               }}
-              size='default'
             >
               <Form.Select.Option value='0'>{t('全部')}</Form.Select.Option>
               <Form.Select.Option value='1'>{t('充值')}</Form.Select.Option>
@@ -163,7 +156,6 @@ const LogsFilters = ({
               type='tertiary'
               htmlType='submit'
               loading={loading}
-              size='default'
             >
               {t('查询')}
             </Button>
@@ -178,14 +170,12 @@ const LogsFilters = ({
                   }, 100);
                 }
               }}
-              size='default'
             >
               {t('重置')}
             </Button>
             <Button
               type='tertiary'
               onClick={() => setShowColumnSelector(true)}
-              size='default'
             >
               {t('列设置')}
             </Button>
