@@ -302,7 +302,7 @@ const Home = () => {
       description: t('终端集成 · 结对编程 · 深度理解'),
       dotClassName: 'bg-purple-400',
       items: [
-        t('Claude Opus 4.5 驱动'),
+        t('Claude Opus 4.6 驱动'),
         t('深度理解代码上下文'),
         t('智能调试与文档生成'),
         t('全平台 CLI 支持'),
@@ -322,7 +322,7 @@ const Home = () => {
       description: t('企业级 · 智能重构 · 实时联网'),
       dotClassName: 'bg-green-400',
       items: [
-        t('GPT 5.2驱动'),
+        t('GPT 5.4驱动'),
         t('实时联网能力'),
         t('智能代码重构'),
         t('VSCode 深度集成'),

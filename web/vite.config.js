@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import react from '@vitejs/plugin-react';
-import { defineConfig, transformWithEsbuild } from 'vite';
+import { defineConfig, transformWithOxc } from 'vite';
 import pkg from '@douyinfe/vite-plugin-semi';
 import path from 'path';
 import fs from 'fs';
@@ -82,9 +82,9 @@ export default defineConfig({
 
         // Use the exposed transform from vite, instead of directly
         // transforming with esbuild
-        return transformWithEsbuild(code, id, {
-          loader: 'jsx',
-          jsx: 'automatic',
+        return transformWithOxc(code, id, {
+          lang: 'jsx',
+          jsx: { runtime: 'automatic' },
         });
       },
     },
@@ -95,36 +95,59 @@ export default defineConfig({
   ],
   optimizeDeps: {
     force: true,
-    esbuildOptions: {
-      loader: {
+    include: ['sse.js'],
+    rolldownOptions: {
+      input: {
         '.js': 'jsx',
         '.json': 'json',
       },
     },
   },
   build: {
-    // Enable minification with esbuild (faster than terser)
     minify: 'esbuild',
-    // Optimize chunk size
-    chunkSizeWarningLimit: 1000,
-    rollupOptions: {
+    chunkSizeWarningLimit: 2000,
+    rolldownOptions: {
+      onwarn(warning, warn) {
+        if (warning.code === 'EVAL' || warning.code === 'COMMONJS_VARIABLE_IN_ESM') return;
+        warn(warning);
+      },
       output: {
-        manualChunks: {
-          'react-core': ['react', 'react-dom', 'react-router-dom'],
-          'semi-ui': ['@douyinfe/semi-icons', '@douyinfe/semi-ui'],
-          tools: ['axios', 'history', 'marked'],
-          'react-components': [
-            'react-dropzone',
-            'react-fireworks',
-            'react-telegram-login',
-            'react-toastify',
-            'react-turnstile',
-          ],
-          i18n: [
-            'i18next',
-            'react-i18next',
-            'i18next-browser-languagedetector',
-          ],
+        manualChunks: (id) => {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router-dom/')) {
+            return 'react-core';
+          }
+          if (id.includes('node_modules/@douyinfe/semi-icons') || id.includes('node_modules/@douyinfe/semi-ui')) {
+            return 'semi-ui';
+          }
+          if (id.includes('node_modules/mermaid') || id.includes('node_modules/cytoscape')) {
+            return 'mermaid';
+          }
+          if (id.includes('node_modules/@visactor/')) {
+            return 'visactor';
+          }
+          if (id.includes('node_modules/katex')) {
+            return 'katex';
+          }
+          if (id.includes('node_modules/lottie-web') || id.includes('node_modules/react-fireworks')) {
+            return 'lottie';
+          }
+          if (id.includes('node_modules/@lobehub/')) {
+            return 'lobehub';
+          }
+          if (id.includes('node_modules/axios') || id.includes('node_modules/history') || id.includes('node_modules/marked')) {
+            return 'tools';
+          }
+          if (
+            id.includes('node_modules/react-dropzone') ||
+            id.includes('node_modules/react-telegram-login') ||
+            id.includes('node_modules/react-toastify') ||
+            id.includes('node_modules/react-turnstile')
+          ) {
+            return 'react-components';
+          }
+          if (id.includes('node_modules/i18next') || id.includes('node_modules/react-i18next') || id.includes('node_modules/i18next-browser-languagedetector')) {
+            return 'i18n';
+          }
         },
       },
     },
