@@ -29,8 +29,16 @@ const maxLogCount = 1000000
 var logCount int
 var setupLogLock sync.Mutex
 var setupLogWorking bool
-var currentLogDate string
+
+var currentLogPath string
+var currentLogPathMu sync.RWMutex
 var currentLogFile *os.File
+
+func GetCurrentLogPath() string {
+	currentLogPathMu.RLock()
+	defer currentLogPathMu.RUnlock()
+	return currentLogPath
+}
 
 func SetupLogger() {
 	defer func() {
@@ -45,22 +53,24 @@ func SetupLogger() {
 		defer func() {
 			setupLogLock.Unlock()
 		}()
-		logDate := time.Now().Format("20060102")
-		if currentLogDate == logDate && currentLogFile != nil {
-			return
-		}
-		logPath := filepath.Join(*common.LogDir, fmt.Sprintf("oneapi-%s.log", logDate))
+		logPath := filepath.Join(*common.LogDir, fmt.Sprintf("oneapi-%s.log", time.Now().Format("20060102150405")))
 		fd, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatal("failed to open log file")
 		}
-		if currentLogFile != nil {
-			_ = currentLogFile.Close()
-		}
+		currentLogPathMu.Lock()
+		oldFile := currentLogFile
+		currentLogPath = logPath
 		currentLogFile = fd
-		currentLogDate = logDate
+		currentLogPathMu.Unlock()
+
+		common.LogWriterMu.Lock()
 		gin.DefaultWriter = io.MultiWriter(os.Stdout, fd)
 		gin.DefaultErrorWriter = io.MultiWriter(os.Stderr, fd)
+		if oldFile != nil {
+			_ = oldFile.Close()
+		}
+		common.LogWriterMu.Unlock()
 	}
 }
 
@@ -86,22 +96,18 @@ func LogDebug(ctx context.Context, msg string, args ...any) {
 }
 
 func logHelper(ctx context.Context, level string, msg string) {
-	writer := gin.DefaultErrorWriter
-	if level == loggerINFO {
-		writer = gin.DefaultWriter
-	}
 	id := ctx.Value(common.RequestIdKey)
 	if id == nil {
 		id = "SYSTEM"
 	}
 	now := time.Now()
-	if now.Format("20060102") != currentLogDate && !setupLogWorking {
-		setupLogWorking = true
-		gopool.Go(func() {
-			SetupLogger()
-		})
+	common.LogWriterMu.RLock()
+	writer := gin.DefaultErrorWriter
+	if level == loggerINFO {
+		writer = gin.DefaultWriter
 	}
 	_, _ = fmt.Fprintf(writer, "[%s] %v | %s | %s \n", level, now.Format("2006/01/02 - 15:04:05"), id, msg)
+	common.LogWriterMu.RUnlock()
 	logCount++ // we don't need accurate count, so no lock here
 	if logCount > maxLogCount && !setupLogWorking {
 		logCount = 0
