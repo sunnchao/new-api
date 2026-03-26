@@ -430,10 +430,6 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 		if tierResult.OutputPriceMultiplier > 0 {
 			other["token_tier_output_multiplier"] = tierResult.OutputPriceMultiplier
 		}
-		if tierResult.Source == model_setting.TokenTierSourceClaudeLegacy {
-			other["claude_long_prompt"] = true
-			other["claude_prompt_tokens_for_tier"] = usage.PromptTokens
-		}
 	}
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
