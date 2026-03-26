@@ -435,6 +435,13 @@ PRIMARY KEY (` + "`id`" + `)
 		{Name: "total_amount", DDL: "`total_amount` bigint NOT NULL DEFAULT 0"},
 		{Name: "quota_reset_period", DDL: "`quota_reset_period` varchar(16) DEFAULT 'never'"},
 		{Name: "quota_reset_custom_seconds", DDL: "`quota_reset_custom_seconds` bigint DEFAULT 0"},
+		// Rate limits fields
+		{Name: "hourly_limit_amount", DDL: "`hourly_limit_amount` bigint DEFAULT 0"},
+		{Name: "hourly_limit_hours", DDL: "`hourly_limit_hours` integer DEFAULT 1"},
+		{Name: "hourly_reset_mode", DDL: "`hourly_reset_mode` varchar(16) DEFAULT 'interval'"},
+		{Name: "daily_limit_amount", DDL: "`daily_limit_amount` bigint DEFAULT 0"},
+		{Name: "weekly_limit_amount", DDL: "`weekly_limit_amount` bigint DEFAULT 0"},
+		{Name: "monthly_limit_amount", DDL: "`monthly_limit_amount` bigint DEFAULT 0"},
 		{Name: "created_at", DDL: "`created_at` bigint"},
 		{Name: "updated_at", DDL: "`updated_at` bigint"},
 	}

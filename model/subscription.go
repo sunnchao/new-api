@@ -178,6 +178,21 @@ type SubscriptionPlan struct {
 	QuotaResetPeriod        string `json:"quota_reset_period" gorm:"type:varchar(16);default:'never'"`
 	QuotaResetCustomSeconds int64  `json:"quota_reset_custom_seconds" gorm:"type:bigint;default:0"`
 
+	// === Rate limits configuration ===
+	// Hourly limit
+	HourlyLimitAmount int64  `json:"hourly_limit_amount" gorm:"type:bigint;default:0"`
+	HourlyLimitHours  int    `json:"hourly_limit_hours" gorm:"type:int;default:1"`
+	HourlyResetMode   string `json:"hourly_reset_mode" gorm:"type:varchar(16);default:'interval'"` // "interval" or "natural"
+
+	// Daily limit
+	DailyLimitAmount int64 `json:"daily_limit_amount" gorm:"type:bigint;default:0"`
+
+	// Weekly limit
+	WeeklyLimitAmount int64 `json:"weekly_limit_amount" gorm:"type:bigint;default:0"`
+
+	// Monthly limit
+	MonthlyLimitAmount int64 `json:"monthly_limit_amount" gorm:"type:bigint;default:0"`
+
 	CreatedAt int64 `json:"created_at" gorm:"bigint"`
 	UpdatedAt int64 `json:"updated_at" gorm:"bigint"`
 }
@@ -253,6 +268,33 @@ type UserSubscription struct {
 	UpgradeGroup  string `json:"upgrade_group" gorm:"type:varchar(64);default:''"`
 	AllowedGroups string `json:"allowed_groups" gorm:"type:varchar(512);default:''"`
 	PrevUserGroup string `json:"prev_user_group" gorm:"type:varchar(64);default:''"`
+
+	// === Rate limits state (snapshot from plan) ===
+	// Hourly limit
+	HourlyLimitAmount   int64  `json:"hourly_limit_amount" gorm:"type:bigint;default:0"`
+	HourlyLimitHours    int    `json:"hourly_limit_hours" gorm:"type:int;default:1"`
+	HourlyResetMode     string `json:"hourly_reset_mode" gorm:"type:varchar(16);default:'interval'"`
+	HourlyAmountUsed    int64  `json:"hourly_amount_used" gorm:"type:bigint;default:0"`
+	HourlyLastResetTime int64  `json:"hourly_last_reset_time" gorm:"type:bigint;default:0"`
+	HourlyNextResetTime int64  `json:"hourly_next_reset_time" gorm:"type:bigint;default:0"`
+
+	// Daily limit
+	DailyLimitAmount   int64 `json:"daily_limit_amount" gorm:"type:bigint;default:0"`
+	DailyAmountUsed    int64 `json:"daily_amount_used" gorm:"type:bigint;default:0"`
+	DailyLastResetTime int64 `json:"daily_last_reset_time" gorm:"type:bigint;default:0"`
+	DailyNextResetTime int64 `json:"daily_next_reset_time" gorm:"type:bigint;default:0"`
+
+	// Weekly limit
+	WeeklyLimitAmount   int64 `json:"weekly_limit_amount" gorm:"type:bigint;default:0"`
+	WeeklyAmountUsed    int64 `json:"weekly_amount_used" gorm:"type:bigint;default:0"`
+	WeeklyLastResetTime int64 `json:"weekly_last_reset_time" gorm:"type:bigint;default:0"`
+	WeeklyNextResetTime int64 `json:"weekly_next_reset_time" gorm:"type:bigint;default:0"`
+
+	// Monthly limit
+	MonthlyLimitAmount   int64 `json:"monthly_limit_amount" gorm:"type:bigint;default:0"`
+	MonthlyAmountUsed    int64 `json:"monthly_amount_used" gorm:"type:bigint;default:0"`
+	MonthlyLastResetTime int64 `json:"monthly_last_reset_time" gorm:"type:bigint;default:0"`
+	MonthlyNextResetTime int64 `json:"monthly_next_reset_time" gorm:"type:bigint;default:0"`
 
 	CreatedAt int64 `json:"created_at" gorm:"bigint"`
 	UpdatedAt int64 `json:"updated_at" gorm:"bigint"`
@@ -348,6 +390,79 @@ func calcNextResetTime(base time.Time, plan *SubscriptionPlan, endUnix int64) in
 		return 0
 	}
 	return next.Unix()
+}
+
+// === Rate limit reset time calculation functions ===
+
+// calcNextHourlyResetTime calculates the next reset time for hourly limit.
+// mode: "interval" = fixed interval from base time, "natural" = align to natural hours
+func calcNextHourlyResetTime(base time.Time, hours int, mode string, endUnix int64) int64 {
+	if hours <= 0 {
+		return 0
+	}
+
+	var next time.Time
+	if mode == "natural" {
+		// Natural mode: align to whole hours
+		// e.g. if hours=8, align to 00:00, 08:00, 16:00
+		currentHour := base.Hour()
+		nextAlignedHour := ((currentHour / hours) + 1) * hours
+
+		if nextAlignedHour >= 24 {
+			// Cross day boundary
+			next = time.Date(base.Year(), base.Month(), base.Day()+1, nextAlignedHour-24, 0, 0, 0, base.Location())
+		} else {
+			next = time.Date(base.Year(), base.Month(), base.Day(), nextAlignedHour, 0, 0, 0, base.Location())
+		}
+	} else {
+		// Interval mode: simply add hours from base time
+		next = base.Add(time.Duration(hours) * time.Hour)
+	}
+
+	nextUnix := next.Unix()
+	if endUnix > 0 && nextUnix > endUnix {
+		return 0 // Beyond subscription end time
+	}
+	return nextUnix
+}
+
+// calcNextDailyResetTime calculates the next reset time for daily limit (next day 00:00).
+func calcNextDailyResetTime(base time.Time, endUnix int64) int64 {
+	next := time.Date(base.Year(), base.Month(), base.Day(), 0, 0, 0, 0, base.Location()).
+		AddDate(0, 0, 1)
+	nextUnix := next.Unix()
+	if endUnix > 0 && nextUnix > endUnix {
+		return 0
+	}
+	return nextUnix
+}
+
+// calcNextWeeklyResetTime calculates the next reset time for weekly limit (next Monday 00:00).
+func calcNextWeeklyResetTime(base time.Time, endUnix int64) int64 {
+	weekday := int(base.Weekday())
+	// Convert Sunday=0 to Monday=1..Sunday=7
+	if weekday == 0 {
+		weekday = 7
+	}
+	daysUntilMonday := 8 - weekday
+	next := time.Date(base.Year(), base.Month(), base.Day(), 0, 0, 0, 0, base.Location()).
+		AddDate(0, 0, daysUntilMonday)
+	nextUnix := next.Unix()
+	if endUnix > 0 && nextUnix > endUnix {
+		return 0
+	}
+	return nextUnix
+}
+
+// calcNextMonthlyResetTime calculates the next reset time for monthly limit (first day of next month 00:00).
+func calcNextMonthlyResetTime(base time.Time, endUnix int64) int64 {
+	next := time.Date(base.Year(), base.Month(), 1, 0, 0, 0, 0, base.Location()).
+		AddDate(0, 1, 0)
+	nextUnix := next.Unix()
+	if endUnix > 0 && nextUnix > endUnix {
+		return 0
+	}
+	return nextUnix
 }
 
 func GetSubscriptionPlanById(id int) (*SubscriptionPlan, error) {
@@ -471,6 +586,40 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 	if nextReset > 0 {
 		lastReset = now.Unix()
 	}
+
+	// === Initialize rate limits ===
+	// Hourly limit
+	hourlyNextReset := int64(0)
+	hourlyLastReset := int64(0)
+	if plan.HourlyLimitAmount > 0 {
+		hourlyLastReset = now.Unix()
+		hourlyNextReset = calcNextHourlyResetTime(now, plan.HourlyLimitHours, plan.HourlyResetMode, endUnix)
+	}
+
+	// Daily limit
+	dailyNextReset := int64(0)
+	dailyLastReset := int64(0)
+	if plan.DailyLimitAmount > 0 {
+		dailyLastReset = now.Unix()
+		dailyNextReset = calcNextDailyResetTime(now, endUnix)
+	}
+
+	// Weekly limit
+	weeklyNextReset := int64(0)
+	weeklyLastReset := int64(0)
+	if plan.WeeklyLimitAmount > 0 {
+		weeklyLastReset = now.Unix()
+		weeklyNextReset = calcNextWeeklyResetTime(now, endUnix)
+	}
+
+	// Monthly limit
+	monthlyNextReset := int64(0)
+	monthlyLastReset := int64(0)
+	if plan.MonthlyLimitAmount > 0 {
+		monthlyLastReset = now.Unix()
+		monthlyNextReset = calcNextMonthlyResetTime(now, endUnix)
+	}
+
 	upgradeGroup := strings.TrimSpace(plan.UpgradeGroup)
 	prevGroup := ""
 	if upgradeGroup != "" {
@@ -500,8 +649,32 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 		UpgradeGroup:  upgradeGroup,
 		AllowedGroups: plan.AllowedGroups,
 		PrevUserGroup: prevGroup,
-		CreatedAt:     common.GetTimestamp(),
-		UpdatedAt:     common.GetTimestamp(),
+
+		// Rate limits (snapshot from plan)
+		HourlyLimitAmount:   plan.HourlyLimitAmount,
+		HourlyLimitHours:    plan.HourlyLimitHours,
+		HourlyResetMode:     plan.HourlyResetMode,
+		HourlyAmountUsed:    0,
+		HourlyLastResetTime: hourlyLastReset,
+		HourlyNextResetTime: hourlyNextReset,
+
+		DailyLimitAmount:   plan.DailyLimitAmount,
+		DailyAmountUsed:    0,
+		DailyLastResetTime: dailyLastReset,
+		DailyNextResetTime: dailyNextReset,
+
+		WeeklyLimitAmount:   plan.WeeklyLimitAmount,
+		WeeklyAmountUsed:    0,
+		WeeklyLastResetTime: weeklyLastReset,
+		WeeklyNextResetTime: weeklyNextReset,
+
+		MonthlyLimitAmount:   plan.MonthlyLimitAmount,
+		MonthlyAmountUsed:    0,
+		MonthlyLastResetTime: monthlyLastReset,
+		MonthlyNextResetTime: monthlyNextReset,
+
+		CreatedAt: common.GetTimestamp(),
+		UpdatedAt: common.GetTimestamp(),
 	}
 	if err := tx.Create(sub).Error; err != nil {
 		return nil, err
@@ -967,6 +1140,159 @@ func maybeResetUserSubscriptionWithPlanTx(tx *gorm.DB, sub *UserSubscription, pl
 	return tx.Save(sub).Error
 }
 
+// maybeResetHourlyLimit checks and resets hourly limit if needed.
+func maybeResetHourlyLimit(tx *gorm.DB, sub *UserSubscription, now int64) error {
+	if sub.HourlyLimitAmount <= 0 {
+		return nil // Not enabled
+	}
+	if sub.HourlyNextResetTime > 0 && sub.HourlyNextResetTime > now {
+		return nil // Not time to reset yet
+	}
+
+	baseUnix := sub.HourlyLastResetTime
+	if baseUnix <= 0 {
+		baseUnix = sub.StartTime
+	}
+	base := time.Unix(baseUnix, 0)
+	next := calcNextHourlyResetTime(base, sub.HourlyLimitHours, sub.HourlyResetMode, sub.EndTime)
+
+	advanced := false
+	for next > 0 && next <= now {
+		advanced = true
+		base = time.Unix(next, 0)
+		next = calcNextHourlyResetTime(base, sub.HourlyLimitHours, sub.HourlyResetMode, sub.EndTime)
+	}
+
+	if !advanced {
+		if sub.HourlyNextResetTime == 0 && next > 0 {
+			sub.HourlyNextResetTime = next
+			sub.HourlyLastResetTime = base.Unix()
+			return tx.Save(sub).Error
+		}
+		return nil
+	}
+
+	// Reset
+	sub.HourlyAmountUsed = 0
+	sub.HourlyLastResetTime = base.Unix()
+	sub.HourlyNextResetTime = next
+	return tx.Save(sub).Error
+}
+
+// maybeResetDailyLimit checks and resets daily limit if needed.
+func maybeResetDailyLimit(tx *gorm.DB, sub *UserSubscription, now int64) error {
+	if sub.DailyLimitAmount <= 0 {
+		return nil
+	}
+	if sub.DailyNextResetTime > 0 && sub.DailyNextResetTime > now {
+		return nil
+	}
+
+	baseUnix := sub.DailyLastResetTime
+	if baseUnix <= 0 {
+		baseUnix = sub.StartTime
+	}
+	base := time.Unix(baseUnix, 0)
+	next := calcNextDailyResetTime(base, sub.EndTime)
+
+	advanced := false
+	for next > 0 && next <= now {
+		advanced = true
+		base = time.Unix(next, 0)
+		next = calcNextDailyResetTime(base, sub.EndTime)
+	}
+
+	if !advanced {
+		if sub.DailyNextResetTime == 0 && next > 0 {
+			sub.DailyNextResetTime = next
+			sub.DailyLastResetTime = base.Unix()
+			return tx.Save(sub).Error
+		}
+		return nil
+	}
+
+	sub.DailyAmountUsed = 0
+	sub.DailyLastResetTime = base.Unix()
+	sub.DailyNextResetTime = next
+	return tx.Save(sub).Error
+}
+
+// maybeResetWeeklyLimit checks and resets weekly limit if needed.
+func maybeResetWeeklyLimit(tx *gorm.DB, sub *UserSubscription, now int64) error {
+	if sub.WeeklyLimitAmount <= 0 {
+		return nil
+	}
+	if sub.WeeklyNextResetTime > 0 && sub.WeeklyNextResetTime > now {
+		return nil
+	}
+
+	baseUnix := sub.WeeklyLastResetTime
+	if baseUnix <= 0 {
+		baseUnix = sub.StartTime
+	}
+	base := time.Unix(baseUnix, 0)
+	next := calcNextWeeklyResetTime(base, sub.EndTime)
+
+	advanced := false
+	for next > 0 && next <= now {
+		advanced = true
+		base = time.Unix(next, 0)
+		next = calcNextWeeklyResetTime(base, sub.EndTime)
+	}
+
+	if !advanced {
+		if sub.WeeklyNextResetTime == 0 && next > 0 {
+			sub.WeeklyNextResetTime = next
+			sub.WeeklyLastResetTime = base.Unix()
+			return tx.Save(sub).Error
+		}
+		return nil
+	}
+
+	sub.WeeklyAmountUsed = 0
+	sub.WeeklyLastResetTime = base.Unix()
+	sub.WeeklyNextResetTime = next
+	return tx.Save(sub).Error
+}
+
+// maybeResetMonthlyLimit checks and resets monthly limit if needed.
+func maybeResetMonthlyLimit(tx *gorm.DB, sub *UserSubscription, now int64) error {
+	if sub.MonthlyLimitAmount <= 0 {
+		return nil
+	}
+	if sub.MonthlyNextResetTime > 0 && sub.MonthlyNextResetTime > now {
+		return nil
+	}
+
+	baseUnix := sub.MonthlyLastResetTime
+	if baseUnix <= 0 {
+		baseUnix = sub.StartTime
+	}
+	base := time.Unix(baseUnix, 0)
+	next := calcNextMonthlyResetTime(base, sub.EndTime)
+
+	advanced := false
+	for next > 0 && next <= now {
+		advanced = true
+		base = time.Unix(next, 0)
+		next = calcNextMonthlyResetTime(base, sub.EndTime)
+	}
+
+	if !advanced {
+		if sub.MonthlyNextResetTime == 0 && next > 0 {
+			sub.MonthlyNextResetTime = next
+			sub.MonthlyLastResetTime = base.Unix()
+			return tx.Save(sub).Error
+		}
+		return nil
+	}
+
+	sub.MonthlyAmountUsed = 0
+	sub.MonthlyLastResetTime = base.Unix()
+	sub.MonthlyNextResetTime = next
+	return tx.Save(sub).Error
+}
+
 // IsGroupAllowed checks whether the subscription allows the given group.
 func (s *UserSubscription) IsGroupAllowed(group string) bool {
 	group = strings.TrimSpace(group)
@@ -1041,11 +1367,60 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if err := maybeResetUserSubscriptionWithPlanTx(tx, &sub, plan, now); err != nil {
 				return err
 			}
+
+			// === Check and reset all rate limits ===
+			if err := maybeResetHourlyLimit(tx, &sub, now); err != nil {
+				return err
+			}
+			if err := maybeResetDailyLimit(tx, &sub, now); err != nil {
+				return err
+			}
+			if err := maybeResetWeeklyLimit(tx, &sub, now); err != nil {
+				return err
+			}
+			if err := maybeResetMonthlyLimit(tx, &sub, now); err != nil {
+				return err
+			}
+
 			usedBefore := sub.AmountUsed
+
+			// === Check total amount (existing logic) ===
 			if sub.AmountTotal > 0 {
 				remain := sub.AmountTotal - usedBefore
 				if remain < amount {
 					continue
+				}
+			}
+
+			// === Check hourly limit ===
+			if sub.HourlyLimitAmount > 0 {
+				hourlyRemain := sub.HourlyLimitAmount - sub.HourlyAmountUsed
+				if hourlyRemain < amount {
+					continue // Hourly limit insufficient
+				}
+			}
+
+			// === Check daily limit ===
+			if sub.DailyLimitAmount > 0 {
+				dailyRemain := sub.DailyLimitAmount - sub.DailyAmountUsed
+				if dailyRemain < amount {
+					continue // Daily limit insufficient
+				}
+			}
+
+			// === Check weekly limit ===
+			if sub.WeeklyLimitAmount > 0 {
+				weeklyRemain := sub.WeeklyLimitAmount - sub.WeeklyAmountUsed
+				if weeklyRemain < amount {
+					continue // Weekly limit insufficient
+				}
+			}
+
+			// === Check monthly limit ===
+			if sub.MonthlyLimitAmount > 0 {
+				monthlyRemain := sub.MonthlyLimitAmount - sub.MonthlyAmountUsed
+				if monthlyRemain < amount {
+					continue // Monthly limit insufficient
 				}
 			}
 			record := &SubscriptionPreConsumeRecord{
@@ -1070,7 +1445,22 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 				}
 				return err
 			}
+
+			// === Pre-consume: update all usage counters ===
 			sub.AmountUsed += amount
+			if sub.HourlyLimitAmount > 0 {
+				sub.HourlyAmountUsed += amount
+			}
+			if sub.DailyLimitAmount > 0 {
+				sub.DailyAmountUsed += amount
+			}
+			if sub.WeeklyLimitAmount > 0 {
+				sub.WeeklyAmountUsed += amount
+			}
+			if sub.MonthlyLimitAmount > 0 {
+				sub.MonthlyAmountUsed += amount
+			}
+
 			if err := tx.Save(&sub).Error; err != nil {
 				return err
 			}
@@ -1219,7 +1609,43 @@ func PostConsumeUserSubscriptionDelta(userSubscriptionId int, delta int64) error
 		if sub.AmountTotal > 0 && newUsed > sub.AmountTotal {
 			return fmt.Errorf("subscription used exceeds total, used=%d total=%d", newUsed, sub.AmountTotal)
 		}
+
+		// === Update all usage counters ===
 		sub.AmountUsed = newUsed
+
+		// Update rate limit usage counters
+		if sub.HourlyLimitAmount > 0 {
+			newHourlyUsed := sub.HourlyAmountUsed + delta
+			if newHourlyUsed < 0 {
+				newHourlyUsed = 0
+			}
+			sub.HourlyAmountUsed = newHourlyUsed
+		}
+
+		if sub.DailyLimitAmount > 0 {
+			newDailyUsed := sub.DailyAmountUsed + delta
+			if newDailyUsed < 0 {
+				newDailyUsed = 0
+			}
+			sub.DailyAmountUsed = newDailyUsed
+		}
+
+		if sub.WeeklyLimitAmount > 0 {
+			newWeeklyUsed := sub.WeeklyAmountUsed + delta
+			if newWeeklyUsed < 0 {
+				newWeeklyUsed = 0
+			}
+			sub.WeeklyAmountUsed = newWeeklyUsed
+		}
+
+		if sub.MonthlyLimitAmount > 0 {
+			newMonthlyUsed := sub.MonthlyAmountUsed + delta
+			if newMonthlyUsed < 0 {
+				newMonthlyUsed = 0
+			}
+			sub.MonthlyAmountUsed = newMonthlyUsed
+		}
+
 		return tx.Save(&sub).Error
 	})
 }

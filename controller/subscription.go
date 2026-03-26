@@ -192,6 +192,34 @@ func AdminCreateSubscriptionPlan(c *gin.Context) {
 		common.ApiErrorMsg(c, "自定义重置周期需大于0秒")
 		return
 	}
+
+	// === Validate rate limits ===
+	if req.Plan.HourlyLimitAmount < 0 {
+		common.ApiErrorMsg(c, "小时限额不能为负数")
+		return
+	}
+	if req.Plan.HourlyLimitAmount > 0 {
+		if req.Plan.HourlyLimitHours <= 0 || req.Plan.HourlyLimitHours > 24 {
+			common.ApiErrorMsg(c, "小时间隔必须在 1-24 之间")
+			return
+		}
+		if req.Plan.HourlyResetMode != "interval" && req.Plan.HourlyResetMode != "natural" {
+			req.Plan.HourlyResetMode = "interval" // Default to interval mode
+		}
+	}
+	if req.Plan.DailyLimitAmount < 0 {
+		common.ApiErrorMsg(c, "日限额不能为负数")
+		return
+	}
+	if req.Plan.WeeklyLimitAmount < 0 {
+		common.ApiErrorMsg(c, "周限额不能为负数")
+		return
+	}
+	if req.Plan.MonthlyLimitAmount < 0 {
+		common.ApiErrorMsg(c, "月限额不能为负数")
+		return
+	}
+
 	err = model.DB.Create(&req.Plan).Error
 	if err != nil {
 		common.ApiError(c, err)
@@ -262,24 +290,58 @@ func AdminUpdateSubscriptionPlan(c *gin.Context) {
 		return
 	}
 
+	// === Validate rate limits ===
+	if req.Plan.HourlyLimitAmount < 0 {
+		common.ApiErrorMsg(c, "小时限额不能为负数")
+		return
+	}
+	if req.Plan.HourlyLimitAmount > 0 {
+		if req.Plan.HourlyLimitHours <= 0 || req.Plan.HourlyLimitHours > 24 {
+			common.ApiErrorMsg(c, "小时间隔必须在 1-24 之间")
+			return
+		}
+		if req.Plan.HourlyResetMode != "interval" && req.Plan.HourlyResetMode != "natural" {
+			req.Plan.HourlyResetMode = "interval" // Default to interval mode
+		}
+	}
+	if req.Plan.DailyLimitAmount < 0 {
+		common.ApiErrorMsg(c, "日限额不能为负数")
+		return
+	}
+	if req.Plan.WeeklyLimitAmount < 0 {
+		common.ApiErrorMsg(c, "周限额不能为负数")
+		return
+	}
+	if req.Plan.MonthlyLimitAmount < 0 {
+		common.ApiErrorMsg(c, "月限额不能为负数")
+		return
+	}
+
 	err = model.DB.Transaction(func(tx *gorm.DB) error {
 		// update plan (allow zero values updates with map)
 		updateMap := map[string]interface{}{
-			"title":                      req.Plan.Title,
-			"subtitle":                   req.Plan.Subtitle,
-			"price_amount":               req.Plan.PriceAmount,
-			"currency":                   req.Plan.Currency,
-			"duration_unit":              req.Plan.DurationUnit,
-			"duration_value":             req.Plan.DurationValue,
-			"custom_seconds":             req.Plan.CustomSeconds,
-			"enabled":                    req.Plan.Enabled,
-			"sort_order":                 req.Plan.SortOrder,
-			"stripe_price_id":            req.Plan.StripePriceId,
-			"creem_product_id":           req.Plan.CreemProductId,
-			"max_purchase_per_user":      req.Plan.MaxPurchasePerUser,
-			"total_amount":               req.Plan.TotalAmount,
-			"upgrade_group":              req.Plan.UpgradeGroup,
-			"allowed_groups":             req.Plan.AllowedGroups,
+			"title":                 req.Plan.Title,
+			"subtitle":              req.Plan.Subtitle,
+			"price_amount":          req.Plan.PriceAmount,
+			"currency":              req.Plan.Currency,
+			"duration_unit":         req.Plan.DurationUnit,
+			"duration_value":        req.Plan.DurationValue,
+			"custom_seconds":        req.Plan.CustomSeconds,
+			"enabled":               req.Plan.Enabled,
+			"sort_order":            req.Plan.SortOrder,
+			"stripe_price_id":       req.Plan.StripePriceId,
+			"creem_product_id":      req.Plan.CreemProductId,
+			"max_purchase_per_user": req.Plan.MaxPurchasePerUser,
+			"total_amount":          req.Plan.TotalAmount,
+			"upgrade_group":         req.Plan.UpgradeGroup,
+			"allowed_groups":        req.Plan.AllowedGroups,
+			// Rate limits
+			"hourly_limit_amount":        req.Plan.HourlyLimitAmount,
+			"hourly_limit_hours":         req.Plan.HourlyLimitHours,
+			"hourly_reset_mode":          req.Plan.HourlyResetMode,
+			"daily_limit_amount":         req.Plan.DailyLimitAmount,
+			"weekly_limit_amount":        req.Plan.WeeklyLimitAmount,
+			"monthly_limit_amount":       req.Plan.MonthlyLimitAmount,
 			"quota_reset_period":         req.Plan.QuotaResetPeriod,
 			"quota_reset_custom_seconds": req.Plan.QuotaResetCustomSeconds,
 			"updated_at":                 common.GetTimestamp(),

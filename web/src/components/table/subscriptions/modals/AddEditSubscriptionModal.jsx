@@ -24,6 +24,7 @@ import {
   Card,
   Col,
   Form,
+  Radio,
   Row,
   Select,
   SideSheet,
@@ -107,6 +108,13 @@ const AddEditSubscriptionModal = ({
     allowed_groups: [],
     stripe_price_id: '',
     creem_product_id: '',
+    // Rate limits
+    hourly_limit_amount: 0,
+    hourly_limit_hours: 1,
+    hourly_reset_mode: 'interval',
+    daily_limit_amount: 0,
+    weekly_limit_amount: 0,
+    monthly_limit_amount: 0,
   });
 
   const buildFormValues = () => {
@@ -134,6 +142,21 @@ const AddEditSubscriptionModal = ({
       allowed_groups: normalizeGroupList(p.allowed_groups),
       stripe_price_id: p.stripe_price_id || '',
       creem_product_id: p.creem_product_id || '',
+      // Rate limits
+      hourly_limit_amount: Number(
+        quotaToDisplayAmount(p.hourly_limit_amount || 0).toFixed(2),
+      ),
+      hourly_limit_hours: Number(p.hourly_limit_hours || 1),
+      hourly_reset_mode: p.hourly_reset_mode || 'interval',
+      daily_limit_amount: Number(
+        quotaToDisplayAmount(p.daily_limit_amount || 0).toFixed(2),
+      ),
+      weekly_limit_amount: Number(
+        quotaToDisplayAmount(p.weekly_limit_amount || 0).toFixed(2),
+      ),
+      monthly_limit_amount: Number(
+        quotaToDisplayAmount(p.monthly_limit_amount || 0).toFixed(2),
+      ),
     };
   };
 
@@ -176,6 +199,13 @@ const AddEditSubscriptionModal = ({
           total_amount: displayAmountToQuota(values.total_amount),
           upgrade_group: values.upgrade_group || '',
           allowed_groups: normalizeGroupList(values.allowed_groups).join(','),
+          // Rate limits
+          hourly_limit_amount: displayAmountToQuota(values.hourly_limit_amount || 0),
+          hourly_limit_hours: Number(values.hourly_limit_hours || 1),
+          hourly_reset_mode: values.hourly_reset_mode || 'interval',
+          daily_limit_amount: displayAmountToQuota(values.daily_limit_amount || 0),
+          weekly_limit_amount: displayAmountToQuota(values.weekly_limit_amount || 0),
+          monthly_limit_amount: displayAmountToQuota(values.monthly_limit_amount || 0),
         },
       };
       if (editingPlan?.plan?.id) {
@@ -529,6 +559,115 @@ const AddEditSubscriptionModal = ({
                           disabled
                         />
                       )}
+                    </Col>
+                  </Row>
+                </Card>
+
+                {/* 限额设置 */}
+                <Card className='!rounded-2xl shadow-sm border-0 mb-4'>
+                  <div className='flex items-center mb-2'>
+                    <Avatar
+                      size='small'
+                      color='blue'
+                      className='mr-2 shadow-md'
+                    >
+                      <IconCalendarClock size={16} />
+                    </Avatar>
+                    <div>
+                      <Text className='text-lg font-medium'>
+                        {t('限额设置')}
+                      </Text>
+                      <div className='text-xs text-gray-600'>
+                        {t('配置小时/日/周/月限额，0 表示不限制')}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Row gutter={12}>
+                    <Col span={24}>
+                      <Form.InputNumber
+                        field='hourly_limit_amount'
+                        label={t('小时限额')}
+                        min={0}
+                        precision={2}
+                        placeholder='0'
+                        extraText={t('每个时间段内的最大额度限制，0 表示不限制')}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+
+                    {values.hourly_limit_amount > 0 && (
+                      <>
+                        <Col span={12}>
+                          <Form.InputNumber
+                            field='hourly_limit_hours'
+                            label={t('小时间隔')}
+                            min={1}
+                            max={24}
+                            precision={0}
+                            placeholder='1'
+                            extraText={t('如：5 表示每 5 小时重置')}
+                            style={{ width: '100%' }}
+                          />
+                        </Col>
+                        <Col span={12}>
+                          <Form.RadioGroup
+                            field='hourly_reset_mode'
+                            label={t('重置模式')}
+                            type='button'
+                          >
+                            <Radio value='interval'>{t('固定间隔')}</Radio>
+                            <Radio value='natural'>{t('自然小时')}</Radio>
+                          </Form.RadioGroup>
+                        </Col>
+                        <Col span={24}>
+                          <Text type='tertiary' size='small'>
+                            {values.hourly_reset_mode === 'interval'
+                              ? t(
+                                  '固定间隔：从上次重置时间开始计算，如每 5 小时重置一次',
+                                )
+                              : t(
+                                  '自然小时：按整点对齐重置，如每 5:00, 10:00, 15:00 重置',
+                                )}
+                          </Text>
+                        </Col>
+                      </>
+                    )}
+
+                    <Col span={24}>
+                      <Form.InputNumber
+                        field='daily_limit_amount'
+                        label={t('日限额')}
+                        min={0}
+                        precision={2}
+                        placeholder='0'
+                        extraText={t('每日 00:00 自动重置，0 表示不限制')}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+
+                    <Col span={24}>
+                      <Form.InputNumber
+                        field='weekly_limit_amount'
+                        label={t('周限额')}
+                        min={0}
+                        precision={2}
+                        placeholder='0'
+                        extraText={t('每周一 00:00 自动重置，0 表示不限制')}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+
+                    <Col span={24}>
+                      <Form.InputNumber
+                        field='monthly_limit_amount'
+                        label={t('月限额')}
+                        min={0}
+                        precision={2}
+                        placeholder='0'
+                        extraText={t('每月 1 日 00:00 自动重置，0 表示不限制')}
+                        style={{ width: '100%' }}
+                      />
                     </Col>
                   </Row>
                 </Card>
