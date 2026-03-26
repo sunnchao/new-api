@@ -77,6 +77,7 @@ const PricingCardView = ({
   setSelectedRowKeys,
   openModelDetail,
   tierPricingConfig,
+  groupModelBilling = {},
 }) => {
   const showSkeleton = useMinimumLoadingTime(loading);
   const startIndex = (currentPage - 1) * pageSize;
@@ -262,6 +263,7 @@ const PricingCardView = ({
             displayPrice,
             currency,
             quotaDisplayType: siteDisplayType,
+            groupModelBilling,
           });
 
           return (

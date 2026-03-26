@@ -53,6 +53,7 @@ const RatioSetting = () => {
     'group_ratio_setting.group_special_usable_group': '',
     'tier_pricing.enabled': false,
     'tier_pricing.rules': '[]',
+    GroupModelBilling: ''
   });
 
   const [loading, setLoading] = useState(false);

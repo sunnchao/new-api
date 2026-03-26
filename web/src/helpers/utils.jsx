@@ -623,6 +623,7 @@ export const calculateModelPrice = ({
   currency,
   quotaDisplayType = 'USD',
   precision = 4,
+  groupModelBilling = {},
 }) => {
   // 1. 选择实际使用的分组
   let usedGroup = selectedGroup;
@@ -651,8 +652,22 @@ export const calculateModelPrice = ({
     }
   }
 
+  // 1.5 检查分组模型计费覆盖配置
+  let effectiveQuotaType = record.quota_type;
+  let effectiveModelPrice = record.model_price;
+  
+  if (usedGroup && groupModelBilling[usedGroup]) {
+    const groupBilling = groupModelBilling[usedGroup][record.model_name];
+    if (groupBilling) {
+      effectiveQuotaType = groupBilling.quota_type;
+      if (groupBilling.quota_type === 1 && groupBilling.model_price !== undefined) {
+        effectiveModelPrice = groupBilling.model_price;
+      }
+    }
+  }
+
   // 2. 根据计费类型计算价格
-  if (record.quota_type === 0) {
+  if (effectiveQuotaType === 0) {
     // 按量计费
     const isTokensDisplay = quotaDisplayType === 'TOKENS';
     const inputRatioPriceUSD = record.model_ratio * 2 * usedGroupRatio;
@@ -743,9 +758,9 @@ export const calculateModelPrice = ({
     };
   }
 
-  if (record.quota_type === 1) {
+  if (effectiveQuotaType === 1) {
     // 按次计费
-    const priceUSD = parseFloat(record.model_price) * usedGroupRatio;
+    const priceUSD = parseFloat(effectiveModelPrice) * usedGroupRatio;
     const displayVal = displayPrice(priceUSD);
 
     return {

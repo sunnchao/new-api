@@ -113,6 +113,7 @@ export const getPricingTableColumns = ({
   tokenUnit,
   displayPrice,
   showRatio,
+  groupModelBilling = {},
 }) => {
   const isMobile = useIsMobile();
   const priceDataCache = new WeakMap();
@@ -128,6 +129,7 @@ export const getPricingTableColumns = ({
         displayPrice,
         currency,
         quotaDisplayType: siteDisplayType,
+        groupModelBilling,
       });
       priceDataCache.set(record, cache);
     }

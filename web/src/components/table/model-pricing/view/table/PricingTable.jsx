@@ -45,6 +45,7 @@ const PricingTable = ({
   compactMode = false,
   openModelDetail,
   t,
+  groupModelBilling = {},
 }) => {
   const columns = useMemo(() => {
     return getPricingTableColumns({
@@ -59,6 +60,7 @@ const PricingTable = ({
       tokenUnit,
       displayPrice,
       showRatio,
+      groupModelBilling,
     });
   }, [
     t,
@@ -72,6 +74,7 @@ const PricingTable = ({
     tokenUnit,
     displayPrice,
     showRatio,
+    groupModelBilling,
   ]);
 
   // 更新列定义中的 searchValue

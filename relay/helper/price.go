@@ -50,9 +50,40 @@ func HandleGroupRatio(ctx *gin.Context, relayInfo *relaycommon.RelayInfo) types.
 }
 
 func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens int, meta *types.TokenCountMeta) (types.PriceData, error) {
-	modelPrice, usePrice := ratio_setting.GetModelPrice(info.OriginModelName, false)
-
 	groupRatioInfo := HandleGroupRatio(c, info)
+
+	// 检查分组是否覆盖了模型计费类型
+	if groupBilling, ok := ratio_setting.GetGroupModelBilling(info.UsingGroup, info.OriginModelName); ok {
+		if groupBilling.QuotaType == 1 {
+			// 分组覆盖为按次计费
+			modelPrice := groupBilling.ModelPrice
+			if meta.ImagePriceRatio != 0 {
+				modelPrice = modelPrice * meta.ImagePriceRatio
+			}
+			quota := int(modelPrice * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
+
+			freeModel := false
+			if !operation_setting.GetQuotaSetting().EnableFreeModelPreConsume {
+				if groupRatioInfo.GroupRatio == 0 || modelPrice == 0 {
+					quota = 0
+					freeModel = true
+				}
+			}
+
+			priceData := types.PriceData{
+				FreeModel:         freeModel,
+				ModelPrice:        modelPrice,
+				UsePrice:          true,
+				GroupRatioInfo:    groupRatioInfo,
+				QuotaToPreConsume: quota,
+			}
+			info.PriceData = priceData
+			return priceData, nil
+		}
+		// 如果覆盖为按量计费(QuotaType=0)，继续下方的默认逻辑
+	}
+
+	modelPrice, usePrice := ratio_setting.GetModelPrice(info.OriginModelName, false)
 
 	var preConsumedQuota int
 	var modelRatio float64

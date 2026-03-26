@@ -78,6 +78,7 @@ const PricingPage = () => {
         endpointMap={pricingData.endpointMap}
         autoGroups={pricingData.autoGroups}
         t={pricingData.t}
+        groupModelBilling={pricingData.groupModelBilling}
       />
     </div>
   );

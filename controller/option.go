@@ -197,6 +197,15 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "GroupModelBilling":
+		err = ratio_setting.UpdateGroupModelBillingByJSONString(option.Value.(string))
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "分组模型计费设置失败: " + err.Error(),
+			})
+			return
+		}
 	case "ImageRatio":
 		err = ratio_setting.UpdateImageRatioByJSONString(option.Value.(string))
 		if err != nil {

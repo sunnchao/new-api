@@ -35,6 +35,7 @@ const ModelPricingTable = ({
   usableGroup,
   autoGroups = [],
   t,
+  groupModelBilling = {},
 }) => {
   const modelEnableGroups = Array.isArray(modelData?.enable_groups)
     ? modelData.enable_groups
@@ -59,6 +60,7 @@ const ModelPricingTable = ({
             displayPrice,
             currency,
             quotaDisplayType: siteDisplayType,
+            groupModelBilling,
           })
         : { inputPrice: '-', outputPrice: '-', price: '-' };
 
@@ -66,14 +68,20 @@ const ModelPricingTable = ({
       const groupRatioValue =
         groupRatio && groupRatio[group] ? groupRatio[group] : 1;
 
+      // 获取实际计费类型（考虑分组覆盖）
+      let effectiveQuotaType = modelData?.quota_type;
+      if (groupModelBilling[group] && groupModelBilling[group][modelData?.model_name]) {
+        effectiveQuotaType = groupModelBilling[group][modelData?.model_name].quota_type;
+      }
+
       return {
         key: group,
         group: group,
         ratio: groupRatioValue,
         billingType:
-          modelData?.quota_type === 0
+          effectiveQuotaType === 0
             ? t('按量计费')
-            : modelData?.quota_type === 1
+            : effectiveQuotaType === 1
               ? t('按次计费')
               : '-',
         priceItems: getModelPriceItems(priceData, t, siteDisplayType),

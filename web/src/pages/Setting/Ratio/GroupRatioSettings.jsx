@@ -38,6 +38,7 @@ export default function GroupRatioSettings(props) {
     UserUnselectableGroups: '',
     GroupGroupRatio: '',
     'group_ratio_setting.group_special_usable_group': '',
+    GroupModelBilling: '',
     AutoGroups: '',
     DefaultUseAutoGroup: false,
   });
@@ -49,6 +50,7 @@ export default function GroupRatioSettings(props) {
       await refForm.current
         .validate()
         .then(() => {
+          console.log('inputs inputsRow', inputs, inputsRow)
           const updateArray = compareObjects(inputs, inputsRow);
           if (!updateArray.length)
             return showWarning(t('你似乎并没有修改什么'));
@@ -234,6 +236,30 @@ export default function GroupRatioSettings(props) {
                   ...inputs,
                   'group_ratio_setting.group_special_usable_group': value,
                 })
+              }
+            />
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} sm={16}>
+            <Form.TextArea
+              label={t('分组模型计费类型覆盖')}
+              placeholder={t('为一个 JSON 文本')}
+              extraText={t(
+                '允许为不同分组的模型设置不同的计费方式。键为分组名称，值为模型计费配置对象，其中模型名为键，配置为值。quota_type: 0=按量计费，1=按次计费；model_price: 按次计费时的价格(美元)。例如：{"vip": {"gpt-4": {"quota_type": 1, "model_price": 0.5}}}，表示 vip 分组使用 gpt-4 模型时按次计费，每次 $0.5',
+              )}
+              field={'GroupModelBilling'}
+              autosize={{ minRows: 6, maxRows: 12 }}
+              trigger='blur'
+              stopValidateWithError
+              rules={[
+                {
+                  validator: (rule, value) => verifyJSON(value),
+                  message: t('不是合法的 JSON 字符串'),
+                },
+              ]}
+              onChange={(value) =>
+                setInputs({ ...inputs, GroupModelBilling: value })
               }
             />
           </Col>

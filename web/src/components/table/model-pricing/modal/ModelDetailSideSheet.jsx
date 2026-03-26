@@ -44,6 +44,7 @@ const ModelDetailSideSheet = ({
   endpointMap,
   autoGroups,
   t,
+  groupModelBilling = {},
 }) => {
   const isMobile = useIsMobile();
 
@@ -100,6 +101,7 @@ const ModelDetailSideSheet = ({
               usableGroup={usableGroup}
               autoGroups={autoGroups}
               t={t}
+              groupModelBilling={groupModelBilling}
             />
           </>
         )}
