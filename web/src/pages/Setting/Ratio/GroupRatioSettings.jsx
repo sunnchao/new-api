@@ -245,9 +245,18 @@ export default function GroupRatioSettings(props) {
             <Form.TextArea
               label={t('分组模型计费类型覆盖')}
               placeholder={t('为一个 JSON 文本')}
-              extraText={t(
-                '允许为不同分组的模型设置不同的计费方式。键为分组名称，值为模型计费配置对象，其中模型名为键，配置为值。quota_type: 0=按量计费，1=按次计费；model_price: 按次计费时的价格(美元)。例如：{"vip": {"gpt-4": {"quota_type": 1, "model_price": 0.5}}}，表示 vip 分组使用 gpt-4 模型时按次计费，每次 $0.5',
-              )}
+              extraText={
+                t('允许为不同分组的模型设置不同的计费方式和资金来源。') + '\n' +
+                t('• quota_type: 0=按量计费，1=按次计费') + '\n' +
+                t('• model_price: 按次计费时的价格(美元)') + '\n' +
+                t('• billing_source: 资金来源限制') + '\n' +
+                t('  - ""或不设置: 不限制(使用用户偏好)') + '\n' +
+                t('  - "wallet_only": 仅允许余额消费') + '\n' +
+                t('  - "subscription_only": 仅允许订阅消费') + '\n' +
+                t('  - "wallet_first": 优先余额，不足时用订阅') + '\n' +
+                t('  - "subscription_first": 优先订阅，不足时用余额') + '\n' +
+                t('例如：{"vip": {"gpt-4": {"quota_type": 1, "model_price": 0.5, "billing_source": "subscription_only"}}}')
+              }
               field={'GroupModelBilling'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'

@@ -34,8 +34,9 @@ var defaultGroupSpecialUsableGroup = map[string]map[string]string{
 
 // GroupModelBilling 分组模型计费配置
 type GroupModelBilling struct {
-	QuotaType  int     `json:"quota_type"`            // 0=按量计费, 1=按次计费
-	ModelPrice float64 `json:"model_price,omitempty"` // 按次计费时的价格(美元)
+	QuotaType     int     `json:"quota_type"`               // 0=按量计费, 1=按次计费
+	ModelPrice    float64 `json:"model_price,omitempty"`    // 按次计费时的价格(美元)
+	BillingSource string  `json:"billing_source,omitempty"` // 资金来源限制: ""=不限制(默认), "wallet_only"=仅余额, "subscription_only"=仅订阅, "wallet_first"=优先余额, "subscription_first"=优先订阅
 }
 
 var defaultGroupModelBilling = map[string]map[string]GroupModelBilling{
@@ -50,10 +51,10 @@ var defaultGroupModelBilling = map[string]map[string]GroupModelBilling{
 var groupModelBillingMap = types.NewRWMap[string, map[string]GroupModelBilling]()
 
 type GroupRatioSetting struct {
-	GroupRatio              *types.RWMap[string, float64]                           `json:"group_ratio"`
-	GroupGroupRatio         *types.RWMap[string, map[string]float64]                `json:"group_group_ratio"`
-	GroupSpecialUsableGroup *types.RWMap[string, map[string]string]                 `json:"group_special_usable_group"`
-	GroupModelBilling       *types.RWMap[string, map[string]GroupModelBilling]      `json:"group_model_billing"`
+	GroupRatio              *types.RWMap[string, float64]                      `json:"group_ratio"`
+	GroupGroupRatio         *types.RWMap[string, map[string]float64]           `json:"group_group_ratio"`
+	GroupSpecialUsableGroup *types.RWMap[string, map[string]string]            `json:"group_special_usable_group"`
+	GroupModelBilling       *types.RWMap[string, map[string]GroupModelBilling] `json:"group_model_billing"`
 }
 
 var groupRatioSetting GroupRatioSetting
