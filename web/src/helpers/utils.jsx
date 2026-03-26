@@ -655,12 +655,12 @@ export const calculateModelPrice = ({
   // 1.5 检查分组模型计费覆盖配置
   let effectiveQuotaType = record.quota_type;
   let effectiveModelPrice = record.model_price;
-  
+
   if (usedGroup && groupModelBilling[usedGroup]) {
     const groupBilling = groupModelBilling[usedGroup][record.model_name];
-    if (groupBilling) {
-      effectiveQuotaType = groupBilling.quota_type;
-      if (groupBilling.quota_type === 1 && groupBilling.model_price !== undefined) {
+    if (groupBilling && Number(groupBilling.quota_type) === 1) {
+      effectiveQuotaType = 1;
+      if (groupBilling.model_price !== undefined) {
         effectiveModelPrice = groupBilling.model_price;
       }
     }

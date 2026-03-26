@@ -1,4 +1,4 @@
-/*
+﻿/*
 Copyright (C) 2025 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
@@ -40,16 +40,11 @@ const ModelPricingTable = ({
   const modelEnableGroups = Array.isArray(modelData?.enable_groups)
     ? modelData.enable_groups
     : [];
-  const autoChain = autoGroups.filter((g) => modelEnableGroups.includes(g));
+  const availableGroups =
+    modelEnableGroups.length > 0 ? modelEnableGroups : Object.keys(groupRatio || {});
+  const autoChain = autoGroups.filter((group) => modelEnableGroups.includes(group));
+
   const renderGroupPriceTable = () => {
-    // 仅展示模型可用的分组：模型 enable_groups 与用户可用分组的交集
-
-    const availableGroups = Object.keys(usableGroup || {})
-      .filter((g) => g !== '')
-      .filter((g) => g !== 'auto')
-      .filter((g) => modelEnableGroups.includes(g));
-
-    // 准备表格数据
     const tableData = availableGroups.map((group) => {
       const priceData = modelData
         ? calculateModelPrice({
@@ -64,19 +59,18 @@ const ModelPricingTable = ({
           })
         : { inputPrice: '-', outputPrice: '-', price: '-' };
 
-      // 获取分组倍率
-      const groupRatioValue =
-        groupRatio && groupRatio[group] ? groupRatio[group] : 1;
-
-      // 获取实际计费类型（考虑分组覆盖）
+      const groupRatioValue = groupRatio && groupRatio[group] ? groupRatio[group] : 1;
       let effectiveQuotaType = modelData?.quota_type;
-      if (groupModelBilling[group] && groupModelBilling[group][modelData?.model_name]) {
-        effectiveQuotaType = groupModelBilling[group][modelData?.model_name].quota_type;
+      const groupBilling = groupModelBilling[group]?.[modelData?.model_name];
+
+      // 前端展示需与后端一致：只有 quota_type === 1 才真正覆盖为按次计费。
+      if (groupBilling && Number(groupBilling.quota_type) === 1) {
+        effectiveQuotaType = 1;
       }
 
       return {
         key: group,
-        group: group,
+        group,
         ratio: groupRatioValue,
         billingType:
           effectiveQuotaType === 0
@@ -88,7 +82,6 @@ const ModelPricingTable = ({
       };
     });
 
-    // 定义表格列
     const columns = [
       {
         title: t('分组'),
@@ -104,7 +97,6 @@ const ModelPricingTable = ({
       },
     ];
 
-    // 如果显示倍率，添加倍率列
     if (showRatio) {
       columns.push({
         title: t('倍率'),
@@ -117,14 +109,16 @@ const ModelPricingTable = ({
       });
     }
 
-    // 添加计费类型列
     columns.push({
       title: t('计费类型'),
       dataIndex: 'billingType',
       render: (text) => {
         let color = 'white';
-        if (text === t('按量计费')) color = 'violet';
-        else if (text === t('按次计费')) color = 'teal';
+        if (text === t('按量计费')) {
+          color = 'violet';
+        } else if (text === t('按次计费')) {
+          color = 'teal';
+        }
         return (
           <Tag color={color} size='small' shape='circle'>
             {text || '-'}
@@ -175,20 +169,24 @@ const ModelPricingTable = ({
           </div>
         </div>
       </div>
-      {autoChain.length > 0 && (
+
+      {autoChain.length > 0 ? (
         <div className='flex flex-wrap items-center gap-1 mb-4'>
           <span className='text-sm text-gray-600'>{t('auto分组调用链路')}</span>
-          <span className='text-sm'>→</span>
-          {autoChain.map((g, idx) => (
-            <React.Fragment key={g}>
+          <span className='text-sm'>-&gt;</span>
+          {autoChain.map((group, index) => (
+            <React.Fragment key={group}>
               <Tag color='white' size='small' shape='circle'>
-                {usableGroup?.[g] || g}
+                {usableGroup?.[group] || group}
               </Tag>
-              {idx < autoChain.length - 1 && <span className='text-sm'>→</span>}
+              {index < autoChain.length - 1 ? (
+                <span className='text-sm'>-&gt;</span>
+              ) : null}
             </React.Fragment>
           ))}
         </div>
-      )}
+      ) : null}
+
       {renderGroupPriceTable()}
     </Card>
   );
