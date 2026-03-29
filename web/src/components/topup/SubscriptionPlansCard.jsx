@@ -34,6 +34,7 @@ import { API, showError, showSuccess, renderQuota } from '../../helpers';
 import { getCurrencyConfig } from '../../helpers/render';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import SubscriptionPurchaseModal from './modals/SubscriptionPurchaseModal';
+import SubscriptionQuotaLimitSummary from './SubscriptionQuotaLimitSummary';
 import {
   formatSubscriptionDuration,
   formatSubscriptionResetPeriod,
@@ -513,6 +514,15 @@ const SubscriptionPlansCard = ({
                             <span className='ml-1'>{t('所有分组')}</span>
                           )}
                         </div>
+
+                        {/* 复用独立组件，确保“我的订阅”里能明确看到当前订阅实例的额度限制与剩余额度。 */}
+                        <SubscriptionQuotaLimitSummary
+                          source={subscription}
+                          t={t}
+                          variant='subscription'
+                          title={t('当前额度限制')}
+                        />
+
                         {!isLast && <Divider margin={12} />}
                       </div>
                     );
@@ -552,11 +562,11 @@ const SubscriptionPlansCard = ({
                   formatSubscriptionResetPeriod(plan, t) === t('不重置')
                     ? null
                     : `${t('额度重置')}: ${formatSubscriptionResetPeriod(plan, t)}`;
-                  const allowedGroups = parseAllowedGroups(plan?.allowed_groups);
-                  const allowedGroupsLabel =
-                      allowedGroups.length > 0
-                          ? `${t('指定分组')}: ${allowedGroups.join(', ')}`
-                          : null;
+                const allowedGroups = parseAllowedGroups(plan?.allowed_groups);
+                const allowedGroupsLabel =
+                  allowedGroups.length > 0
+                    ? `${t('指定分组')}: ${allowedGroups.join(', ')}`
+                    : null;
                 const planBenefits = [
                   {
                     label: `${t('有效期')}: ${formatSubscriptionDuration(plan, t)}`,
@@ -569,8 +579,8 @@ const SubscriptionPlansCard = ({
                       }
                     : { label: totalLabel },
                   limitLabel ? { label: limitLabel } : null,
-                    upgradeLabel ? { label: upgradeLabel } : null,
-                    allowedGroupsLabel ? { label: allowedGroupsLabel } : null,
+                  upgradeLabel ? { label: upgradeLabel } : null,
+                  allowedGroupsLabel ? { label: allowedGroupsLabel } : null,
                 ].filter(Boolean);
 
                 return (
@@ -624,9 +634,9 @@ const SubscriptionPlansCard = ({
                         </div>
                       </div>
 
-                      {/* 套餐权益描述 */}
-                      <div className='flex flex-col items-start gap-1 pb-2'>
-                        {planBenefits.map((item) => {
+                       {/* 套餐权益描述 */}
+                       <div className='flex flex-col items-start gap-1 pb-2'>
+                         {planBenefits.map((item) => {
                           const content = (
                             <div className='flex items-center gap-2 text-xs text-gray-500'>
                               <Badge dot type='tertiary' />
@@ -651,7 +661,14 @@ const SubscriptionPlansCard = ({
                             </Tooltip>
                           );
                         })}
-                      </div>
+
+                        {/* 复用独立组件，确保“订阅套餐列表”里能明确看到该套餐配置了哪些额度限制。 */}
+                        <SubscriptionQuotaLimitSummary
+                          source={plan}
+                          t={t}
+                          title={t('套餐额度限制')}
+                        />
+                       </div>
 
                       <div className='mt-auto'>
                         <Divider margin={12} />

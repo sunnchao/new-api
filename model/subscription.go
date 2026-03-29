@@ -176,22 +176,26 @@ type SubscriptionPlan struct {
 
 	// Quota reset period for plan
 	QuotaResetPeriod        string `json:"quota_reset_period" gorm:"type:varchar(16);default:'never'"`
+	QuotaResetMode          string `json:"quota_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
 	QuotaResetCustomSeconds int64  `json:"quota_reset_custom_seconds" gorm:"type:bigint;default:0"`
 
 	// === Rate limits configuration ===
 	// Hourly limit
 	HourlyLimitAmount int64  `json:"hourly_limit_amount" gorm:"type:bigint;default:0"`
 	HourlyLimitHours  int    `json:"hourly_limit_hours" gorm:"type:int;default:1"`
-	HourlyResetMode   string `json:"hourly_reset_mode" gorm:"type:varchar(16);default:'interval'"` // "interval" or "natural"
+	HourlyResetMode   string `json:"hourly_reset_mode" gorm:"type:varchar(16);default:'anchor'"` // "anchor" or "natural"; legacy "interval" is still accepted
 
 	// Daily limit
-	DailyLimitAmount int64 `json:"daily_limit_amount" gorm:"type:bigint;default:0"`
+	DailyLimitAmount int64  `json:"daily_limit_amount" gorm:"type:bigint;default:0"`
+	DailyResetMode   string `json:"daily_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
 
 	// Weekly limit
-	WeeklyLimitAmount int64 `json:"weekly_limit_amount" gorm:"type:bigint;default:0"`
+	WeeklyLimitAmount int64  `json:"weekly_limit_amount" gorm:"type:bigint;default:0"`
+	WeeklyResetMode   string `json:"weekly_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
 
 	// Monthly limit
-	MonthlyLimitAmount int64 `json:"monthly_limit_amount" gorm:"type:bigint;default:0"`
+	MonthlyLimitAmount int64  `json:"monthly_limit_amount" gorm:"type:bigint;default:0"`
+	MonthlyResetMode   string `json:"monthly_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
 
 	CreatedAt int64 `json:"created_at" gorm:"bigint"`
 	UpdatedAt int64 `json:"updated_at" gorm:"bigint"`
@@ -273,28 +277,31 @@ type UserSubscription struct {
 	// Hourly limit
 	HourlyLimitAmount   int64  `json:"hourly_limit_amount" gorm:"type:bigint;default:0"`
 	HourlyLimitHours    int    `json:"hourly_limit_hours" gorm:"type:int;default:1"`
-	HourlyResetMode     string `json:"hourly_reset_mode" gorm:"type:varchar(16);default:'interval'"`
+	HourlyResetMode     string `json:"hourly_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
 	HourlyAmountUsed    int64  `json:"hourly_amount_used" gorm:"type:bigint;default:0"`
 	HourlyLastResetTime int64  `json:"hourly_last_reset_time" gorm:"type:bigint;default:0"`
 	HourlyNextResetTime int64  `json:"hourly_next_reset_time" gorm:"type:bigint;default:0"`
 
 	// Daily limit
-	DailyLimitAmount   int64 `json:"daily_limit_amount" gorm:"type:bigint;default:0"`
-	DailyAmountUsed    int64 `json:"daily_amount_used" gorm:"type:bigint;default:0"`
-	DailyLastResetTime int64 `json:"daily_last_reset_time" gorm:"type:bigint;default:0"`
-	DailyNextResetTime int64 `json:"daily_next_reset_time" gorm:"type:bigint;default:0"`
+	DailyLimitAmount   int64  `json:"daily_limit_amount" gorm:"type:bigint;default:0"`
+	DailyResetMode     string `json:"daily_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
+	DailyAmountUsed    int64  `json:"daily_amount_used" gorm:"type:bigint;default:0"`
+	DailyLastResetTime int64  `json:"daily_last_reset_time" gorm:"type:bigint;default:0"`
+	DailyNextResetTime int64  `json:"daily_next_reset_time" gorm:"type:bigint;default:0"`
 
 	// Weekly limit
-	WeeklyLimitAmount   int64 `json:"weekly_limit_amount" gorm:"type:bigint;default:0"`
-	WeeklyAmountUsed    int64 `json:"weekly_amount_used" gorm:"type:bigint;default:0"`
-	WeeklyLastResetTime int64 `json:"weekly_last_reset_time" gorm:"type:bigint;default:0"`
-	WeeklyNextResetTime int64 `json:"weekly_next_reset_time" gorm:"type:bigint;default:0"`
+	WeeklyLimitAmount   int64  `json:"weekly_limit_amount" gorm:"type:bigint;default:0"`
+	WeeklyResetMode     string `json:"weekly_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
+	WeeklyAmountUsed    int64  `json:"weekly_amount_used" gorm:"type:bigint;default:0"`
+	WeeklyLastResetTime int64  `json:"weekly_last_reset_time" gorm:"type:bigint;default:0"`
+	WeeklyNextResetTime int64  `json:"weekly_next_reset_time" gorm:"type:bigint;default:0"`
 
 	// Monthly limit
-	MonthlyLimitAmount   int64 `json:"monthly_limit_amount" gorm:"type:bigint;default:0"`
-	MonthlyAmountUsed    int64 `json:"monthly_amount_used" gorm:"type:bigint;default:0"`
-	MonthlyLastResetTime int64 `json:"monthly_last_reset_time" gorm:"type:bigint;default:0"`
-	MonthlyNextResetTime int64 `json:"monthly_next_reset_time" gorm:"type:bigint;default:0"`
+	MonthlyLimitAmount   int64  `json:"monthly_limit_amount" gorm:"type:bigint;default:0"`
+	MonthlyResetMode     string `json:"monthly_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
+	MonthlyAmountUsed    int64  `json:"monthly_amount_used" gorm:"type:bigint;default:0"`
+	MonthlyLastResetTime int64  `json:"monthly_last_reset_time" gorm:"type:bigint;default:0"`
+	MonthlyNextResetTime int64  `json:"monthly_next_reset_time" gorm:"type:bigint;default:0"`
 
 	CreatedAt int64 `json:"created_at" gorm:"bigint"`
 	UpdatedAt int64 `json:"updated_at" gorm:"bigint"`
@@ -359,50 +366,35 @@ func calcNextResetTime(base time.Time, plan *SubscriptionPlan, endUnix int64) in
 	if period == SubscriptionResetNever {
 		return 0
 	}
-	var next time.Time
 	switch period {
 	case SubscriptionResetDaily:
-		next = time.Date(base.Year(), base.Month(), base.Day(), 0, 0, 0, 0, base.Location()).
-			AddDate(0, 0, 1)
+		return calcNextDailyResetTime(base, plan.QuotaResetMode, endUnix)
 	case SubscriptionResetWeekly:
-		// Align to next Monday 00:00
-		weekday := int(base.Weekday()) // Sunday=0
-		// Convert to Monday=1..Sunday=7
-		if weekday == 0 {
-			weekday = 7
-		}
-		daysUntil := 8 - weekday
-		next = time.Date(base.Year(), base.Month(), base.Day(), 0, 0, 0, 0, base.Location()).
-			AddDate(0, 0, daysUntil)
+		return calcNextWeeklyResetTime(base, plan.QuotaResetMode, endUnix)
 	case SubscriptionResetMonthly:
-		// Align to first day of next month 00:00
-		next = time.Date(base.Year(), base.Month(), 1, 0, 0, 0, 0, base.Location()).
-			AddDate(0, 1, 0)
+		return calcNextMonthlyResetTime(base, plan.QuotaResetMode, endUnix)
 	case SubscriptionResetCustom:
 		if plan.QuotaResetCustomSeconds <= 0 {
 			return 0
 		}
-		next = base.Add(time.Duration(plan.QuotaResetCustomSeconds) * time.Second)
+		return clampResetTimeToSubscriptionEnd(base.Add(time.Duration(plan.QuotaResetCustomSeconds)*time.Second), endUnix)
 	default:
 		return 0
 	}
-	if endUnix > 0 && next.Unix() > endUnix {
-		return 0
-	}
-	return next.Unix()
 }
 
 // === Rate limit reset time calculation functions ===
 
 // calcNextHourlyResetTime calculates the next reset time for hourly limit.
-// mode: "interval" = fixed interval from base time, "natural" = align to natural hours
+// mode: "anchor"/legacy "interval" = anchored interval from base time,
+// "natural" = align to natural hourly buckets.
 func calcNextHourlyResetTime(base time.Time, hours int, mode string, endUnix int64) int64 {
 	if hours <= 0 {
 		return 0
 	}
 
 	var next time.Time
-	if mode == "natural" {
+	if NormalizeSubscriptionResetMode(mode) == SubscriptionResetModeNatural {
 		// Natural mode: align to whole hours
 		// e.g. if hours=8, align to 00:00, 08:00, 16:00
 		currentHour := base.Hour()
@@ -415,54 +407,37 @@ func calcNextHourlyResetTime(base time.Time, hours int, mode string, endUnix int
 			next = time.Date(base.Year(), base.Month(), base.Day(), nextAlignedHour, 0, 0, 0, base.Location())
 		}
 	} else {
-		// Interval mode: simply add hours from base time
+		// Anchor mode: simply add hours from the subscription anchor / last reset time.
 		next = base.Add(time.Duration(hours) * time.Hour)
 	}
-
-	nextUnix := next.Unix()
-	if endUnix > 0 && nextUnix > endUnix {
-		return 0 // Beyond subscription end time
-	}
-	return nextUnix
+	return clampResetTimeToSubscriptionEnd(next, endUnix)
 }
 
-// calcNextDailyResetTime calculates the next reset time for daily limit (next day 00:00).
-func calcNextDailyResetTime(base time.Time, endUnix int64) int64 {
-	next := time.Date(base.Year(), base.Month(), base.Day(), 0, 0, 0, 0, base.Location()).
-		AddDate(0, 0, 1)
-	nextUnix := next.Unix()
-	if endUnix > 0 && nextUnix > endUnix {
-		return 0
+// calcNextDailyResetTime calculates the next reset time for daily limit.
+// natural: next day 00:00; anchor: base + 1 day at the same clock time.
+func calcNextDailyResetTime(base time.Time, mode string, endUnix int64) int64 {
+	if NormalizeSubscriptionResetMode(mode) == SubscriptionResetModeNatural {
+		return clampResetTimeToSubscriptionEnd(calcNextNaturalDailyResetTime(base), endUnix)
 	}
-	return nextUnix
+	return clampResetTimeToSubscriptionEnd(base.AddDate(0, 0, 1), endUnix)
 }
 
-// calcNextWeeklyResetTime calculates the next reset time for weekly limit (next Monday 00:00).
-func calcNextWeeklyResetTime(base time.Time, endUnix int64) int64 {
-	weekday := int(base.Weekday())
-	// Convert Sunday=0 to Monday=1..Sunday=7
-	if weekday == 0 {
-		weekday = 7
+// calcNextWeeklyResetTime calculates the next reset time for weekly limit.
+// natural: next Monday 00:00; anchor: base + 7 days at the same clock time.
+func calcNextWeeklyResetTime(base time.Time, mode string, endUnix int64) int64 {
+	if NormalizeSubscriptionResetMode(mode) == SubscriptionResetModeNatural {
+		return clampResetTimeToSubscriptionEnd(calcNextNaturalWeeklyResetTime(base), endUnix)
 	}
-	daysUntilMonday := 8 - weekday
-	next := time.Date(base.Year(), base.Month(), base.Day(), 0, 0, 0, 0, base.Location()).
-		AddDate(0, 0, daysUntilMonday)
-	nextUnix := next.Unix()
-	if endUnix > 0 && nextUnix > endUnix {
-		return 0
-	}
-	return nextUnix
+	return clampResetTimeToSubscriptionEnd(base.AddDate(0, 0, 7), endUnix)
 }
 
-// calcNextMonthlyResetTime calculates the next reset time for monthly limit (first day of next month 00:00).
-func calcNextMonthlyResetTime(base time.Time, endUnix int64) int64 {
-	next := time.Date(base.Year(), base.Month(), 1, 0, 0, 0, 0, base.Location()).
-		AddDate(0, 1, 0)
-	nextUnix := next.Unix()
-	if endUnix > 0 && nextUnix > endUnix {
-		return 0
+// calcNextMonthlyResetTime calculates the next reset time for monthly limit.
+// natural: first day of next month 00:00; anchor: base + 1 month at same clock time.
+func calcNextMonthlyResetTime(base time.Time, mode string, endUnix int64) int64 {
+	if NormalizeSubscriptionResetMode(mode) == SubscriptionResetModeNatural {
+		return clampResetTimeToSubscriptionEnd(calcNextNaturalMonthlyResetTime(base), endUnix)
 	}
-	return nextUnix
+	return clampResetTimeToSubscriptionEnd(base.AddDate(0, 1, 0), endUnix)
 }
 
 func GetSubscriptionPlanById(id int) (*SubscriptionPlan, error) {
@@ -601,7 +576,7 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 	dailyLastReset := int64(0)
 	if plan.DailyLimitAmount > 0 {
 		dailyLastReset = now.Unix()
-		dailyNextReset = calcNextDailyResetTime(now, endUnix)
+		dailyNextReset = calcNextDailyResetTime(now, plan.DailyResetMode, endUnix)
 	}
 
 	// Weekly limit
@@ -609,7 +584,7 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 	weeklyLastReset := int64(0)
 	if plan.WeeklyLimitAmount > 0 {
 		weeklyLastReset = now.Unix()
-		weeklyNextReset = calcNextWeeklyResetTime(now, endUnix)
+		weeklyNextReset = calcNextWeeklyResetTime(now, plan.WeeklyResetMode, endUnix)
 	}
 
 	// Monthly limit
@@ -617,7 +592,7 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 	monthlyLastReset := int64(0)
 	if plan.MonthlyLimitAmount > 0 {
 		monthlyLastReset = now.Unix()
-		monthlyNextReset = calcNextMonthlyResetTime(now, endUnix)
+		monthlyNextReset = calcNextMonthlyResetTime(now, plan.MonthlyResetMode, endUnix)
 	}
 
 	upgradeGroup := strings.TrimSpace(plan.UpgradeGroup)
@@ -653,22 +628,25 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 		// Rate limits (snapshot from plan)
 		HourlyLimitAmount:   plan.HourlyLimitAmount,
 		HourlyLimitHours:    plan.HourlyLimitHours,
-		HourlyResetMode:     plan.HourlyResetMode,
+		HourlyResetMode:     NormalizeSubscriptionResetMode(plan.HourlyResetMode),
 		HourlyAmountUsed:    0,
 		HourlyLastResetTime: hourlyLastReset,
 		HourlyNextResetTime: hourlyNextReset,
 
 		DailyLimitAmount:   plan.DailyLimitAmount,
+		DailyResetMode:     NormalizeSubscriptionResetMode(plan.DailyResetMode),
 		DailyAmountUsed:    0,
 		DailyLastResetTime: dailyLastReset,
 		DailyNextResetTime: dailyNextReset,
 
 		WeeklyLimitAmount:   plan.WeeklyLimitAmount,
+		WeeklyResetMode:     NormalizeSubscriptionResetMode(plan.WeeklyResetMode),
 		WeeklyAmountUsed:    0,
 		WeeklyLastResetTime: weeklyLastReset,
 		WeeklyNextResetTime: weeklyNextReset,
 
 		MonthlyLimitAmount:   plan.MonthlyLimitAmount,
+		MonthlyResetMode:     NormalizeSubscriptionResetMode(plan.MonthlyResetMode),
 		MonthlyAmountUsed:    0,
 		MonthlyLastResetTime: monthlyLastReset,
 		MonthlyNextResetTime: monthlyNextReset,
@@ -1193,13 +1171,13 @@ func maybeResetDailyLimit(tx *gorm.DB, sub *UserSubscription, now int64) error {
 		baseUnix = sub.StartTime
 	}
 	base := time.Unix(baseUnix, 0)
-	next := calcNextDailyResetTime(base, sub.EndTime)
+	next := calcNextDailyResetTime(base, sub.DailyResetMode, sub.EndTime)
 
 	advanced := false
 	for next > 0 && next <= now {
 		advanced = true
 		base = time.Unix(next, 0)
-		next = calcNextDailyResetTime(base, sub.EndTime)
+		next = calcNextDailyResetTime(base, sub.DailyResetMode, sub.EndTime)
 	}
 
 	if !advanced {
@@ -1231,13 +1209,13 @@ func maybeResetWeeklyLimit(tx *gorm.DB, sub *UserSubscription, now int64) error 
 		baseUnix = sub.StartTime
 	}
 	base := time.Unix(baseUnix, 0)
-	next := calcNextWeeklyResetTime(base, sub.EndTime)
+	next := calcNextWeeklyResetTime(base, sub.WeeklyResetMode, sub.EndTime)
 
 	advanced := false
 	for next > 0 && next <= now {
 		advanced = true
 		base = time.Unix(next, 0)
-		next = calcNextWeeklyResetTime(base, sub.EndTime)
+		next = calcNextWeeklyResetTime(base, sub.WeeklyResetMode, sub.EndTime)
 	}
 
 	if !advanced {
@@ -1269,13 +1247,13 @@ func maybeResetMonthlyLimit(tx *gorm.DB, sub *UserSubscription, now int64) error
 		baseUnix = sub.StartTime
 	}
 	base := time.Unix(baseUnix, 0)
-	next := calcNextMonthlyResetTime(base, sub.EndTime)
+	next := calcNextMonthlyResetTime(base, sub.MonthlyResetMode, sub.EndTime)
 
 	advanced := false
 	for next > 0 && next <= now {
 		advanced = true
 		base = time.Unix(next, 0)
-		next = calcNextMonthlyResetTime(base, sub.EndTime)
+		next = calcNextMonthlyResetTime(base, sub.MonthlyResetMode, sub.EndTime)
 	}
 
 	if !advanced {
@@ -1536,6 +1514,162 @@ func ResetDueSubscriptions(limit int) (int, error) {
 				return nil
 			}
 			if err := maybeResetUserSubscriptionWithPlanTx(tx, &locked, plan, now); err != nil {
+				return err
+			}
+			resetCount++
+			return nil
+		})
+		if err != nil {
+			return resetCount, err
+		}
+	}
+	return resetCount, nil
+}
+
+// ResetDueHourlyLimits resets hourly limits whose next_reset_time has passed.
+func ResetDueHourlyLimits(limit int) (int, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+	now := GetDBTimestamp()
+	var subs []UserSubscription
+	if err := DB.Where("hourly_limit_amount > 0 AND hourly_next_reset_time > 0 AND hourly_next_reset_time <= ? AND status = ?", now, "active").
+		Order("hourly_next_reset_time asc").
+		Limit(limit).
+		Find(&subs).Error; err != nil {
+		return 0, err
+	}
+	if len(subs) == 0 {
+		return 0, nil
+	}
+	resetCount := 0
+	for _, sub := range subs {
+		subCopy := sub
+		err := DB.Transaction(func(tx *gorm.DB) error {
+			var locked UserSubscription
+			if err := tx.Set("gorm:query_option", "FOR UPDATE").
+				Where("id = ? AND hourly_limit_amount > 0 AND hourly_next_reset_time > 0 AND hourly_next_reset_time <= ?", subCopy.Id, now).
+				First(&locked).Error; err != nil {
+				return nil
+			}
+			if err := maybeResetHourlyLimit(tx, &locked, now); err != nil {
+				return err
+			}
+			resetCount++
+			return nil
+		})
+		if err != nil {
+			return resetCount, err
+		}
+	}
+	return resetCount, nil
+}
+
+// ResetDueDailyLimits resets daily limits whose next_reset_time has passed.
+func ResetDueDailyLimits(limit int) (int, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+	now := GetDBTimestamp()
+	var subs []UserSubscription
+	if err := DB.Where("daily_limit_amount > 0 AND daily_next_reset_time > 0 AND daily_next_reset_time <= ? AND status = ?", now, "active").
+		Order("daily_next_reset_time asc").
+		Limit(limit).
+		Find(&subs).Error; err != nil {
+		return 0, err
+	}
+	if len(subs) == 0 {
+		return 0, nil
+	}
+	resetCount := 0
+	for _, sub := range subs {
+		subCopy := sub
+		err := DB.Transaction(func(tx *gorm.DB) error {
+			var locked UserSubscription
+			if err := tx.Set("gorm:query_option", "FOR UPDATE").
+				Where("id = ? AND daily_limit_amount > 0 AND daily_next_reset_time > 0 AND daily_next_reset_time <= ?", subCopy.Id, now).
+				First(&locked).Error; err != nil {
+				return nil
+			}
+			if err := maybeResetDailyLimit(tx, &locked, now); err != nil {
+				return err
+			}
+			resetCount++
+			return nil
+		})
+		if err != nil {
+			return resetCount, err
+		}
+	}
+	return resetCount, nil
+}
+
+// ResetDueWeeklyLimits resets weekly limits whose next_reset_time has passed.
+func ResetDueWeeklyLimits(limit int) (int, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+	now := GetDBTimestamp()
+	var subs []UserSubscription
+	if err := DB.Where("weekly_limit_amount > 0 AND weekly_next_reset_time > 0 AND weekly_next_reset_time <= ? AND status = ?", now, "active").
+		Order("weekly_next_reset_time asc").
+		Limit(limit).
+		Find(&subs).Error; err != nil {
+		return 0, err
+	}
+	if len(subs) == 0 {
+		return 0, nil
+	}
+	resetCount := 0
+	for _, sub := range subs {
+		subCopy := sub
+		err := DB.Transaction(func(tx *gorm.DB) error {
+			var locked UserSubscription
+			if err := tx.Set("gorm:query_option", "FOR UPDATE").
+				Where("id = ? AND weekly_limit_amount > 0 AND weekly_next_reset_time > 0 AND weekly_next_reset_time <= ?", subCopy.Id, now).
+				First(&locked).Error; err != nil {
+				return nil
+			}
+			if err := maybeResetWeeklyLimit(tx, &locked, now); err != nil {
+				return err
+			}
+			resetCount++
+			return nil
+		})
+		if err != nil {
+			return resetCount, err
+		}
+	}
+	return resetCount, nil
+}
+
+// ResetDueMonthlyLimits resets monthly limits whose next_reset_time has passed.
+func ResetDueMonthlyLimits(limit int) (int, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+	now := GetDBTimestamp()
+	var subs []UserSubscription
+	if err := DB.Where("monthly_limit_amount > 0 AND monthly_next_reset_time > 0 AND monthly_next_reset_time <= ? AND status = ?", now, "active").
+		Order("monthly_next_reset_time asc").
+		Limit(limit).
+		Find(&subs).Error; err != nil {
+		return 0, err
+	}
+	if len(subs) == 0 {
+		return 0, nil
+	}
+	resetCount := 0
+	for _, sub := range subs {
+		subCopy := sub
+		err := DB.Transaction(func(tx *gorm.DB) error {
+			var locked UserSubscription
+			if err := tx.Set("gorm:query_option", "FOR UPDATE").
+				Where("id = ? AND monthly_limit_amount > 0 AND monthly_next_reset_time > 0 AND monthly_next_reset_time <= ?", subCopy.Id, now).
+				First(&locked).Error; err != nil {
+				return nil
+			}
+			if err := maybeResetMonthlyLimit(tx, &locked, now); err != nil {
 				return err
 			}
 			resetCount++
