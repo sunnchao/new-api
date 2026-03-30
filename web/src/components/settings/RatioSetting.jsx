@@ -1,4 +1,4 @@
-/*
+﻿/*
 Copyright (C) 2025 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@ import ModelSettingsVisualEditor from '../../pages/Setting/Ratio/ModelSettingsVi
 import ModelRatioNotSetEditor from '../../pages/Setting/Ratio/ModelRationNotSetEditor';
 import UpstreamRatioSync from '../../pages/Setting/Ratio/UpstreamRatioSync';
 import GroupRatioVisualEditor from '../../pages/Setting/Ratio/GroupRatioVisualEditor';
+import GroupModelBillingVisualEditor from '../../pages/Setting/Ratio/GroupModelBillingVisualEditor';
 import TierPricingVisualEditor from '../../pages/Setting/Ratio/TierPricingVisualEditor';
 
 import { API, showError, toBoolean } from '../../helpers';
@@ -68,7 +69,7 @@ const RatioSetting = () => {
           try {
             item.value = JSON.stringify(JSON.parse(item.value), null, 2);
           } catch (e) {
-            // 如果后端返回的不是合法 JSON，直接展示
+            // Keep raw value when backend returns non-JSON content.
           }
         }
         if (['DefaultUseAutoGroup', 'ExposeRatioEnabled', 'tier_pricing.enabled'].includes(item.key)) {
@@ -97,7 +98,7 @@ const RatioSetting = () => {
       setLoading(true);
       await getOptions();
     } catch (error) {
-      showError('刷新失败');
+      showError(t('刷新失败'));
     } finally {
       setLoading(false);
     }
@@ -122,6 +123,9 @@ const RatioSetting = () => {
           <Tabs.TabPane tab={t('分组倍率可视化设置')} itemKey='group_visual'>
             <GroupRatioVisualEditor options={inputs} refresh={onRefresh} />
           </Tabs.TabPane>
+          <Tabs.TabPane tab={t('分组模型计费覆盖')} itemKey='group_model_billing_visual'>
+            <GroupModelBillingVisualEditor options={inputs} refresh={onRefresh} />
+          </Tabs.TabPane>
           <Tabs.TabPane tab={t('价格设置')} itemKey='visual'>
             <ModelSettingsVisualEditor options={inputs} refresh={onRefresh} />
           </Tabs.TabPane>
@@ -141,3 +145,5 @@ const RatioSetting = () => {
 };
 
 export default RatioSetting;
+
+

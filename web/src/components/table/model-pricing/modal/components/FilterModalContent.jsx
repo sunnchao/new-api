@@ -63,12 +63,15 @@ const FilterModalContent = ({ sidebarProps, t }) => {
     groupCountModels,
   } = usePricingFilterCounts({
     models: categoryProps.models,
+    selectedGroup: categoryProps.selectedGroup,
     filterGroup,
     filterQuotaType,
     filterEndpointType,
     filterVendor,
     filterTag,
     searchValue: sidebarProps.searchValue,
+    groupRatio: categoryProps.groupRatio,
+    groupModelBilling: categoryProps.groupModelBilling,
   });
 
   return (

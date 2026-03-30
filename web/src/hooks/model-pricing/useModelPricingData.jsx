@@ -23,6 +23,7 @@ import { API, copy, showError, showInfo, showSuccess } from '../../helpers';
 import { Modal } from '@douyinfe/semi-ui';
 import { UserContext } from '../../context/User';
 import { StatusContext } from '../../context/Status';
+import { getEffectiveModelBillingContext } from '../../helpers/utils';
 
 export const useModelPricingData = () => {
   const { t } = useTranslation();
@@ -75,6 +76,11 @@ export const useModelPricingData = () => {
     [statusState],
   );
 
+  const activePricingGroup = useMemo(
+    () => (filterGroup !== 'all' ? filterGroup : selectedGroup),
+    [filterGroup, selectedGroup],
+  );
+
   // 默认货币与站点展示类型同步；TOKENS 由视图层走倍率展示
   const siteDisplayType = useMemo(
     () => statusState?.status?.quota_display_type || 'USD',
@@ -109,7 +115,15 @@ export const useModelPricingData = () => {
 
     // 计费类型筛选
     if (filterQuotaType !== 'all') {
-      result = result.filter((model) => model.quota_type === filterQuotaType);
+      result = result.filter((model) => {
+        const { effectiveQuotaType } = getEffectiveModelBillingContext({
+          record: model,
+          selectedGroup: activePricingGroup,
+          groupRatio,
+          groupModelBilling,
+        });
+        return effectiveQuotaType === filterQuotaType;
+      });
     }
 
     // 端点类型筛选
@@ -163,11 +177,14 @@ export const useModelPricingData = () => {
   }, [
     models,
     searchValue,
+    activePricingGroup,
     filterGroup,
     filterQuotaType,
     filterEndpointType,
     filterVendor,
     filterTag,
+    groupRatio,
+    groupModelBilling,
   ]);
 
   const rowSelection = useMemo(
@@ -380,6 +397,7 @@ export const useModelPricingData = () => {
     isModalOpenurl,
     setIsModalOpenurl,
     selectedGroup,
+    activePricingGroup,
     setSelectedGroup,
     showModelDetail,
     setShowModelDetail,

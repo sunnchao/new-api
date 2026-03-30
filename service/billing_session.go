@@ -1,9 +1,9 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/QuantumNous/new-api/common"
@@ -176,10 +176,10 @@ func (s *BillingSession) preConsume(c *gin.Context, quota int) *types.NewAPIErro
 			}
 			s.tokenConsumed = 0
 		}
-		// TODO: model 层应定义哨兵错误（如 ErrNoActiveSubscription），用 errors.Is 替代字符串匹配
-		errMsg := err.Error()
-		if strings.Contains(errMsg, "no active subscription") || strings.Contains(errMsg, "subscription quota insufficient") {
-			return types.NewErrorWithStatusCode(fmt.Errorf("订阅额度不足或未配置订阅: %s", errMsg), types.ErrorCodeInsufficientUserQuota, http.StatusForbidden, types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
+		if s.funding.Source() == BillingSourceSubscription {
+			if subscriptionErr := buildSubscriptionFundingError(err); subscriptionErr != nil {
+				return subscriptionErr
+			}
 		}
 		return types.NewError(err, types.ErrorCodeUpdateDataError, types.ErrOptionWithSkipRetry())
 	}
@@ -190,6 +190,30 @@ func (s *BillingSession) preConsume(c *gin.Context, quota int) *types.NewAPIErro
 	s.syncRelayInfo()
 
 	return nil
+}
+
+func buildSubscriptionFundingError(err error) *types.NewAPIError {
+	if err == nil {
+		return nil
+	}
+	message := "订阅扣费失败"
+	switch {
+	case errors.Is(err, model.ErrNoValidSubscriptionForGroup):
+		message = "未包含有效的订阅套餐"
+	case errors.Is(err, model.ErrNoActiveSubscription):
+		message = "未开通有效订阅套餐"
+	case errors.Is(err, model.ErrSubscriptionQuotaInsufficient):
+		message = "订阅额度不足"
+	default:
+		return nil
+	}
+	return types.NewErrorWithStatusCode(
+		fmt.Errorf("%s", message),
+		types.ErrorCodeInsufficientUserQuota,
+		http.StatusForbidden,
+		types.ErrOptionWithSkipRetry(),
+		types.ErrOptionWithNoRecordErrorLog(),
+	)
 }
 
 // shouldTrust 统一信任额度检查，适用于钱包和订阅。
@@ -261,13 +285,68 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 	pref := common.NormalizeBillingPreference(relayInfo.UserSetting.BillingPreference)
 
 	// === 检查分组模型计费配置，覆盖用户偏好 ===
-	if groupBilling, ok := ratio_setting.GetGroupModelBilling(relayInfo.UsingGroup, relayInfo.OriginModelName); ok {
-		if groupBilling.BillingSource != "" {
-			pref = groupBilling.BillingSource
-		}
+	// 优先使用模型显式 billing_source，其次回退到分组默认 billing_source。
+	if billingSource, ok := ratio_setting.GetGroupModelBillingSource(relayInfo.UsingGroup, relayInfo.OriginModelName); ok {
+		pref = billingSource
 	}
 
 	// 钱包路径需要先检查用户额度
+	checkGroupSubscription := func() (bool, *types.NewAPIError) {
+		// 使用最终 UsingGroup 做 group-aware 判断，避免 token_plan 这类分组在
+		// subscription_only 场景下因“用户有其他分组订阅”而错误放行。
+		hasSub, err := model.HasActiveUserSubscriptionForGroup(relayInfo.UserId, relayInfo.UsingGroup)
+		if err != nil {
+			return false, types.NewError(err, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
+		}
+		return hasSub, nil
+	}
+
+	checkAnySubscription := func() (bool, *types.NewAPIError) {
+		hasSub, err := model.HasActiveUserSubscription(relayInfo.UserId)
+		if err != nil {
+			return false, types.NewError(err, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
+		}
+		return hasSub, nil
+	}
+
+	logGroupSubscriptionMiss := func(reason string) {
+		if !common.DebugEnabled {
+			return
+		}
+		summary, err := model.DescribeActiveUserSubscriptionGroups(relayInfo.UserId)
+		if err != nil {
+			logger.LogDebug(c, "subscription group check miss: reason=%s user_id=%d using_group=%s model=%s billing_pref=%s summary_error=%v",
+				reason,
+				relayInfo.UserId,
+				relayInfo.UsingGroup,
+				relayInfo.OriginModelName,
+				pref,
+				err,
+			)
+			return
+		}
+		// Keep this debug log close to the billing decision so token_plan/group
+		// misconfiguration can be located without stepping into model pre-consume.
+		logger.LogDebug(c, "subscription group check miss: reason=%s user_id=%d using_group=%s model=%s billing_pref=%s active_subscriptions=[%s]",
+			reason,
+			relayInfo.UserId,
+			relayInfo.UsingGroup,
+			relayInfo.OriginModelName,
+			pref,
+			summary,
+		)
+	}
+
+	missingValidSubscription := func() *types.NewAPIError {
+		return types.NewErrorWithStatusCode(
+			fmt.Errorf("未包含有效的订阅套餐"),
+			types.ErrorCodeInsufficientUserQuota,
+			http.StatusForbidden,
+			types.ErrOptionWithSkipRetry(),
+			types.ErrOptionWithNoRecordErrorLog(),
+		)
+	}
+
 	tryWallet := func() (*BillingSession, *types.NewAPIError) {
 		userQuota, err := model.GetUserQuota(relayInfo.UserId, false)
 		if err != nil {
@@ -321,6 +400,15 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 
 	switch pref {
 	case "subscription_only":
+		// 仅在“只能由订阅消费”时做按分组的严格前置校验；否则仍允许后续回退到钱包。
+		hasSub, subCheckErr := checkGroupSubscription()
+		if subCheckErr != nil {
+			return nil, subCheckErr
+		}
+		if !hasSub {
+			logGroupSubscriptionMiss("subscription_only")
+			return nil, missingValidSubscription()
+		}
 		return trySubscription()
 	case "wallet_only":
 		return tryWallet()
@@ -336,9 +424,9 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 	case "subscription_first":
 		fallthrough
 	default:
-		hasSub, subCheckErr := model.HasActiveUserSubscription(relayInfo.UserId)
+		hasSub, subCheckErr := checkAnySubscription()
 		if subCheckErr != nil {
-			return nil, types.NewError(subCheckErr, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
+			return nil, subCheckErr
 		}
 		if !hasSub {
 			return tryWallet()

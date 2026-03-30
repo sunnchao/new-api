@@ -24,7 +24,6 @@ import {
   Card,
   Col,
   Form,
-  Radio,
   Row,
   Select,
   SideSheet,
@@ -45,7 +44,9 @@ import {
   quotaToDisplayAmount,
   displayAmountToQuota,
 } from '../../../../helpers/quota';
+import { normalizeSubscriptionResetMode } from '../../../../helpers/subscriptionFormat';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
+import SubscriptionResetModeField from './SubscriptionResetModeField';
 
 const { Text, Title } = Typography;
 
@@ -99,6 +100,7 @@ const AddEditSubscriptionModal = ({
     duration_value: 1,
     custom_seconds: 0,
     quota_reset_period: 'never',
+    quota_reset_mode: 'anchor',
     quota_reset_custom_seconds: 0,
     enabled: true,
     sort_order: 0,
@@ -111,10 +113,13 @@ const AddEditSubscriptionModal = ({
     // Rate limits
     hourly_limit_amount: 0,
     hourly_limit_hours: 1,
-    hourly_reset_mode: 'interval',
+    hourly_reset_mode: 'anchor',
     daily_limit_amount: 0,
+    daily_reset_mode: 'anchor',
     weekly_limit_amount: 0,
+    weekly_reset_mode: 'anchor',
     monthly_limit_amount: 0,
+    monthly_reset_mode: 'anchor',
   });
 
   const buildFormValues = () => {
@@ -131,6 +136,7 @@ const AddEditSubscriptionModal = ({
       duration_value: Number(p.duration_value || 1),
       custom_seconds: Number(p.custom_seconds || 0),
       quota_reset_period: p.quota_reset_period || 'never',
+      quota_reset_mode: normalizeSubscriptionResetMode(p.quota_reset_mode),
       quota_reset_custom_seconds: Number(p.quota_reset_custom_seconds || 0),
       enabled: p.enabled !== false,
       sort_order: Number(p.sort_order || 0),
@@ -147,16 +153,19 @@ const AddEditSubscriptionModal = ({
         quotaToDisplayAmount(p.hourly_limit_amount || 0).toFixed(2),
       ),
       hourly_limit_hours: Number(p.hourly_limit_hours || 1),
-      hourly_reset_mode: p.hourly_reset_mode || 'interval',
+      hourly_reset_mode: normalizeSubscriptionResetMode(p.hourly_reset_mode),
       daily_limit_amount: Number(
         quotaToDisplayAmount(p.daily_limit_amount || 0).toFixed(2),
       ),
+      daily_reset_mode: normalizeSubscriptionResetMode(p.daily_reset_mode),
       weekly_limit_amount: Number(
         quotaToDisplayAmount(p.weekly_limit_amount || 0).toFixed(2),
       ),
+      weekly_reset_mode: normalizeSubscriptionResetMode(p.weekly_reset_mode),
       monthly_limit_amount: Number(
         quotaToDisplayAmount(p.monthly_limit_amount || 0).toFixed(2),
       ),
+      monthly_reset_mode: normalizeSubscriptionResetMode(p.monthly_reset_mode),
     };
   };
 
@@ -190,6 +199,7 @@ const AddEditSubscriptionModal = ({
           duration_value: Number(values.duration_value || 0),
           custom_seconds: Number(values.custom_seconds || 0),
           quota_reset_period: values.quota_reset_period || 'never',
+          quota_reset_mode: normalizeSubscriptionResetMode(values.quota_reset_mode),
           quota_reset_custom_seconds:
             values.quota_reset_period === 'custom'
               ? Number(values.quota_reset_custom_seconds || 0)
@@ -202,10 +212,13 @@ const AddEditSubscriptionModal = ({
           // Rate limits
           hourly_limit_amount: displayAmountToQuota(values.hourly_limit_amount || 0),
           hourly_limit_hours: Number(values.hourly_limit_hours || 1),
-          hourly_reset_mode: values.hourly_reset_mode || 'interval',
+          hourly_reset_mode: normalizeSubscriptionResetMode(values.hourly_reset_mode),
           daily_limit_amount: displayAmountToQuota(values.daily_limit_amount || 0),
+          daily_reset_mode: normalizeSubscriptionResetMode(values.daily_reset_mode),
           weekly_limit_amount: displayAmountToQuota(values.weekly_limit_amount || 0),
+          weekly_reset_mode: normalizeSubscriptionResetMode(values.weekly_reset_mode),
           monthly_limit_amount: displayAmountToQuota(values.monthly_limit_amount || 0),
+          monthly_reset_mode: normalizeSubscriptionResetMode(values.monthly_reset_mode),
         },
       };
       if (editingPlan?.plan?.id) {
@@ -503,6 +516,26 @@ const AddEditSubscriptionModal = ({
                       )}
                     </Col>
                   </Row>
+
+                  {['daily', 'weekly', 'monthly'].includes(
+                    values.quota_reset_period,
+                  ) && (
+                    <Row gutter={12}>
+                      {/* Shared selector keeps quota reset and limit windows on the same cycle model. */}
+                      <SubscriptionResetModeField
+                        field='quota_reset_mode'
+                        label={t('周期模式')}
+                        value={values.quota_reset_mode}
+                        t={t}
+                        anchorDescription={t(
+                          '订阅锚点周期：从订阅生效/上次重置时刻开始，按所选周期滚动重置',
+                        )}
+                        naturalDescription={t(
+                          '自然周期：按自然日/周/月边界重置，如 00:00 / 周一 / 每月 1 日',
+                        )}
+                      />
+                    </Row>
+                  )}
                 </Card>
 
                 {/* 额度重置 */}
@@ -591,7 +624,9 @@ const AddEditSubscriptionModal = ({
                         min={0}
                         precision={2}
                         placeholder='0'
-                        extraText={t('每个时间段内的最大额度限制，0 表示不限制')}
+                        extraText={t(
+                          '每个时间段内的最大额度限制，0 表示不限制；可选自然周期或订阅锚点周期',
+                        )}
                         style={{ width: '100%' }}
                       />
                     </Col>
@@ -610,27 +645,20 @@ const AddEditSubscriptionModal = ({
                             style={{ width: '100%' }}
                           />
                         </Col>
-                        <Col span={12}>
-                          <Form.RadioGroup
-                            field='hourly_reset_mode'
-                            label={t('重置模式')}
-                            type='button'
-                          >
-                            <Radio value='interval'>{t('固定间隔')}</Radio>
-                            <Radio value='natural'>{t('自然小时')}</Radio>
-                          </Form.RadioGroup>
-                        </Col>
-                        <Col span={24}>
-                          <Text type='tertiary' size='small'>
-                            {values.hourly_reset_mode === 'interval'
-                              ? t(
-                                  '固定间隔：从上次重置时间开始计算，如每 5 小时重置一次',
-                                )
-                              : t(
-                                  '自然小时：按整点对齐重置，如每 5:00, 10:00, 15:00 重置',
-                                )}
-                          </Text>
-                        </Col>
+                        {/* Shared selector keeps hourly reset wording aligned with other reset-capable fields. */}
+                        <SubscriptionResetModeField
+                          field='hourly_reset_mode'
+                          label={t('周期模式')}
+                          value={values.hourly_reset_mode}
+                          t={t}
+                          span={12}
+                          anchorDescription={t(
+                            '订阅锚点周期：从订阅生效/上次重置时刻开始，按设置的小时间隔滚动重置',
+                          )}
+                          naturalDescription={t(
+                            '自然周期：按整点时间桶对齐重置，如每 5:00、10:00、15:00 重置',
+                          )}
+                        />
                       </>
                     )}
 
@@ -641,10 +669,27 @@ const AddEditSubscriptionModal = ({
                         min={0}
                         precision={2}
                         placeholder='0'
-                        extraText={t('每日 00:00 自动重置，0 表示不限制')}
+                        extraText={t(
+                          '0 表示不限制；支持自然周期和订阅锚点周期',
+                        )}
                         style={{ width: '100%' }}
                       />
                     </Col>
+
+                    {values.daily_limit_amount > 0 && (
+                      <SubscriptionResetModeField
+                        field='daily_reset_mode'
+                        label={t('日限额周期模式')}
+                        value={values.daily_reset_mode}
+                        t={t}
+                        anchorDescription={t(
+                          '订阅锚点周期：从订阅生效/上次重置时刻开始，每 24 小时重置一次',
+                        )}
+                        naturalDescription={t(
+                          '自然周期：按自然日重置，每天 00:00 自动重置',
+                        )}
+                      />
+                    )}
 
                     <Col span={24}>
                       <Form.InputNumber
@@ -653,10 +698,27 @@ const AddEditSubscriptionModal = ({
                         min={0}
                         precision={2}
                         placeholder='0'
-                        extraText={t('每周一 00:00 自动重置，0 表示不限制')}
+                        extraText={t(
+                          '0 表示不限制；支持自然周期和订阅锚点周期',
+                        )}
                         style={{ width: '100%' }}
                       />
                     </Col>
+
+                    {values.weekly_limit_amount > 0 && (
+                      <SubscriptionResetModeField
+                        field='weekly_reset_mode'
+                        label={t('周限额周期模式')}
+                        value={values.weekly_reset_mode}
+                        t={t}
+                        anchorDescription={t(
+                          '订阅锚点周期：从订阅生效/上次重置时刻开始，每 7 天重置一次',
+                        )}
+                        naturalDescription={t(
+                          '自然周期：按自然周重置，每周一 00:00 自动重置',
+                        )}
+                      />
+                    )}
 
                     <Col span={24}>
                       <Form.InputNumber
@@ -665,10 +727,27 @@ const AddEditSubscriptionModal = ({
                         min={0}
                         precision={2}
                         placeholder='0'
-                        extraText={t('每月 1 日 00:00 自动重置，0 表示不限制')}
+                        extraText={t(
+                          '0 表示不限制；支持自然周期和订阅锚点周期',
+                        )}
                         style={{ width: '100%' }}
                       />
                     </Col>
+
+                    {values.monthly_limit_amount > 0 && (
+                      <SubscriptionResetModeField
+                        field='monthly_reset_mode'
+                        label={t('月限额周期模式')}
+                        value={values.monthly_reset_mode}
+                        t={t}
+                        anchorDescription={t(
+                          '订阅锚点周期：从订阅生效/上次重置时刻开始，每 1 个月重置一次',
+                        )}
+                        naturalDescription={t(
+                          '自然周期：按自然月重置，每月 1 日 00:00 自动重置',
+                        )}
+                      />
+                    )}
                   </Row>
                 </Card>
 

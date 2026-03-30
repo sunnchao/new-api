@@ -137,6 +137,17 @@ func normalizeAndValidateAllowedGroups(raw string) (string, error) {
 	return strings.Join(normalized, ","), nil
 }
 
+func normalizeSubscriptionResetModes(plan *model.SubscriptionPlan) {
+	if plan == nil {
+		return
+	}
+	plan.QuotaResetMode = model.NormalizeSubscriptionResetMode(plan.QuotaResetMode)
+	plan.HourlyResetMode = model.NormalizeSubscriptionResetMode(plan.HourlyResetMode)
+	plan.DailyResetMode = model.NormalizeSubscriptionResetMode(plan.DailyResetMode)
+	plan.WeeklyResetMode = model.NormalizeSubscriptionResetMode(plan.WeeklyResetMode)
+	plan.MonthlyResetMode = model.NormalizeSubscriptionResetMode(plan.MonthlyResetMode)
+}
+
 func AdminCreateSubscriptionPlan(c *gin.Context) {
 	var req AdminUpsertSubscriptionPlanRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -187,6 +198,9 @@ func AdminCreateSubscriptionPlan(c *gin.Context) {
 		return
 	}
 	req.Plan.AllowedGroups = allowedGroups
+	// Normalize reset cycle modes here so new plans default to subscription-anchor
+	// cycles and historical "interval" payloads stay backward compatible.
+	normalizeSubscriptionResetModes(&req.Plan)
 	req.Plan.QuotaResetPeriod = model.NormalizeResetPeriod(req.Plan.QuotaResetPeriod)
 	if req.Plan.QuotaResetPeriod == model.SubscriptionResetCustom && req.Plan.QuotaResetCustomSeconds <= 0 {
 		common.ApiErrorMsg(c, "自定义重置周期需大于0秒")
@@ -202,9 +216,6 @@ func AdminCreateSubscriptionPlan(c *gin.Context) {
 		if req.Plan.HourlyLimitHours <= 0 || req.Plan.HourlyLimitHours > 24 {
 			common.ApiErrorMsg(c, "小时间隔必须在 1-24 之间")
 			return
-		}
-		if req.Plan.HourlyResetMode != "interval" && req.Plan.HourlyResetMode != "natural" {
-			req.Plan.HourlyResetMode = "interval" // Default to interval mode
 		}
 	}
 	if req.Plan.DailyLimitAmount < 0 {
@@ -284,6 +295,9 @@ func AdminUpdateSubscriptionPlan(c *gin.Context) {
 		return
 	}
 	req.Plan.AllowedGroups = allowedGroups
+	// Normalize reset cycle modes here so new plans default to subscription-anchor
+	// cycles and historical "interval" payloads stay backward compatible.
+	normalizeSubscriptionResetModes(&req.Plan)
 	req.Plan.QuotaResetPeriod = model.NormalizeResetPeriod(req.Plan.QuotaResetPeriod)
 	if req.Plan.QuotaResetPeriod == model.SubscriptionResetCustom && req.Plan.QuotaResetCustomSeconds <= 0 {
 		common.ApiErrorMsg(c, "自定义重置周期需大于0秒")
@@ -299,9 +313,6 @@ func AdminUpdateSubscriptionPlan(c *gin.Context) {
 		if req.Plan.HourlyLimitHours <= 0 || req.Plan.HourlyLimitHours > 24 {
 			common.ApiErrorMsg(c, "小时间隔必须在 1-24 之间")
 			return
-		}
-		if req.Plan.HourlyResetMode != "interval" && req.Plan.HourlyResetMode != "natural" {
-			req.Plan.HourlyResetMode = "interval" // Default to interval mode
 		}
 	}
 	if req.Plan.DailyLimitAmount < 0 {
@@ -341,9 +352,13 @@ func AdminUpdateSubscriptionPlan(c *gin.Context) {
 			"hourly_reset_mode":          req.Plan.HourlyResetMode,
 			"daily_limit_amount":         req.Plan.DailyLimitAmount,
 			"weekly_limit_amount":        req.Plan.WeeklyLimitAmount,
+			"weekly_reset_mode":          req.Plan.WeeklyResetMode,
 			"monthly_limit_amount":       req.Plan.MonthlyLimitAmount,
+			"monthly_reset_mode":         req.Plan.MonthlyResetMode,
 			"quota_reset_period":         req.Plan.QuotaResetPeriod,
+			"quota_reset_mode":           req.Plan.QuotaResetMode,
 			"quota_reset_custom_seconds": req.Plan.QuotaResetCustomSeconds,
+			"daily_reset_mode":           req.Plan.DailyResetMode,
 			"updated_at":                 common.GetTimestamp(),
 		}
 		if err := tx.Model(&model.SubscriptionPlan{}).Where("id = ?", id).Updates(updateMap).Error; err != nil {

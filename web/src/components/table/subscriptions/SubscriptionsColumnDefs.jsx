@@ -31,6 +31,12 @@ import {
 } from '@douyinfe/semi-ui';
 import { renderQuota } from '../../../helpers';
 import { convertUSDToCurrency } from '../../../helpers/render';
+import {
+  formatSubscriptionResetMode,
+  formatSubscriptionQuotaLimitSummary,
+  formatSubscriptionResetPeriod,
+  getSubscriptionQuotaLimitItems,
+} from '../../../helpers/subscriptionFormat';
 
 const { Text } = Typography;
 
@@ -47,21 +53,6 @@ function formatDuration(plan, t) {
     hour: t('小时'),
   };
   return `${plan.duration_value || 0}${unitMap[u] || u}`;
-}
-
-function formatResetPeriod(plan, t) {
-  const period = plan?.quota_reset_period || 'never';
-  if (period === 'daily') return t('每天');
-  if (period === 'weekly') return t('每周');
-  if (period === 'monthly') return t('每月');
-  if (period === 'custom') {
-    const seconds = Number(plan?.quota_reset_custom_seconds || 0);
-    if (seconds >= 86400) return `${Math.floor(seconds / 86400)} ${t('天')}`;
-    if (seconds >= 3600) return `${Math.floor(seconds / 3600)} ${t('小时')}`;
-    if (seconds >= 60) return `${Math.floor(seconds / 60)} ${t('分钟')}`;
-    return `${seconds} ${t('秒')}`;
-  }
-  return t('不重置');
 }
 
 function parseAllowedGroups(value) {
@@ -113,7 +104,9 @@ const renderPlanTitle = (text, record, t) => {
         <Text type='tertiary'>{t('有效期')}</Text>
         <Text>{formatDuration(plan, t)}</Text>
         <Text type='tertiary'>{t('重置')}</Text>
-        <Text>{formatResetPeriod(plan, t)}</Text>
+        <Text>{formatSubscriptionResetPeriod(plan, t)}</Text>
+        <Text type='tertiary'>{t('额度限制')}</Text>
+        <Text>{formatSubscriptionQuotaLimitSummary(plan, t, { maxItems: 2 })}</Text>
       </div>
     </div>
   );
@@ -226,8 +219,75 @@ const renderResetPeriod = (text, record, t) => {
   const isNever = period === 'never';
   return (
     <Text type={isNever ? 'tertiary' : 'secondary'}>
-      {formatResetPeriod(record?.plan, t)}
+      {formatSubscriptionResetPeriod(record?.plan, t, { shortMode: true })}
     </Text>
+  );
+};
+
+const renderQuotaLimits = (text, record, t) => {
+  const plan = record?.plan;
+  const items = getSubscriptionQuotaLimitItems(plan, t);
+  if (items.length === 0) {
+    return <Text type='tertiary'>{t('无')}</Text>;
+  }
+
+  const colorMap = {
+    hourly: 'orange',
+    daily: 'blue',
+    weekly: 'green',
+    monthly: 'purple',
+  };
+
+  const visibleItems = items.slice(0, 3);
+  const hiddenCount = items.length - visibleItems.length;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 6,
+        alignItems: 'center',
+        maxWidth: 220,
+      }}
+    >
+      {visibleItems.map((item) => {
+        const fullText = `${item.label} ${renderQuota(item.amount)}·${formatSubscriptionResetMode(item.mode, t, { short: true })}`;
+
+        return (
+          <Tag
+            key={`${record?.id}-${item.key}`}
+            size='small'
+            color={colorMap[item.key] || 'grey'}
+            type='light'
+            shape='circle'
+            style={{
+              maxWidth: '100%',
+              minWidth: 0,
+              margin: 0,
+            }}
+          >
+            <Text
+              ellipsis={{ showTooltip: true }}
+              style={{
+                display: 'block',
+                color: 'inherit',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {fullText}
+            </Text>
+          </Tag>
+        );
+      })}
+      {hiddenCount > 0 && (
+        <Tag size='small' color='grey' type='light' shape='circle'>
+          +{hiddenCount}
+        </Tag>
+      )}
+    </div>
   );
 };
 
@@ -349,8 +409,13 @@ export const getSubscriptionsColumns = ({
     },
     {
       title: t('重置'),
-      width: 80,
+      width: 120,
       render: (text, record) => renderResetPeriod(text, record, t),
+    },
+    {
+      title: t('额度限制'),
+      width: 240,
+      render: (text, record) => renderQuotaLimits(text, record, t),
     },
     {
       title: t('状态'),

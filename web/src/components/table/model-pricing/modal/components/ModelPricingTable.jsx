@@ -1,4 +1,4 @@
-/*
+﻿/*
 Copyright (C) 2025 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
@@ -17,10 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, Avatar, Typography, Table, Tag } from '@douyinfe/semi-ui';
 import { IconCoinMoneyStroked } from '@douyinfe/semi-icons';
 import { calculateModelPrice, getModelPriceItems } from '../../../../../helpers';
+import {
+  formatTierPricingTokenRange,
+  getMatchedTierPricingRules,
+} from '../../tierPricingUtils';
 
 const { Text } = Typography;
 
@@ -35,21 +39,66 @@ const ModelPricingTable = ({
   usableGroup,
   autoGroups = [],
   t,
+  tierPricingConfig,
   groupModelBilling = {},
 }) => {
   const modelEnableGroups = Array.isArray(modelData?.enable_groups)
     ? modelData.enable_groups
     : [];
-  const autoChain = autoGroups.filter((g) => modelEnableGroups.includes(g));
+  const availableGroups =
+    modelEnableGroups.length > 0 ? modelEnableGroups : Object.keys(groupRatio || {});
+  const autoChain = autoGroups.filter((group) => modelEnableGroups.includes(group));
+  const matchedTierPricing = useMemo(
+    () =>
+      getMatchedTierPricingRules({
+        modelName: modelData?.model_name,
+        tierPricingConfig,
+      }),
+    [modelData?.model_name, tierPricingConfig],
+  );
+
+  const renderTierPricingSummary = (effectiveQuotaType) => {
+    if (effectiveQuotaType !== 0 || matchedTierPricing.length === 0) {
+      return null;
+    }
+
+    return (
+      <div
+        className='mt-3 rounded-lg px-3 py-2 space-y-2'
+        style={{ backgroundColor: 'var(--semi-color-fill-0)' }}
+      >
+        {/* 详细阶梯计费说明只在详情弹窗的价格摘要中展开，并按当前分组的实际计费类型判断是否展示。 */}
+        <div>
+          <div className='text-xs font-semibold text-gray-700'>{t('阶梯计费')}</div>
+          <div className='text-xs text-gray-500'>
+            {t('按输入 Token 数量分段计费')}
+          </div>
+        </div>
+        <div className='space-y-2'>
+          {matchedTierPricing.map((tier, index) => (
+            <div key={tier.id || index} className='space-y-1'>
+              <Tag color='cyan' size='small' shape='circle'>
+                {formatTierPricingTokenRange(
+                  tier.min_prompt_tokens,
+                  tier.max_prompt_tokens,
+                )}
+              </Tag>
+              <div className='text-xs text-gray-600'>
+                {t('输入')} {tier.input_price_multiplier}x · {t('输出')}{' '}
+                {tier.output_price_multiplier}x · {t('缓存')}{' '}
+                {tier.cache_read_price_multiplier ?? 1}x
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className='text-xs text-gray-500'>
+          {t('超过阈值后，整个请求按对应倍率计费')}
+        </div>
+      </div>
+    );
+  };
+
   const renderGroupPriceTable = () => {
-    // 仅展示模型可用的分组：模型 enable_groups 与用户可用分组的交集
-
-    const availableGroups = Object.keys(usableGroup || {})
-      .filter((g) => g !== '')
-      .filter((g) => g !== 'auto')
-      .filter((g) => modelEnableGroups.includes(g));
-
-    // 准备表格数据
     const tableData = availableGroups.map((group) => {
       const priceData = modelData
         ? calculateModelPrice({
@@ -64,20 +113,15 @@ const ModelPricingTable = ({
           })
         : { inputPrice: '-', outputPrice: '-', price: '-' };
 
-      // 获取分组倍率
-      const groupRatioValue =
-        groupRatio && groupRatio[group] ? groupRatio[group] : 1;
-
-      // 获取实际计费类型（考虑分组覆盖）
-      let effectiveQuotaType = modelData?.quota_type;
-      if (groupModelBilling[group] && groupModelBilling[group][modelData?.model_name]) {
-        effectiveQuotaType = groupModelBilling[group][modelData?.model_name].quota_type;
-      }
+      const groupRatioValue = groupRatio && groupRatio[group] ? groupRatio[group] : 1;
+      const effectiveQuotaType =
+        priceData?.effectiveQuotaType ?? modelData?.quota_type;
 
       return {
         key: group,
-        group: group,
+        group,
         ratio: groupRatioValue,
+        effectiveQuotaType,
         billingType:
           effectiveQuotaType === 0
             ? t('按量计费')
@@ -88,7 +132,6 @@ const ModelPricingTable = ({
       };
     });
 
-    // 定义表格列
     const columns = [
       {
         title: t('分组'),
@@ -104,7 +147,6 @@ const ModelPricingTable = ({
       },
     ];
 
-    // 如果显示倍率，添加倍率列
     if (showRatio) {
       columns.push({
         title: t('倍率'),
@@ -117,14 +159,16 @@ const ModelPricingTable = ({
       });
     }
 
-    // 添加计费类型列
     columns.push({
       title: t('计费类型'),
       dataIndex: 'billingType',
       render: (text) => {
         let color = 'white';
-        if (text === t('按量计费')) color = 'violet';
-        else if (text === t('按次计费')) color = 'teal';
+        if (text === t('按量计费')) {
+          color = 'violet';
+        } else if (text === t('按次计费')) {
+          color = 'teal';
+        }
         return (
           <Tag color={color} size='small' shape='circle'>
             {text || '-'}
@@ -136,7 +180,7 @@ const ModelPricingTable = ({
     columns.push({
       title: siteDisplayType === 'TOKENS' ? t('计费摘要') : t('价格摘要'),
       dataIndex: 'priceItems',
-      render: (items) => (
+      render: (items, record) => (
         <div className='space-y-1'>
           {items.map((item) => (
             <div key={item.key}>
@@ -146,6 +190,7 @@ const ModelPricingTable = ({
               <div className='text-xs text-gray-500'>{item.suffix}</div>
             </div>
           ))}
+          {renderTierPricingSummary(record.effectiveQuotaType)}
         </div>
       ),
     });
@@ -175,20 +220,24 @@ const ModelPricingTable = ({
           </div>
         </div>
       </div>
-      {autoChain.length > 0 && (
+
+      {autoChain.length > 0 ? (
         <div className='flex flex-wrap items-center gap-1 mb-4'>
           <span className='text-sm text-gray-600'>{t('auto分组调用链路')}</span>
-          <span className='text-sm'>→</span>
-          {autoChain.map((g, idx) => (
-            <React.Fragment key={g}>
+          <span className='text-sm'>-&gt;</span>
+          {autoChain.map((group, index) => (
+            <React.Fragment key={group}>
               <Tag color='white' size='small' shape='circle'>
-                {usableGroup?.[g] || g}
+                {usableGroup?.[group] || group}
               </Tag>
-              {idx < autoChain.length - 1 && <span className='text-sm'>→</span>}
+              {index < autoChain.length - 1 ? (
+                <span className='text-sm'>-&gt;</span>
+              ) : null}
             </React.Fragment>
           ))}
         </div>
-      )}
+      ) : null}
+
       {renderGroupPriceTable()}
     </Card>
   );

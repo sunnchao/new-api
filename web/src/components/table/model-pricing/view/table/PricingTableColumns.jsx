@@ -162,7 +162,11 @@ export const getPricingTableColumns = ({
     title: t('计费类型'),
     dataIndex: 'quota_type',
     render: (text, record, index) => {
-      return renderQuotaType(parseInt(text), t);
+      const priceData = getPriceData(record);
+      return renderQuotaType(
+        parseInt(priceData?.effectiveQuotaType ?? text),
+        t,
+      );
     },
     sorter: (a, b) => a.quota_type - b.quota_type,
   };
@@ -212,15 +216,16 @@ export const getPricingTableColumns = ({
     render: (text, record, index) => {
       const completionRatio = parseFloat(record.completion_ratio.toFixed(3));
       const priceData = getPriceData(record);
+      const effectiveQuotaType = priceData?.effectiveQuotaType ?? record.quota_type;
 
       return (
         <div className='space-y-1'>
           <div className='text-gray-700'>
-            {t('模型倍率')}：{record.quota_type === 0 ? text : t('无')}
+            {t('模型倍率')}：{effectiveQuotaType === 0 ? text : t('无')}
           </div>
           <div className='text-gray-700'>
             {t('补全倍率')}：
-            {record.quota_type === 0 ? completionRatio : t('无')}
+            {effectiveQuotaType === 0 ? completionRatio : t('无')}
           </div>
           <div className='text-gray-700'>
             {t('分组倍率')}：{priceData?.usedGroupRatio ?? '-'}

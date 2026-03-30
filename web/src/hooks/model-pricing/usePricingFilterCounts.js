@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import { useMemo } from 'react';
+import { getEffectiveModelBillingContext } from '../../helpers/utils';
 
 // 工具函数：将 tags 字符串转为小写去重数组
 const normalizeTags = (tags = '') =>
@@ -32,15 +33,27 @@ const normalizeTags = (tags = '') =>
  */
 export const usePricingFilterCounts = ({
   models = [],
+  selectedGroup = 'all',
   filterGroup = 'all',
   filterQuotaType = 'all',
   filterEndpointType = 'all',
   filterVendor = 'all',
   filterTag = 'all',
   searchValue = '',
+  groupRatio = {},
+  groupModelBilling = {},
 }) => {
   // 均使用同一份模型列表，避免创建新引用
   const allModels = models;
+
+  const getEffectiveQuotaType = (model) => {
+    return getEffectiveModelBillingContext({
+      record: model,
+      selectedGroup,
+      groupRatio,
+      groupModelBilling,
+    }).effectiveQuotaType;
+  };
 
   /**
    * 通用过滤函数
@@ -57,7 +70,7 @@ export const usePricingFilterCounts = ({
 
     // 计费类型
     if (!ignore.includes('quota') && filterQuotaType !== 'all') {
-      if (model.quota_type !== filterQuotaType) return false;
+      if (getEffectiveQuotaType(model) !== filterQuotaType) return false;
     }
 
     // 端点类型
@@ -105,14 +118,23 @@ export const usePricingFilterCounts = ({
 
   // 生成不同视图所需的模型集合
   const quotaTypeModels = useMemo(
-    () => allModels.filter((m) => matchesFilters(m, ['quota'])),
+    () =>
+      allModels
+        .filter((m) => matchesFilters(m, ['quota']))
+        .map((model) => ({
+          ...model,
+          effectiveQuotaType: getEffectiveQuotaType(model),
+        })),
     [
       allModels,
+      selectedGroup,
       filterGroup,
       filterEndpointType,
       filterVendor,
       filterTag,
       searchValue,
+      groupRatio,
+      groupModelBilling,
     ],
   );
 
@@ -120,11 +142,14 @@ export const usePricingFilterCounts = ({
     () => allModels.filter((m) => matchesFilters(m, ['endpoint'])),
     [
       allModels,
+      selectedGroup,
       filterGroup,
       filterQuotaType,
       filterVendor,
       filterTag,
       searchValue,
+      groupRatio,
+      groupModelBilling,
     ],
   );
 
@@ -132,11 +157,14 @@ export const usePricingFilterCounts = ({
     () => allModels.filter((m) => matchesFilters(m, ['vendor'])),
     [
       allModels,
+      selectedGroup,
       filterGroup,
       filterQuotaType,
       filterEndpointType,
       filterTag,
       searchValue,
+      groupRatio,
+      groupModelBilling,
     ],
   );
 
@@ -144,11 +172,14 @@ export const usePricingFilterCounts = ({
     () => allModels.filter((m) => matchesFilters(m, ['tag'])),
     [
       allModels,
+      selectedGroup,
       filterGroup,
       filterQuotaType,
       filterEndpointType,
       filterVendor,
       searchValue,
+      groupRatio,
+      groupModelBilling,
     ],
   );
 
@@ -156,11 +187,14 @@ export const usePricingFilterCounts = ({
     () => allModels.filter((m) => matchesFilters(m, ['group'])),
     [
       allModels,
+      selectedGroup,
       filterQuotaType,
       filterEndpointType,
       filterVendor,
       filterTag,
       searchValue,
+      groupRatio,
+      groupModelBilling,
     ],
   );
 

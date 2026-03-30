@@ -614,15 +614,12 @@ export const selectFilter = (input, option) => {
 
 // -------------------------------
 // 模型定价计算工具函数
-export const calculateModelPrice = ({
+export const GROUP_MODEL_BILLING_DEFAULT_KEY = '__default__';
+
+export const getEffectiveModelBillingContext = ({
   record,
   selectedGroup,
-  groupRatio,
-  tokenUnit,
-  displayPrice,
-  currency,
-  quotaDisplayType = 'USD',
-  precision = 4,
+  groupRatio = {},
   groupModelBilling = {},
 }) => {
   // 1. 选择实际使用的分组
@@ -652,19 +649,75 @@ export const calculateModelPrice = ({
     }
   }
 
-  // 1.5 检查分组模型计费覆盖配置
+  // 1.5 检查分组模型计费覆盖配置，并兼容 __default__ 分组兜底。
   let effectiveQuotaType = record.quota_type;
   let effectiveModelPrice = record.model_price;
-  
+  let effectiveBillingSource = '';
+  let inheritedQuotaTypeFromGroupDefault = false;
+
   if (usedGroup && groupModelBilling[usedGroup]) {
-    const groupBilling = groupModelBilling[usedGroup][record.model_name];
-    if (groupBilling) {
-      effectiveQuotaType = groupBilling.quota_type;
-      if (groupBilling.quota_type === 1 && groupBilling.model_price !== undefined) {
-        effectiveModelPrice = groupBilling.model_price;
+    const groupBillingMap = groupModelBilling[usedGroup] || {};
+    const defaultBilling =
+      groupBillingMap[GROUP_MODEL_BILLING_DEFAULT_KEY] || null;
+    const modelBilling = groupBillingMap[record.model_name] || null;
+
+    if (defaultBilling && Number(defaultBilling.quota_type) === 1) {
+      effectiveQuotaType = 1;
+      inheritedQuotaTypeFromGroupDefault = true;
+      if (defaultBilling.model_price !== undefined) {
+        effectiveModelPrice = defaultBilling.model_price;
       }
     }
+    if (defaultBilling?.billing_source) {
+      effectiveBillingSource = defaultBilling.billing_source;
+    }
+
+    if (modelBilling && Number(modelBilling.quota_type) === 1) {
+      effectiveQuotaType = 1;
+      inheritedQuotaTypeFromGroupDefault = false;
+      if (modelBilling.model_price !== undefined) {
+        effectiveModelPrice = modelBilling.model_price;
+      }
+    }
+    if (modelBilling?.billing_source) {
+      effectiveBillingSource = modelBilling.billing_source;
+    }
   }
+
+  return {
+    usedGroup,
+    usedGroupRatio,
+    effectiveQuotaType,
+    effectiveModelPrice,
+    effectiveBillingSource,
+    inheritedQuotaTypeFromGroupDefault,
+  };
+};
+
+export const calculateModelPrice = ({
+  record,
+  selectedGroup,
+  groupRatio,
+  tokenUnit,
+  displayPrice,
+  currency,
+  quotaDisplayType = 'USD',
+  precision = 4,
+  groupModelBilling = {},
+}) => {
+  const {
+    usedGroup,
+    usedGroupRatio,
+    effectiveQuotaType,
+    effectiveModelPrice,
+    effectiveBillingSource,
+    inheritedQuotaTypeFromGroupDefault,
+  } = getEffectiveModelBillingContext({
+    record,
+    selectedGroup,
+    groupRatio,
+    groupModelBilling,
+  });
 
   // 2. 根据计费类型计算价格
   if (effectiveQuotaType === 0) {
@@ -693,6 +746,10 @@ export const calculateModelPrice = ({
         audioOutputRatio: formatRatio(record.audio_completion_ratio),
         isPerToken: true,
         isTokensDisplay: true,
+        effectiveQuotaType,
+        effectiveModelPrice,
+        effectiveBillingSource,
+        inheritedQuotaTypeFromGroupDefault,
         usedGroup,
         usedGroupRatio,
       };
@@ -753,6 +810,10 @@ export const calculateModelPrice = ({
       unitLabel,
       isPerToken: true,
       isTokensDisplay: false,
+      effectiveQuotaType,
+      effectiveModelPrice,
+      effectiveBillingSource,
+      inheritedQuotaTypeFromGroupDefault,
       usedGroup,
       usedGroupRatio,
     };
@@ -767,6 +828,10 @@ export const calculateModelPrice = ({
       price: displayVal,
       isPerToken: false,
       isTokensDisplay: false,
+      effectiveQuotaType,
+      effectiveModelPrice,
+      effectiveBillingSource,
+      inheritedQuotaTypeFromGroupDefault,
       usedGroup,
       usedGroupRatio,
     };
@@ -777,6 +842,10 @@ export const calculateModelPrice = ({
     price: '-',
     isPerToken: false,
     isTokensDisplay: false,
+    effectiveQuotaType,
+    effectiveModelPrice,
+    effectiveBillingSource,
+    inheritedQuotaTypeFromGroupDefault,
     usedGroup,
     usedGroupRatio,
   };

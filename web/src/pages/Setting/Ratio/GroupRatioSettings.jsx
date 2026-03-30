@@ -1,4 +1,4 @@
-/*
+﻿/*
 Copyright (C) 2025 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button, Col, Form, Row, Spin } from '@douyinfe/semi-ui';
 import {
   compareObjects,
@@ -42,57 +42,68 @@ export default function GroupRatioSettings(props) {
     AutoGroups: '',
     DefaultUseAutoGroup: false,
   });
-  const refForm = useRef();
   const [inputsRow, setInputsRow] = useState(inputs);
+  const refForm = useRef();
+
+  const handleInputChange = (key, value) => {
+    setInputs((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const jsonRules = [
+    {
+      validator: (rule, value) => verifyJSON(value),
+      message: t('不是合法的 JSON 字符串'),
+    },
+  ];
 
   async function onSubmit() {
     try {
-      await refForm.current
-        .validate()
-        .then(() => {
-          console.log('inputs inputsRow', inputs, inputsRow)
-          const updateArray = compareObjects(inputs, inputsRow);
-          if (!updateArray.length)
-            return showWarning(t('你似乎并没有修改什么'));
+      await refForm.current.validate();
+      const updateArray = compareObjects(inputs, inputsRow);
+      if (!updateArray.length) {
+        showWarning(t('你似乎并没有修改什么'));
+        return;
+      }
 
-          const requestQueue = updateArray.map((item) => {
-            const value =
-              typeof inputs[item.key] === 'boolean'
-                ? String(inputs[item.key])
-                : inputs[item.key];
-            return API.put('/api/option/', { key: item.key, value });
-          });
+      const requestQueue = updateArray.map((item) => {
+        const value =
+          typeof inputs[item.key] === 'boolean'
+            ? String(inputs[item.key])
+            : inputs[item.key];
+        return API.put('/api/option/', { key: item.key, value });
+      });
 
-          setLoading(true);
-          Promise.all(requestQueue)
-            .then((res) => {
-              if (res.includes(undefined)) {
-                return showError(
-                  requestQueue.length > 1
-                    ? t('部分保存失败，请重试')
-                    : t('保存失败'),
-                );
-              }
+      setLoading(true);
+      Promise.all(requestQueue)
+        .then((res) => {
+          if (res.includes(undefined)) {
+            showError(
+              requestQueue.length > 1
+                ? t('部分保存失败，请重试')
+                : t('保存失败'),
+            );
+            return;
+          }
 
-              for (let i = 0; i < res.length; i++) {
-                if (!res[i].data.success) {
-                  return showError(res[i].data.message);
-                }
-              }
+          for (let i = 0; i < res.length; i++) {
+            if (!res[i].data.success) {
+              showError(res[i].data.message);
+              return;
+            }
+          }
 
-              showSuccess(t('保存成功'));
-              props.refresh();
-            })
-            .catch((error) => {
-              console.error('Unexpected error:', error);
-              showError(t('保存失败，请重试'));
-            })
-            .finally(() => {
-              setLoading(false);
-            });
+          showSuccess(t('保存成功'));
+          props.refresh();
         })
-        .catch(() => {
-          showError(t('请检查输入'));
+        .catch((error) => {
+          console.error('Unexpected error:', error);
+          showError(t('保存失败，请重试'));
+        })
+        .finally(() => {
+          setLoading(false);
         });
     } catch (error) {
       showError(t('请检查输入'));
@@ -102,14 +113,16 @@ export default function GroupRatioSettings(props) {
 
   useEffect(() => {
     const currentInputs = {};
-    for (let key in props.options) {
-      if (Object.keys(inputs).includes(key)) {
+    for (const key in props.options) {
+      if (Object.prototype.hasOwnProperty.call(inputs, key)) {
         currentInputs[key] = props.options[key];
       }
     }
     setInputs(currentInputs);
     setInputsRow(structuredClone(currentInputs));
-    refForm.current.setValues(currentInputs);
+    if (refForm.current) {
+      refForm.current.setValues(currentInputs);
+    }
   }, [props.options]);
 
   return (
@@ -125,158 +138,127 @@ export default function GroupRatioSettings(props) {
               label={t('分组倍率')}
               placeholder={t('为一个 JSON 文本，键为分组名称，值为倍率')}
               extraText={t(
-                '分组倍率设置，可以在此处新增分组或修改现有分组的倍率，格式为 JSON 字符串，例如：{"vip": 0.5, "test": 1}，表示 vip 分组的倍率为 0.5，test 分组的倍率为 1',
+                '分组倍率设置，可在此新增或修改分组倍率。格式如 {"vip": 0.5, "test": 1}，表示 vip 分组倍率为 0.5，test 分组倍率为 1。',
               )}
               field={'GroupRatio'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
               stopValidateWithError
-              rules={[
-                {
-                  validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
-                },
-              ]}
-              onChange={(value) => setInputs({ ...inputs, GroupRatio: value })}
+              rules={jsonRules}
+              onChange={(value) => handleInputChange('GroupRatio', value)}
             />
           </Col>
         </Row>
+
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
               label={t('用户可选分组')}
               placeholder={t('为一个 JSON 文本，键为分组名称，值为分组描述')}
               extraText={t(
-                '用户新建令牌时可选的分组，格式为 JSON 字符串，例如：{"vip": "VIP 用户", "test": "测试"}，表示用户可以选择 vip 分组和 test 分组',
+                '用户创建令牌时可选的分组。格式如 {"vip": "VIP 用户", "test": "测试"}。',
               )}
               field={'UserUsableGroups'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
               stopValidateWithError
-              rules={[
-                {
-                  validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
-                },
-              ]}
-              onChange={(value) =>
-                setInputs({ ...inputs, UserUsableGroups: value })
-              }
+              rules={jsonRules}
+              onChange={(value) => handleInputChange('UserUsableGroups', value)}
             />
           </Col>
         </Row>
+
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
               label={t('用户不可选分组')}
               placeholder={t('为一个 JSON 文本，键为分组名称，值为分组描述')}
               extraText={t(
-                '用户不可选分组，格式为 JSON 字符串，例如：{"internal": "内部"}，表示普通用户不可见 internal 分组',
+                '用户不可选分组。格式如 {"internal": "内部"}，表示普通用户不可见或不可选 internal 分组。',
               )}
               field={'UserUnselectableGroups'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
               stopValidateWithError
-              rules={[
-                {
-                  validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
-                },
-              ]}
+              rules={jsonRules}
               onChange={(value) =>
-                setInputs({ ...inputs, UserUnselectableGroups: value })
+                handleInputChange('UserUnselectableGroups', value)
               }
             />
           </Col>
         </Row>
+
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
               label={t('分组特殊倍率')}
               placeholder={t('为一个 JSON 文本')}
               extraText={t(
-                '键为分组名称，值为另一个 JSON 对象，键为分组名称，值为该分组的用户的特殊分组倍率，例如：{"vip": {"default": 0.5, "test": 1}}，表示 vip 分组的用户在使用default分组的令牌时倍率为0.5，使用test分组时倍率为1',
+                '键为用户分组名称，值为目标分组倍率映射。格式如 {"vip": {"default": 0.5, "test": 1}}。',
               )}
               field={'GroupGroupRatio'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
               stopValidateWithError
-              rules={[
-                {
-                  validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
-                },
-              ]}
-              onChange={(value) =>
-                setInputs({ ...inputs, GroupGroupRatio: value })
-              }
+              rules={jsonRules}
+              onChange={(value) => handleInputChange('GroupGroupRatio', value)}
             />
           </Col>
         </Row>
+
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
               label={t('分组特殊可用分组')}
               placeholder={t('为一个 JSON 文本')}
               extraText={t(
-                '键为用户分组名称，值为操作映射对象。内层键以"+:"开头表示添加指定分组（键值为分组名称，值为描述），以"-:"开头表示移除指定分组（键值为分组名称），不带前缀的键直接添加该分组。例如：{"vip": {"+:premium": "高级分组", "special": "特殊分组", "-:default": "默认分组"}}，表示 vip 分组的用户可以使用 premium 和 special 分组，同时移除 default 分组的访问权限',
+                '键为用户分组名称，值为操作映射对象。支持 +:分组名 表示追加，-:分组名 表示移除，不带前缀表示直接添加。格式如 {"vip": {"+:premium": "高级分组", "special": "特殊分组", "-:default": "默认分组"}}。',
               )}
               field={'group_ratio_setting.group_special_usable_group'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
               stopValidateWithError
-              rules={[
-                {
-                  validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
-                },
-              ]}
+              rules={jsonRules}
               onChange={(value) =>
-                setInputs({
-                  ...inputs,
-                  'group_ratio_setting.group_special_usable_group': value,
-                })
+                handleInputChange(
+                  'group_ratio_setting.group_special_usable_group',
+                  value,
+                )
               }
             />
           </Col>
         </Row>
+
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
               label={t('分组模型计费类型覆盖')}
               placeholder={t('为一个 JSON 文本')}
               extraText={
-                t('允许为不同分组的模型设置不同的计费方式和资金来源。') + '\n' +
-                t('• quota_type: 0=按量计费，1=按次计费') + '\n' +
-                t('• model_price: 按次计费时的价格(美元)') + '\n' +
+                t('允许为不同分组的模型设置按次价格覆盖，或限制资金来源。') + '\n' +
+                t('• 支持保留键 "__default__" 作为分组默认 quota_type / model_price / billing_source；当具体模型未设置对应字段时，回退到该默认值') + '\n' +
+                t('• quota_type: 1=按次覆盖；0 或不设置时，仍遵循模型的全局价格模式') + '\n' +
+                t('• model_price: quota_type=1 时的单次价格（美元）') + '\n' +
                 t('• billing_source: 资金来源限制') + '\n' +
-                t('  - ""或不设置: 不限制(使用用户偏好)') + '\n' +
-                t('  - "wallet_only": 仅允许余额消费') + '\n' +
-                t('  - "subscription_only": 仅允许订阅消费') + '\n' +
-                t('  - "wallet_first": 优先余额，不足时用订阅') + '\n' +
-                t('  - "subscription_first": 优先订阅，不足时用余额') + '\n' +
-                t('例如：{"vip": {"gpt-4": {"quota_type": 1, "model_price": 0.5, "billing_source": "subscription_only"}}}')
+                t('  - "" 或不设置: 不限制，遵循用户在钱包页设置的计费偏好') + '\n' +
+                t('  - "wallet_only": 仅余额') + '\n' +
+                t('  - "subscription_only": 仅订阅') + '\n' +
+                t('示例：{"vip": {"__default__": {"quota_type": 1, "model_price": 0.2, "billing_source": "subscription_only"}, "gpt-4": {"quota_type": 1, "model_price": 0.5}, "gpt-4o-mini": {"billing_source": "wallet_only"}}}')
               }
               field={'GroupModelBilling'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
               stopValidateWithError
-              rules={[
-                {
-                  validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
-                },
-              ]}
-              onChange={(value) =>
-                setInputs({ ...inputs, GroupModelBilling: value })
-              }
+              rules={jsonRules}
+              onChange={(value) => handleInputChange('GroupModelBilling', value)}
             />
           </Col>
         </Row>
+
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('自动分组auto，从第一个开始选择')}
+              label={t('自动分组 auto，按顺序依次尝试')}
               placeholder={t('为一个 JSON 文本')}
               field={'AutoGroups'}
               autosize={{ minRows: 6, maxRows: 12 }}
@@ -286,41 +268,31 @@ export default function GroupRatioSettings(props) {
                 {
                   validator: (rule, value) => {
                     if (!value || value.trim() === '') {
-                      return true; // Allow empty values
+                      return true;
                     }
-
-                    // First check if it's valid JSON
                     try {
                       const parsed = JSON.parse(value);
-
-                      // Check if it's an array
-                      if (!Array.isArray(parsed)) {
-                        return false;
-                      }
-
-                      // Check if every element is a string
-                      return parsed.every((item) => typeof item === 'string');
+                      return Array.isArray(parsed) && parsed.every((item) => typeof item === 'string');
                     } catch (error) {
                       return false;
                     }
                   },
-                  message: t('必须是有效的 JSON 字符串数组，例如：["g1","g2"]'),
+                  message: t('必须是有效的 JSON 字符串数组，例如 ["g1", "g2"]'),
                 },
               ]}
-              onChange={(value) => setInputs({ ...inputs, AutoGroups: value })}
+              onChange={(value) => handleInputChange('AutoGroups', value)}
             />
           </Col>
         </Row>
+
         <Row gutter={16}>
           <Col span={16}>
             <Form.Switch
               label={t(
-                '创建令牌默认选择auto分组，初始令牌也将设为auto（否则留空，为用户默认分组）',
+                '创建令牌时默认选择 auto 分组，初始令牌也将设置为 auto（否则留空，使用用户默认分组）',
               )}
               field={'DefaultUseAutoGroup'}
-              onChange={(value) =>
-                setInputs({ ...inputs, DefaultUseAutoGroup: value })
-              }
+              onChange={(value) => handleInputChange('DefaultUseAutoGroup', value)}
             />
           </Col>
         </Row>

@@ -52,8 +52,8 @@ func HandleGroupRatio(ctx *gin.Context, relayInfo *relaycommon.RelayInfo) types.
 func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens int, meta *types.TokenCountMeta) (types.PriceData, error) {
 	groupRatioInfo := HandleGroupRatio(c, info)
 
-	// 检查分组是否覆盖了模型计费类型
-	if groupBilling, ok := ratio_setting.GetGroupModelBilling(info.UsingGroup, info.OriginModelName); ok {
+	// 检查分组是否覆盖了模型计费类型；若模型未显式设置，则回退到分组默认 __default__。
+	if groupBilling, ok := ratio_setting.GetEffectiveGroupModelBilling(info.UsingGroup, info.OriginModelName); ok {
 		if groupBilling.QuotaType == 1 {
 			// 分组覆盖为按次计费
 			modelPrice := groupBilling.ModelPrice
