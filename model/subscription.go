@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/pkg/cachex"
 	"github.com/samber/hot"
 	"gorm.io/gorm"
@@ -35,6 +37,9 @@ const (
 var (
 	ErrSubscriptionOrderNotFound      = errors.New("subscription order not found")
 	ErrSubscriptionOrderStatusInvalid = errors.New("subscription order status invalid")
+	ErrNoActiveSubscription           = errors.New("no active subscription")
+	ErrNoValidSubscriptionForGroup    = errors.New("no valid subscription for group")
+	ErrSubscriptionQuotaInsufficient  = errors.New("subscription quota insufficient")
 )
 
 const (
@@ -848,6 +853,77 @@ func HasActiveUserSubscription(userId int) (bool, error) {
 	return count > 0, nil
 }
 
+// HasActiveUserSubscriptionForGroup returns whether the user has any active
+// subscription that can be used by the current request group.
+func HasActiveUserSubscriptionForGroup(userId int, group string) (bool, error) {
+	if userId <= 0 {
+		return false, errors.New("invalid userId")
+	}
+	group = strings.TrimSpace(group)
+	if group == "" {
+		return HasActiveUserSubscription(userId)
+	}
+	now := common.GetTimestamp()
+	var subs []UserSubscription
+	if err := DB.Select("id", "allowed_groups").
+		Where("user_id = ? AND status = ? AND end_time > ?", userId, "active", now).
+		Order("end_time desc, id desc").
+		Find(&subs).Error; err != nil {
+		return false, err
+	}
+	for _, sub := range subs {
+		if sub.IsGroupAllowed(group) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func formatActiveSubscriptionGroupDebug(subs []UserSubscription) string {
+	if len(subs) == 0 {
+		return "none"
+	}
+	items := make([]string, 0, len(subs))
+	for _, sub := range subs {
+		allowedGroups := strings.TrimSpace(sub.AllowedGroups)
+		if allowedGroups == "" {
+			allowedGroups = "*"
+		}
+		items = append(items, fmt.Sprintf("sub_id=%d plan_id=%d allowed_groups=%s end_time=%d", sub.Id, sub.PlanId, allowedGroups, sub.EndTime))
+	}
+	return strings.Join(items, "; ")
+}
+
+// DescribeActiveUserSubscriptionGroups returns a compact summary string for
+// debug logging when a request group does not match any active subscription.
+func DescribeActiveUserSubscriptionGroups(userId int) (string, error) {
+	if userId <= 0 {
+		return "", errors.New("invalid userId")
+	}
+	now := common.GetTimestamp()
+	var subs []UserSubscription
+	if err := DB.Select("id", "plan_id", "allowed_groups", "end_time").
+		Where("user_id = ? AND status = ? AND end_time > ?", userId, "active", now).
+		Order("end_time asc, id asc").
+		Find(&subs).Error; err != nil {
+		return "", err
+	}
+	return formatActiveSubscriptionGroupDebug(subs), nil
+}
+
+func logSubscriptionGroupMismatchDebug(requestId string, userId int, group string, subs []UserSubscription) {
+	if !common.DebugEnabled {
+		return
+	}
+	ctx := context.WithValue(context.Background(), common.RequestIdKey, requestId)
+	logger.LogDebug(ctx,
+		"subscription group mismatch: user_id=%d request_group=%s active_subscriptions=[%s]",
+		userId,
+		strings.TrimSpace(group),
+		formatActiveSubscriptionGroupDebug(subs),
+	)
+}
+
 // GetAllUserSubscriptions returns all subscriptions (active and expired) for a user.
 func GetAllUserSubscriptions(userId int) ([]SubscriptionSummary, error) {
 	if userId <= 0 {
@@ -1328,16 +1404,18 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			Where("user_id = ? AND status = ? AND end_time > ?", userId, "active", now).
 			Order("end_time asc, id asc").
 			Find(&subs).Error; err != nil {
-			return errors.New("no active subscription")
+			return err
 		}
 		if len(subs) == 0 {
-			return errors.New("no active subscription")
+			return ErrNoActiveSubscription
 		}
+		hasMatchedGroup := false
 		for _, candidate := range subs {
 			sub := candidate
 			if !sub.IsGroupAllowed(group) {
 				continue
 			}
+			hasMatchedGroup = true
 			plan, err := getSubscriptionPlanByIdTx(tx, sub.PlanId)
 			if err != nil {
 				return err
@@ -1449,7 +1527,16 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			returnValue.AmountUsedAfter = sub.AmountUsed
 			return nil
 		}
-		return fmt.Errorf("subscription quota insufficient, need=%d", amount)
+		if !hasMatchedGroup {
+			// Debug summary is emitted only when no active subscription can serve the
+			// current request group, which is exactly the token_plan 排查场景.
+			logSubscriptionGroupMismatchDebug(requestId, userId, group, subs)
+			if strings.TrimSpace(group) == "" {
+				return ErrNoValidSubscriptionForGroup
+			}
+			return fmt.Errorf("%w: group=%s", ErrNoValidSubscriptionForGroup, strings.TrimSpace(group))
+		}
+		return fmt.Errorf("%w, need=%d", ErrSubscriptionQuotaInsufficient, amount)
 	})
 	if err != nil {
 		return nil, err

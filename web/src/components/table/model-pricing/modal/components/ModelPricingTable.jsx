@@ -17,10 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, Avatar, Typography, Table, Tag } from '@douyinfe/semi-ui';
 import { IconCoinMoneyStroked } from '@douyinfe/semi-icons';
 import { calculateModelPrice, getModelPriceItems } from '../../../../../helpers';
+import {
+  formatTierPricingTokenRange,
+  getMatchedTierPricingRules,
+} from '../../tierPricingUtils';
 
 const { Text } = Typography;
 
@@ -35,6 +39,7 @@ const ModelPricingTable = ({
   usableGroup,
   autoGroups = [],
   t,
+  tierPricingConfig,
   groupModelBilling = {},
 }) => {
   const modelEnableGroups = Array.isArray(modelData?.enable_groups)
@@ -43,6 +48,55 @@ const ModelPricingTable = ({
   const availableGroups =
     modelEnableGroups.length > 0 ? modelEnableGroups : Object.keys(groupRatio || {});
   const autoChain = autoGroups.filter((group) => modelEnableGroups.includes(group));
+  const matchedTierPricing = useMemo(
+    () =>
+      getMatchedTierPricingRules({
+        modelName: modelData?.model_name,
+        tierPricingConfig,
+      }),
+    [modelData?.model_name, tierPricingConfig],
+  );
+
+  const renderTierPricingSummary = (effectiveQuotaType) => {
+    if (effectiveQuotaType !== 0 || matchedTierPricing.length === 0) {
+      return null;
+    }
+
+    return (
+      <div
+        className='mt-3 rounded-lg px-3 py-2 space-y-2'
+        style={{ backgroundColor: 'var(--semi-color-fill-0)' }}
+      >
+        {/* 详细阶梯计费说明只在详情弹窗的价格摘要中展开，并按当前分组的实际计费类型判断是否展示。 */}
+        <div>
+          <div className='text-xs font-semibold text-gray-700'>{t('阶梯计费')}</div>
+          <div className='text-xs text-gray-500'>
+            {t('按输入 Token 数量分段计费')}
+          </div>
+        </div>
+        <div className='space-y-2'>
+          {matchedTierPricing.map((tier, index) => (
+            <div key={tier.id || index} className='space-y-1'>
+              <Tag color='cyan' size='small' shape='circle'>
+                {formatTierPricingTokenRange(
+                  tier.min_prompt_tokens,
+                  tier.max_prompt_tokens,
+                )}
+              </Tag>
+              <div className='text-xs text-gray-600'>
+                {t('输入')} {tier.input_price_multiplier}x · {t('输出')}{' '}
+                {tier.output_price_multiplier}x · {t('缓存')}{' '}
+                {tier.cache_read_price_multiplier ?? 1}x
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className='text-xs text-gray-500'>
+          {t('超过阈值后，整个请求按对应倍率计费')}
+        </div>
+      </div>
+    );
+  };
 
   const renderGroupPriceTable = () => {
     const tableData = availableGroups.map((group) => {
@@ -60,18 +114,14 @@ const ModelPricingTable = ({
         : { inputPrice: '-', outputPrice: '-', price: '-' };
 
       const groupRatioValue = groupRatio && groupRatio[group] ? groupRatio[group] : 1;
-      let effectiveQuotaType = modelData?.quota_type;
-      const groupBilling = groupModelBilling[group]?.[modelData?.model_name];
-
-      // 前端展示需与后端一致：只有 quota_type === 1 才真正覆盖为按次计费。
-      if (groupBilling && Number(groupBilling.quota_type) === 1) {
-        effectiveQuotaType = 1;
-      }
+      const effectiveQuotaType =
+        priceData?.effectiveQuotaType ?? modelData?.quota_type;
 
       return {
         key: group,
         group,
         ratio: groupRatioValue,
+        effectiveQuotaType,
         billingType:
           effectiveQuotaType === 0
             ? t('按量计费')
@@ -130,7 +180,7 @@ const ModelPricingTable = ({
     columns.push({
       title: siteDisplayType === 'TOKENS' ? t('计费摘要') : t('价格摘要'),
       dataIndex: 'priceItems',
-      render: (items) => (
+      render: (items, record) => (
         <div className='space-y-1'>
           {items.map((item) => (
             <div key={item.key}>
@@ -140,6 +190,7 @@ const ModelPricingTable = ({
               <div className='text-xs text-gray-500'>{item.suffix}</div>
             </div>
           ))}
+          {renderTierPricingSummary(record.effectiveQuotaType)}
         </div>
       ),
     });

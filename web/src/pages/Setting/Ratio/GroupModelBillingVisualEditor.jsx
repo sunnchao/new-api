@@ -48,6 +48,10 @@ const DEFAULT_ENTRY = Object.freeze({
   billingSource: '',
 });
 
+// Reserved pseudo-model key used to persist group-level default quota_type /
+// model_price / billing_source.
+const GROUP_DEFAULT_MODEL_KEY = '__default__';
+
 const NUMERIC_INPUT_REGEX = /^(\d+(\.\d*)?|\.\d*)?$/;
 
 const parseOptionJSON = (rawValue) => {
@@ -104,35 +108,35 @@ const formatGroupLabel = (groupName, groupLabel) => {
   return `${groupLabel} (${groupName})`;
 };
 
-const formatPrice = (value) => {
+const formatPrice = (value, t) => {
   const num = toNumberOrNull(value);
   if (num === null) {
-    return '-';
+    return t('未设置');
   }
-  return `$${parseFloat(num.toFixed(6))}/call`;
+  return `$${parseFloat(num.toFixed(6))}/${t('次')}`;
 };
 
-const getBillingSourceTag = (billingSource) => {
+const getBillingSourceTag = (billingSource, t) => {
   switch (billingSource) {
     case 'wallet_only':
       return {
         color: 'orange',
-        text: 'Wallet only',
+        text: t('仅余额'),
       };
     case 'subscription_only':
       return {
         color: 'indigo',
-        text: 'Subscription only',
+        text: t('仅订阅'),
       };
     default:
       return {
         color: 'grey',
-        text: 'Follow user preference',
+        text: t('跟随用户偏好'),
       };
   }
 };
 
-const getLegacyBillingOption = (billingSource) => {
+const getLegacyBillingOption = (billingSource, t) => {
   if (
     !billingSource ||
     ['wallet_only', 'subscription_only'].includes(billingSource)
@@ -141,8 +145,18 @@ const getLegacyBillingOption = (billingSource) => {
   }
   return {
     value: billingSource,
-    label: `Legacy value: ${billingSource}`,
+    label: t('历史值：{{value}}', { value: billingSource }),
   };
+};
+
+const getBillingSourceOptions = (billingSource, t) => {
+  const legacyBillingOption = getLegacyBillingOption(billingSource, t);
+  return [
+    { value: '', label: t('跟随用户偏好') },
+    { value: 'wallet_only', label: t('仅余额') },
+    { value: 'subscription_only', label: t('仅订阅') },
+    ...(legacyBillingOption ? [legacyBillingOption] : []),
+  ];
 };
 
 const parseBillingDraft = (rawValue) => {
@@ -164,6 +178,30 @@ const parseBillingDraft = (rawValue) => {
       }
 
       const billingSource = `${config.billing_source || ''}`.trim();
+
+      if (modelName === GROUP_DEFAULT_MODEL_KEY) {
+        const mode = Number(config.quota_type) === 1 ? 'per-request' : 'inherit';
+        const modelPrice =
+          Number(config.quota_type) === 1
+            ? toNumericString(config.model_price)
+            : '';
+
+        if (mode === 'inherit' && !billingSource) {
+          return;
+        }
+
+        if (!result[groupName]) {
+          result[groupName] = {};
+        }
+
+        result[groupName][modelName] = {
+          mode,
+          modelPrice,
+          billingSource,
+        };
+        return;
+      }
+
       const mode = Number(config.quota_type) === 1 ? 'per-request' : 'inherit';
       const modelPrice =
         Number(config.quota_type) === 1
@@ -266,6 +304,9 @@ const buildGlobalModelMap = ({
 
   Object.values(billingDraft).forEach((groupModels) => {
     Object.keys(groupModels || {}).forEach((modelName) => {
+      if (modelName === GROUP_DEFAULT_MODEL_KEY) {
+        return;
+      }
       if (!map.has(modelName)) {
         map.set(modelName, {
           name: modelName,
@@ -281,63 +322,102 @@ const buildGlobalModelMap = ({
   return map;
 };
 
-const getGlobalSummary = (modelInfo) => {
+const getGlobalSummary = (modelInfo, t) => {
   if (!modelInfo) {
     return {
-      text: 'Global pricing not found',
+      text: t('未找到全局计费配置'),
       tagColor: 'grey',
-      tagText: 'Unknown',
+      tagText: t('未知'),
     };
   }
 
   if (modelInfo.quotaType === 1) {
     return {
-      text: `Global per-request ${formatPrice(modelInfo.modelPrice)}`,
+      text: t('全局按次计费：{{price}}', {
+        price: formatPrice(modelInfo.modelPrice, t),
+      }),
       tagColor: 'teal',
-      tagText: 'Per request',
+      tagText: t('按次计费'),
     };
   }
 
   if (modelInfo.quotaType === 0) {
     const ratioText = hasValue(modelInfo.modelRatio)
-      ? `Ratio ${modelInfo.modelRatio}`
-      : 'Per token';
+      ? t('倍率 {{ratio}}', { ratio: modelInfo.modelRatio })
+      : t('按量计费');
     return {
-      text: `Global per-token | ${ratioText}`,
+      text: t('全局按量计费｜{{ratio}}', { ratio: ratioText }),
       tagColor: 'violet',
-      tagText: 'Per token',
+      tagText: t('按量计费'),
     };
   }
 
   return {
-    text: 'Global pricing not found',
+    text: t('未找到全局计费配置'),
     tagColor: 'grey',
-    tagText: 'Unknown',
+    tagText: t('未知'),
   };
 };
 
-const getOverrideSummary = (entry) => {
-  if (!entry) {
+const getOverrideSummary = (entry, groupDefaultEntry, t) => {
+  const effectiveMode =
+    entry?.mode === 'per-request'
+      ? 'per-request'
+      : groupDefaultEntry?.mode === 'per-request'
+        ? 'per-request'
+        : 'inherit';
+  const effectiveModelPrice =
+    entry?.mode === 'per-request'
+      ? entry?.modelPrice
+      : groupDefaultEntry?.mode === 'per-request'
+        ? groupDefaultEntry?.modelPrice
+        : '';
+  const effectiveBillingSource =
+    entry?.billingSource || groupDefaultEntry?.billingSource || '';
+  const sourceTag = getBillingSourceTag(effectiveBillingSource, t);
+  const sourceLabel = entry?.billingSource
+    ? sourceTag.text
+    : groupDefaultEntry?.billingSource
+      ? t('分组默认：{{value}}', { value: sourceTag.text })
+      : t('跟随用户偏好');
+
+  if (
+    !entry &&
+    groupDefaultEntry?.mode !== 'per-request' &&
+    !groupDefaultEntry?.billingSource
+  ) {
     return {
-      text: 'Follow global pricing and user preference',
+      text: t('跟随全局计费与用户偏好'),
       tagColor: 'grey',
-      tagText: 'No override',
+      tagText: t('无覆盖'),
+    };
+  }
+  if (entry?.mode === 'per-request') {
+    return {
+      text: t('模型按次覆盖：{{price}}｜{{source}}', {
+        price: formatPrice(entry.modelPrice, t),
+        source: sourceLabel,
+      }),
+      tagColor: 'teal',
+      tagText: t('模型覆盖'),
     };
   }
 
-  const sourceTag = getBillingSourceTag(entry.billingSource);
-  if (entry.mode === 'per-request') {
+  if (effectiveMode === 'per-request') {
     return {
-      text: `Per-request override ${formatPrice(entry.modelPrice)} | ${sourceTag.text}`,
-      tagColor: 'teal',
-      tagText: 'Per request',
+      text: t('继承分组默认按次计费：{{price}}｜{{source}}', {
+        price: formatPrice(effectiveModelPrice, t),
+        source: sourceLabel,
+      }),
+      tagColor: 'cyan',
+      tagText: t('分组默认'),
     };
   }
 
   return {
-    text: `Follow global pricing | ${sourceTag.text}`,
-    tagColor: 'blue',
-    tagText: 'Source only',
+    text: t('跟随全局计费｜{{source}}', { source: sourceLabel }),
+    tagColor: groupDefaultEntry?.billingSource ? 'cyan' : 'blue',
+    tagText: groupDefaultEntry?.billingSource ? t('分组默认') : t('仅来源覆盖'),
   };
 };
 
@@ -348,6 +428,33 @@ const serializeBillingDraft = (billingDraft) => {
     for (const [modelName, entry] of Object.entries(groupModels || {})) {
       const mode = entry?.mode === 'per-request' ? 'per-request' : 'inherit';
       const billingSource = `${entry?.billingSource || ''}`.trim();
+
+      if (modelName === GROUP_DEFAULT_MODEL_KEY) {
+        if (mode === 'inherit' && !billingSource) {
+          continue;
+        }
+        if (!result[groupName]) {
+          result[groupName] = {};
+        }
+        if (mode === 'per-request') {
+          const modelPrice = toNumberOrNull(entry?.modelPrice);
+          if (modelPrice === null || modelPrice < 0) {
+            throw new Error(
+              `分组 ${groupName} 的默认配置缺少有效的按次价格`,
+            );
+          }
+          result[groupName][modelName] = {
+            quota_type: 1,
+            model_price: modelPrice,
+          };
+        } else {
+          result[groupName][modelName] = {};
+        }
+        if (billingSource) {
+          result[groupName][modelName].billing_source = billingSource;
+        }
+        continue;
+      }
 
       if (mode === 'inherit' && !billingSource) {
         continue;
@@ -361,7 +468,7 @@ const serializeBillingDraft = (billingDraft) => {
         const modelPrice = toNumberOrNull(entry?.modelPrice);
         if (modelPrice === null || modelPrice < 0) {
           throw new Error(
-            `Group ${groupName} model ${modelName} is missing a valid per-request price`,
+            `分组 ${groupName} 下模型 ${modelName} 缺少有效的按次价格`,
           );
         }
         result[groupName][modelName] = {
@@ -441,11 +548,11 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
         if (res.data?.success) {
           setPricingModels(Array.isArray(res.data.data) ? res.data.data : []);
         } else {
-          showError(res.data?.message || 'Failed to load models');
+          showError(res.data?.message || t('获取模型列表失败'));
         }
       } catch (error) {
         if (mounted) {
-          showError('Failed to load models');
+          showError(t('获取模型列表失败'));
         }
       } finally {
         if (mounted) {
@@ -459,7 +566,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [t]);
 
   const groupOptions = useMemo(
     () =>
@@ -500,8 +607,13 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
     }
 
     const candidateModelNames = new Set(
-      Object.keys(billingDraft[selectedGroup] || {}),
+      Object.keys(billingDraft[selectedGroup] || {}).filter(
+        (modelName) => modelName !== GROUP_DEFAULT_MODEL_KEY,
+      ),
     );
+
+    const groupDefaultEntry =
+      billingDraft[selectedGroup]?.[GROUP_DEFAULT_MODEL_KEY] || null;
 
     pricingModels.forEach((model) => {
       const enableGroups = Array.isArray(model.enable_groups)
@@ -517,22 +629,31 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
       .map((modelName) => {
         const modelInfo = globalModelMap.get(modelName);
         const currentEntry = billingDraft[selectedGroup]?.[modelName] || null;
-        const globalSummary = getGlobalSummary(modelInfo);
-        const overrideSummary = getOverrideSummary(currentEntry);
+        const globalSummary = getGlobalSummary(modelInfo, t);
+        const overrideSummary = getOverrideSummary(
+          currentEntry,
+          groupDefaultEntry,
+          t,
+        );
 
         return {
           key: modelName,
           modelName,
           modelInfo,
           currentEntry,
+          groupDefaultEntry,
           globalSummary,
           overrideSummary,
+          hasEffectiveOverride:
+            Boolean(currentEntry) ||
+            groupDefaultEntry?.mode === 'per-request' ||
+            Boolean(groupDefaultEntry?.billingSource),
           availableInGroup: Array.isArray(modelInfo?.enableGroups)
             ? modelInfo.enableGroups.includes(selectedGroup)
             : false,
         };
       });
-  }, [billingDraft, globalModelMap, pricingModels, selectedGroup]);
+  }, [billingDraft, globalModelMap, pricingModels, selectedGroup, t]);
 
   const filteredRows = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
@@ -540,7 +661,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
       const keywordMatch = keyword
         ? row.modelName.toLowerCase().includes(keyword)
         : true;
-      const overrideMatch = overrideOnly ? Boolean(row.currentEntry) : true;
+      const overrideMatch = overrideOnly ? Boolean(row.hasEffectiveOverride) : true;
       return keywordMatch && overrideMatch;
     });
   }, [groupRows, overrideOnly, searchText]);
@@ -562,13 +683,21 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
   );
 
   const currentEntry = selectedRow?.currentEntry || DEFAULT_ENTRY;
-  const legacyBillingOption = getLegacyBillingOption(currentEntry.billingSource);
-  const billingSourceOptions = [
-    { value: '', label: 'Follow user preference' },
-    { value: 'wallet_only', label: 'Wallet only' },
-    { value: 'subscription_only', label: 'Subscription only' },
-    ...(legacyBillingOption ? [legacyBillingOption] : []),
-  ];
+  const selectedGroupDefaultEntry =
+    billingDraft[selectedGroup]?.[GROUP_DEFAULT_MODEL_KEY] || DEFAULT_ENTRY;
+  const legacyBillingOption = getLegacyBillingOption(currentEntry.billingSource, t);
+  const groupDefaultLegacyBillingOption = getLegacyBillingOption(
+    selectedGroupDefaultEntry.billingSource,
+    t,
+  );
+  const billingSourceOptions = getBillingSourceOptions(
+    currentEntry.billingSource,
+    t,
+  );
+  const groupDefaultBillingSourceOptions = getBillingSourceOptions(
+    selectedGroupDefaultEntry.billingSource,
+    t,
+  );
 
   const hasOverrides = useMemo(
     () =>
@@ -620,8 +749,56 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
     });
   };
 
+  const updateGroupDefaultEntry = (partial) => {
+    if (!selectedGroup) {
+      return;
+    }
+
+    setBillingDraft((previous) => {
+      const next = { ...previous };
+      const previousGroup = { ...(next[selectedGroup] || {}) };
+      const previousEntry =
+        previousGroup[GROUP_DEFAULT_MODEL_KEY] || DEFAULT_ENTRY;
+      const mergedEntry = {
+        ...previousEntry,
+        ...partial,
+      };
+      const normalizedEntry = {
+        mode: mergedEntry.mode === 'per-request' ? 'per-request' : 'inherit',
+        modelPrice:
+          mergedEntry.mode === 'per-request' ? mergedEntry.modelPrice ?? '' : '',
+        billingSource: `${mergedEntry.billingSource || ''}`.trim(),
+      };
+
+      if (
+        normalizedEntry.mode === 'inherit' &&
+        normalizedEntry.billingSource === ''
+      ) {
+        delete previousGroup[GROUP_DEFAULT_MODEL_KEY];
+      } else {
+        previousGroup[GROUP_DEFAULT_MODEL_KEY] = normalizedEntry;
+      }
+
+      if (Object.keys(previousGroup).length === 0) {
+        delete next[selectedGroup];
+      } else {
+        next[selectedGroup] = previousGroup;
+      }
+
+      return next;
+    });
+  };
+
   const handleDeleteCurrentEntry = () => {
     updateCurrentEntry({
+      mode: 'inherit',
+      modelPrice: '',
+      billingSource: '',
+    });
+  };
+
+  const handleDeleteGroupDefaultEntry = () => {
+    updateGroupDefaultEntry({
       mode: 'inherit',
       modelPrice: '',
       billingSource: '',
@@ -633,7 +810,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
     try {
       serialized = serializeBillingDraft(billingDraft);
     } catch (error) {
-      showError(error.message || 'Save failed');
+      showError(error?.message ? t(error.message) : t('保存失败'));
       return;
     }
 
@@ -641,7 +818,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
     const currentValue = JSON.stringify(originalPersistedValue, null, 2);
 
     if (nextValue === currentValue) {
-      showWarning('No changes to save');
+      showWarning(t('你似乎并没有修改什么'));
       return;
     }
 
@@ -653,14 +830,14 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
       });
 
       if (!res?.data?.success) {
-        throw new Error(res?.data?.message || 'Save failed');
+        throw new Error(res?.data?.message || t('保存失败'));
       }
 
-      showSuccess('Saved');
+      showSuccess(t('保存成功'));
       await refresh();
     } catch (error) {
       console.error('Save GroupModelBilling failed:', error);
-      showError(error.message || 'Save failed');
+      showError(error?.message ? t(error.message) : t('保存失败'));
     } finally {
       setSaving(false);
     }
@@ -669,7 +846,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
   const columns = useMemo(
     () => [
       {
-        title: 'Model',
+        title: t('模型'),
         dataIndex: 'modelName',
         key: 'modelName',
         render: (text, record) => (
@@ -690,14 +867,14 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
             </Button>
             {!record.availableInGroup ? (
               <Tag color='orange' shape='circle'>
-                Override only
+                {t('仅保留覆盖')}
               </Tag>
             ) : null}
           </Space>
         ),
       },
       {
-        title: 'Global pricing',
+        title: t('全局计费'),
         dataIndex: 'globalSummary',
         key: 'globalSummary',
         render: (summary) => (
@@ -710,7 +887,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
         ),
       },
       {
-        title: 'Current override',
+        title: t('当前覆盖'),
         dataIndex: 'overrideSummary',
         key: 'overrideSummary',
         render: (summary) => (
@@ -723,7 +900,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
         ),
       },
     ],
-    [selectedModelName],
+    [selectedModelName, t],
   );
 
   return (
@@ -733,21 +910,28 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
           type='info'
           bordered
           closeIcon={null}
-          title='Notes'
+          title={t('使用说明')}
           description={
             <div className='space-y-1 text-sm'>
               <div>
-                This editor currently supports two kinds of overrides: per-request
-                pricing, and billing source limits.
+                {t(
+                  '此编辑器用于配置“分组 + 模型”级别的计费覆盖，支持按次价格覆盖与计费来源限制。',
+                )}
               </div>
               <div>
-                When pricing mode is set to follow global pricing, the model keeps
-                using the global price config. If a billing source is set, only the
-                wallet/subscription preference is overridden.
+                {t(
+                  '模型级配置优先级最高；若模型自身未填写价格模式或计费来源，则回退到当前分组的 __default__；若分组默认也未设置，则继续跟随全局价格配置与用户钱包偏好。',
+                )}
               </div>
               <div>
-                Recommended billing source values in this editor are: follow user
-                preference, wallet only, subscription only.
+                {t(
+                  '推荐使用的计费来源值为：跟随用户偏好、仅余额、仅订阅。历史值仍可保留，但不建议继续新增。',
+                )}
+              </div>
+              <div>
+                {t(
+                  '你也可以通过保留键 __default__ 设置分组默认的价格模式、按次价格和计费来源；当模型未显式设置这些字段时，会自动继承分组默认值。',
+                )}
               </div>
             </div>
           }
@@ -760,11 +944,11 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
               value={selectedGroup}
               optionList={groupOptions}
               onChange={(value) => setSelectedGroup(value)}
-              placeholder='Select group'
+              placeholder={t('选择分组')}
             />
             <Input
               prefix={<IconSearch />}
-              placeholder='Search model'
+              placeholder={t('搜索模型名称')}
               value={searchText}
               onChange={(value) => setSearchText(value)}
               style={{ width: isMobile ? '100%' : 220 }}
@@ -774,13 +958,15 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
               checked={overrideOnly}
               onChange={(event) => setOverrideOnly(event.target.checked)}
             >
-              Overrides only
+              {t('仅显示覆盖项')}
             </Checkbox>
           </Space>
 
           <Space wrap>
             <Tag color={hasOverrides ? 'blue' : 'grey'} shape='circle'>
-              Draft groups {Object.keys(billingDraft).length}
+              {t('草稿分组 {{count}} 个', {
+                count: Object.keys(billingDraft).length,
+              })}
             </Tag>
             <Button
               type='primary'
@@ -788,10 +974,136 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
               loading={saving}
               onClick={handleSave}
             >
-              Save overrides
+              {t('保存覆盖规则')}
             </Button>
           </Space>
         </Space>
+
+        {selectedGroup ? (
+          <Card title={t('分组默认覆盖')}> 
+            <Space vertical style={{ width: '100%' }} spacing={16}>
+              <div>
+                <div className='mb-2 font-medium text-gray-700'>
+                  {t('分组 {{group}} 的默认价格模式', { group: selectedGroup })}
+                </div>
+                <RadioGroup
+                  type='button'
+                  value={selectedGroupDefaultEntry.mode}
+                  onChange={(event) =>
+                    updateGroupDefaultEntry({ mode: event.target.value })
+                  }
+                >
+                  <Radio value='inherit'>{t('不设置分组默认价格')}</Radio>
+                  <Radio value='per-request'>{t('分组默认按次计费')}</Radio>
+                </RadioGroup>
+                <div className='mt-2 text-xs text-gray-500'>
+                  {t(
+                    '启用后，当前分组下未单独配置价格模式的模型，将默认继承该分组的按次价格。',
+                  )}
+                </div>
+              </div>
+
+              {selectedGroupDefaultEntry.mode === 'per-request' ? (
+                <div>
+                  <div className='mb-2 font-medium text-gray-700'>
+                    {t('分组默认按次价格')}
+                  </div>
+                  <Input
+                    value={selectedGroupDefaultEntry.modelPrice}
+                    placeholder={t('输入每次调用价格')}
+                    suffix={t('$/次')}
+                    onChange={(value) => {
+                      if (!NUMERIC_INPUT_REGEX.test(value)) {
+                        return;
+                      }
+                      updateGroupDefaultEntry({ modelPrice: value });
+                    }}
+                  />
+                </div>
+              ) : null}
+
+              <div>
+                <div className='mb-2 font-medium text-gray-700'>
+                  {t('分组 {{group}} 的默认计费来源', { group: selectedGroup })}
+                </div>
+                <Select
+                  value={selectedGroupDefaultEntry.billingSource}
+                  optionList={groupDefaultBillingSourceOptions}
+                  onChange={(value) =>
+                    updateGroupDefaultEntry({ billingSource: value })
+                  }
+                />
+                <div className='mt-2 text-xs text-gray-500'>
+                  {t(
+                    '仅当当前“分组 + 模型”未显式设置 billing_source 时，才会回退到这里；模型级 billing_source 的优先级更高。',
+                  )}
+                </div>
+              </div>
+
+              {groupDefaultLegacyBillingOption ? (
+                <Banner
+                  type='warning'
+                  bordered
+                  closeIcon={null}
+                  title={t('检测到历史分组默认计费来源值')}
+                  description={t(
+                    '当前分组默认计费来源使用了历史值：{{value}}。系统仍可保留保存，但后续新增或调整时建议改为推荐值。',
+                    { value: groupDefaultLegacyBillingOption.value },
+                  )}
+                />
+              ) : null}
+
+              <Card
+                bodyStyle={{ padding: 12 }}
+                style={{ background: 'var(--semi-color-fill-0)' }}
+              >
+                <div className='mb-2 font-medium text-gray-700'>
+                  {t('分组默认配置预览')}
+                </div>
+                <pre
+                  style={{
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    fontSize: 12,
+                  }}
+                >
+                  {JSON.stringify(
+                    (() => {
+                      const previewDraft = {
+                        [selectedGroup]: {
+                          [GROUP_DEFAULT_MODEL_KEY]: selectedGroupDefaultEntry,
+                        },
+                      };
+                      try {
+                        return serializeBillingDraft(previewDraft)[selectedGroup]?.[
+                          GROUP_DEFAULT_MODEL_KEY
+                        ] || {};
+                      } catch (error) {
+                        return {
+                          错误: error.message,
+                        };
+                      }
+                    })(),
+                    null,
+                    2,
+                  )}
+                </pre>
+              </Card>
+
+              <Space>
+                <Button
+                  icon={<IconDelete />}
+                  type='danger'
+                  onClick={handleDeleteGroupDefaultEntry}
+                  disabled={!billingDraft[selectedGroup]?.[GROUP_DEFAULT_MODEL_KEY]}
+                >
+                  {t('移除分组默认配置')}
+                </Button>
+              </Space>
+            </Space>
+          </Card>
+        ) : null}
 
         <div
           style={{
@@ -803,7 +1115,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
           }}
         >
           <Card
-            title='Model list'
+            title={t('模型列表')}
             bodyStyle={{ padding: 0 }}
             style={isMobile ? { order: 2 } : undefined}
           >
@@ -817,8 +1129,8 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
               }}
               empty={
                 <Empty
-                  title='No models'
-                  description='No models are available for the current group or filters.'
+                  title={t('暂无模型')}
+                  description={t('当前分组或筛选条件下没有可展示的模型')}
                 />
               }
               onRow={(record) => ({
@@ -840,18 +1152,18 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
           </Card>
 
           <Card
-            title={selectedRow ? selectedRow.modelName : 'Group model billing editor'}
+            title={selectedRow ? selectedRow.modelName : t('分组模型计费覆盖编辑器')}
             style={isMobile ? { order: 1 } : undefined}
             headerExtraContent={
               selectedRow ? (
                 <Space>
                   {selectedRow.availableInGroup ? (
                     <Tag color='green' shape='circle'>
-                      Available in group
+                      {t('当前分组可用')}
                     </Tag>
                   ) : (
                     <Tag color='orange' shape='circle'>
-                      Stored override only
+                      {t('仅保留覆盖记录')}
                     </Tag>
                   )}
                 </Space>
@@ -860,8 +1172,8 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
           >
             {!selectedRow ? (
               <Empty
-                title='No model selected'
-                description='Select a model on the left first.'
+                title={t('尚未选择模型')}
+                description={t('请先从左侧列表选择一个模型')}
               />
             ) : (
               <Space vertical style={{ width: '100%' }} spacing={16}>
@@ -871,13 +1183,13 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
                 >
                   <Space vertical spacing={8} style={{ width: '100%' }}>
                     <div>
-                      <Text strong>Global pricing</Text>
+                      <Text strong>{t('全局计费')}</Text>
                       <div className='mt-1 text-sm text-gray-600'>
                         {selectedRow.globalSummary.text}
                       </div>
                     </div>
                     <div>
-                      <Text strong>Current override</Text>
+                      <Text strong>{t('当前覆盖')}</Text>
                       <div className='mt-1 text-sm text-gray-600'>
                         {selectedRow.overrideSummary.text}
                       </div>
@@ -887,7 +1199,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
 
                 <div>
                   <div className='mb-2 font-medium text-gray-700'>
-                    Pricing mode
+                    {t('价格模式')}
                   </div>
                   <RadioGroup
                     type='button'
@@ -896,25 +1208,25 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
                       updateCurrentEntry({ mode: event.target.value })
                     }
                   >
-                    <Radio value='inherit'>Follow global</Radio>
-                    <Radio value='per-request'>Per-request override</Radio>
+                    <Radio value='inherit'>{t('继承分组默认 / 全局配置')}</Radio>
+                    <Radio value='per-request'>{t('模型按次覆盖')}</Radio>
                   </RadioGroup>
                   <div className='mt-2 text-xs text-gray-500'>
-                    This reflects current backend behavior accurately: per-request
-                    override is reliable, while follow-global keeps the global
-                    pricing mode and only preserves billing source limits.
+                    {t(
+                      '选择“继承”后，会优先尝试当前分组的 __default__ 配置；若分组未设置默认价格，再回退到全局模型计费配置。',
+                    )}
                   </div>
                 </div>
 
                 {currentEntry.mode === 'per-request' ? (
                   <div>
                     <div className='mb-2 font-medium text-gray-700'>
-                      Per-request price
+                      {t('按次价格')}
                     </div>
                     <Input
                       value={currentEntry.modelPrice}
-                      placeholder='Enter price per call'
-                      suffix='$/call'
+                      placeholder={t('输入每次调用价格')}
+                      suffix={t('$/次')}
                       onChange={(value) => {
                         if (!NUMERIC_INPUT_REGEX.test(value)) {
                           return;
@@ -927,7 +1239,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
 
                 <div>
                   <div className='mb-2 font-medium text-gray-700'>
-                    Billing source
+                    {t('计费来源')}
                   </div>
                   <Select
                     value={currentEntry.billingSource}
@@ -937,9 +1249,9 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
                     }
                   />
                   <div className='mt-2 text-xs text-gray-500'>
-                    Follow user preference means this model keeps using the
-                    billing preference saved on the wallet page. Wallet only and
-                    subscription only override that preference.
+                    {t(
+                      '“跟随用户偏好”表示继续使用钱包页保存的计费偏好；“仅余额”和“仅订阅”会直接覆盖该偏好。',
+                    )}
                   </div>
                 </div>
 
@@ -948,8 +1260,11 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
                     type='warning'
                     bordered
                     closeIcon={null}
-                    title='Legacy billing source detected'
-                    description={`This entry uses an older billing_source value: ${legacyBillingOption.value}. It can still be saved unchanged, but new edits should prefer the three recommended values.`}
+                    title={t('检测到历史计费来源值')}
+                    description={t(
+                      '当前条目使用了历史 billing_source 值：{{value}}。系统仍可原样保存，但建议后续改为推荐值。',
+                      { value: legacyBillingOption.value },
+                    )}
                   />
                 ) : null}
 
@@ -958,7 +1273,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
                   style={{ background: 'var(--semi-color-fill-0)' }}
                 >
                   <div className='mb-2 font-medium text-gray-700'>
-                    Persisted payload preview
+                    {t('持久化配置预览')}
                   </div>
                   <pre
                     style={{
@@ -980,7 +1295,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
                             ?.[selectedModelName] || {};
                         } catch (error) {
                           return {
-                            error: error.message,
+                            错误: error.message,
                           };
                         }
                       })(),
@@ -997,7 +1312,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
                     onClick={handleDeleteCurrentEntry}
                     disabled={!selectedRow.currentEntry}
                   >
-                    Remove current override
+                    {t('移除当前覆盖')}
                   </Button>
                 </Space>
               </Space>

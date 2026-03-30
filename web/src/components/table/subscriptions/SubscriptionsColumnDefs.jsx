@@ -31,7 +31,12 @@ import {
 } from '@douyinfe/semi-ui';
 import { renderQuota } from '../../../helpers';
 import { convertUSDToCurrency } from '../../../helpers/render';
-import { formatSubscriptionResetPeriod } from '../../../helpers/subscriptionFormat';
+import {
+  formatSubscriptionResetMode,
+  formatSubscriptionQuotaLimitSummary,
+  formatSubscriptionResetPeriod,
+  getSubscriptionQuotaLimitItems,
+} from '../../../helpers/subscriptionFormat';
 
 const { Text } = Typography;
 
@@ -100,6 +105,8 @@ const renderPlanTitle = (text, record, t) => {
         <Text>{formatDuration(plan, t)}</Text>
         <Text type='tertiary'>{t('重置')}</Text>
         <Text>{formatSubscriptionResetPeriod(plan, t)}</Text>
+        <Text type='tertiary'>{t('额度限制')}</Text>
+        <Text>{formatSubscriptionQuotaLimitSummary(plan, t, { maxItems: 2 })}</Text>
       </div>
     </div>
   );
@@ -214,6 +221,73 @@ const renderResetPeriod = (text, record, t) => {
     <Text type={isNever ? 'tertiary' : 'secondary'}>
       {formatSubscriptionResetPeriod(record?.plan, t, { shortMode: true })}
     </Text>
+  );
+};
+
+const renderQuotaLimits = (text, record, t) => {
+  const plan = record?.plan;
+  const items = getSubscriptionQuotaLimitItems(plan, t);
+  if (items.length === 0) {
+    return <Text type='tertiary'>{t('无')}</Text>;
+  }
+
+  const colorMap = {
+    hourly: 'orange',
+    daily: 'blue',
+    weekly: 'green',
+    monthly: 'purple',
+  };
+
+  const visibleItems = items.slice(0, 3);
+  const hiddenCount = items.length - visibleItems.length;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 6,
+        alignItems: 'center',
+        maxWidth: 220,
+      }}
+    >
+      {visibleItems.map((item) => {
+        const fullText = `${item.label} ${renderQuota(item.amount)}·${formatSubscriptionResetMode(item.mode, t, { short: true })}`;
+
+        return (
+          <Tag
+            key={`${record?.id}-${item.key}`}
+            size='small'
+            color={colorMap[item.key] || 'grey'}
+            type='light'
+            shape='circle'
+            style={{
+              maxWidth: '100%',
+              minWidth: 0,
+              margin: 0,
+            }}
+          >
+            <Text
+              ellipsis={{ showTooltip: true }}
+              style={{
+                display: 'block',
+                color: 'inherit',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {fullText}
+            </Text>
+          </Tag>
+        );
+      })}
+      {hiddenCount > 0 && (
+        <Tag size='small' color='grey' type='light' shape='circle'>
+          +{hiddenCount}
+        </Tag>
+      )}
+    </div>
   );
 };
 
@@ -337,6 +411,11 @@ export const getSubscriptionsColumns = ({
       title: t('重置'),
       width: 120,
       render: (text, record) => renderResetPeriod(text, record, t),
+    },
+    {
+      title: t('额度限制'),
+      width: 240,
+      render: (text, record) => renderQuotaLimits(text, record, t),
     },
     {
       title: t('状态'),

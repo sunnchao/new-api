@@ -66,12 +66,15 @@ const PricingSidebar = ({
     groupCountModels,
   } = usePricingFilterCounts({
     models: categoryProps.models,
+    selectedGroup: categoryProps.selectedGroup,
     filterGroup,
     filterQuotaType,
     filterEndpointType,
     filterVendor,
     filterTag,
     searchValue: categoryProps.searchValue,
+    groupRatio: categoryProps.groupRatio,
+    groupModelBilling: categoryProps.groupModelBilling,
   });
 
   const handleResetFilters = () =>

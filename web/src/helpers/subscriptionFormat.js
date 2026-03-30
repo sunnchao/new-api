@@ -54,3 +54,78 @@ export function formatSubscriptionResetPeriod(plan, t, options = {}) {
   }
   return label;
 }
+
+export function getSubscriptionQuotaLimitItems(source, t) {
+  if (!source) return [];
+
+  const hourlyAmount = Number(source?.hourly_limit_amount || 0);
+  const hourlyHours = Number(source?.hourly_limit_hours || 1);
+  const dailyAmount = Number(source?.daily_limit_amount || 0);
+  const weeklyAmount = Number(source?.weekly_limit_amount || 0);
+  const monthlyAmount = Number(source?.monthly_limit_amount || 0);
+
+  return [
+    hourlyAmount > 0
+      ? {
+          key: 'hourly',
+          label: `${t('每')}${hourlyHours}${t('小时')}`,
+          amount: hourlyAmount,
+          mode: source?.hourly_reset_mode,
+          used: Number(source?.hourly_amount_used || 0),
+          nextResetTime: Number(source?.hourly_next_reset_time || 0),
+        }
+      : null,
+    dailyAmount > 0
+      ? {
+          key: 'daily',
+          label: t('每天'),
+          amount: dailyAmount,
+          mode: source?.daily_reset_mode,
+          used: Number(source?.daily_amount_used || 0),
+          nextResetTime: Number(source?.daily_next_reset_time || 0),
+        }
+      : null,
+    weeklyAmount > 0
+      ? {
+          key: 'weekly',
+          label: t('每周'),
+          amount: weeklyAmount,
+          mode: source?.weekly_reset_mode,
+          used: Number(source?.weekly_amount_used || 0),
+          nextResetTime: Number(source?.weekly_next_reset_time || 0),
+        }
+      : null,
+    monthlyAmount > 0
+      ? {
+          key: 'monthly',
+          label: t('每月'),
+          amount: monthlyAmount,
+          mode: source?.monthly_reset_mode,
+          used: Number(source?.monthly_amount_used || 0),
+          nextResetTime: Number(source?.monthly_next_reset_time || 0),
+        }
+      : null,
+  ].filter(Boolean);
+}
+
+export function formatSubscriptionQuotaLimitSummary(source, t, options = {}) {
+  const items = getSubscriptionQuotaLimitItems(source, t);
+  if (items.length === 0) {
+    return t('无');
+  }
+
+  const maxItems = Number(options.maxItems || items.length);
+  const includeMode = options.includeMode !== false;
+  const segments = items.slice(0, maxItems).map((item) => {
+    const modeSuffix = includeMode
+      ? ` · ${formatSubscriptionResetMode(item.mode, t, { short: true })}`
+      : '';
+    return `${item.label} ${item.amount}${modeSuffix}`;
+  });
+
+  if (items.length > maxItems) {
+    segments.push(t('另 {{count}} 项', { count: items.length - maxItems }));
+  }
+
+  return segments.join(' / ');
+}

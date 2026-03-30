@@ -33,6 +33,9 @@ const PricingPage = () => {
   const [viewMode, setViewMode] = React.useState('card');
   const allProps = {
     ...pricingData,
+    // Use the resolved pricing group (filter group first, then selected group)
+    // so cards, tables, and filter chips stay on the same billing context.
+    selectedGroup: pricingData.activePricingGroup,
     showRatio,
     setShowRatio,
     viewMode,
@@ -78,6 +81,7 @@ const PricingPage = () => {
         endpointMap={pricingData.endpointMap}
         autoGroups={pricingData.autoGroups}
         t={pricingData.t}
+        tierPricingConfig={pricingData.tierPricingConfig}
         groupModelBilling={pricingData.groupModelBilling}
       />
     </div>

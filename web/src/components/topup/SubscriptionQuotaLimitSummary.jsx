@@ -19,65 +19,15 @@ For commercial licensing, please contact support@quantumnous.com
 import React from 'react';
 import { Badge, Space, Tag, Typography } from '@douyinfe/semi-ui';
 import { renderQuota } from '../../helpers';
-import { formatSubscriptionResetMode } from '../../helpers/subscriptionFormat';
+import {
+  formatSubscriptionResetMode,
+  getSubscriptionQuotaLimitItems,
+} from '../../helpers/subscriptionFormat';
 
 const { Text } = Typography;
 
-function getQuotaLimitItems(source, t) {
-  if (!source) return [];
-
-  const hourlyAmount = Number(source?.hourly_limit_amount || 0);
-  const hourlyHours = Number(source?.hourly_limit_hours || 1);
-  const dailyAmount = Number(source?.daily_limit_amount || 0);
-  const weeklyAmount = Number(source?.weekly_limit_amount || 0);
-  const monthlyAmount = Number(source?.monthly_limit_amount || 0);
-
-  return [
-    hourlyAmount > 0
-      ? {
-          key: 'hourly',
-          label: `${t('每')}${hourlyHours}${t('小时')}`,
-          amount: hourlyAmount,
-          mode: source?.hourly_reset_mode,
-          used: Number(source?.hourly_amount_used || 0),
-          nextResetTime: Number(source?.hourly_next_reset_time || 0),
-        }
-      : null,
-    dailyAmount > 0
-      ? {
-          key: 'daily',
-          label: t('每天'),
-          amount: dailyAmount,
-          mode: source?.daily_reset_mode,
-          used: Number(source?.daily_amount_used || 0),
-          nextResetTime: Number(source?.daily_next_reset_time || 0),
-        }
-      : null,
-    weeklyAmount > 0
-      ? {
-          key: 'weekly',
-          label: t('每周'),
-          amount: weeklyAmount,
-          mode: source?.weekly_reset_mode,
-          used: Number(source?.weekly_amount_used || 0),
-          nextResetTime: Number(source?.weekly_next_reset_time || 0),
-        }
-      : null,
-    monthlyAmount > 0
-      ? {
-          key: 'monthly',
-          label: t('每月'),
-          amount: monthlyAmount,
-          mode: source?.monthly_reset_mode,
-          used: Number(source?.monthly_amount_used || 0),
-          nextResetTime: Number(source?.monthly_next_reset_time || 0),
-        }
-      : null,
-  ].filter(Boolean);
-}
-
 export function hasQuotaLimitConfig(source) {
-  return getQuotaLimitItems(source, (value) => value).length > 0;
+  return getSubscriptionQuotaLimitItems(source, (value) => value).length > 0;
 }
 
 const SubscriptionQuotaLimitSummary = ({
@@ -86,7 +36,7 @@ const SubscriptionQuotaLimitSummary = ({
   variant = 'plan',
   title,
 }) => {
-  const items = getQuotaLimitItems(source, t);
+  const items = getSubscriptionQuotaLimitItems(source, t);
   if (items.length === 0) return null;
 
   return (
@@ -109,9 +59,9 @@ const SubscriptionQuotaLimitSummary = ({
                 <Badge dot type='warning' />
                 <Text size='small'>{item.label}</Text>
                 <Tag size='small'>{renderQuota(item.amount)}</Tag>
-                {/*<Tag size='small' color='white'>*/}
-                {/*  {formatSubscriptionResetMode(item.mode, t)}*/}
-                {/*</Tag>*/}
+                <Tag size='small' color='white'>
+                  {formatSubscriptionResetMode(item.mode, t)}
+                </Tag>
               </div>
 
               {variant === 'subscription' && (

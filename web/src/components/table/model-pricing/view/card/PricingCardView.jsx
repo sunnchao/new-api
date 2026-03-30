@@ -155,20 +155,21 @@ const PricingCardView = ({
   };
 
   // 渲染标签
-  const renderTags = (record) => {
+  const renderTags = (record, priceData) => {
     // 计费类型标签（左边）
+    const effectiveQuotaType = priceData?.effectiveQuotaType ?? record?.quota_type;
     let billingTag = (
       <Tag key='billing' shape='circle' color='white' size='small'>
         -
       </Tag>
     );
-    if (record.quota_type === 1) {
+    if (effectiveQuotaType === 1) {
       billingTag = (
         <Tag key='billing' shape='circle' color='teal' size='small'>
           {t('按次计费')}
         </Tag>
       );
-    } else if (record.quota_type === 0) {
+    } else if (effectiveQuotaType === 0) {
       billingTag = (
         <Tag key='billing' shape='circle' color='violet' size='small'>
           {t('按量计费')}
@@ -326,14 +327,14 @@ const PricingCardView = ({
 
                 {/* 底部区域 */}
                 <div className='mt-auto'>
-                  {/* 阶梯计费标签 */}
+                  {/* 卡片只保留阶梯计费标记，详细分段说明统一放到详情弹窗的价格摘要中。 */}
                   {renderTierPricingTag(model) && (
                     <div className='mb-2'>
                       {renderTierPricingTag(model)}
                     </div>
                   )}
                   {/* 标签区域 */}
-                  {renderTags(model)}
+                  {renderTags(model, priceData)}
 
                   {/* 倍率信息（可选） */}
                   {showRatio && (
@@ -359,11 +360,13 @@ const PricingCardView = ({
                       <div className='grid grid-cols-3 gap-2 text-xs text-gray-600'>
                         <div>
                           {t('模型')}:{' '}
-                          {model.quota_type === 0 ? model.model_ratio : t('无')}
+                          {priceData?.effectiveQuotaType === 0
+                            ? model.model_ratio
+                            : t('无')}
                         </div>
                         <div>
                           {t('补全')}:{' '}
-                          {model.quota_type === 0
+                          {priceData?.effectiveQuotaType === 0
                             ? parseFloat(model.completion_ratio.toFixed(3))
                             : t('无')}
                         </div>

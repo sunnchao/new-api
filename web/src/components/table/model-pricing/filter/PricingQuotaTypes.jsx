@@ -36,8 +36,10 @@ const PricingQuotaTypes = ({
   t,
 }) => {
   const qtyCount = (type) =>
-    models.filter((m) => (type === 'all' ? true : m.quota_type === type))
-      .length;
+    models.filter((m) => {
+      const effectiveQuotaType = m.effectiveQuotaType ?? m.quota_type;
+      return type === 'all' ? true : effectiveQuotaType === type;
+    }).length;
 
   const items = [
     { value: 'all', label: t('全部类型'), tagCount: qtyCount('all') },

@@ -236,13 +236,14 @@ export default function GroupRatioSettings(props) {
               placeholder={t('为一个 JSON 文本')}
               extraText={
                 t('允许为不同分组的模型设置按次价格覆盖，或限制资金来源。') + '\n' +
+                t('• 支持保留键 "__default__" 作为分组默认 quota_type / model_price / billing_source；当具体模型未设置对应字段时，回退到该默认值') + '\n' +
                 t('• quota_type: 1=按次覆盖；0 或不设置时，仍遵循模型的全局价格模式') + '\n' +
                 t('• model_price: quota_type=1 时的单次价格（美元）') + '\n' +
                 t('• billing_source: 资金来源限制') + '\n' +
                 t('  - "" 或不设置: 不限制，遵循用户在钱包页设置的计费偏好') + '\n' +
                 t('  - "wallet_only": 仅余额') + '\n' +
                 t('  - "subscription_only": 仅订阅') + '\n' +
-                t('示例：{"vip": {"gpt-4": {"quota_type": 1, "model_price": 0.5, "billing_source": "subscription_only"}}}')
+                t('示例：{"vip": {"__default__": {"quota_type": 1, "model_price": 0.2, "billing_source": "subscription_only"}, "gpt-4": {"quota_type": 1, "model_price": 0.5}, "gpt-4o-mini": {"billing_source": "wallet_only"}}}')
               }
               field={'GroupModelBilling'}
               autosize={{ minRows: 6, maxRows: 12 }}

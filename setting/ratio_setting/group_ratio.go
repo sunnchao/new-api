@@ -39,6 +39,10 @@ type GroupModelBilling struct {
 	BillingSource string  `json:"billing_source,omitempty"` // 资金来源限制: ""=不限制(默认), "wallet_only"=仅余额, "subscription_only"=仅订阅, "wallet_first"=优先余额, "subscription_first"=优先订阅
 }
 
+// GroupModelBillingDefaultKey is a reserved pseudo-model key used to store the
+// default quota_type/model_price/billing_source for an entire group.
+const GroupModelBillingDefaultKey = "__default__"
+
 var defaultGroupModelBilling = map[string]map[string]GroupModelBilling{
 	// "vip": {
 	// 	"gpt-4": {
@@ -160,6 +164,52 @@ func GetGroupModelBilling(group, modelName string) (*GroupModelBilling, bool) {
 		return nil, false
 	}
 	return &billing, true
+}
+
+// GetEffectiveGroupModelBilling returns the merged billing config for a group
+// and model. Model-level fields override group defaults, while omitted model
+// fields inherit from the reserved __default__ entry.
+func GetEffectiveGroupModelBilling(group, modelName string) (*GroupModelBilling, bool) {
+	groupModels, ok := groupModelBillingMap.Get(group)
+	if !ok {
+		return nil, false
+	}
+
+	defaultBilling, hasDefault := groupModels[GroupModelBillingDefaultKey]
+	modelBilling, hasModel := groupModels[modelName]
+	if !hasDefault && !hasModel {
+		return nil, false
+	}
+
+	effective := GroupModelBilling{}
+	if hasDefault {
+		effective = defaultBilling
+	}
+
+	if hasModel {
+		// quota_type/model_price only become explicit when the model entry is set
+		// to per-request. Otherwise the model entry keeps inheriting the group
+		// default pricing behavior.
+		if modelBilling.QuotaType == 1 {
+			effective.QuotaType = 1
+			effective.ModelPrice = modelBilling.ModelPrice
+		}
+		if modelBilling.BillingSource != "" {
+			effective.BillingSource = modelBilling.BillingSource
+		}
+	}
+
+	return &effective, true
+}
+
+// GetGroupModelBillingSource 获取指定分组+模型的资金来源限制，若模型未单独配置，
+// 则回退到分组默认 billing_source（通过保留键 __default__ 存储）。
+func GetGroupModelBillingSource(group, modelName string) (string, bool) {
+	billing, ok := GetEffectiveGroupModelBilling(group, modelName)
+	if !ok || billing == nil || billing.BillingSource == "" {
+		return "", false
+	}
+	return billing.BillingSource, true
 }
 
 // GroupModelBilling2JSONString 将分组模型计费配置转为 JSON 字符串
