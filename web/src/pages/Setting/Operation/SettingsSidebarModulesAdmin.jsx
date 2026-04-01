@@ -33,44 +33,73 @@ import { StatusContext } from '../../../context/Status';
 
 const { Text } = Typography;
 
+const getDefaultSidebarModulesAdmin = () => ({
+  chat: {
+    enabled: true,
+    playground: true,
+    chat: true,
+  },
+  console: {
+    enabled: true,
+    detail: true,
+    token: true,
+    log: true,
+    midjourney: true,
+    task: true,
+  },
+  personal: {
+    enabled: true,
+    topup: true,
+    personal: true,
+  },
+  admin: {
+    enabled: true,
+    channel: true,
+    admin_token: true,
+    models: true,
+    deployment: true,
+    redemption: true,
+    user: true,
+    subscription: true,
+    setting: true,
+  },
+});
+
+const mergeSidebarModulesAdmin = (savedConfig) => {
+  const defaults = getDefaultSidebarModulesAdmin();
+  if (!savedConfig || typeof savedConfig !== 'object') return defaults;
+
+  return {
+    ...defaults,
+    ...savedConfig,
+    chat: {
+      ...defaults.chat,
+      ...(savedConfig.chat || {}),
+    },
+    console: {
+      ...defaults.console,
+      ...(savedConfig.console || {}),
+    },
+    personal: {
+      ...defaults.personal,
+      ...(savedConfig.personal || {}),
+    },
+    admin: {
+      ...defaults.admin,
+      ...(savedConfig.admin || {}),
+    },
+  };
+};
+
 export default function SettingsSidebarModulesAdmin(props) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [statusState, statusDispatch] = useContext(StatusContext);
 
-  // 左侧边栏模块管理状态（管理员全局控制）
-  const [sidebarModulesAdmin, setSidebarModulesAdmin] = useState({
-    chat: {
-      enabled: true,
-      playground: true,
-      chat: true,
-    },
-    console: {
-      enabled: true,
-      detail: true,
-      token: true,
-      log: true,
-      midjourney: true,
-      task: true,
-    },
-    personal: {
-      enabled: true,
-      topup: true,
-      personal: true,
-    },
-    admin: {
-      enabled: true,
-      channel: true,
-      models: true,
-      deployment: true,
-      redemption: true,
-      user: true,
-      subscription: true,
-      setting: true,
-    },
-  });
+  const [sidebarModulesAdmin, setSidebarModulesAdmin] = useState(
+    getDefaultSidebarModulesAdmin,
+  );
 
-  // 处理区域级别开关变更
   function handleSectionChange(sectionKey) {
     return (checked) => {
       const newModules = {
@@ -84,7 +113,6 @@ export default function SettingsSidebarModulesAdmin(props) {
     };
   }
 
-  // 处理功能级别开关变更
   function handleModuleChange(sectionKey, moduleKey) {
     return (checked) => {
       const newModules = {
@@ -98,43 +126,11 @@ export default function SettingsSidebarModulesAdmin(props) {
     };
   }
 
-  // 重置为默认配置
   function resetSidebarModules() {
-    const defaultModules = {
-      chat: {
-        enabled: true,
-        playground: true,
-        chat: true,
-      },
-      console: {
-        enabled: true,
-        detail: true,
-        token: true,
-        log: true,
-        midjourney: true,
-        task: true,
-      },
-      personal: {
-        enabled: true,
-        topup: true,
-        personal: true,
-      },
-      admin: {
-        enabled: true,
-        channel: true,
-        models: true,
-        deployment: true,
-        redemption: true,
-        user: true,
-        subscription: true,
-        setting: true,
-      },
-    };
-    setSidebarModulesAdmin(defaultModules);
+    setSidebarModulesAdmin(getDefaultSidebarModulesAdmin());
     showSuccess(t('已重置为默认配置'));
   }
 
-  // 保存配置
   async function onSubmit() {
     setLoading(true);
     try {
@@ -146,7 +142,6 @@ export default function SettingsSidebarModulesAdmin(props) {
       if (success) {
         showSuccess(t('保存成功'));
 
-        // 立即更新StatusContext中的状态
         statusDispatch({
           type: 'set',
           payload: {
@@ -155,7 +150,6 @@ export default function SettingsSidebarModulesAdmin(props) {
           },
         });
 
-        // 刷新父组件状态
         if (props.refresh) {
           await props.refresh();
         }
@@ -170,41 +164,16 @@ export default function SettingsSidebarModulesAdmin(props) {
   }
 
   useEffect(() => {
-    // 从 props.options 中获取配置
     if (props.options && props.options.SidebarModulesAdmin) {
       try {
         const modules = JSON.parse(props.options.SidebarModulesAdmin);
-        setSidebarModulesAdmin(modules);
+        setSidebarModulesAdmin(mergeSidebarModulesAdmin(modules));
       } catch (error) {
-        // 使用默认配置
-        const defaultModules = {
-          chat: { enabled: true, playground: true, chat: true },
-          console: {
-            enabled: true,
-            detail: true,
-            token: true,
-            log: true,
-            midjourney: true,
-            task: true,
-          },
-          personal: { enabled: true, topup: true, personal: true },
-          admin: {
-            enabled: true,
-            channel: true,
-            models: true,
-            deployment: true,
-            redemption: true,
-            user: true,
-            subscription: true,
-            setting: true,
-          },
-        };
-        setSidebarModulesAdmin(defaultModules);
+        setSidebarModulesAdmin(getDefaultSidebarModulesAdmin());
       }
     }
   }, [props.options]);
 
-  // 区域配置数据
   const sectionConfigs = [
     {
       key: 'chat',
@@ -225,7 +194,7 @@ export default function SettingsSidebarModulesAdmin(props) {
       description: t('数据管理和日志查看'),
       modules: [
         { key: 'detail', title: t('数据看板'), description: t('系统数据统计') },
-        { key: 'token', title: t('令牌管理'), description: t('API令牌管理') },
+        { key: 'token', title: t('我的令牌'), description: t('API令牌管理') },
         { key: 'log', title: t('使用日志'), description: t('API使用记录') },
         {
           key: 'midjourney',
@@ -254,6 +223,11 @@ export default function SettingsSidebarModulesAdmin(props) {
       description: t('系统管理功能'),
       modules: [
         { key: 'channel', title: t('渠道管理'), description: t('API渠道配置') },
+        {
+          key: 'admin_token',
+          title: t('令牌管理'),
+          description: t('API令牌管理'),
+        },
         { key: 'models', title: t('模型管理'), description: t('AI模型配置') },
         {
           key: 'deployment',

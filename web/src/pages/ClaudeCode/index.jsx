@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Typography, Card, Tabs, TabPane, Space, List, Tag, Button, Row } from '@douyinfe/semi-ui';
 import { Code2, Zap, Shield, Globe, Terminal, ArrowRight, CheckCircle2, Download, Key, Rocket } from 'lucide-react';
 import InstallationGuide from '../../components/InstallationGuide';
@@ -25,6 +26,7 @@ import InstallationGuide from '../../components/InstallationGuide';
 const { Title, Paragraph, Text } = Typography;
 
 const ClaudeCodeTutorial = () => {
+  const { t } = useTranslation();
   const features = [
     {
       icon: <Zap className='text-blue-500' size={24} />,
@@ -210,13 +212,13 @@ const ClaudeCodeTutorial = () => {
           <Paragraph className='mb-4'>
             在本平台注册账户后，进入 API 管理页面创建新的 API Key。
           </Paragraph>
-          <List
-            dataSource={[
-              '登录 Chirou API 平台',
-              '进入"令牌管理"页面',
-              '点击"新建令牌"',
-              '设置令牌名称和权限',
-              '复制生成的 API Key'
+            <List
+              dataSource={[
+                '登录 Chirou API 平台',
+                t('进入"我的令牌"页面'),
+                '点击"新建令牌"',
+                '设置令牌名称和权限',
+                '复制生成的 API Key'
             ]}
             renderItem={(item) => (
               <List.Item className='!p-3 !border-b-0 hover:bg-gray-50 rounded-lg transition-colors'>

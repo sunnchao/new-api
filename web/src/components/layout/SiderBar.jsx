@@ -34,6 +34,7 @@ const routerMap = {
   home: '/',
   channel: '/console/channel',
   token: '/console/token',
+  admin_token: '/console/admin/token',
   redemption: '/console/redemption',
   topup: '/console/topup',
   user: '/console/user',
@@ -82,7 +83,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
             : 'tableHiddle',
       },
       {
-        text: t('令牌管理'),
+        text: t('我的令牌'),
         itemKey: 'token',
         to: '/token',
       },
@@ -183,6 +184,12 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         text: t('用户管理'),
         itemKey: 'user',
         to: '/user',
+        className: isAdmin() ? '' : 'tableHiddle',
+      },
+      {
+        text: t('令牌管理'),
+        itemKey: 'admin_token',
+        to: '/console/admin/token',
         className: isAdmin() ? '' : 'tableHiddle',
       },
       {

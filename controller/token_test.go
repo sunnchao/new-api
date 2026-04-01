@@ -144,8 +144,9 @@ func TestGetAllTokensMasksKeyInResponse(t *testing.T) {
 	if len(page.Items) != 1 {
 		t.Fatalf("expected exactly one token, got %d", len(page.Items))
 	}
-	if page.Items[0].Key != token.GetMaskedKey() {
-		t.Fatalf("expected masked key %q, got %q", token.GetMaskedKey(), page.Items[0].Key)
+	expectedKey := token.GetMaskedKey()
+	if page.Items[0].Key != expectedKey {
+		t.Fatalf("expected masked key %q, got %q", expectedKey, page.Items[0].Key)
 	}
 	if strings.Contains(recorder.Body.String(), token.Key) {
 		t.Fatalf("list response leaked raw token key: %s", recorder.Body.String())
@@ -171,8 +172,9 @@ func TestSearchTokensMasksKeyInResponse(t *testing.T) {
 	if len(page.Items) != 1 {
 		t.Fatalf("expected exactly one search result, got %d", len(page.Items))
 	}
-	if page.Items[0].Key != token.GetMaskedKey() {
-		t.Fatalf("expected masked search key %q, got %q", token.GetMaskedKey(), page.Items[0].Key)
+	expectedKey := token.GetMaskedKey()
+	if page.Items[0].Key != expectedKey {
+		t.Fatalf("expected masked search key %q, got %q", expectedKey, page.Items[0].Key)
 	}
 	if strings.Contains(recorder.Body.String(), token.Key) {
 		t.Fatalf("search response leaked raw token key: %s", recorder.Body.String())
@@ -196,8 +198,9 @@ func TestGetTokenMasksKeyInResponse(t *testing.T) {
 	if err := common.Unmarshal(response.Data, &detail); err != nil {
 		t.Fatalf("failed to decode token detail response: %v", err)
 	}
-	if detail.Key != token.GetMaskedKey() {
-		t.Fatalf("expected masked detail key %q, got %q", token.GetMaskedKey(), detail.Key)
+	expectedKey := token.GetMaskedKey()
+	if detail.Key != expectedKey {
+		t.Fatalf("expected masked detail key %q, got %q", expectedKey, detail.Key)
 	}
 	if strings.Contains(recorder.Body.String(), token.Key) {
 		t.Fatalf("detail response leaked raw token key: %s", recorder.Body.String())
@@ -232,8 +235,9 @@ func TestUpdateTokenMasksKeyInResponse(t *testing.T) {
 	if err := common.Unmarshal(response.Data, &detail); err != nil {
 		t.Fatalf("failed to decode token update response: %v", err)
 	}
-	if detail.Key != token.GetMaskedKey() {
-		t.Fatalf("expected masked update key %q, got %q", token.GetMaskedKey(), detail.Key)
+	expectedKey := token.GetMaskedKey()
+	if detail.Key != expectedKey {
+		t.Fatalf("expected masked update key %q, got %q", expectedKey, detail.Key)
 	}
 	if strings.Contains(recorder.Body.String(), token.Key) {
 		t.Fatalf("update response leaked raw token key: %s", recorder.Body.String())

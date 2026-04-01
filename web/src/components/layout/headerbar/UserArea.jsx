@@ -92,7 +92,7 @@ const UserArea = ({
                     size='small'
                     className='text-gray-500 dark:text-gray-400'
                   />
-                  <span>{t('令牌管理')}</span>
+                  <span>{t('我的令牌')}</span>
                 </div>
               </Dropdown.Item>
               <Dropdown.Item
