@@ -18,32 +18,14 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
-import { Typography } from '@douyinfe/semi-ui';
-import { Key } from 'lucide-react';
-import CompactModeToggle from '../../common/ui/CompactModeToggle';
+import AdminTokenPage from '../../../components/table/admin/tokens';
 
-const { Text } = Typography;
-
-const TokensDescription = ({
-  compactMode,
-  setCompactMode,
-  t,
-  title = t('我的令牌'),
-}) => {
+const AdminToken = () => {
   return (
-    <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-2 w-full'>
-      <div className='flex items-center text-blue-500'>
-        <Key size={16} className='mr-2' />
-        <Text>{title}</Text>
-      </div>
-
-      <CompactModeToggle
-        compactMode={compactMode}
-        setCompactMode={setCompactMode}
-        t={t}
-      />
+    <div className='mt-[60px] px-2'>
+      <AdminTokenPage />
     </div>
   );
 };
 
-export default TokensDescription;
+export default AdminToken;

@@ -51,12 +51,25 @@ const TokensTable = (tokensData) => {
     t,
     groupInfoMap,
     userGroup,
+    showUserColumns,
   } = tokensData;
+
+  const userColumnSample = useMemo(() => {
+    if (!showUserColumns) return undefined;
+    return tokens.find(
+      (token) =>
+        typeof token?.user_id !== 'undefined' ||
+        typeof token?.user_name !== 'undefined',
+    );
+  }, [showUserColumns, tokens]);
 
   // Get all columns
   const columns = useMemo(() => {
     return getTokensColumns({
       t,
+      userId: userColumnSample?.user_id,
+      userName: userColumnSample?.user_name,
+      showUserColumns,
       showKeys,
       resolvedTokenKeys,
       loadingTokenKeys,
@@ -72,6 +85,8 @@ const TokensTable = (tokensData) => {
     });
   }, [
     t,
+    userColumnSample,
+    showUserColumns,
     showKeys,
     resolvedTokenKeys,
     loadingTokenKeys,

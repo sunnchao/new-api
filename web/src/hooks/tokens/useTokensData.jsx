@@ -31,8 +31,18 @@ import { ITEMS_PER_PAGE } from '../../constants';
 import { useTableCompactMode } from '../common/useTableCompactMode';
 import { fetchTokenKey as fetchTokenKeyById } from '../../helpers/token';
 
-export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
+export const useTokensData = (
+  openFluentNotification,
+  openCCSwitchModal,
+  options = {},
+) => {
   const { t } = useTranslation();
+  const {
+    listEndpoint = '/api/token/',
+    listParams = {},
+    searchEndpoint = '/api/token/search',
+    searchParams = {},
+  } = options;
 
   // Basic state
   const [tokens, setTokens] = useState([]);
@@ -98,7 +108,13 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
   const loadTokens = async (page = 1, size = pageSize) => {
     setLoading(true);
     setSearchMode(false);
-    const res = await API.get(`/api/token/?p=${page}&size=${size}`);
+    const res = await API.get(listEndpoint, {
+      params: {
+        ...listParams,
+        p: page,
+        size,
+      },
+    });
     const { success, message, data } = res.data;
     if (success) {
       syncPageData(data);
@@ -293,9 +309,15 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
       return;
     }
     setSearching(true);
-    const res = await API.get(
-      `/api/token/search?keyword=${encodeURIComponent(searchKeyword)}&token=${encodeURIComponent(searchToken)}&p=${normalizedPage}&size=${normalizedSize}`,
-    );
+    const res = await API.get(searchEndpoint, {
+      params: {
+        ...searchParams,
+        keyword: searchKeyword,
+        token: searchToken,
+        p: normalizedPage,
+        size: normalizedSize,
+      },
+    });
     const { success, message, data } = res.data;
     if (success) {
       setSearchMode(true);

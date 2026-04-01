@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Token 管理设计草图</title>
+    <style>
+      :root {
+        --bg: #f5f7fa;
+        --card: #ffffff;
+        --text: #1f2329;
+        --muted: #667085;
+        --primary: #4f46e5;
+        --border: #e5e7eb;
+        --success: #16a34a;
+        --warning: #f59e0b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .page {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 28px;
+      }
+      .hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+      }
+      .hero h1 { margin: 0 0 10px; font-size: 28px; }
+      .hero p { margin: 0; color: var(--muted); line-height: 1.6; }
+      .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+      .tag {
+        background: #eef2ff;
+        color: var(--primary);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 290px 1fr;
+        gap: 20px;
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 10px 32px rgba(15, 23, 42, 0.06);
+      }
+      .panel-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--border);
+        font-weight: 700;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .sidebar-section { padding: 8px 12px 16px; }
+      .section-title {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--muted);
+        margin: 12px 10px 8px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 6px 0;
+        padding: 11px 12px;
+        border-radius: 12px;
+        color: #111827;
+      }
+      .nav-item.active {
+        background: #eef2ff;
+        color: var(--primary);
+        font-weight: 700;
+      }
+      .nav-item .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #cbd5e1;
+      }
+      .nav-item.active .dot { background: var(--primary); }
+      .content {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+      .card-body { padding: 18px 20px 22px; }
+      .subtitle { color: var(--muted); font-size: 14px; }
+      .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 18px; }
+      .chip {
+        font-size: 12px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        color: #374151;
+        background: #fff;
+      }
+      .chip.primary { background: #eef2ff; color: var(--primary); border-color: #c7d2fe; }
+      .chip.success { background: #ecfdf3; color: var(--success); border-color: #bbf7d0; }
+      .chip.warning { background: #fff7ed; color: var(--warning); border-color: #fed7aa; }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th, td {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      th { color: var(--muted); font-weight: 600; font-size: 12px; }
+      .note {
+        margin-top: 14px;
+        font-size: 13px;
+        line-height: 1.65;
+        color: #374151;
+      }
+      .em { color: var(--primary); font-weight: 700; }
+      .footer {
+        margin-top: 18px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      @media (max-width: 1100px) {
+        .grid { grid-template-columns: 1fr; }
+        .cards { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="hero">
+        <div>
+          <h1>Token 管理改造草图</h1>
+          <p>
+            这个页面只用于讨论本次设计，不是最终实现稿。重点是确认：<br />
+            <span class="em">用户侧“我的令牌”</span> 与 <span class="em">管理员侧“令牌管理”</span>
+            的菜单位置、表格字段、交互边界是否正确。
+          </p>
+          <div class="tags">
+            <span class="tag">用户入口改名</span>
+            <span class="tag">管理员新增全量令牌列表</span>
+            <span class="tag">补 user id / user name</span>
+            <span class="tag">后端补 /api/admin/token/*</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="panel">
+          <div class="panel-header">侧边栏目标结构</div>
+          <div class="sidebar-section">
+            <div class="section-title">控制台</div>
+            <div class="nav-item"><span class="dot"></span>数据看板</div>
+            <div class="nav-item active"><span class="dot"></span>我的令牌</div>
+            <div class="nav-item"><span class="dot"></span>使用日志</div>
+            <div class="nav-item"><span class="dot"></span>订阅管理</div>
+
+            <div class="section-title">管理员</div>
+            <div class="nav-item"><span class="dot"></span>渠道管理</div>
+            <div class="nav-item"><span class="dot"></span>订阅管理</div>
+            <div class="nav-item"><span class="dot"></span>用户管理</div>
+            <div class="nav-item active"><span class="dot"></span>令牌管理</div>
+            <div class="nav-item"><span class="dot"></span>系统设置</div>
+
+            <div class="footer">
+              建议把管理员的“令牌管理”放在“用户管理”后面，突出“查看/处理所有用户令牌”的定位。
+            </div>
+          </div>
+        </div>
+
+        <div class="content">
+          <div class="cards">
+            <div class="panel">
+              <div class="panel-header">控制台：我的令牌</div>
+              <div class="card-body">
+                <div class="subtitle">只看当前登录用户自己的令牌，保留现有体验。</div>
+                <div class="chips">
+                  <span class="chip primary">显示密钥</span>
+                  <span class="chip primary">编辑</span>
+                  <span class="chip primary">复制</span>
+                  <span class="chip primary">删除</span>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>名称</th>
+                      <th>状态</th>
+                      <th>分组</th>
+                      <th>剩余额度</th>
+                      <th>密钥</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>default-token</td>
+                      <td>已启用</td>
+                      <td>default</td>
+                      <td>120K / 500K</td>
+                      <td>sk-•••••••••••</td>
+                    </tr>
+                    <tr>
+                      <td>token-plan-a</td>
+                      <td>已启用</td>
+                      <td>TokenPlan</td>
+                      <td>95K / 100K</td>
+                      <td>sk-•••••••••••</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">管理员：令牌管理</div>
+              <div class="card-body">
+                <div class="subtitle">看全站所有用户令牌，UI 尽量复用“我的令牌”，但多展示归属信息。</div>
+                <div class="chips">
+                  <span class="chip success">新增列：用户 ID</span>
+                  <span class="chip success">新增列：用户名</span>
+                  <span class="chip warning">是否允许管理员直接 reveal / edit / delete 需要确认</span>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>用户 ID</th>
+                      <th>用户名</th>
+                      <th>名称</th>
+                      <th>状态</th>
+                      <th>分组</th>
+                      <th>剩余额度</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>12</td>
+                      <td>alice</td>
+                      <td>default-token</td>
+                      <td>已启用</td>
+                      <td>default</td>
+                      <td>120K / 500K</td>
+                    </tr>
+                    <tr>
+                      <td>27</td>
+                      <td>bob</td>
+                      <td>token-plan-a</td>
+                      <td>已禁用</td>
+                      <td>TokenPlan</td>
+                      <td>95K / 100K</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">本次设计要确认的边界</div>
+            <div class="card-body">
+              <div class="note">
+                <strong>后端：</strong> 当前仓库里的 token 接口基本都是“当前用户自己的 token”。<br />
+                所以如果管理员要“看全站 + 管所有用户”，需要补一套独立的 <code>/api/admin/token/*</code>
+                路由、controller 和 model 查询，不只是改前端地址。<br /><br />
+
+                <strong>前端：</strong> 管理员页面可以继续复用“我的令牌”的表格、筛选、样式，
+                但操作按钮不一定应该 100% 复用。比如“显示密钥”“聊天”“批量删除”这种动作，
+                是否对管理员开放，需要单独定规则。<br /><br />
+
+                <strong>多语言：</strong> 新增的“我的令牌”“管理员令牌管理”“用户 ID”“用户名”等文案，
+                需要同步补到所有 locale 文件里，不能只改 React 里的 <code>t('中文')</code>。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>

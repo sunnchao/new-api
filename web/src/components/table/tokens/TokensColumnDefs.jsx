@@ -480,6 +480,9 @@ const renderOperations = (
 
 export const getTokensColumns = ({
   t,
+  userId,
+  userName,
+  showUserColumns,
   showKeys,
   resolvedTokenKeys,
   loadingTokenKeys,
@@ -493,7 +496,29 @@ export const getTokensColumns = ({
   groupInfoMap,
   userGroup,
 }) => {
+  const shouldShowUserColumns =
+    showUserColumns ||
+    typeof userId !== 'undefined' ||
+    typeof userName !== 'undefined';
+
   return [
+    // Admin view prepends owner information while reusing the shared table.
+    ...(shouldShowUserColumns
+      ? [
+          {
+            title: t('用户ID'),
+            dataIndex: 'user_id',
+            render: (val) => val ?? '-',
+            width: 80,
+          },
+          {
+            title: t('用户名'),
+            dataIndex: 'user_name',
+            render: (val) => val ?? '-',
+            width: 120,
+          },
+        ]
+      : []),
     {
       title: t('名称'),
       dataIndex: 'name',
