@@ -157,11 +157,12 @@ const renderTokenKey = (
   loadingTokenKeys,
   toggleTokenVisibility,
   copyTokenKey,
+  allowTokenKeyActions,
 ) => {
-  const revealed = !!showKeys[record.id];
-  const loading = !!loadingTokenKeys[record.id];
+  const revealed = allowTokenKeyActions && !!showKeys?.[record.id];
+  const loading = allowTokenKeyActions && !!loadingTokenKeys?.[record.id];
   const keyValue =
-    revealed && resolvedTokenKeys[record.id]
+    revealed && resolvedTokenKeys?.[record.id]
       ? resolvedTokenKeys[record.id]
       : record.key || '';
   const displayedKey = keyValue ? `sk-${keyValue}` : '';
@@ -173,32 +174,34 @@ const renderTokenKey = (
         value={displayedKey}
         size='small'
         suffix={
-          <div className='flex items-center'>
-            <Button
-              theme='borderless'
-              size='small'
-              type='tertiary'
-              icon={revealed ? <IconEyeClosed /> : <IconEyeOpened />}
-              loading={loading}
-              aria-label='toggle token visibility'
-              onClick={async (e) => {
-                e.stopPropagation();
-                await toggleTokenVisibility(record);
-              }}
-            />
-            <Button
-              theme='borderless'
-              size='small'
-              type='tertiary'
-              icon={<IconCopy />}
-              loading={loading}
-              aria-label='copy token key'
-              onClick={async (e) => {
-                e.stopPropagation();
-                await copyTokenKey(record);
-              }}
-            />
-          </div>
+          allowTokenKeyActions ? (
+            <div className='flex items-center'>
+              <Button
+                theme='borderless'
+                size='small'
+                type='tertiary'
+                icon={revealed ? <IconEyeClosed /> : <IconEyeOpened />}
+                loading={loading}
+                aria-label='toggle token visibility'
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await toggleTokenVisibility(record);
+                }}
+              />
+              <Button
+                theme='borderless'
+                size='small'
+                type='tertiary'
+                icon={<IconCopy />}
+                loading={loading}
+                aria-label='copy token key'
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await copyTokenKey(record);
+                }}
+              />
+            </div>
+          ) : null
         }
       />
     </div>
@@ -370,57 +373,62 @@ const renderOperations = (
   manageToken,
   refresh,
   t,
+  allowChatActions,
 ) => {
   let chatsArray = [];
-  try {
-    const raw = localStorage.getItem('chats');
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      for (let i = 0; i < parsed.length; i++) {
-        const item = parsed[i];
-        const name = Object.keys(item)[0];
-        if (!name) continue;
-        chatsArray.push({
-          node: 'item',
-          key: i,
-          name,
-          value: item[name],
-          onClick: () => onOpenLink(name, item[name], record),
-        });
+  if (allowChatActions) {
+    try {
+      const raw = localStorage.getItem('chats');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        for (let i = 0; i < parsed.length; i++) {
+          const item = parsed[i];
+          const name = Object.keys(item)[0];
+          if (!name) continue;
+          chatsArray.push({
+            node: 'item',
+            key: i,
+            name,
+            value: item[name],
+            onClick: () => onOpenLink(name, item[name], record),
+          });
+        }
       }
+    } catch (_) {
+      showError(t('聊天链接配置错误，请联系管理员'));
     }
-  } catch (_) {
-    showError(t('聊天链接配置错误，请联系管理员'));
   }
 
   return (
     <Space wrap>
-      <SplitButtonGroup
-        className='overflow-hidden'
-        aria-label={t('项目操作按钮组')}
-      >
-        <Button
-          size='small'
-          type='tertiary'
-          onClick={() => {
-            if (chatsArray.length === 0) {
-              showError(t('请联系管理员配置聊天链接'));
-            } else {
-              const first = chatsArray[0];
-              onOpenLink(first.name, first.value, record);
-            }
-          }}
+      {allowChatActions && (
+        <SplitButtonGroup
+          className='overflow-hidden'
+          aria-label={t('项目操作按钮组')}
         >
-          {t('聊天')}
-        </Button>
-        <Dropdown trigger='click' position='bottomRight' menu={chatsArray}>
           <Button
-            type='tertiary'
-            icon={<IconTreeTriangleDown />}
             size='small'
-          ></Button>
-        </Dropdown>
-      </SplitButtonGroup>
+            type='tertiary'
+            onClick={() => {
+              if (chatsArray.length === 0) {
+                showError(t('请联系管理员配置聊天链接'));
+              } else {
+                const first = chatsArray[0];
+                onOpenLink(first.name, first.value, record);
+              }
+            }}
+          >
+            {t('聊天')}
+          </Button>
+          <Dropdown trigger='click' position='bottomRight' menu={chatsArray}>
+            <Button
+              type='tertiary'
+              icon={<IconTreeTriangleDown />}
+              size='small'
+            ></Button>
+          </Dropdown>
+        </SplitButtonGroup>
+      )}
 
       {record.status === 1 ? (
         <Button
@@ -480,9 +488,6 @@ const renderOperations = (
 
 export const getTokensColumns = ({
   t,
-  userId,
-  userName,
-  showUserColumns,
   showKeys,
   resolvedTokenKeys,
   loadingTokenKeys,
@@ -495,27 +500,25 @@ export const getTokensColumns = ({
   refresh,
   groupInfoMap,
   userGroup,
+  showOwnerColumns = false,
+  allowTokenKeyActions = true,
+  allowChatActions = true,
 }) => {
-  const shouldShowUserColumns =
-    showUserColumns ||
-    typeof userId !== 'undefined' ||
-    typeof userName !== 'undefined';
-
-  return [
-    // Admin view prepends owner information while reusing the shared table.
-    ...(shouldShowUserColumns
+  // Shared columns intentionally support both self-service and admin token
+  // views so admin-only restrictions stay as top-level capability flags.
+  const columns = [
+    ...(showOwnerColumns
       ? [
           {
-            title: t('用户ID'),
+            title: t('用户 ID'),
             dataIndex: 'user_id',
-            render: (val) => val ?? '-',
-            width: 80,
+            key: 'user_id',
           },
           {
             title: t('用户名'),
             dataIndex: 'user_name',
-            render: (val) => val ?? '-',
-            width: 120,
+            key: 'user_name',
+            render: (text) => text || '-',
           },
         ]
       : []),
@@ -553,6 +556,7 @@ export const getTokensColumns = ({
           loadingTokenKeys,
           toggleTokenVisibility,
           copyTokenKey,
+          allowTokenKeyActions,
         ),
     },
     {
@@ -597,7 +601,10 @@ export const getTokensColumns = ({
           manageToken,
           refresh,
           t,
+          allowChatActions,
         ),
     },
   ];
+
+  return columns;
 };

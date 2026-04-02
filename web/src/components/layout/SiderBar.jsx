@@ -34,10 +34,10 @@ const routerMap = {
   home: '/',
   channel: '/console/channel',
   token: '/console/token',
+  admin_token: '/console/admin/token',
   redemption: '/console/redemption',
   topup: '/console/topup',
   user: '/console/user',
-  admin_token: '/console/admin/token',
   subscription: '/console/subscription',
   log: '/console/log',
   midjourney: '/console/midjourney',
@@ -189,7 +189,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
       {
         text: t('令牌管理'),
         itemKey: 'admin_token',
-        to: '/admin/token',
+        to: '/console/admin/token',
         className: isAdmin() ? '' : 'tableHiddle',
       },
       {

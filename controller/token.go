@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +12,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+func writeInvalidTokenMjModelError(c *gin.Context) {
+	common.ApiErrorI18n(c, i18n.MsgTokenMjModelInvalid)
+}
+
+func writeTokenLimitReachedError(c *gin.Context, maxTokens int) {
+	common.ApiErrorI18n(c, i18n.MsgTokenLimitReached, map[string]any{"Max": maxTokens})
+}
 
 func buildMaskedTokenResponse(token *model.Token) *model.Token {
 	if token == nil {
@@ -173,10 +180,7 @@ func AddToken(c *gin.Context) {
 	}
 	mjModel, ok := common.NormalizeMjModel(token.MjModel)
 	if !ok {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "无效的MJ绘画模式",
-		})
+		writeInvalidTokenMjModelError(c)
 		return
 	}
 	if len(token.Name) > 50 {
@@ -203,10 +207,7 @@ func AddToken(c *gin.Context) {
 		return
 	}
 	if int(count) >= maxTokens {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": fmt.Sprintf("已达到最大令牌数量限制 (%d)", maxTokens),
-		})
+		writeTokenLimitReachedError(c, maxTokens)
 		return
 	}
 	key, err := common.GenerateKey()
@@ -301,10 +302,7 @@ func UpdateToken(c *gin.Context) {
 	} else {
 		mjModel, ok := common.NormalizeMjModel(token.MjModel)
 		if !ok {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "无效的MJ绘画模式",
-			})
+			writeInvalidTokenMjModelError(c)
 			return
 		}
 		// If you add more fields, please also update token.Update()

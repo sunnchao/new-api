@@ -126,6 +126,7 @@ export function getLucideIcon(key, selected = false) {
     case 'chat':
       return <MessageSquare {...commonProps} color={iconColor} />;
     case 'token':
+    case 'admin_token':
       return <Key {...commonProps} color={iconColor} />;
     case 'log':
       return <BarChart3 {...commonProps} color={iconColor} />;

@@ -44,6 +44,7 @@ import Midjourney from './pages/Midjourney';
 import Pricing from './pages/Pricing';
 import Task from './pages/Task';
 import AdminPackages from './pages/AdminPackages';
+import AdminToken from './pages/Admin/Token';
 import ModelPage from './pages/Model';
 import ModelDeploymentPage from './pages/ModelDeployment';
 import Playground from './pages/Playground';
@@ -154,6 +155,14 @@ function App() {
             <PrivateRoute>
               <Token />
             </PrivateRoute>
+          }
+        />
+        <Route
+          path='/console/admin/token'
+          element={
+            <AdminRoute>
+              <AdminToken />
+            </AdminRoute>
           }
         />
         <Route

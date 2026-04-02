@@ -38,9 +38,9 @@ const TokensTable = (tokensData) => {
     handlePageSizeChange,
     rowSelection,
     handleRow,
-    showKeys,
-    resolvedTokenKeys,
-    loadingTokenKeys,
+    showKeys = {},
+    resolvedTokenKeys = {},
+    loadingTokenKeys = {},
     toggleTokenVisibility,
     copyTokenKey,
     manageToken,
@@ -51,25 +51,16 @@ const TokensTable = (tokensData) => {
     t,
     groupInfoMap,
     userGroup,
-    showUserColumns,
+    showOwnerColumns = false,
+    allowTokenKeyActions = true,
+    allowChatActions = true,
   } = tokensData;
 
-  const userColumnSample = useMemo(() => {
-    if (!showUserColumns) return undefined;
-    return tokens.find(
-      (token) =>
-        typeof token?.user_id !== 'undefined' ||
-        typeof token?.user_name !== 'undefined',
-    );
-  }, [showUserColumns, tokens]);
-
-  // Get all columns
+  // Shared token table stays presentation-only; lightweight flags keep admin/self
+  // behavior differences out of the user-specific hooks and modals.
   const columns = useMemo(() => {
     return getTokensColumns({
       t,
-      userId: userColumnSample?.user_id,
-      userName: userColumnSample?.user_name,
-      showUserColumns,
       showKeys,
       resolvedTokenKeys,
       loadingTokenKeys,
@@ -82,11 +73,12 @@ const TokensTable = (tokensData) => {
       refresh,
       groupInfoMap,
       userGroup,
+      showOwnerColumns,
+      allowTokenKeyActions,
+      allowChatActions,
     });
   }, [
     t,
-    userColumnSample,
-    showUserColumns,
     showKeys,
     resolvedTokenKeys,
     loadingTokenKeys,
@@ -99,6 +91,9 @@ const TokensTable = (tokensData) => {
     refresh,
     groupInfoMap,
     userGroup,
+    showOwnerColumns,
+    allowTokenKeyActions,
+    allowChatActions,
   ]);
 
   // Handle compact mode by removing fixed positioning

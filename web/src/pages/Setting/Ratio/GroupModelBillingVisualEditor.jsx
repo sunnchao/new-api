@@ -910,7 +910,9 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
           type='info'
           bordered
           closeIcon={null}
-          title={t('使用说明')}
+          title={null}
+          icon={null}
+          style={{width: '100%', marginTop: '8px', marginBottom: '8px'}}
           description={
             <div className='space-y-1 text-sm'>
               <div>
@@ -980,84 +982,108 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
         </Space>
 
         {selectedGroup ? (
-          <Card title={t('分组默认覆盖')}> 
-            <Space vertical style={{ width: '100%' }} spacing={16}>
-              <div>
-                <div className='mb-2 font-medium text-gray-700'>
-                  {t('分组 {{group}} 的默认价格模式', { group: selectedGroup })}
-                </div>
-                <RadioGroup
-                  type='button'
-                  value={selectedGroupDefaultEntry.mode}
-                  onChange={(event) =>
-                    updateGroupDefaultEntry({ mode: event.target.value })
-                  }
-                >
-                  <Radio value='inherit'>{t('不设置分组默认价格')}</Radio>
-                  <Radio value='per-request'>{t('分组默认按次计费')}</Radio>
-                </RadioGroup>
-                <div className='mt-2 text-xs text-gray-500'>
-                  {t(
-                    '启用后，当前分组下未单独配置价格模式的模型，将默认继承该分组的按次价格。',
-                  )}
-                </div>
-              </div>
-
-              {selectedGroupDefaultEntry.mode === 'per-request' ? (
+          <Card title={t('分组默认覆盖')} style={{ width: '100%' }}>
+            {/* Two-column layout for wide screens, single column for mobile */}
+            <div
+              style={{
+                display: 'grid',
+                gap: 24,
+                gridTemplateColumns: isMobile
+                  ? 'minmax(0, 1fr)'
+                  : 'minmax(300px, 1fr) minmax(300px, 1fr)',
+              }}
+            >
+              {/* Left column: Configuration */}
+              <Space vertical style={{ width: '100%' }} spacing={16}>
                 <div>
                   <div className='mb-2 font-medium text-gray-700'>
-                    {t('分组默认按次价格')}
+                    {t('分组 {{group}} 的默认价格模式', { group: selectedGroup })}
                   </div>
-                  <Input
-                    value={selectedGroupDefaultEntry.modelPrice}
-                    placeholder={t('输入每次调用价格')}
-                    suffix={t('$/次')}
-                    onChange={(value) => {
-                      if (!NUMERIC_INPUT_REGEX.test(value)) {
-                        return;
-                      }
-                      updateGroupDefaultEntry({ modelPrice: value });
-                    }}
+                  <RadioGroup
+                    type='button'
+                    value={selectedGroupDefaultEntry.mode}
+                    onChange={(event) =>
+                      updateGroupDefaultEntry({ mode: event.target.value })
+                    }
+                  >
+                    <Radio value='inherit'>{t('不设置分组默认价格')}</Radio>
+                    <Radio value='per-request'>{t('分组默认按次计费')}</Radio>
+                  </RadioGroup>
+                  <div className='mt-2 text-xs text-gray-500'>
+                    {t(
+                      '启用后，当前分组下未单独配置价格模式的模型，将默认继承该分组的按次价格。',
+                    )}
+                  </div>
+                </div>
+
+                {selectedGroupDefaultEntry.mode === 'per-request' ? (
+                  <div>
+                    <div className='mb-2 font-medium text-gray-700'>
+                      {t('分组默认按次价格')}
+                    </div>
+                    <Input
+                      value={selectedGroupDefaultEntry.modelPrice}
+                      placeholder={t('输入每次调用价格')}
+                      suffix={t('$/次')}
+                      onChange={(value) => {
+                        if (!NUMERIC_INPUT_REGEX.test(value)) {
+                          return;
+                        }
+                        updateGroupDefaultEntry({ modelPrice: value });
+                      }}
+                    />
+                  </div>
+                ) : null}
+
+                <div>
+                  <div className='mb-2 font-medium text-gray-700'>
+                    {t('分组 {{group}} 的默认计费来源', { group: selectedGroup })}
+                  </div>
+                  <Select
+                    value={selectedGroupDefaultEntry.billingSource}
+                    optionList={groupDefaultBillingSourceOptions}
+                    onChange={(value) =>
+                      updateGroupDefaultEntry({ billingSource: value })
+                    }
                   />
+                  <div className='mt-2 text-xs text-gray-500'>
+                    {t(
+                      '仅当当前"分组 + 模型"未显式设置 billing_source 时，才会回退到这里；模型级 billing_source 的优先级更高。',
+                    )}
+                  </div>
                 </div>
-              ) : null}
 
-              <div>
-                <div className='mb-2 font-medium text-gray-700'>
-                  {t('分组 {{group}} 的默认计费来源', { group: selectedGroup })}
-                </div>
-                <Select
-                  value={selectedGroupDefaultEntry.billingSource}
-                  optionList={groupDefaultBillingSourceOptions}
-                  onChange={(value) =>
-                    updateGroupDefaultEntry({ billingSource: value })
-                  }
-                />
-                <div className='mt-2 text-xs text-gray-500'>
-                  {t(
-                    '仅当当前“分组 + 模型”未显式设置 billing_source 时，才会回退到这里；模型级 billing_source 的优先级更高。',
-                  )}
-                </div>
-              </div>
+                {groupDefaultLegacyBillingOption ? (
+                  <Banner
+                    type='warning'
+                    bordered
+                    closeIcon={null}
+                    title={t('检测到历史分组默认计费来源值')}
+                    description={t(
+                      '当前分组默认计费来源使用了历史值：{{value}}。系统仍可保留保存，但后续新增或调整时建议改为推荐值。',
+                      { value: groupDefaultLegacyBillingOption.value },
+                    )}
+                  />
+                ) : null}
 
-              {groupDefaultLegacyBillingOption ? (
-                <Banner
-                  type='warning'
-                  bordered
-                  closeIcon={null}
-                  title={t('检测到历史分组默认计费来源值')}
-                  description={t(
-                    '当前分组默认计费来源使用了历史值：{{value}}。系统仍可保留保存，但后续新增或调整时建议改为推荐值。',
-                    { value: groupDefaultLegacyBillingOption.value },
-                  )}
-                />
-              ) : null}
+                <Space>
+                  <Button
+                    icon={<IconDelete />}
+                    type='danger'
+                    onClick={handleDeleteGroupDefaultEntry}
+                    disabled={!billingDraft[selectedGroup]?.[GROUP_DEFAULT_MODEL_KEY]}
+                  >
+                    {t('移除分组默认配置')}
+                  </Button>
+                </Space>
+              </Space>
 
+              {/* Right column: Preview */}
               <Card
-                bodyStyle={{ padding: 12 }}
-                style={{ background: 'var(--semi-color-fill-0)' }}
+                bodyStyle={{ padding: 16 }}
+                style={{ background: 'var(--semi-color-fill-0)', height: 'fit-content' }}
               >
-                <div className='mb-2 font-medium text-gray-700'>
+                <div className='mb-3 font-medium text-gray-700'>
                   {t('分组默认配置预览')}
                 </div>
                 <pre
@@ -1066,6 +1092,8 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
                     fontSize: 12,
+                    maxHeight: 300,
+                    overflow: 'auto',
                   }}
                 >
                   {JSON.stringify(
@@ -1090,28 +1118,18 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
                   )}
                 </pre>
               </Card>
-
-              <Space>
-                <Button
-                  icon={<IconDelete />}
-                  type='danger'
-                  onClick={handleDeleteGroupDefaultEntry}
-                  disabled={!billingDraft[selectedGroup]?.[GROUP_DEFAULT_MODEL_KEY]}
-                >
-                  {t('移除分组默认配置')}
-                </Button>
-              </Space>
-            </Space>
+            </div>
           </Card>
         ) : null}
 
         <div
           style={{
+            width: '100%',
             display: 'grid',
             gap: 16,
             gridTemplateColumns: isMobile
               ? 'minmax(0, 1fr)'
-              : 'minmax(460px, 1.2fr) minmax(360px, 1fr)',
+              : '1fr 1fr',
           }}
         >
           <Card

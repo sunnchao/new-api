@@ -455,6 +455,7 @@ function TokensPage() {
             compactMode={compactMode}
             setCompactMode={setCompactMode}
             t={t}
+            title={t('我的令牌')}
           />
         }
         actionsArea={

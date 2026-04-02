@@ -18,14 +18,12 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
-import AdminTokenPage from '../../../components/table/admin/tokens';
+import AdminTokensPage from '../../../components/table/admin/tokens';
 
-const AdminToken = () => {
-  return (
-    <div className='mt-[60px] px-2'>
-      <AdminTokenPage />
-    </div>
-  );
-};
+const AdminToken = () => (
+  <div className='mt-[60px] px-2'>
+    <AdminTokensPage />
+  </div>
+);
 
 export default AdminToken;
