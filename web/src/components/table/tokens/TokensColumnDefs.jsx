@@ -158,6 +158,8 @@ const renderTokenKey = (
   toggleTokenVisibility,
   copyTokenKey,
   allowTokenKeyActions,
+  copyTokenConnectionString,
+  t,
 ) => {
   const revealed = allowTokenKeyActions && !!showKeys?.[record.id];
   const loading = allowTokenKeyActions && !!loadingTokenKeys?.[record.id];
@@ -188,18 +190,35 @@ const renderTokenKey = (
                   await toggleTokenVisibility(record);
                 }}
               />
-              <Button
-                theme='borderless'
-                size='small'
-                type='tertiary'
-                icon={<IconCopy />}
-                loading={loading}
-                aria-label='copy token key'
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  await copyTokenKey(record);
-                }}
-              />
+                <Dropdown
+                    trigger='click'
+                    position='bottomRight'
+                    clickToHide
+                    menu={[
+                        {
+                            node: 'item',
+                            name: t('复制密钥'),
+                            onClick: () => copyTokenKey(record),
+                        },
+                        {
+                            node: 'item',
+                            name: t('复制连接信息'),
+                            onClick: () => copyTokenConnectionString(record),
+                        },
+                    ]}
+                >
+                    <Button
+                        theme='borderless'
+                        size='small'
+                        type='tertiary'
+                        icon={<IconCopy />}
+                        loading={loading}
+                        aria-label='copy token key'
+                        onClick={async (e) => {
+                            e.stopPropagation();
+                        }}
+                    />
+                </Dropdown>
             </div>
           ) : null
         }
@@ -493,6 +512,7 @@ export const getTokensColumns = ({
   loadingTokenKeys,
   toggleTokenVisibility,
   copyTokenKey,
+  copyTokenConnectionString,
   manageToken,
   onOpenLink,
   setEditingToken,
@@ -557,6 +577,8 @@ export const getTokensColumns = ({
           toggleTokenVisibility,
           copyTokenKey,
           allowTokenKeyActions,
+          copyTokenConnectionString,
+          t,
         ),
     },
     {
