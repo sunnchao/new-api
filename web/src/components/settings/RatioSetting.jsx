@@ -118,9 +118,9 @@ const RatioSetting = () => {
           <Tabs.TabPane tab={t('分组相关设置')} itemKey='group'>
             <GroupRatioSettings options={inputs} refresh={onRefresh} />
           </Tabs.TabPane>
-          <Tabs.TabPane tab={t('分组倍率可视化设置')} itemKey='group_visual'>
-            <GroupRatioVisualEditor options={inputs} refresh={onRefresh} />
-          </Tabs.TabPane>
+          {/*<Tabs.TabPane tab={t('分组倍率可视化设置')} itemKey='group_visual'>*/}
+          {/*  <GroupRatioVisualEditor options={inputs} refresh={onRefresh} />*/}
+          {/*</Tabs.TabPane>*/}
           <Tabs.TabPane tab={t('分组模型计费覆盖')} itemKey='group_model_billing_visual'>
             <GroupModelBillingVisualEditor options={inputs} refresh={onRefresh} />
           </Tabs.TabPane>
@@ -140,5 +140,4 @@ const RatioSetting = () => {
 };
 
 export default RatioSetting;
-
 

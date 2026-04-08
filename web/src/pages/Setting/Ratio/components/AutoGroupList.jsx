@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2025 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   Button,
@@ -120,7 +138,6 @@ export default function AutoGroupList({ value, groupNames = [], onChange }) {
               {index + 1}
             </Tag>
             <Select
-              size='small'
               filter
               value={item.name || undefined}
               placeholder={t('选择分组')}
@@ -133,14 +150,12 @@ export default function AutoGroupList({ value, groupNames = [], onChange }) {
             <Button
               icon={<IconChevronUp />}
               theme='borderless'
-              size='small'
               disabled={index === 0}
               onClick={() => moveUp(index)}
             />
             <Button
               icon={<IconChevronDown />}
               theme='borderless'
-              size='small'
               disabled={index === items.length - 1}
               onClick={() => moveDown(index)}
             />
@@ -153,7 +168,6 @@ export default function AutoGroupList({ value, groupNames = [], onChange }) {
                 icon={<IconDelete />}
                 type='danger'
                 theme='borderless'
-                size='small'
               />
             </Popconfirm>
           </div>

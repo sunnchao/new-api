@@ -105,7 +105,7 @@ const parseGroupList = (value) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const renderGroupColumn = (text, record, t, groupInfoMap, userGroup) => {
+const renderGroupColumn = (text, record, t, groupInfoMap, userGroup, groupRatios = {}) => {
   if (text === 'auto') {
     const autoGroupTag = (
       <Tooltip
