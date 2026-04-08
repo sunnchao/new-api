@@ -88,7 +88,7 @@ const renderStatus = (text, record, t) => {
 };
 
 // Render group column
-const formatGroupLabel = (group, groupInfoMap, userGroup, t) => {
+const formatGroupLabel = (group, groupInfoMap, userGroup, t, groupRatios = {}) => {
   const resolvedKey = group || userGroup || '';
   const info = groupInfoMap?.[resolvedKey];
   const name = info?.desc || resolvedKey || t('用户分组');
@@ -142,6 +142,8 @@ const renderGroupColumn = (text, record, t, groupInfoMap, userGroup) => {
   const displayGroups = [...groups, ...backupGroups]
     .map((group) => formatGroupLabel(group, groupInfoMap, userGroup, t))
     .filter(Boolean);
+  const ratio = groupRatios[text];
+
   if (displayGroups.length === 0) {
     return renderGroup('');
   }
@@ -523,6 +525,7 @@ export const getTokensColumns = ({
   showOwnerColumns = false,
   allowTokenKeyActions = true,
   allowChatActions = true,
+  groupRatios = {},
 }) => {
   // Shared columns intentionally support both self-service and admin token
   // views so admin-only restrictions stay as top-level capability flags.
@@ -562,7 +565,7 @@ export const getTokensColumns = ({
       dataIndex: 'group',
       key: 'group',
       render: (text, record) =>
-        renderGroupColumn(text, record, t, groupInfoMap, userGroup),
+        renderGroupColumn(text, record, t, groupInfoMap, userGroup, groupRatios),
     },
     {
       title: t('密钥'),

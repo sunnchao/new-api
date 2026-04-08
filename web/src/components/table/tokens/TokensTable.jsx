@@ -55,6 +55,7 @@ const TokensTable = (tokensData) => {
     showOwnerColumns = false,
     allowTokenKeyActions = true,
     allowChatActions = true,
+    groupRatios,
   } = tokensData;
 
   // Shared token table stays presentation-only; lightweight flags keep admin/self
@@ -78,6 +79,7 @@ const TokensTable = (tokensData) => {
       showOwnerColumns,
       allowTokenKeyActions,
       allowChatActions,
+      groupRatios,
     });
   }, [
     t,
@@ -97,6 +99,7 @@ const TokensTable = (tokensData) => {
     showOwnerColumns,
     allowTokenKeyActions,
     allowChatActions,
+    groupRatios,
   ]);
 
   // Handle compact mode by removing fixed positioning
