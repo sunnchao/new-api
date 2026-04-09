@@ -586,7 +586,15 @@ func checkAndSendSubscriptionQuotaNotify(relayInfo *relaycommon.RelayInfo) {
 			return
 		}
 
+		isRequestBilling := relayInfo.SubscriptionBillingMode == model.SubscriptionBillingModeRequest
 		prompt := "您的订阅额度即将用尽"
+		remainingText := logger.FormatQuota(int(remaining))
+		remainingLabel := "剩余额度"
+		if isRequestBilling {
+			prompt = "您的订阅次数即将用尽"
+			remainingText = fmt.Sprintf("%d 次", remaining)
+			remainingLabel = "剩余次数"
+		}
 		topUpLink := fmt.Sprintf("%s/console/topup", system_setting.ServerAddress)
 
 		var content string
@@ -597,14 +605,14 @@ func checkAndSendSubscriptionQuotaNotify(relayInfo *relaycommon.RelayInfo) {
 		}
 
 		if notifyType == dto.NotifyTypeBark {
-			content = "{{value}}，剩余额度：{{value}}，请及时充值"
-			values = []interface{}{prompt, logger.FormatQuota(int(remaining))}
+			content = "{{value}}，{{value}}：{{value}}，请及时充值"
+			values = []interface{}{prompt, remainingLabel, remainingText}
 		} else if notifyType == dto.NotifyTypeGotify {
-			content = "{{value}}，当前剩余额度为 {{value}}，请及时充值。"
-			values = []interface{}{prompt, logger.FormatQuota(int(remaining))}
+			content = "{{value}}，当前{{value}}为 {{value}}，请及时充值。"
+			values = []interface{}{prompt, remainingLabel, remainingText}
 		} else {
-			content = "{{value}}，当前剩余额度为 {{value}}，为了不影响您的使用，请及时充值。<br/>充值链接：<a href='{{value}}'>{{value}}</a>"
-			values = []interface{}{prompt, logger.FormatQuota(int(remaining)), topUpLink, topUpLink}
+			content = "{{value}}，当前{{value}}为 {{value}}，为了不影响您的使用，请及时充值。<br/>充值链接：<a href='{{value}}'>{{value}}</a>"
+			values = []interface{}{prompt, remainingLabel, remainingText, topUpLink, topUpLink}
 		}
 
 		if err := NotifyUser(relayInfo.UserId, relayInfo.UserEmail, relayInfo.UserSetting, dto.NewNotify(dto.NotifyTypeQuotaExceed, prompt, content, values)); err != nil {

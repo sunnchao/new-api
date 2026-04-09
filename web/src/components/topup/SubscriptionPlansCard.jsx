@@ -38,6 +38,9 @@ import SubscriptionQuotaLimitSummary from './SubscriptionQuotaLimitSummary';
 import {
   formatSubscriptionDuration,
   formatSubscriptionResetPeriod,
+  formatSubscriptionTotalValue,
+  getSubscriptionTotalLabel,
+  isRequestBasedSubscription,
 } from '../../helpers/subscriptionFormat';
 
 const { Text } = Typography;
@@ -421,6 +424,8 @@ const SubscriptionPlansCard = ({
                       totalAmount > 0
                         ? Math.max(0, totalAmount - usedAmount)
                         : 0;
+                    const isRequestBilling =
+                      isRequestBasedSubscription(subscription);
                     const planTitle =
                       planTitleMap.get(subscription?.plan_id) || '';
                     const allowedGroups = parseAllowedGroups(
@@ -480,15 +485,36 @@ const SubscriptionPlansCard = ({
                           ).toLocaleString()}
                         </div>
                         <div className='text-xs text-gray-500 mb-2'>
-                          {t('总额度')}:{' '}
+                          {getSubscriptionTotalLabel(subscription, t)}:{' '}
                           {totalAmount > 0 ? (
                             <Tooltip
-                              content={`${t('原生额度')}：${usedAmount}/${totalAmount} · ${t('剩余')} ${remainAmount}`}
+                              content={
+                                isRequestBilling
+                                  ? `${t('已用')} ${usedAmount}/${totalAmount} ${t('次')} · ${t('剩余')} ${remainAmount} ${t('次')}`
+                                  : `${t('原生额度')}：${usedAmount}/${totalAmount} · ${t('剩余')} ${remainAmount}`
+                              }
                             >
                               <span>
-                                {renderQuota(usedAmount)}/
-                                {renderQuota(totalAmount)} · {t('剩余')}{' '}
-                                {renderQuota(remainAmount)}
+                                {formatSubscriptionTotalValue(
+                                  usedAmount,
+                                  subscription,
+                                  t,
+                                  renderQuota,
+                                )}
+                                /
+                                {formatSubscriptionTotalValue(
+                                  totalAmount,
+                                  subscription,
+                                  t,
+                                  renderQuota,
+                                )}{' '}
+                                · {t('剩余')}{' '}
+                                {formatSubscriptionTotalValue(
+                                  remainAmount,
+                                  subscription,
+                                  t,
+                                  renderQuota,
+                                )}
                               </span>
                             </Tooltip>
                           ) : (
@@ -505,7 +531,10 @@ const SubscriptionPlansCard = ({
                           {allowedGroups.length > 0 ? (
                             <Space wrap size='small' className='ml-1'>
                               {allowedGroups.map((group) => (
-                                <Tag key={`${subscription?.id}-${group}`} size='small'>
+                                <Tag
+                                  key={`${subscription?.id}-${group}`}
+                                  size='small'
+                                >
                                   {group}
                                 </Tag>
                               ))}
@@ -550,11 +579,12 @@ const SubscriptionPlansCard = ({
                 );
                 const isPopular = index === 0 && plans.length > 1;
                 const limit = Number(plan?.max_purchase_per_user || 0);
+                const isRequestBilling = isRequestBasedSubscription(plan);
                 const limitLabel = limit > 0 ? `${t('限购')} ${limit}` : null;
                 const totalLabel =
                   totalAmount > 0
-                    ? `${t('总额度')}: ${renderQuota(totalAmount)}`
-                    : `${t('总额度')}: ${t('不限')}`;
+                    ? `${getSubscriptionTotalLabel(plan, t)}: ${formatSubscriptionTotalValue(totalAmount, plan, t, renderQuota)}`
+                    : `${getSubscriptionTotalLabel(plan, t)}: ${t('不限')}`;
                 const upgradeLabel = plan?.upgrade_group
                   ? `${t('升级分组')}: ${plan.upgrade_group}`
                   : null;
@@ -575,7 +605,9 @@ const SubscriptionPlansCard = ({
                   totalAmount > 0
                     ? {
                         label: totalLabel,
-                        tooltip: `${t('原生额度')}：${totalAmount}`,
+                        tooltip: isRequestBilling
+                          ? `${totalAmount} ${t('次')}`
+                          : `${t('原生额度')}：${totalAmount}`,
                       }
                     : { label: totalLabel },
                   limitLabel ? { label: limitLabel } : null,

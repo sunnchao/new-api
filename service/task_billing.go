@@ -84,9 +84,22 @@ func taskIsSubscription(task *model.Task) bool {
 	return task.PrivateData.BillingSource == BillingSourceSubscription && task.PrivateData.SubscriptionId > 0
 }
 
+func taskSubscriptionBillingMode(task *model.Task) string {
+	if task == nil || task.PrivateData.BillingContext == nil {
+		return model.SubscriptionBillingModeQuota
+	}
+	return model.NormalizeSubscriptionBillingMode(task.PrivateData.BillingContext.SubscriptionBillingMode)
+}
+
 // taskAdjustFunding 调整任务的资金来源（钱包或订阅），delta > 0 表示扣费，delta < 0 表示退还。
 func taskAdjustFunding(task *model.Task, delta int) error {
 	if taskIsSubscription(task) {
+		if taskSubscriptionBillingMode(task) == model.SubscriptionBillingModeRequest {
+			if delta < 0 {
+				return model.PostConsumeUserSubscriptionDelta(task.PrivateData.SubscriptionId, -1)
+			}
+			return nil
+		}
 		return model.PostConsumeUserSubscriptionDelta(task.PrivateData.SubscriptionId, int64(delta))
 	}
 	if delta > 0 {

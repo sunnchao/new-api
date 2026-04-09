@@ -71,7 +71,9 @@ func (s *BillingSession) Settle(actualQuota int) error {
 	}
 	// 3) 更新 relayInfo 上的订阅 PostDelta（用于日志）
 	if s.funding.Source() == BillingSourceSubscription {
-		s.relayInfo.SubscriptionPostDelta += int64(delta)
+		if sub, ok := s.funding.(*SubscriptionFunding); ok && sub.BillingMode != model.SubscriptionBillingModeRequest {
+			s.relayInfo.SubscriptionPostDelta += int64(delta)
+		}
 	}
 	s.settled = true
 	return tokenErr
@@ -260,6 +262,7 @@ func (s *BillingSession) syncRelayInfo() {
 
 	if sub, ok := s.funding.(*SubscriptionFunding); ok {
 		info.SubscriptionId = sub.subscriptionId
+		info.SubscriptionBillingMode = sub.BillingMode
 		info.SubscriptionPreConsumed = sub.preConsumed
 		info.SubscriptionPostDelta = 0
 		info.SubscriptionAmountTotal = sub.AmountTotal
@@ -268,6 +271,7 @@ func (s *BillingSession) syncRelayInfo() {
 		info.SubscriptionPlanTitle = sub.PlanTitle
 	} else {
 		info.SubscriptionId = 0
+		info.SubscriptionBillingMode = ""
 		info.SubscriptionPreConsumed = 0
 	}
 }
@@ -390,8 +394,8 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 				amount:    subConsume,
 			},
 		}
-		// 必须传 subConsume 而非 preConsumedQuota，保证 SubscriptionFunding.amount、
-		// preConsume 参数和 FinalPreConsumedQuota 三者一致，避免订阅多扣费。
+		// token 额度仍按预估额度预扣；订阅资金源会在 model 层按 billing_mode
+		// 决定实际预扣 amount（quota 模式用 subConsume，request 模式固定为 1）。
 		if apiErr := session.preConsume(c, int(subConsume)); apiErr != nil {
 			return nil, apiErr
 		}

@@ -72,6 +72,7 @@ type SubscriptionFunding struct {
 	userId         int
 	modelName      string
 	amount         int64 // 预扣的订阅额度（subConsume）
+	BillingMode    string
 	subscriptionId int
 	preConsumed    int64
 	// 以下字段在 PreConsume 成功后填充，供 RelayInfo 同步使用
@@ -91,6 +92,7 @@ func (s *SubscriptionFunding) PreConsume(_ int, usingGroup string) error {
 	}
 	s.subscriptionId = res.UserSubscriptionId
 	s.preConsumed = res.PreConsumed
+	s.BillingMode = model.NormalizeSubscriptionBillingMode(res.BillingMode)
 	s.AmountTotal = res.AmountTotal
 	s.AmountUsedAfter = res.AmountUsedAfter
 	// 获取订阅计划信息
@@ -103,6 +105,9 @@ func (s *SubscriptionFunding) PreConsume(_ int, usingGroup string) error {
 
 func (s *SubscriptionFunding) Settle(delta int) error {
 	if delta == 0 {
+		return nil
+	}
+	if s.BillingMode == model.SubscriptionBillingModeRequest {
 		return nil
 	}
 	return model.PostConsumeUserSubscriptionDelta(s.subscriptionId, int64(delta))

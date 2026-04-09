@@ -129,3 +129,29 @@ export function formatSubscriptionQuotaLimitSummary(source, t, options = {}) {
 
   return segments.join(' / ');
 }
+
+export function normalizeSubscriptionBillingMode(mode) {
+  return mode === 'request' ? 'request' : 'quota';
+}
+
+export function isRequestBasedSubscription(target) {
+  const billingMode =
+    target?.billing_mode || target?.subscription?.billing_mode || 'quota';
+  return normalizeSubscriptionBillingMode(billingMode) === 'request';
+}
+
+export function getSubscriptionTotalLabel(target, t) {
+  return isRequestBasedSubscription(target) ? t('总次数') : t('总额度');
+}
+
+export function getSubscriptionUnitLabel(target, t) {
+  return isRequestBasedSubscription(target) ? t('次') : t('额度');
+}
+
+export function formatSubscriptionTotalValue(value, target, t, renderQuota) {
+  const total = Number(value || 0);
+  if (isRequestBasedSubscription(target)) {
+    return `${total} ${t('次')}`;
+  }
+  return renderQuota(total);
+}

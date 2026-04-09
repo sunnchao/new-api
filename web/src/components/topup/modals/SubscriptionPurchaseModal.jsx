@@ -36,6 +36,9 @@ import { getCurrencyConfig } from '../../../helpers/render';
 import {
   formatSubscriptionDuration,
   formatSubscriptionResetPeriod,
+  formatSubscriptionTotalValue,
+  getSubscriptionTotalLabel,
+  isRequestBasedSubscription,
 } from '../../../helpers/subscriptionFormat';
 
 const { Text } = Typography;
@@ -60,6 +63,7 @@ const SubscriptionPurchaseModal = ({
 }) => {
   const plan = selectedPlan?.plan;
   const totalAmount = Number(plan?.total_amount || 0);
+  const isRequestBilling = isRequestBasedSubscription(plan);
   const { symbol, rate } = getCurrencyConfig();
   const price = plan ? Number(plan.price_amount || 0) : 0;
   const convertedPrice = price * rate;
@@ -72,7 +76,7 @@ const SubscriptionPurchaseModal = ({
   // 只有当管理员开启支付网关 AND 套餐配置了对应的支付ID时才显示
   const hasStripe = enableStripeTopUp && !!plan?.stripe_price_id;
   const hasCreem = enableCreemTopUp && !!plan?.creem_product_id;
-    const hasEpay = false // enableOnlineTopUp && epayMethods.length > 0;
+  const hasEpay = false; // enableOnlineTopUp && epayMethods.length > 0;
   const hasAnyPayment = hasBalance || hasStripe || hasCreem || hasEpay;
   const purchaseLimit = Number(purchaseLimitInfo?.limit || 0);
   const purchaseCount = Number(purchaseLimitInfo?.count || 0);
@@ -133,14 +137,25 @@ const SubscriptionPurchaseModal = ({
               )}
               <div className='flex justify-between items-center'>
                 <Text strong className='text-slate-700 dark:text-slate-200'>
-                  {t('总额度')}：
+                  {getSubscriptionTotalLabel(plan, t)}：
                 </Text>
                 <div className='flex items-center'>
                   <Package size={14} className='mr-1 text-slate-500' />
                   {totalAmount > 0 ? (
-                    <Tooltip content={`${t('原生额度')}：${totalAmount}`}>
+                    <Tooltip
+                      content={
+                        isRequestBilling
+                          ? `${totalAmount} ${t('次')}`
+                          : `${t('原生额度')}：${totalAmount}`
+                      }
+                    >
                       <Text className='text-slate-900 dark:text-slate-100'>
-                        {renderQuota(totalAmount)}
+                        {formatSubscriptionTotalValue(
+                          totalAmount,
+                          plan,
+                          t,
+                          renderQuota,
+                        )}
                       </Text>
                     </Tooltip>
                   ) : (

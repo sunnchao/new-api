@@ -34,6 +34,12 @@ const (
 	SubscriptionResetCustom  = "custom"
 )
 
+// Subscription billing mode
+const (
+	SubscriptionBillingModeQuota   = "quota"
+	SubscriptionBillingModeRequest = "request"
+)
+
 var (
 	ErrSubscriptionOrderNotFound      = errors.New("subscription order not found")
 	ErrSubscriptionOrderStatusInvalid = errors.New("subscription order status invalid")
@@ -179,6 +185,9 @@ type SubscriptionPlan struct {
 	// Total quota (amount in quota units, 0 = unlimited)
 	TotalAmount int64 `json:"total_amount" gorm:"type:bigint;not null;default:0"`
 
+	// BillingMode controls how subscription rights are deducted: quota or request.
+	BillingMode string `json:"billing_mode" gorm:"type:varchar(16);not null;default:'quota'"`
+
 	// Quota reset period for plan
 	QuotaResetPeriod        string `json:"quota_reset_period" gorm:"type:varchar(16);default:'never'"`
 	QuotaResetMode          string `json:"quota_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
@@ -262,8 +271,9 @@ type UserSubscription struct {
 	UserId int `json:"user_id" gorm:"index;index:idx_user_sub_active,priority:1"`
 	PlanId int `json:"plan_id" gorm:"index"`
 
-	AmountTotal int64 `json:"amount_total" gorm:"type:bigint;not null;default:0"`
-	AmountUsed  int64 `json:"amount_used" gorm:"type:bigint;not null;default:0"`
+	AmountTotal int64  `json:"amount_total" gorm:"type:bigint;not null;default:0"`
+	AmountUsed  int64  `json:"amount_used" gorm:"type:bigint;not null;default:0"`
+	BillingMode string `json:"billing_mode" gorm:"type:varchar(16);not null;default:'quota'"`
 
 	StartTime int64  `json:"start_time" gorm:"bigint"`
 	EndTime   int64  `json:"end_time" gorm:"bigint;index;index:idx_user_sub_active,priority:3"`
@@ -360,6 +370,15 @@ func NormalizeResetPeriod(period string) string {
 		return strings.TrimSpace(period)
 	default:
 		return SubscriptionResetNever
+	}
+}
+
+func NormalizeSubscriptionBillingMode(mode string) string {
+	switch strings.TrimSpace(mode) {
+	case SubscriptionBillingModeRequest:
+		return SubscriptionBillingModeRequest
+	default:
+		return SubscriptionBillingModeQuota
 	}
 }
 
@@ -620,6 +639,7 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 		PlanId:        plan.Id,
 		AmountTotal:   plan.TotalAmount,
 		AmountUsed:    0,
+		BillingMode:   NormalizeSubscriptionBillingMode(plan.BillingMode),
 		StartTime:     now.Unix(),
 		EndTime:       endUnix,
 		Status:        "active",
@@ -1045,6 +1065,7 @@ type SubscriptionPreConsumeResult struct {
 	AmountTotal        int64
 	AmountUsedBefore   int64
 	AmountUsedAfter    int64
+	BillingMode        string
 }
 
 // ExpireDueSubscriptions marks expired subscriptions and handles group downgrade.
@@ -1396,6 +1417,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			returnValue.AmountTotal = sub.AmountTotal
 			returnValue.AmountUsedBefore = sub.AmountUsed
 			returnValue.AmountUsedAfter = sub.AmountUsed
+			returnValue.BillingMode = NormalizeSubscriptionBillingMode(sub.BillingMode)
 			return nil
 		}
 
@@ -1423,8 +1445,6 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if err := maybeResetUserSubscriptionWithPlanTx(tx, &sub, plan, now); err != nil {
 				return err
 			}
-
-			// === Check and reset all rate limits ===
 			if err := maybeResetHourlyLimit(tx, &sub, now); err != nil {
 				return err
 			}
@@ -1437,13 +1457,17 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if err := maybeResetMonthlyLimit(tx, &sub, now); err != nil {
 				return err
 			}
-
+			billingMode := NormalizeSubscriptionBillingMode(sub.BillingMode)
+			consumeAmount := amount
+			if billingMode == SubscriptionBillingModeRequest {
+				consumeAmount = 1
+			}
 			usedBefore := sub.AmountUsed
 
 			// === Check total amount (existing logic) ===
 			if sub.AmountTotal > 0 {
 				remain := sub.AmountTotal - usedBefore
-				if remain < amount {
+				if remain < consumeAmount {
 					continue
 				}
 			}
@@ -1451,7 +1475,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			// === Check hourly limit ===
 			if sub.HourlyLimitAmount > 0 {
 				hourlyRemain := sub.HourlyLimitAmount - sub.HourlyAmountUsed
-				if hourlyRemain < amount {
+				if hourlyRemain < consumeAmount {
 					continue // Hourly limit insufficient
 				}
 			}
@@ -1459,7 +1483,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			// === Check daily limit ===
 			if sub.DailyLimitAmount > 0 {
 				dailyRemain := sub.DailyLimitAmount - sub.DailyAmountUsed
-				if dailyRemain < amount {
+				if dailyRemain < consumeAmount {
 					continue // Daily limit insufficient
 				}
 			}
@@ -1467,7 +1491,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			// === Check weekly limit ===
 			if sub.WeeklyLimitAmount > 0 {
 				weeklyRemain := sub.WeeklyLimitAmount - sub.WeeklyAmountUsed
-				if weeklyRemain < amount {
+				if weeklyRemain < consumeAmount {
 					continue // Weekly limit insufficient
 				}
 			}
@@ -1475,7 +1499,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			// === Check monthly limit ===
 			if sub.MonthlyLimitAmount > 0 {
 				monthlyRemain := sub.MonthlyLimitAmount - sub.MonthlyAmountUsed
-				if monthlyRemain < amount {
+				if monthlyRemain < consumeAmount {
 					continue // Monthly limit insufficient
 				}
 			}
@@ -1483,7 +1507,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 				RequestId:          requestId,
 				UserId:             userId,
 				UserSubscriptionId: sub.Id,
-				PreConsumed:        amount,
+				PreConsumed:        consumeAmount,
 				Status:             "consumed",
 			}
 			if err := tx.Create(record).Error; err != nil {
@@ -1497,34 +1521,33 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 					returnValue.AmountTotal = sub.AmountTotal
 					returnValue.AmountUsedBefore = sub.AmountUsed
 					returnValue.AmountUsedAfter = sub.AmountUsed
+					returnValue.BillingMode = billingMode
 					return nil
 				}
 				return err
 			}
-
-			// === Pre-consume: update all usage counters ===
-			sub.AmountUsed += amount
+			sub.AmountUsed += consumeAmount
 			if sub.HourlyLimitAmount > 0 {
-				sub.HourlyAmountUsed += amount
+				sub.HourlyAmountUsed += consumeAmount
 			}
 			if sub.DailyLimitAmount > 0 {
-				sub.DailyAmountUsed += amount
+				sub.DailyAmountUsed += consumeAmount
 			}
 			if sub.WeeklyLimitAmount > 0 {
-				sub.WeeklyAmountUsed += amount
+				sub.WeeklyAmountUsed += consumeAmount
 			}
 			if sub.MonthlyLimitAmount > 0 {
-				sub.MonthlyAmountUsed += amount
+				sub.MonthlyAmountUsed += consumeAmount
 			}
-
 			if err := tx.Save(&sub).Error; err != nil {
 				return err
 			}
 			returnValue.UserSubscriptionId = sub.Id
-			returnValue.PreConsumed = amount
+			returnValue.PreConsumed = consumeAmount
 			returnValue.AmountTotal = sub.AmountTotal
 			returnValue.AmountUsedBefore = usedBefore
 			returnValue.AmountUsedAfter = sub.AmountUsed
+			returnValue.BillingMode = billingMode
 			return nil
 		}
 		if !hasMatchedGroup {

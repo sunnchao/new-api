@@ -95,6 +95,7 @@ const AddEditSubscriptionModal = ({
     title: '',
     subtitle: '',
     price_amount: 0,
+    billing_mode: 'quota',
     currency: 'USD',
     duration_unit: 'month',
     duration_value: 1,
@@ -131,6 +132,7 @@ const AddEditSubscriptionModal = ({
       title: p.title || '',
       subtitle: p.subtitle || '',
       price_amount: Number(p.price_amount || 0),
+      billing_mode: p.billing_mode || 'quota',
       currency: 'USD',
       duration_unit: p.duration_unit || 'month',
       duration_value: Number(p.duration_value || 1),
@@ -141,9 +143,10 @@ const AddEditSubscriptionModal = ({
       enabled: p.enabled !== false,
       sort_order: Number(p.sort_order || 0),
       max_purchase_per_user: Number(p.max_purchase_per_user || 0),
-      total_amount: Number(
-        quotaToDisplayAmount(p.total_amount || 0).toFixed(2),
-      ),
+      total_amount:
+        (p.billing_mode || 'quota') === 'request'
+          ? Number(p.total_amount || 0)
+          : Number(quotaToDisplayAmount(p.total_amount || 0).toFixed(2)),
       upgrade_group: p.upgrade_group || '',
       allowed_groups: normalizeGroupList(p.allowed_groups),
       stripe_price_id: p.stripe_price_id || '',
@@ -195,6 +198,7 @@ const AddEditSubscriptionModal = ({
         plan: {
           ...values,
           price_amount: Number(values.price_amount || 0),
+          billing_mode: values.billing_mode || 'quota',
           currency: 'USD',
           duration_value: Number(values.duration_value || 0),
           custom_seconds: Number(values.custom_seconds || 0),
@@ -206,7 +210,10 @@ const AddEditSubscriptionModal = ({
               : 0,
           sort_order: Number(values.sort_order || 0),
           max_purchase_per_user: Number(values.max_purchase_per_user || 0),
-          total_amount: displayAmountToQuota(values.total_amount),
+          total_amount:
+            (values.billing_mode || 'quota') === 'request'
+              ? Number(values.total_amount || 0)
+              : displayAmountToQuota(values.total_amount),
           upgrade_group: values.upgrade_group || '',
           allowed_groups: normalizeGroupList(values.allowed_groups).join(','),
           // Rate limits
@@ -363,17 +370,64 @@ const AddEditSubscriptionModal = ({
                     </Col>
 
                     <Col span={12}>
+                      <Form.Select field='billing_mode' label={t('计费方式')}>
+                        <Select.Option value='quota'>
+                          {t('按量计费')}
+                        </Select.Option>
+                        <Select.Option value='request'>
+                          {t('按次计费')}
+                        </Select.Option>
+                      </Form.Select>
+                    </Col>
+
+                    <Col span={12}>
                       <Form.InputNumber
                         field='total_amount'
-                        label={t('总额度')}
+                        label={
+                          values.billing_mode === 'request'
+                            ? t('总次数')
+                            : t('总额度')
+                        }
                         required
                         min={0}
-                        precision={2}
-                        rules={[{ required: true, message: t('请输入总额度') }]}
-                        extraText={`${t('0 表示不限')} · ${t('原生额度')}：${displayAmountToQuota(
-                          values.total_amount,
-                        )}`}
+                        precision={values.billing_mode === 'request' ? 0 : 2}
+                        rules={[
+                          {
+                            required: true,
+                            message:
+                              values.billing_mode === 'request'
+                                ? t('请输入总次数')
+                                : t('请输入总额度'),
+                          },
+                        ]}
+                        extraText={
+                          values.billing_mode === 'request'
+                            ? `${t('0 表示不限')} · ${t('按次数扣减订阅权益')}`
+                            : `${t('0 表示不限')} · ${t('原生额度')}：${displayAmountToQuota(
+                                values.total_amount,
+                              )}`
+                        }
                         style={{ width: '100%' }}
+                      />
+                    </Col>
+
+                    <Col span={24}>
+                      <Form.Select
+                        field='allowed_groups'
+                        label={t('指定分组')}
+                        multiple
+                        showClear
+                        filter
+                        showSearch
+                        loading={groupLoading}
+                        placeholder={t('留空表示所有分组')}
+                        optionList={(groupOptions || []).map((g) => ({
+                          label: g,
+                          value: g,
+                        }))}
+                        extraText={t(
+                          '仅允许这些分组使用该套餐；留空表示不限制。',
+                        )}
                       />
                     </Col>
 
@@ -395,26 +449,6 @@ const AddEditSubscriptionModal = ({
                           </Select.Option>
                         ))}
                       </Form.Select>
-                    </Col>
-
-                    <Col span={24}>
-                      <Form.Select
-                        field='allowed_groups'
-                        label={t('指定分组')}
-                        multiple
-                        showClear
-                        filter
-                        showSearch
-                        loading={groupLoading}
-                        placeholder={t('留空表示所有分组')}
-                        optionList={(groupOptions || []).map((g) => ({
-                          label: g,
-                          value: g,
-                        }))}
-                        extraText={t(
-                          '仅允许这些分组使用该套餐；留空表示不限制。',
-                        )}
-                      />
                     </Col>
 
                     <Col span={12}>

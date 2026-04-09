@@ -36,6 +36,9 @@ import {
   formatSubscriptionQuotaLimitSummary,
   formatSubscriptionResetPeriod,
   getSubscriptionQuotaLimitItems,
+  formatSubscriptionTotalValue,
+  getSubscriptionTotalLabel,
+  isRequestBasedSubscription,
 } from '../../../helpers/subscriptionFormat';
 
 const { Text } = Typography;
@@ -66,6 +69,7 @@ function parseAllowedGroups(value) {
 const renderPlanTitle = (text, record, t) => {
   const subtitle = record?.plan?.subtitle;
   const plan = record?.plan;
+  const isRequestBilling = isRequestBasedSubscription(plan);
   const allowedGroups = parseAllowedGroups(plan?.allowed_groups);
   const popoverContent = (
     <div style={{ width: 260 }}>
@@ -81,10 +85,23 @@ const renderPlanTitle = (text, record, t) => {
         <Text strong style={{ color: 'var(--semi-color-success)' }}>
           {convertUSDToCurrency(Number(plan?.price_amount || 0), 2)}
         </Text>
-        <Text type='tertiary'>{t('总额度')}</Text>
+        <Text type='tertiary'>{getSubscriptionTotalLabel(plan, t)}</Text>
         {plan?.total_amount > 0 ? (
-          <Tooltip content={`${t('原生额度')}：${plan.total_amount}`}>
-            <Text>{renderQuota(plan.total_amount)}</Text>
+          <Tooltip
+            content={
+              isRequestBilling
+                ? `${plan.total_amount} ${t('次')}`
+                : `${t('原生额度')}：${plan.total_amount}`
+            }
+          >
+            <Text>
+              {formatSubscriptionTotalValue(
+                plan.total_amount,
+                plan,
+                t,
+                renderQuota,
+              )}
+            </Text>
           </Tooltip>
         ) : (
           <Text>{t('不限')}</Text>
@@ -106,7 +123,9 @@ const renderPlanTitle = (text, record, t) => {
         <Text type='tertiary'>{t('重置')}</Text>
         <Text>{formatSubscriptionResetPeriod(plan, t)}</Text>
         <Text type='tertiary'>{t('额度限制')}</Text>
-        <Text>{formatSubscriptionQuotaLimitSummary(plan, t, { maxItems: 2 })}</Text>
+        <Text>
+          {formatSubscriptionQuotaLimitSummary(plan, t, { maxItems: 2 })}
+        </Text>
       </div>
     </div>
   );
@@ -128,6 +147,15 @@ const renderPlanTitle = (text, record, t) => {
         )}
       </div>
     </Popover>
+  );
+};
+
+const renderBillingMode = (text, record, t) => {
+  const billingMode = record?.plan?.billing_mode || 'quota';
+  return (
+    <Tag color={billingMode === 'request' ? 'teal' : 'violet'} shape='circle'>
+      {billingMode === 'request' ? t('按次计费') : t('按量计费')}
+    </Tag>
   );
 };
 
@@ -176,11 +204,21 @@ const renderEnabled = (text, record, t) => {
 
 const renderTotalAmount = (text, record, t) => {
   const total = Number(record?.plan?.total_amount || 0);
+  const plan = record?.plan;
+  const isRequestBilling = isRequestBasedSubscription(plan);
   return (
     <Text type={total > 0 ? 'secondary' : 'tertiary'}>
       {total > 0 ? (
-        <Tooltip content={`${t('原生额度')}：${total}`}>
-          <span>{renderQuota(total)}</span>
+        <Tooltip
+          content={
+            isRequestBilling
+              ? `${total} ${t('次')}`
+              : `${t('原生额度')}：${total}`
+          }
+        >
+          <span>
+            {formatSubscriptionTotalValue(total, plan, t, renderQuota)}
+          </span>
         </Tooltip>
       ) : (
         t('不限')
@@ -390,6 +428,11 @@ export const getSubscriptionsColumns = ({
       dataIndex: ['plan', 'price_amount'],
       width: 100,
       render: (text) => renderPrice(text),
+    },
+    {
+      title: t('计费方式'),
+      width: 100,
+      render: (text, record) => renderBillingMode(text, record, t),
     },
     {
       title: t('购买上限'),
