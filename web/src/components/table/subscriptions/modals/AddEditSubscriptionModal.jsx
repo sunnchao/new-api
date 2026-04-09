@@ -44,7 +44,11 @@ import {
   quotaToDisplayAmount,
   displayAmountToQuota,
 } from '../../../../helpers/quota';
-import { normalizeSubscriptionResetMode } from '../../../../helpers/subscriptionFormat';
+import {
+  convertSubscriptionAmountToFormValue,
+  convertSubscriptionAmountToStorageValue,
+  normalizeSubscriptionResetMode,
+} from '../../../../helpers/subscriptionFormat';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 import SubscriptionResetModeField from './SubscriptionResetModeField';
 
@@ -143,30 +147,43 @@ const AddEditSubscriptionModal = ({
       enabled: p.enabled !== false,
       sort_order: Number(p.sort_order || 0),
       max_purchase_per_user: Number(p.max_purchase_per_user || 0),
-      total_amount:
-        (p.billing_mode || 'quota') === 'request'
-          ? Number(p.total_amount || 0)
-          : Number(quotaToDisplayAmount(p.total_amount || 0).toFixed(2)),
+      total_amount: convertSubscriptionAmountToFormValue(
+        p.total_amount || 0,
+        p.billing_mode || 'quota',
+        quotaToDisplayAmount,
+      ),
       upgrade_group: p.upgrade_group || '',
       allowed_groups: normalizeGroupList(p.allowed_groups),
       stripe_price_id: p.stripe_price_id || '',
       creem_product_id: p.creem_product_id || '',
       // Rate limits
-      hourly_limit_amount: Number(
-        quotaToDisplayAmount(p.hourly_limit_amount || 0).toFixed(2),
+      hourly_limit_amount: convertSubscriptionAmountToFormValue(
+        p.hourly_limit_amount || 0,
+        p.billing_mode || 'quota',
+        quotaToDisplayAmount,
+        { legacyRequestQuotaCompat: true },
       ),
       hourly_limit_hours: Number(p.hourly_limit_hours || 1),
       hourly_reset_mode: normalizeSubscriptionResetMode(p.hourly_reset_mode),
-      daily_limit_amount: Number(
-        quotaToDisplayAmount(p.daily_limit_amount || 0).toFixed(2),
+      daily_limit_amount: convertSubscriptionAmountToFormValue(
+        p.daily_limit_amount || 0,
+        p.billing_mode || 'quota',
+        quotaToDisplayAmount,
+        { legacyRequestQuotaCompat: true },
       ),
       daily_reset_mode: normalizeSubscriptionResetMode(p.daily_reset_mode),
-      weekly_limit_amount: Number(
-        quotaToDisplayAmount(p.weekly_limit_amount || 0).toFixed(2),
+      weekly_limit_amount: convertSubscriptionAmountToFormValue(
+        p.weekly_limit_amount || 0,
+        p.billing_mode || 'quota',
+        quotaToDisplayAmount,
+        { legacyRequestQuotaCompat: true },
       ),
       weekly_reset_mode: normalizeSubscriptionResetMode(p.weekly_reset_mode),
-      monthly_limit_amount: Number(
-        quotaToDisplayAmount(p.monthly_limit_amount || 0).toFixed(2),
+      monthly_limit_amount: convertSubscriptionAmountToFormValue(
+        p.monthly_limit_amount || 0,
+        p.billing_mode || 'quota',
+        quotaToDisplayAmount,
+        { legacyRequestQuotaCompat: true },
       ),
       monthly_reset_mode: normalizeSubscriptionResetMode(p.monthly_reset_mode),
     };
@@ -203,29 +220,56 @@ const AddEditSubscriptionModal = ({
           duration_value: Number(values.duration_value || 0),
           custom_seconds: Number(values.custom_seconds || 0),
           quota_reset_period: values.quota_reset_period || 'never',
-          quota_reset_mode: normalizeSubscriptionResetMode(values.quota_reset_mode),
+          quota_reset_mode: normalizeSubscriptionResetMode(
+            values.quota_reset_mode,
+          ),
           quota_reset_custom_seconds:
             values.quota_reset_period === 'custom'
               ? Number(values.quota_reset_custom_seconds || 0)
               : 0,
           sort_order: Number(values.sort_order || 0),
           max_purchase_per_user: Number(values.max_purchase_per_user || 0),
-          total_amount:
-            (values.billing_mode || 'quota') === 'request'
-              ? Number(values.total_amount || 0)
-              : displayAmountToQuota(values.total_amount),
+          total_amount: convertSubscriptionAmountToStorageValue(
+            values.total_amount,
+            values.billing_mode || 'quota',
+            displayAmountToQuota,
+          ),
           upgrade_group: values.upgrade_group || '',
           allowed_groups: normalizeGroupList(values.allowed_groups).join(','),
           // Rate limits
-          hourly_limit_amount: displayAmountToQuota(values.hourly_limit_amount || 0),
+          hourly_limit_amount: convertSubscriptionAmountToStorageValue(
+            values.hourly_limit_amount,
+            values.billing_mode || 'quota',
+            displayAmountToQuota,
+          ),
           hourly_limit_hours: Number(values.hourly_limit_hours || 1),
-          hourly_reset_mode: normalizeSubscriptionResetMode(values.hourly_reset_mode),
-          daily_limit_amount: displayAmountToQuota(values.daily_limit_amount || 0),
-          daily_reset_mode: normalizeSubscriptionResetMode(values.daily_reset_mode),
-          weekly_limit_amount: displayAmountToQuota(values.weekly_limit_amount || 0),
-          weekly_reset_mode: normalizeSubscriptionResetMode(values.weekly_reset_mode),
-          monthly_limit_amount: displayAmountToQuota(values.monthly_limit_amount || 0),
-          monthly_reset_mode: normalizeSubscriptionResetMode(values.monthly_reset_mode),
+          hourly_reset_mode: normalizeSubscriptionResetMode(
+            values.hourly_reset_mode,
+          ),
+          daily_limit_amount: convertSubscriptionAmountToStorageValue(
+            values.daily_limit_amount,
+            values.billing_mode || 'quota',
+            displayAmountToQuota,
+          ),
+          daily_reset_mode: normalizeSubscriptionResetMode(
+            values.daily_reset_mode,
+          ),
+          weekly_limit_amount: convertSubscriptionAmountToStorageValue(
+            values.weekly_limit_amount,
+            values.billing_mode || 'quota',
+            displayAmountToQuota,
+          ),
+          weekly_reset_mode: normalizeSubscriptionResetMode(
+            values.weekly_reset_mode,
+          ),
+          monthly_limit_amount: convertSubscriptionAmountToStorageValue(
+            values.monthly_limit_amount,
+            values.billing_mode || 'quota',
+            displayAmountToQuota,
+          ),
+          monthly_reset_mode: normalizeSubscriptionResetMode(
+            values.monthly_reset_mode,
+          ),
         },
       };
       if (editingPlan?.plan?.id) {
@@ -645,7 +689,7 @@ const AddEditSubscriptionModal = ({
                         {t('限额设置')}
                       </Text>
                       <div className='text-xs text-gray-600'>
-                        {t('配置小时/日/周/月限额，0 表示不限制')}
+                        {t('配置小时/日/周/月限制，0 表示不限制')}
                       </div>
                     </div>
                   </div>
@@ -654,13 +698,23 @@ const AddEditSubscriptionModal = ({
                     <Col span={24}>
                       <Form.InputNumber
                         field='hourly_limit_amount'
-                        label={t('小时限额')}
+                        label={
+                          values.billing_mode === 'request'
+                            ? t('小时限次')
+                            : t('小时限额')
+                        }
                         min={0}
-                        precision={2}
+                        precision={values.billing_mode === 'request' ? 0 : 2}
                         placeholder='0'
-                        extraText={t(
-                          '每个时间段内的最大额度限制，0 表示不限制；可选自然周期或订阅锚点周期',
-                        )}
+                        extraText={
+                          values.billing_mode === 'request'
+                            ? t(
+                                '每个时间段内的最大请求次数，0 表示不限制；可选自然周期或订阅锚点周期',
+                              )
+                            : t(
+                                '每个时间段内的最大额度限制，0 表示不限制；可选自然周期或订阅锚点周期',
+                              )
+                        }
                         style={{ width: '100%' }}
                       />
                     </Col>
@@ -699,13 +753,21 @@ const AddEditSubscriptionModal = ({
                     <Col span={24}>
                       <Form.InputNumber
                         field='daily_limit_amount'
-                        label={t('日限额')}
+                        label={
+                          values.billing_mode === 'request'
+                            ? t('日限次')
+                            : t('日限额')
+                        }
                         min={0}
-                        precision={2}
+                        precision={values.billing_mode === 'request' ? 0 : 2}
                         placeholder='0'
-                        extraText={t(
-                          '0 表示不限制；支持自然周期和订阅锚点周期',
-                        )}
+                        extraText={
+                          values.billing_mode === 'request'
+                            ? t(
+                                '0 表示不限制；按请求次数限制，支持自然周期和订阅锚点周期',
+                              )
+                            : t('0 表示不限制；支持自然周期和订阅锚点周期')
+                        }
                         style={{ width: '100%' }}
                       />
                     </Col>
@@ -713,7 +775,11 @@ const AddEditSubscriptionModal = ({
                     {values.daily_limit_amount > 0 && (
                       <SubscriptionResetModeField
                         field='daily_reset_mode'
-                        label={t('日限额周期模式')}
+                        label={
+                          values.billing_mode === 'request'
+                            ? t('日限次周期模式')
+                            : t('日限额周期模式')
+                        }
                         value={values.daily_reset_mode}
                         t={t}
                         anchorDescription={t(
@@ -728,13 +794,21 @@ const AddEditSubscriptionModal = ({
                     <Col span={24}>
                       <Form.InputNumber
                         field='weekly_limit_amount'
-                        label={t('周限额')}
+                        label={
+                          values.billing_mode === 'request'
+                            ? t('周限次')
+                            : t('周限额')
+                        }
                         min={0}
-                        precision={2}
+                        precision={values.billing_mode === 'request' ? 0 : 2}
                         placeholder='0'
-                        extraText={t(
-                          '0 表示不限制；支持自然周期和订阅锚点周期',
-                        )}
+                        extraText={
+                          values.billing_mode === 'request'
+                            ? t(
+                                '0 表示不限制；按请求次数限制，支持自然周期和订阅锚点周期',
+                              )
+                            : t('0 表示不限制；支持自然周期和订阅锚点周期')
+                        }
                         style={{ width: '100%' }}
                       />
                     </Col>
@@ -742,7 +816,11 @@ const AddEditSubscriptionModal = ({
                     {values.weekly_limit_amount > 0 && (
                       <SubscriptionResetModeField
                         field='weekly_reset_mode'
-                        label={t('周限额周期模式')}
+                        label={
+                          values.billing_mode === 'request'
+                            ? t('周限次周期模式')
+                            : t('周限额周期模式')
+                        }
                         value={values.weekly_reset_mode}
                         t={t}
                         anchorDescription={t(
@@ -757,13 +835,21 @@ const AddEditSubscriptionModal = ({
                     <Col span={24}>
                       <Form.InputNumber
                         field='monthly_limit_amount'
-                        label={t('月限额')}
+                        label={
+                          values.billing_mode === 'request'
+                            ? t('月限次')
+                            : t('月限额')
+                        }
                         min={0}
-                        precision={2}
+                        precision={values.billing_mode === 'request' ? 0 : 2}
                         placeholder='0'
-                        extraText={t(
-                          '0 表示不限制；支持自然周期和订阅锚点周期',
-                        )}
+                        extraText={
+                          values.billing_mode === 'request'
+                            ? t(
+                                '0 表示不限制；按请求次数限制，支持自然周期和订阅锚点周期',
+                              )
+                            : t('0 表示不限制；支持自然周期和订阅锚点周期')
+                        }
                         style={{ width: '100%' }}
                       />
                     </Col>
@@ -771,7 +857,11 @@ const AddEditSubscriptionModal = ({
                     {values.monthly_limit_amount > 0 && (
                       <SubscriptionResetModeField
                         field='monthly_reset_mode'
-                        label={t('月限额周期模式')}
+                        label={
+                          values.billing_mode === 'request'
+                            ? t('月限次周期模式')
+                            : t('月限额周期模式')
+                        }
                         value={values.monthly_reset_mode}
                         t={t}
                         anchorDescription={t(

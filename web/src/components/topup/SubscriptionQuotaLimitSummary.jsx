@@ -20,8 +20,11 @@ import React from 'react';
 import { Badge, Space, Tag, Typography } from '@douyinfe/semi-ui';
 import { renderQuota } from '../../helpers';
 import {
+  formatSubscriptionAmountValue,
+  getSubscriptionQuotaLimitTitle,
   formatSubscriptionResetMode,
   getSubscriptionQuotaLimitItems,
+  formatSubscriptionUsageSummary,
 } from '../../helpers/subscriptionFormat';
 
 const { Text } = Typography;
@@ -43,7 +46,7 @@ const SubscriptionQuotaLimitSummary = ({
     <div className='rounded-lg bg-gray-50/80 px-3 py-2'>
       <div className='flex items-center gap-2 mb-2'>
         <Text strong size='small'>
-          {title || t('额度限制')}
+          {title || getSubscriptionQuotaLimitTitle(source, t)}
         </Text>
         <Tag color='orange' size='small' shape='circle'>
           {items.length} {t('项')}
@@ -52,13 +55,28 @@ const SubscriptionQuotaLimitSummary = ({
 
       <Space vertical spacing={6} style={{ width: '100%' }}>
         {items.map((item) => {
-          const remain = Math.max(0, item.amount - item.used);
+          const usageSummary = formatSubscriptionUsageSummary(
+            {
+              used: item.used,
+              total: item.amount,
+            },
+            item,
+            t,
+            renderQuota,
+          );
           return (
             <div key={item.key} className='w-full'>
               <div className='flex items-center gap-2 flex-wrap text-xs'>
                 <Badge dot type='warning' />
                 <Text size='small'>{item.label}</Text>
-                <Tag size='small'>{renderQuota(item.amount)}</Tag>
+                <Tag size='small'>
+                  {formatSubscriptionAmountValue(
+                    item.amount,
+                    item,
+                    t,
+                    renderQuota,
+                  )}
+                </Tag>
                 <Tag size='small' color='white'>
                   {formatSubscriptionResetMode(item.mode, t)}
                 </Tag>
@@ -67,11 +85,12 @@ const SubscriptionQuotaLimitSummary = ({
               {variant === 'subscription' && (
                 <div className='ml-4 mt-1 text-xs text-gray-500'>
                   <span>
-                    {t('已用')} {renderQuota(item.used)} / {renderQuota(item.amount)}
+                    {t('已用')} {usageSummary.usedText} /{' '}
+                    {usageSummary.totalText}
                   </span>
                   <span className='mx-2'>·</span>
                   <span>
-                    {t('剩余')} {renderQuota(remain)}
+                    {t('剩余')} {usageSummary.remainText}
                   </span>
                   {item.nextResetTime > 0 && (
                     <>

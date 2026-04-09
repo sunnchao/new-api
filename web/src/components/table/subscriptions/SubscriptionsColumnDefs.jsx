@@ -32,10 +32,12 @@ import {
 import { renderQuota } from '../../../helpers';
 import { convertUSDToCurrency } from '../../../helpers/render';
 import {
+  formatSubscriptionAmountValue,
   formatSubscriptionResetMode,
   formatSubscriptionQuotaLimitSummary,
   formatSubscriptionResetPeriod,
   getSubscriptionQuotaLimitItems,
+  getSubscriptionQuotaLimitTitle,
   formatSubscriptionTotalValue,
   getSubscriptionTotalLabel,
   isRequestBasedSubscription,
@@ -122,7 +124,7 @@ const renderPlanTitle = (text, record, t) => {
         <Text>{formatDuration(plan, t)}</Text>
         <Text type='tertiary'>{t('重置')}</Text>
         <Text>{formatSubscriptionResetPeriod(plan, t)}</Text>
-        <Text type='tertiary'>{t('额度限制')}</Text>
+        <Text type='tertiary'>{getSubscriptionQuotaLimitTitle(plan, t)}</Text>
         <Text>
           {formatSubscriptionQuotaLimitSummary(plan, t, { maxItems: 2 })}
         </Text>
@@ -290,7 +292,7 @@ const renderQuotaLimits = (text, record, t) => {
       }}
     >
       {visibleItems.map((item) => {
-        const fullText = `${item.label} ${renderQuota(item.amount)}·${formatSubscriptionResetMode(item.mode, t, { short: true })}`;
+        const fullText = `${item.label} ${formatSubscriptionAmountValue(item.amount, item, t, renderQuota)}·${formatSubscriptionResetMode(item.mode, t, { short: true })}`;
 
         return (
           <Tag
@@ -456,7 +458,7 @@ export const getSubscriptionsColumns = ({
       render: (text, record) => renderResetPeriod(text, record, t),
     },
     {
-      title: t('额度限制'),
+      title: t('限制'),
       width: 240,
       render: (text, record) => renderQuotaLimits(text, record, t),
     },
@@ -473,7 +475,7 @@ export const getSubscriptionsColumns = ({
         renderPaymentConfig(text, record, t, enableEpay),
     },
     {
-      title: t('总额度'),
+      title: t('总权益'),
       width: 100,
       render: (text, record) => renderTotalAmount(text, record, t),
     },

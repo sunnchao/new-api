@@ -35,6 +35,7 @@ import {
 } from '@douyinfe/semi-illustrations';
 import { API, showError, showSuccess } from '../../../../helpers';
 import { convertUSDToCurrency } from '../../../../helpers/render';
+import { formatSubscriptionAmountValue } from '../../../../helpers/subscriptionFormat';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 import CardTable from '../../../common/ui/CardTable';
 
@@ -305,7 +306,7 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
         },
       },
       {
-        title: t('总额度'),
+        title: t('总权益'),
         key: 'total',
         width: 120,
         render: (_, record) => {
@@ -314,7 +315,13 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
           const used = Number(sub?.amount_used || 0);
           return (
             <Text type={total > 0 ? 'secondary' : 'tertiary'}>
-              {total > 0 ? `${used}/${total}` : t('不限')}
+              {total > 0
+                ? `${formatSubscriptionAmountValue(
+                    used,
+                    sub,
+                    t,
+                  )}/${formatSubscriptionAmountValue(total, sub, t)}`
+                : t('不限')}
             </Text>
           );
         },

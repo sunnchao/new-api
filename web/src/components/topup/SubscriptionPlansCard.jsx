@@ -37,6 +37,8 @@ import SubscriptionPurchaseModal from './modals/SubscriptionPurchaseModal';
 import SubscriptionQuotaLimitSummary from './SubscriptionQuotaLimitSummary';
 import {
   formatSubscriptionDuration,
+  formatSubscriptionUsageSummary,
+  getSubscriptionQuotaLimitTitle,
   formatSubscriptionResetPeriod,
   formatSubscriptionTotalValue,
   getSubscriptionTotalLabel,
@@ -438,6 +440,15 @@ const SubscriptionPlansCard = ({
                     const isCancelled = subscription?.status === 'cancelled';
                     const isActive =
                       subscription?.status === 'active' && !isExpired;
+                    const usageSummary = formatSubscriptionUsageSummary(
+                      {
+                        used: usedAmount,
+                        total: totalAmount,
+                      },
+                      subscription,
+                      t,
+                      renderQuota,
+                    );
 
                     return (
                       <div key={subscription?.id || subIndex}>
@@ -490,31 +501,13 @@ const SubscriptionPlansCard = ({
                             <Tooltip
                               content={
                                 isRequestBilling
-                                  ? `${t('已用')} ${usedAmount}/${totalAmount} ${t('次')} · ${t('剩余')} ${remainAmount} ${t('次')}`
-                                  : `${t('原生额度')}：${usedAmount}/${totalAmount} · ${t('剩余')} ${remainAmount}`
+                                  ? `${t('已用')} ${usageSummary.usedText}/${usageSummary.totalText} · ${t('剩余')} ${usageSummary.remainText}`
+                                  : `${t('已用')} ${usageSummary.usedText}/${usageSummary.totalText} · ${t('剩余')} ${usageSummary.remainText}`
                               }
                             >
                               <span>
-                                {formatSubscriptionTotalValue(
-                                  usedAmount,
-                                  subscription,
-                                  t,
-                                  renderQuota,
-                                )}
-                                /
-                                {formatSubscriptionTotalValue(
-                                  totalAmount,
-                                  subscription,
-                                  t,
-                                  renderQuota,
-                                )}{' '}
-                                · {t('剩余')}{' '}
-                                {formatSubscriptionTotalValue(
-                                  remainAmount,
-                                  subscription,
-                                  t,
-                                  renderQuota,
-                                )}
+                                {usageSummary.usedText}/{usageSummary.totalText}{' '}
+                                · {t('剩余')} {usageSummary.remainText}
                               </span>
                             </Tooltip>
                           ) : (
@@ -549,7 +542,7 @@ const SubscriptionPlansCard = ({
                           source={subscription}
                           t={t}
                           variant='subscription'
-                          title={t('当前额度限制')}
+                          title={`${t('当前')}${getSubscriptionQuotaLimitTitle(subscription, t)}`}
                         />
 
                         {!isLast && <Divider margin={12} />}
@@ -666,9 +659,9 @@ const SubscriptionPlansCard = ({
                         </div>
                       </div>
 
-                       {/* 套餐权益描述 */}
-                       <div className='flex flex-col items-start gap-1 pb-2'>
-                         {planBenefits.map((item) => {
+                      {/* 套餐权益描述 */}
+                      <div className='flex flex-col items-start gap-1 pb-2'>
+                        {planBenefits.map((item) => {
                           const content = (
                             <div className='flex items-center gap-2 text-xs text-gray-500'>
                               <Badge dot type='tertiary' />
@@ -698,9 +691,9 @@ const SubscriptionPlansCard = ({
                         <SubscriptionQuotaLimitSummary
                           source={plan}
                           t={t}
-                          title={t('套餐额度限制')}
+                          title={`${t('套餐')}${getSubscriptionQuotaLimitTitle(plan, t)}`}
                         />
-                       </div>
+                      </div>
 
                       <div className='mt-auto'>
                         <Divider margin={12} />

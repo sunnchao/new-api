@@ -38,19 +38,21 @@ export function formatSubscriptionResetPeriod(plan, t, options = {}) {
   if (period === 'custom') {
     const seconds = Number(plan?.quota_reset_custom_seconds || 0);
     if (seconds >= 86400) label = `${Math.floor(seconds / 86400)} ${t('天')}`;
-    else if (seconds >= 3600) label = `${Math.floor(seconds / 3600)} ${t('小时')}`;
+    else if (seconds >= 3600)
+      label = `${Math.floor(seconds / 3600)} ${t('小时')}`;
     else if (seconds >= 60) label = `${Math.floor(seconds / 60)} ${t('分钟')}`;
     else label = `${seconds} ${t('秒')}`;
   }
 
   const includeMode = options.includeMode !== false;
-  if (
-    includeMode &&
-    ['daily', 'weekly', 'monthly'].includes(period)
-  ) {
-    return `${label} · ${formatSubscriptionResetMode(plan?.quota_reset_mode, t, {
-      short: options.shortMode,
-    })}`;
+  if (includeMode && ['daily', 'weekly', 'monthly'].includes(period)) {
+    return `${label} · ${formatSubscriptionResetMode(
+      plan?.quota_reset_mode,
+      t,
+      {
+        short: options.shortMode,
+      },
+    )}`;
   }
   return label;
 }
@@ -63,6 +65,8 @@ export function getSubscriptionQuotaLimitItems(source, t) {
   const dailyAmount = Number(source?.daily_limit_amount || 0);
   const weeklyAmount = Number(source?.weekly_limit_amount || 0);
   const monthlyAmount = Number(source?.monthly_limit_amount || 0);
+  const billingMode =
+    source?.billing_mode || source?.subscription?.billing_mode || 'quota';
 
   return [
     hourlyAmount > 0
@@ -73,6 +77,7 @@ export function getSubscriptionQuotaLimitItems(source, t) {
           mode: source?.hourly_reset_mode,
           used: Number(source?.hourly_amount_used || 0),
           nextResetTime: Number(source?.hourly_next_reset_time || 0),
+          billing_mode: billingMode,
         }
       : null,
     dailyAmount > 0
@@ -83,6 +88,7 @@ export function getSubscriptionQuotaLimitItems(source, t) {
           mode: source?.daily_reset_mode,
           used: Number(source?.daily_amount_used || 0),
           nextResetTime: Number(source?.daily_next_reset_time || 0),
+          billing_mode: billingMode,
         }
       : null,
     weeklyAmount > 0
@@ -93,6 +99,7 @@ export function getSubscriptionQuotaLimitItems(source, t) {
           mode: source?.weekly_reset_mode,
           used: Number(source?.weekly_amount_used || 0),
           nextResetTime: Number(source?.weekly_next_reset_time || 0),
+          billing_mode: billingMode,
         }
       : null,
     monthlyAmount > 0
@@ -103,6 +110,7 @@ export function getSubscriptionQuotaLimitItems(source, t) {
           mode: source?.monthly_reset_mode,
           used: Number(source?.monthly_amount_used || 0),
           nextResetTime: Number(source?.monthly_next_reset_time || 0),
+          billing_mode: billingMode,
         }
       : null,
   ].filter(Boolean);
@@ -120,7 +128,7 @@ export function formatSubscriptionQuotaLimitSummary(source, t, options = {}) {
     const modeSuffix = includeMode
       ? ` · ${formatSubscriptionResetMode(item.mode, t, { short: true })}`
       : '';
-    return `${item.label} ${item.amount}${modeSuffix}`;
+    return `${item.label} ${formatSubscriptionAmountValue(item.amount, item, t)}${modeSuffix}`;
   });
 
   if (items.length > maxItems) {
@@ -134,10 +142,76 @@ export function normalizeSubscriptionBillingMode(mode) {
   return mode === 'request' ? 'request' : 'quota';
 }
 
+function shouldCompatLegacyRequestQuotaValue(value, quotaToDisplayAmount) {
+  const raw = Number(value || 0);
+  if (!Number.isFinite(raw) || raw < 10000000) {
+    return false;
+  }
+  if (typeof quotaToDisplayAmount !== 'function') {
+    return false;
+  }
+
+  const converted = Number(quotaToDisplayAmount(raw));
+  if (!Number.isFinite(converted) || converted <= 0) {
+    return false;
+  }
+
+  const rounded = Math.round(converted);
+  if (Math.abs(converted - rounded) > 1e-9) {
+    return false;
+  }
+  if (rounded === raw) {
+    return false;
+  }
+
+  return raw / Math.max(rounded, 1) >= 1000;
+}
+
 export function isRequestBasedSubscription(target) {
   const billingMode =
     target?.billing_mode || target?.subscription?.billing_mode || 'quota';
   return normalizeSubscriptionBillingMode(billingMode) === 'request';
+}
+
+export function convertSubscriptionAmountToFormValue(
+  value,
+  billingMode,
+  quotaToDisplayAmount,
+  options = {},
+) {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return 0;
+  }
+
+  if (normalizeSubscriptionBillingMode(billingMode) === 'request') {
+    if (
+      options.legacyRequestQuotaCompat &&
+      shouldCompatLegacyRequestQuotaValue(amount, quotaToDisplayAmount)
+    ) {
+      return Math.round(Number(quotaToDisplayAmount(amount)) || 0);
+    }
+    return amount;
+  }
+
+  return Number(quotaToDisplayAmount(amount).toFixed(2));
+}
+
+export function convertSubscriptionAmountToStorageValue(
+  value,
+  billingMode,
+  displayAmountToQuota,
+) {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return 0;
+  }
+
+  if (normalizeSubscriptionBillingMode(billingMode) === 'request') {
+    return Math.round(amount);
+  }
+
+  return displayAmountToQuota(amount);
 }
 
 export function getSubscriptionTotalLabel(target, t) {
@@ -148,10 +222,52 @@ export function getSubscriptionUnitLabel(target, t) {
   return isRequestBasedSubscription(target) ? t('次') : t('额度');
 }
 
-export function formatSubscriptionTotalValue(value, target, t, renderQuota) {
+export function getSubscriptionQuotaLimitTitle(target, t) {
+  return isRequestBasedSubscription(target) ? t('次数限制') : t('额度限制');
+}
+
+export function formatSubscriptionAmountValue(value, target, t, renderQuota) {
   const total = Number(value || 0);
   if (isRequestBasedSubscription(target)) {
     return `${total} ${t('次')}`;
   }
-  return renderQuota(total);
+  if (typeof renderQuota === 'function') {
+    return renderQuota(total);
+  }
+  return `${total}`;
+}
+
+export function formatSubscriptionTotalValue(value, target, t, renderQuota) {
+  return formatSubscriptionAmountValue(value, target, t, renderQuota);
+}
+
+export function formatSubscriptionLimitValue(value, target, t, renderQuota) {
+  return formatSubscriptionAmountValue(value, target, t, renderQuota);
+}
+
+export function formatSubscriptionUsageSummary(
+  { used = 0, total = 0 } = {},
+  target,
+  t,
+  renderQuota,
+) {
+  const usedValue = Number(used || 0);
+  const totalValue = Number(total || 0);
+  const remainValue = totalValue > 0 ? Math.max(0, totalValue - usedValue) : 0;
+
+  return {
+    usedText: formatSubscriptionAmountValue(usedValue, target, t, renderQuota),
+    totalText: formatSubscriptionAmountValue(
+      totalValue,
+      target,
+      t,
+      renderQuota,
+    ),
+    remainText: formatSubscriptionAmountValue(
+      remainValue,
+      target,
+      t,
+      renderQuota,
+    ),
+  };
 }
