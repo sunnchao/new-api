@@ -36,3 +36,4 @@ pprof
 *.MD
 .claude
 .worktrees/
+.superpowers
