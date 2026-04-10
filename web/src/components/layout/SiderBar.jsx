@@ -133,6 +133,11 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         to: '/topup',
       },
       {
+        text: t('我的订阅'),
+        itemKey: 'subscriptions',
+        to: '/subscriptions',
+      },
+      {
         text: t('个人设置'),
         itemKey: 'personal',
         to: '/personal',
