@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   convertSubscriptionAmountToFormValue,
   convertSubscriptionAmountToStorageValue,
+  filterHomepageSubscriptionPlans,
   formatSubscriptionUsageSummary,
   formatSubscriptionAmountValue,
   formatSubscriptionQuotaLimitSummary,
@@ -130,5 +131,68 @@ test('request usage summary uses request counts for purchased subscriptions', ()
       totalText: '30 次',
       remainText: '18 次',
     },
+  );
+});
+
+test('homepage plan filter keeps only enabled plans marked for home display', () => {
+  assert.deepEqual(
+    filterHomepageSubscriptionPlans([
+      { plan: { id: 1, enabled: true, show_on_home: true } },
+      { plan: { id: 2, enabled: true, show_on_home: false } },
+      { plan: { id: 3, enabled: false, show_on_home: true } },
+    ]).map((item) => item.plan.id),
+    [1],
+  );
+});
+
+test('homepage plan filter excludes plans without show_on_home flag by default', () => {
+  assert.deepEqual(
+    filterHomepageSubscriptionPlans([
+      { plan: { id: 1, enabled: true } },
+      { plan: { id: 2, enabled: true, show_on_home: false } },
+    ]),
+    [],
+  );
+});
+
+test('homepage plan filter preserves API sort order for visible plans', () => {
+  assert.deepEqual(
+    filterHomepageSubscriptionPlans([
+      { plan: { id: 8, enabled: true, show_on_home: true } },
+      { plan: { id: 5, enabled: true, show_on_home: true } },
+    ]).map((item) => item.plan.id),
+    [8, 5],
+  );
+});
+
+test('homepage plan filter keeps both quota and request visible plans', () => {
+  assert.deepEqual(
+    filterHomepageSubscriptionPlans([
+      {
+        plan: {
+          id: 1,
+          enabled: true,
+          show_on_home: true,
+          billing_mode: 'quota',
+        },
+      },
+      {
+        plan: {
+          id: 2,
+          enabled: true,
+          show_on_home: true,
+          billing_mode: 'request',
+        },
+      },
+      {
+        plan: {
+          id: 3,
+          enabled: true,
+          show_on_home: false,
+          billing_mode: 'request',
+        },
+      },
+    ]).map((item) => item.plan.id),
+    [1, 2],
   );
 });

@@ -204,6 +204,18 @@ const renderEnabled = (text, record, t) => {
   );
 };
 
+const renderShowOnHome = (text, record, t) => {
+  return record?.plan?.show_on_home ? (
+    <Tag color='light-green' shape='circle'>
+      {t('首页展示')}
+    </Tag>
+  ) : (
+    <Tag color='grey' shape='circle'>
+      {t('不展示')}
+    </Tag>
+  );
+};
+
 const renderTotalAmount = (text, record, t) => {
   const total = Number(record?.plan?.total_amount || 0);
   const plan = record?.plan;
@@ -467,6 +479,11 @@ export const getSubscriptionsColumns = ({
       dataIndex: ['plan', 'enabled'],
       width: 80,
       render: (text, record) => renderEnabled(text, record, t),
+    },
+    {
+      title: t('首页'),
+      width: 90,
+      render: (text, record) => renderShowOnHome(text, record, t),
     },
     {
       title: t('支付渠道'),

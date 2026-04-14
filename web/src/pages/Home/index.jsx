@@ -49,6 +49,7 @@ import {
 } from '@douyinfe/semi-icons';
 import { Link } from 'react-router-dom';
 import NoticeModal from '../../components/layout/NoticeModal';
+import HomeSubscriptionPlansSection from '../../components/home/HomeSubscriptionPlansSection';
 import {
   Moonshot,
   OpenAI,
@@ -712,6 +713,8 @@ const Home = () => {
               </div>
             </div>
           </div>
+
+          <HomeSubscriptionPlansSection />
 
           <div className='w-full py-16 md:py-20 lg:py-24 px-4 md:px-8'>
             <div className='max-w-7xl mx-auto'>

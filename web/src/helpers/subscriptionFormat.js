@@ -142,6 +142,18 @@ export function normalizeSubscriptionBillingMode(mode) {
   return mode === 'request' ? 'request' : 'quota';
 }
 
+export function shouldDisplaySubscriptionPlanOnHome(target) {
+  const plan = target?.plan || target;
+  return plan?.enabled === true && plan?.show_on_home === true;
+}
+
+export function filterHomepageSubscriptionPlans(plans) {
+  if (!Array.isArray(plans)) {
+    return [];
+  }
+  return plans.filter((item) => shouldDisplaySubscriptionPlanOnHome(item));
+}
+
 function shouldCompatLegacyRequestQuotaValue(value, quotaToDisplayAmount) {
   const raw = Number(value || 0);
   if (!Number.isFinite(raw) || raw < 10000000) {
