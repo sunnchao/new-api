@@ -19,10 +19,10 @@ For commercial licensing, please contact support@quantumnous.com
 
 import React, { useState, useEffect } from 'react';
 import { useTokenKeys } from '../../hooks/chat/useTokenKeys';
-import { Spin, Modal, List, Typography } from '@douyinfe/semi-ui';
+import { Spin, Modal, List, Typography, Toast } from '@douyinfe/semi-ui';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { fetchTokens } from '../../helpers/token';
+import { fetchTokens, fetchTokenKey } from '../../helpers/token';
 import { renderGroup } from '../../helpers/render';
 
 const ChatPage = () => {
@@ -32,6 +32,7 @@ const ChatPage = () => {
   const [tokens, setTokens] = useState([]);
   const [selectedKey, setSelectedKey] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [isFetchingKey, setIsFetchingKey] = useState(false);
 
   useEffect(() => {
     const loadTokens = async () => {
@@ -69,9 +70,19 @@ const ChatPage = () => {
     return link;
   };
 
-  const handleTokenSelect = (key) => {
-    setSelectedKey(key);
+  const handleTokenSelect = async (tokenId) => {
+    setIsFetchingKey(true);
     setShowModal(false);
+    try {
+      const realKey = await fetchTokenKey(tokenId);
+      setSelectedKey(realKey);
+    } catch (error) {
+      Toast.error(t('获取令牌失败'));
+      console.error('Failed to fetch token key:', error);
+      setShowModal(true);
+    } finally {
+      setIsFetchingKey(false);
+    }
   };
 
   const iframeSrc = selectedKey ? comLink(selectedKey) : '';
@@ -111,7 +122,7 @@ const ChatPage = () => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
               }}
-              onClick={() => handleTokenSelect(token.key)}
+              onClick={() => handleTokenSelect(token.id)}
             >
               <div style={{ width: '100%' }} className={'flex '}>
                 <Typography.Text strong style={{ fontSize: '14px' }}>
@@ -126,7 +137,7 @@ const ChatPage = () => {
         />
       </Modal>
 
-      {!isLoading && iframeSrc ? (
+      {!isLoading && !isFetchingKey && iframeSrc ? (
         <iframe
           src={iframeSrc}
           style={{
