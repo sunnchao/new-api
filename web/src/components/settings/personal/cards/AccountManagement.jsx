@@ -40,7 +40,7 @@ import {
 } from '@douyinfe/semi-icons';
 import { SiTelegram, SiWechat, SiLinux, SiDiscord } from 'react-icons/si';
 import { UserPlus, ShieldCheck } from 'lucide-react';
-import TelegramLoginButton from 'react-telegram-login';
+import TelegramLoginButton from '../../../common/TelegramLoginButton';
 import {
   API,
   showError,

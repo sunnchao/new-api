@@ -60,7 +60,7 @@ import OIDCIcon from '../common/logo/OIDCIcon';
 import LinuxDoIcon from '../common/logo/LinuxDoIcon';
 import WeChatIcon from '../common/logo/WeChatIcon';
 import AuthSideArt from './AuthSideArt';
-import TelegramLoginButton from 'react-telegram-login/src';
+import TelegramLoginButton from '../common/TelegramLoginButton';
 import { UserContext } from '../../context/User';
 import { StatusContext } from '../../context/Status';
 import { useTranslation } from 'react-i18next';

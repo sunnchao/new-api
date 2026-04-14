@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import react from '@vitejs/plugin-react';
-import { defineConfig, transformWithEsbuild } from 'vite';
+import { defineConfig } from 'vite';
 import pkg from '@douyinfe/vite-plugin-semi';
 import path from 'path';
 import fs from 'fs';
@@ -73,21 +73,6 @@ export default defineConfig({
         },
       };
     })(),
-    {
-      name: 'treat-js-files-as-jsx',
-      async transform(code, id) {
-        if (!/src\/.*\.js$/.test(id)) {
-          return null;
-        }
-
-        // Use the exposed transform from vite, instead of directly
-        // transforming with esbuild
-        return transformWithEsbuild(code, id, {
-          loader: 'jsx',
-          jsx: 'automatic',
-        });
-      },
-    },
     react(),
     vitePluginSemi({
       cssLayer: true,
@@ -95,7 +80,7 @@ export default defineConfig({
   ],
   optimizeDeps: {
     force: true,
-    esbuildOptions: {
+    rolldownOptions: {
       loader: {
         '.js': 'jsx',
         '.json': 'json',
@@ -103,24 +88,45 @@ export default defineConfig({
     },
   },
   build: {
+    chunkSizeWarningLimit: 1000, // 提高警告阈值到 1MB
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-core': ['react', 'react-dom', 'react-router-dom'],
-          'semi-ui': ['@douyinfe/semi-icons', '@douyinfe/semi-ui'],
-          tools: ['axios', 'history', 'marked'],
-          'react-components': [
-            'react-dropzone',
-            'react-fireworks',
-            'react-telegram-login',
-            'react-toastify',
-            'react-turnstile',
-          ],
-          i18n: [
-            'i18next',
-            'react-i18next',
-            'i18next-browser-languagedetector',
-          ],
+        // 更好的 chunk 拆分策略
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            // 核心框架 - 保持稳定
+            if (['react', 'react-dom', 'react-router-dom', 'scheduler'].some((m) => id.includes(m))) {
+              return 'react-core';
+            }
+            // Semi UI - 单独拆包
+            if (['@douyinfe/semi-icons', '@douyinfe/semi-ui'].some((m) => id.includes(m))) {
+              return 'semi-ui';
+            }
+            // 工具库
+            if (['axios', 'history', 'marked', 'decimal.js', 'dayjs'].some((m) => id.includes(m))) {
+              return 'utils';
+            }
+            // 图表库 - 单独拆包
+            if (['@visactor', 'echarts', 'mermaid', 'cytoscape'].some((m) => id.includes(m))) {
+              return 'charts';
+            }
+            // Markdown 相关
+            if (['react-markdown', 'remark-', 'rehype-', 'katex'].some((m) => id.includes(m))) {
+              return 'markdown';
+            }
+            // i18n
+            if (['i18next', 'react-i18next'].some((m) => id.includes(m))) {
+              return 'i18n';
+            }
+            // UI 组件
+            if (
+              ['react-dropzone', 'react-fireworks', 'react-toastify', 'react-turnstile', 'qrcode.react'].some(
+                (m) => id.includes(m),
+              )
+            ) {
+              return 'components';
+            }
+          }
         },
       },
     },

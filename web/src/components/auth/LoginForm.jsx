@@ -52,7 +52,7 @@ import {
 } from '@douyinfe/semi-ui';
 import Title from '@douyinfe/semi-ui/lib/es/typography/title';
 import Text from '@douyinfe/semi-ui/lib/es/typography/text';
-import TelegramLoginButton from 'react-telegram-login';
+import TelegramLoginButton from '../common/TelegramLoginButton';
 
 import {
   IconGithubLogo,
