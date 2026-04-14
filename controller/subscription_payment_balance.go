@@ -95,7 +95,7 @@ func SubscriptionRequestBalancePay(c *gin.Context) {
 	}
 
 	if costQuota > 0 {
-		if err := model.DecreaseUserQuota(userId, costQuota); err != nil {
+		if err := model.DecreaseUserQuota(userId, costQuota, false); err != nil {
 			_ = model.ExpireSubscriptionOrder(tradeNo)
 			c.JSON(200, gin.H{"message": "error", "data": "扣款失败，请稍后重试"})
 			return
