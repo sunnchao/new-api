@@ -33,6 +33,8 @@ import {
   Table,
   Tag,
   Typography,
+    Row,
+    Col
 } from '@douyinfe/semi-ui';
 import { IconDelete, IconSave, IconSearch } from '@douyinfe/semi-icons';
 import { useTranslation } from 'react-i18next';
@@ -995,63 +997,69 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
             >
               {/* Left column: Configuration */}
               <Space vertical style={{ width: '100%' }} spacing={16}>
-                <div>
-                  <div className='mb-2 font-medium text-gray-700'>
-                    {t('分组 {{group}} 的默认价格模式', { group: selectedGroup })}
-                  </div>
-                  <RadioGroup
-                    type='button'
-                    value={selectedGroupDefaultEntry.mode}
-                    onChange={(event) =>
-                      updateGroupDefaultEntry({ mode: event.target.value })
-                    }
-                  >
-                    <Radio value='inherit'>{t('不设置分组默认价格')}</Radio>
-                    <Radio value='per-request'>{t('分组默认按次计费')}</Radio>
-                  </RadioGroup>
-                  <div className='mt-2 text-xs text-gray-500'>
-                    {t(
-                      '启用后，当前分组下未单独配置价格模式的模型，将默认继承该分组的按次价格。',
-                    )}
-                  </div>
-                </div>
+                <Row style={{width: '100%'}}>
+                  <Col>
+                    <div className='mb-2 font-medium text-gray-700'>
+                      {t('分组 {{group}} 的默认价格模式', { group: selectedGroup })}
+                    </div>
+                    <RadioGroup
+                        type='button'
+                        value={selectedGroupDefaultEntry.mode}
+                        onChange={(event) =>
+                            updateGroupDefaultEntry({ mode: event.target.value })
+                        }
+                    >
+                      <Radio value='inherit'>{t('不设置分组默认价格')}</Radio>
+                      <Radio value='per-request'>{t('分组默认按次计费')}</Radio>
+                    </RadioGroup>
+                    <div className='mt-2 text-xs text-gray-500'>
+                      {t(
+                          '启用后，当前分组下未单独配置价格模式的模型，将默认继承该分组的按次价格。',
+                      )}
+                    </div>
+                  </Col>
+                </Row>
 
                 {selectedGroupDefaultEntry.mode === 'per-request' ? (
-                  <div>
-                    <div className='mb-2 font-medium text-gray-700'>
-                      {t('分组默认按次价格')}
-                    </div>
-                    <Input
-                      value={selectedGroupDefaultEntry.modelPrice}
-                      placeholder={t('输入每次调用价格')}
-                      suffix={t('$/次')}
-                      onChange={(value) => {
-                        if (!NUMERIC_INPUT_REGEX.test(value)) {
-                          return;
-                        }
-                        updateGroupDefaultEntry({ modelPrice: value });
-                      }}
-                    />
-                  </div>
+                  <Row style={{width: '100%'}}>
+                    <Col>
+                      <div className='mb-2 font-medium text-gray-700'>
+                        {t('分组默认按次价格')}
+                      </div>
+                      <Input
+                          value={selectedGroupDefaultEntry.modelPrice}
+                          placeholder={t('输入每次调用价格')}
+                          suffix={t('$/次')}
+                          onChange={(value) => {
+                            if (!NUMERIC_INPUT_REGEX.test(value)) {
+                              return;
+                            }
+                            updateGroupDefaultEntry({ modelPrice: value });
+                          }}
+                      />
+                    </Col>
+                  </Row>
                 ) : null}
 
-                <div>
-                  <div className='mb-2 font-medium text-gray-700'>
-                    {t('分组 {{group}} 的默认计费来源', { group: selectedGroup })}
-                  </div>
-                  <Select
-                    value={selectedGroupDefaultEntry.billingSource}
-                    optionList={groupDefaultBillingSourceOptions}
-                    onChange={(value) =>
-                      updateGroupDefaultEntry({ billingSource: value })
-                    }
-                  />
-                  <div className='mt-2 text-xs text-gray-500'>
-                    {t(
-                      '仅当当前"分组 + 模型"未显式设置 billing_source 时，才会回退到这里；模型级 billing_source 的优先级更高。',
-                    )}
-                  </div>
-                </div>
+                <Row style={{width: '100%'}}>
+                  <Col>
+                    <div className='mb-2 font-medium text-gray-700'>
+                      {t('分组 {{group}} 的默认计费来源', { group: selectedGroup })}
+                    </div>
+                    <Select
+                        value={selectedGroupDefaultEntry.billingSource}
+                        optionList={groupDefaultBillingSourceOptions}
+                        onChange={(value) =>
+                            updateGroupDefaultEntry({ billingSource: value })
+                        }
+                    />
+                    <div className='mt-2 text-xs text-gray-500'>
+                      {t(
+                          '仅当当前"分组 + 模型"未显式设置 billing_source 时，才会回退到这里；模型级 billing_source 的优先级更高。',
+                      )}
+                    </div>
+                  </Col>
+                </Row>
 
                 {groupDefaultLegacyBillingOption ? (
                   <Banner
@@ -1197,25 +1205,31 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
               <Space vertical style={{ width: '100%' }} spacing={16}>
                 <Card
                   bodyStyle={{ padding: 12 }}
-                  style={{ background: 'var(--semi-color-fill-0)' }}
+                  style={{ width: '100%', background: 'var(--semi-color-fill-0)' }}
                 >
-                  <Space vertical spacing={8} style={{ width: '100%' }}>
-                    <div>
-                      <Text strong>{t('全局计费')}</Text>
-                      <div className='mt-1 text-sm text-gray-600'>
-                        {selectedRow.globalSummary.text}
-                      </div>
-                    </div>
-                    <div>
-                      <Text strong>{t('当前覆盖')}</Text>
-                      <div className='mt-1 text-sm text-gray-600'>
-                        {selectedRow.overrideSummary.text}
-                      </div>
-                    </div>
-                  </Space>
+                  <Row style={{
+                    width: '100%'
+                  }}>
+                    <Col>
+                      <Space vertical spacing={8} style={{ width: '100%' }}>
+                        <Row>
+                          <Text strong>{t('全局计费')}</Text>
+                          <div className='mt-1 text-sm text-gray-600'>
+                            {selectedRow.globalSummary.text}
+                          </div>
+                        </Row>
+                        <Row>
+                          <Text strong>{t('当前覆盖')}</Text>
+                          <div className='mt-1 text-sm text-gray-600'>
+                            {selectedRow.overrideSummary.text}
+                          </div>
+                        </Row>
+                      </Space>
+                    </Col>
+                  </Row>
                 </Card>
 
-                <div>
+                <Row>
                   <div className='mb-2 font-medium text-gray-700'>
                     {t('价格模式')}
                   </div>
@@ -1234,44 +1248,48 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
                       '选择“继承”后，会优先尝试当前分组的 __default__ 配置；若分组未设置默认价格，再回退到全局模型计费配置。',
                     )}
                   </div>
-                </div>
+                </Row>
 
                 {currentEntry.mode === 'per-request' ? (
-                  <div>
-                    <div className='mb-2 font-medium text-gray-700'>
-                      {t('按次价格')}
-                    </div>
-                    <Input
-                      value={currentEntry.modelPrice}
-                      placeholder={t('输入每次调用价格')}
-                      suffix={t('$/次')}
-                      onChange={(value) => {
-                        if (!NUMERIC_INPUT_REGEX.test(value)) {
-                          return;
-                        }
-                        updateCurrentEntry({ modelPrice: value });
-                      }}
-                    />
-                  </div>
+                  <Row style={{width: '100%'}}>
+                    <Col>
+                      <div className='mb-2 font-medium text-gray-700'>
+                        {t('按次价格')}
+                      </div>
+                      <Input
+                          value={currentEntry.modelPrice}
+                          placeholder={t('输入每次调用价格')}
+                          suffix={t('$/次')}
+                          onChange={(value) => {
+                            if (!NUMERIC_INPUT_REGEX.test(value)) {
+                              return;
+                            }
+                            updateCurrentEntry({ modelPrice: value });
+                          }}
+                      />
+                    </Col>
+                  </Row>
                 ) : null}
 
-                <div>
-                  <div className='mb-2 font-medium text-gray-700'>
-                    {t('计费来源')}
-                  </div>
-                  <Select
-                    value={currentEntry.billingSource}
-                    optionList={billingSourceOptions}
-                    onChange={(value) =>
-                      updateCurrentEntry({ billingSource: value })
-                    }
-                  />
-                  <div className='mt-2 text-xs text-gray-500'>
-                    {t(
-                      '“跟随用户偏好”表示继续使用钱包页保存的计费偏好；“仅余额”和“仅订阅”会直接覆盖该偏好。',
-                    )}
-                  </div>
-                </div>
+                <Row style={{ width: '100%' }}>
+                  <Col>
+                    <div className='mb-2 font-medium text-gray-700'>
+                      {t('计费来源')}
+                    </div>
+                    <Select
+                        value={currentEntry.billingSource}
+                        optionList={billingSourceOptions}
+                        onChange={(value) =>
+                            updateCurrentEntry({ billingSource: value })
+                        }
+                    />
+                    <div className='mt-2 text-xs text-gray-500'>
+                      {t(
+                          '“跟随用户偏好”表示继续使用钱包页保存的计费偏好；“仅余额”和“仅订阅”会直接覆盖该偏好。',
+                      )}
+                    </div>
+                  </Col>
+                </Row>
 
                 {legacyBillingOption ? (
                   <Banner
@@ -1288,7 +1306,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
 
                 <Card
                   bodyStyle={{ padding: 12 }}
-                  style={{ background: 'var(--semi-color-fill-0)' }}
+                  style={{ width: '100%', background: 'var(--semi-color-fill-0)' }}
                 >
                   <div className='mb-2 font-medium text-gray-700'>
                     {t('持久化配置预览')}
