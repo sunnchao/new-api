@@ -62,9 +62,21 @@ export function getSubscriptionQuotaLimitItems(source, t) {
 
   const hourlyAmount = Number(source?.hourly_limit_amount || 0);
   const hourlyHours = Number(source?.hourly_limit_hours || 1);
+  const hourlyApproximateTimes = Number(
+    source?.hourly_approximate_times ?? source?.hourlyApproximateTimes ?? 0,
+  );
   const dailyAmount = Number(source?.daily_limit_amount || 0);
+  const dailyApproximateTimes = Number(
+    source?.daily_approximate_times ?? source?.dailyApproximateTimes ?? 0,
+  );
   const weeklyAmount = Number(source?.weekly_limit_amount || 0);
+  const weeklyApproximateTimes = Number(
+    source?.weekly_approximate_times ?? source?.weeklyApproximateTimes ?? 0,
+  );
   const monthlyAmount = Number(source?.monthly_limit_amount || 0);
+  const monthlyApproximateTimes = Number(
+    source?.monthly_approximate_times ?? source?.monthlyApproximateTimes ?? 0,
+  );
   const billingMode =
     source?.billing_mode || source?.subscription?.billing_mode || 'quota';
 
@@ -78,6 +90,7 @@ export function getSubscriptionQuotaLimitItems(source, t) {
           used: Number(source?.hourly_amount_used || 0),
           nextResetTime: Number(source?.hourly_next_reset_time || 0),
           billing_mode: billingMode,
+          approximateTimes: hourlyApproximateTimes,
         }
       : null,
     dailyAmount > 0
@@ -89,6 +102,7 @@ export function getSubscriptionQuotaLimitItems(source, t) {
           used: Number(source?.daily_amount_used || 0),
           nextResetTime: Number(source?.daily_next_reset_time || 0),
           billing_mode: billingMode,
+          approximateTimes: dailyApproximateTimes,
         }
       : null,
     weeklyAmount > 0
@@ -100,6 +114,7 @@ export function getSubscriptionQuotaLimitItems(source, t) {
           used: Number(source?.weekly_amount_used || 0),
           nextResetTime: Number(source?.weekly_next_reset_time || 0),
           billing_mode: billingMode,
+          approximateTimes: weeklyApproximateTimes,
         }
       : null,
     monthlyAmount > 0
@@ -111,6 +126,7 @@ export function getSubscriptionQuotaLimitItems(source, t) {
           used: Number(source?.monthly_amount_used || 0),
           nextResetTime: Number(source?.monthly_next_reset_time || 0),
           billing_mode: billingMode,
+          approximateTimes: monthlyApproximateTimes,
         }
       : null,
   ].filter(Boolean);
@@ -123,13 +139,13 @@ export function formatSubscriptionQuotaLimitSummary(source, t, options = {}) {
   }
 
   const maxItems = Number(options.maxItems || items.length);
-  const includeMode = options.includeMode !== false;
-  const segments = items.slice(0, maxItems).map((item) => {
-    const modeSuffix = includeMode
-      ? ` · ${formatSubscriptionResetMode(item.mode, t, { short: true })}`
-      : '';
-    return `${item.label} ${formatSubscriptionAmountValue(item.amount, item, t)}${modeSuffix}`;
-  });
+  const segments = items
+    .slice(0, maxItems)
+    .map((item) =>
+      formatSubscriptionQuotaLimitItemText(item, t, options.renderQuota, {
+        includeMode: options.includeMode,
+      }),
+    );
 
   if (items.length > maxItems) {
     segments.push(t('另 {{count}} 项', { count: items.length - maxItems }));
@@ -238,23 +254,79 @@ export function getSubscriptionQuotaLimitTitle(target, t) {
   return isRequestBasedSubscription(target) ? t('次数限制') : t('额度限制');
 }
 
-export function formatSubscriptionAmountValue(value, target, t, renderQuota) {
+export function getSubscriptionApproximateTimes(source) {
+  return Number(source?.approximate_times ?? source?.approximateTimes ?? 0);
+}
+
+function formatSubscriptionApproximateTimes(approximateTimes, t) {
+  const count = Number(approximateTimes || 0);
+  if (!Number.isFinite(count) || count <= 0) {
+    return '';
+  }
+  return `（${t('约等于')} ${count} ${t('次')}）`;
+}
+
+export function formatSubscriptionAmountValue(
+  value,
+  target,
+  t,
+  renderQuota,
+  options = {},
+) {
   const total = Number(value || 0);
   if (isRequestBasedSubscription(target)) {
     return `${total} ${t('次')}`;
   }
+  const approximateText = formatSubscriptionApproximateTimes(
+    options.approximateTimes,
+    t,
+  );
   if (typeof renderQuota === 'function') {
-    return renderQuota(total);
+    return `${renderQuota(total)}${approximateText}`;
   }
-  return `${total}`;
+  return `${total}${approximateText}`;
 }
 
-export function formatSubscriptionTotalValue(value, target, t, renderQuota) {
-  return formatSubscriptionAmountValue(value, target, t, renderQuota);
+export function formatSubscriptionQuotaLimitItemText(
+  item,
+  t,
+  renderQuota,
+  options = {},
+) {
+  const includeMode = options.includeMode !== false;
+  const modeSuffix = includeMode
+    ? ` · ${formatSubscriptionResetMode(item.mode, t, { short: true })}`
+    : '';
+
+  return `${item.label} ${formatSubscriptionAmountValue(
+    item.amount,
+    item,
+    t,
+    renderQuota,
+    {
+      approximateTimes: item.approximateTimes,
+    },
+  )}${modeSuffix}`;
 }
 
-export function formatSubscriptionLimitValue(value, target, t, renderQuota) {
-  return formatSubscriptionAmountValue(value, target, t, renderQuota);
+export function formatSubscriptionTotalValue(
+  value,
+  target,
+  t,
+  renderQuota,
+  options = {},
+) {
+  return formatSubscriptionAmountValue(value, target, t, renderQuota, options);
+}
+
+export function formatSubscriptionLimitValue(
+  value,
+  target,
+  t,
+  renderQuota,
+  options = {},
+) {
+  return formatSubscriptionAmountValue(value, target, t, renderQuota, options);
 }
 
 export function formatSubscriptionUsageSummary(

@@ -209,11 +209,17 @@ type SubscriptionPlan struct {
 	WeeklyResetMode   string `json:"weekly_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
 
 	// Monthly limit
-	MonthlyLimitAmount int64  `json:"monthly_limit_amount" gorm:"type:bigint;default:0"`
-	MonthlyResetMode   string `json:"monthly_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
+	MonthlyLimitAmount      int64  `json:"monthly_limit_amount" gorm:"type:bigint;default:0"`
+	MonthlyResetMode        string `json:"monthly_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
+	HourlyApproximateTimes  int64  `json:"hourly_approximate_times" gorm:"type:bigint;default:0"`
+	DailyApproximateTimes   int64  `json:"daily_approximate_times" gorm:"type:bigint;default:0"`
+	WeeklyApproximateTimes  int64  `json:"weekly_approximate_times" gorm:"type:bigint;default:0"`
+	MonthlyApproximateTimes int64  `json:"monthly_approximate_times" gorm:"type:bigint;default:0"`
 
-	CreatedAt int64 `json:"created_at" gorm:"bigint"`
-	UpdatedAt int64 `json:"updated_at" gorm:"bigint"`
+	// ApproximateTimes is displayed on the frontend for quota-based plans as the estimated request count.
+	ApproximateTimes int64 `json:"approximate_times" gorm:"type:bigint;default:0"`
+	CreatedAt        int64 `json:"created_at" gorm:"bigint"`
+	UpdatedAt        int64 `json:"updated_at" gorm:"bigint"`
 }
 
 func (p *SubscriptionPlan) BeforeCreate(tx *gorm.DB) error {
@@ -313,11 +319,18 @@ type UserSubscription struct {
 	WeeklyNextResetTime int64  `json:"weekly_next_reset_time" gorm:"type:bigint;default:0"`
 
 	// Monthly limit
-	MonthlyLimitAmount   int64  `json:"monthly_limit_amount" gorm:"type:bigint;default:0"`
-	MonthlyResetMode     string `json:"monthly_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
-	MonthlyAmountUsed    int64  `json:"monthly_amount_used" gorm:"type:bigint;default:0"`
-	MonthlyLastResetTime int64  `json:"monthly_last_reset_time" gorm:"type:bigint;default:0"`
-	MonthlyNextResetTime int64  `json:"monthly_next_reset_time" gorm:"type:bigint;default:0"`
+	MonthlyLimitAmount int64  `json:"monthly_limit_amount" gorm:"type:bigint;default:0"`
+	MonthlyResetMode   string `json:"monthly_reset_mode" gorm:"type:varchar(16);default:'anchor'"`
+
+	// ApproximateTimes is displayed on the frontend for quota-based plans as the estimated request count.
+	ApproximateTimes        int64 `json:"approximate_times" gorm:"type:bigint;default:0"`
+	HourlyApproximateTimes  int64 `json:"hourly_approximate_times" gorm:"type:bigint;default:0"`
+	DailyApproximateTimes   int64 `json:"daily_approximate_times" gorm:"type:bigint;default:0"`
+	WeeklyApproximateTimes  int64 `json:"weekly_approximate_times" gorm:"type:bigint;default:0"`
+	MonthlyApproximateTimes int64 `json:"monthly_approximate_times" gorm:"type:bigint;default:0"`
+	MonthlyAmountUsed       int64 `json:"monthly_amount_used" gorm:"type:bigint;default:0"`
+	MonthlyLastResetTime    int64 `json:"monthly_last_reset_time" gorm:"type:bigint;default:0"`
+	MonthlyNextResetTime    int64 `json:"monthly_next_reset_time" gorm:"type:bigint;default:0"`
 
 	CreatedAt int64 `json:"created_at" gorm:"bigint"`
 	UpdatedAt int64 `json:"updated_at" gorm:"bigint"`
@@ -636,46 +649,51 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 		}
 	}
 	sub := &UserSubscription{
-		UserId:        userId,
-		PlanId:        plan.Id,
-		AmountTotal:   plan.TotalAmount,
-		AmountUsed:    0,
-		BillingMode:   NormalizeSubscriptionBillingMode(plan.BillingMode),
-		StartTime:     now.Unix(),
-		EndTime:       endUnix,
-		Status:        "active",
-		Source:        source,
-		LastResetTime: lastReset,
-		NextResetTime: nextReset,
-		UpgradeGroup:  upgradeGroup,
-		AllowedGroups: plan.AllowedGroups,
-		PrevUserGroup: prevGroup,
+		UserId:           userId,
+		PlanId:           plan.Id,
+		AmountTotal:      plan.TotalAmount,
+		AmountUsed:       0,
+		BillingMode:      NormalizeSubscriptionBillingMode(plan.BillingMode),
+		ApproximateTimes: plan.ApproximateTimes,
+		StartTime:        now.Unix(),
+		EndTime:          endUnix,
+		Status:           "active",
+		Source:           source,
+		LastResetTime:    lastReset,
+		NextResetTime:    nextReset,
+		UpgradeGroup:     upgradeGroup,
+		AllowedGroups:    plan.AllowedGroups,
+		PrevUserGroup:    prevGroup,
 
 		// Rate limits (snapshot from plan)
-		HourlyLimitAmount:   plan.HourlyLimitAmount,
-		HourlyLimitHours:    plan.HourlyLimitHours,
-		HourlyResetMode:     NormalizeSubscriptionResetMode(plan.HourlyResetMode),
-		HourlyAmountUsed:    0,
-		HourlyLastResetTime: hourlyLastReset,
-		HourlyNextResetTime: hourlyNextReset,
+		HourlyLimitAmount:      plan.HourlyLimitAmount,
+		HourlyApproximateTimes: plan.HourlyApproximateTimes,
+		HourlyLimitHours:       plan.HourlyLimitHours,
+		HourlyResetMode:        NormalizeSubscriptionResetMode(plan.HourlyResetMode),
+		HourlyAmountUsed:       0,
+		HourlyLastResetTime:    hourlyLastReset,
+		HourlyNextResetTime:    hourlyNextReset,
 
-		DailyLimitAmount:   plan.DailyLimitAmount,
-		DailyResetMode:     NormalizeSubscriptionResetMode(plan.DailyResetMode),
-		DailyAmountUsed:    0,
-		DailyLastResetTime: dailyLastReset,
-		DailyNextResetTime: dailyNextReset,
+		DailyLimitAmount:      plan.DailyLimitAmount,
+		DailyApproximateTimes: plan.DailyApproximateTimes,
+		DailyResetMode:        NormalizeSubscriptionResetMode(plan.DailyResetMode),
+		DailyAmountUsed:       0,
+		DailyLastResetTime:    dailyLastReset,
+		DailyNextResetTime:    dailyNextReset,
 
-		WeeklyLimitAmount:   plan.WeeklyLimitAmount,
-		WeeklyResetMode:     NormalizeSubscriptionResetMode(plan.WeeklyResetMode),
-		WeeklyAmountUsed:    0,
-		WeeklyLastResetTime: weeklyLastReset,
-		WeeklyNextResetTime: weeklyNextReset,
+		WeeklyLimitAmount:      plan.WeeklyLimitAmount,
+		WeeklyApproximateTimes: plan.WeeklyApproximateTimes,
+		WeeklyResetMode:        NormalizeSubscriptionResetMode(plan.WeeklyResetMode),
+		WeeklyAmountUsed:       0,
+		WeeklyLastResetTime:    weeklyLastReset,
+		WeeklyNextResetTime:    weeklyNextReset,
 
-		MonthlyLimitAmount:   plan.MonthlyLimitAmount,
-		MonthlyResetMode:     NormalizeSubscriptionResetMode(plan.MonthlyResetMode),
-		MonthlyAmountUsed:    0,
-		MonthlyLastResetTime: monthlyLastReset,
-		MonthlyNextResetTime: monthlyNextReset,
+		MonthlyLimitAmount:      plan.MonthlyLimitAmount,
+		MonthlyApproximateTimes: plan.MonthlyApproximateTimes,
+		MonthlyResetMode:        NormalizeSubscriptionResetMode(plan.MonthlyResetMode),
+		MonthlyAmountUsed:       0,
+		MonthlyLastResetTime:    monthlyLastReset,
+		MonthlyNextResetTime:    monthlyNextReset,
 
 		CreatedAt: common.GetTimestamp(),
 		UpdatedAt: common.GetTimestamp(),

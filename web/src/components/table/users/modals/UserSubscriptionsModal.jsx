@@ -33,9 +33,12 @@ import {
   IllustrationNoResult,
   IllustrationNoResultDark,
 } from '@douyinfe/semi-illustrations';
-import { API, showError, showSuccess } from '../../../../helpers';
+import { API, renderQuota, showError, showSuccess } from '../../../../helpers';
 import { convertUSDToCurrency } from '../../../../helpers/render';
-import { formatSubscriptionAmountValue } from '../../../../helpers/subscriptionFormat';
+import {
+  formatSubscriptionAmountValue,
+  getSubscriptionApproximateTimes,
+} from '../../../../helpers/subscriptionFormat';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 import CardTable from '../../../common/ui/CardTable';
 
@@ -320,7 +323,16 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
                     used,
                     sub,
                     t,
-                  )}/${formatSubscriptionAmountValue(total, sub, t)}`
+                    renderQuota,
+                  )}/${formatSubscriptionAmountValue(
+                    total,
+                    sub,
+                    t,
+                    renderQuota,
+                    {
+                      approximateTimes: getSubscriptionApproximateTimes(sub),
+                    },
+                  )}`
                 : t('不限')}
             </Text>
           );

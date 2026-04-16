@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 
 import React, { useState, useEffect } from 'react';
 import { useTokenKeys } from '../../hooks/chat/useTokenKeys';
-import { Spin, Modal, List, Typography, Toast } from '@douyinfe/semi-ui';
+import { Spin, Modal, List, Typography, Toast, Button } from '@douyinfe/semi-ui';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchTokens, fetchTokenKey } from '../../helpers/token';
@@ -149,6 +149,24 @@ const ChatPage = () => {
           title='Token Frame'
           allow='camera;microphone'
         />
+      ) : !isLoading && !selectedKey && !showModal ? (
+        <div className='fixed inset-0 w-screen h-screen flex items-center justify-center bg-white/80 z-[1000] mt-[60px]'>
+          <div className='flex flex-col items-center'>
+            <div
+              className='text-center mb-4'
+              style={{ color: 'var(--semi-color-text-2)', fontSize: '16px' }}
+            >
+              {t('您已取消令牌选择')}
+            </div>
+            <Button
+              theme='solid'
+              type='primary'
+              onClick={() => setShowModal(true)}
+            >
+              {t('重新选择令牌')}
+            </Button>
+          </div>
+        </div>
       ) : (
         <div className='fixed inset-0 w-screen h-screen flex items-center justify-center bg-white/80 z-[1000] mt-[60px]'>
           <div className='flex flex-col items-center'>

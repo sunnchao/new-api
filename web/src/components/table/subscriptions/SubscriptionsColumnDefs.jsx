@@ -33,10 +33,12 @@ import { renderQuota } from '../../../helpers';
 import { convertUSDToCurrency } from '../../../helpers/render';
 import {
   formatSubscriptionAmountValue,
+  formatSubscriptionQuotaLimitItemText,
   formatSubscriptionResetMode,
   formatSubscriptionQuotaLimitSummary,
   formatSubscriptionResetPeriod,
   getSubscriptionQuotaLimitItems,
+  getSubscriptionApproximateTimes,
   getSubscriptionQuotaLimitTitle,
   formatSubscriptionTotalValue,
   getSubscriptionTotalLabel,
@@ -71,6 +73,7 @@ function parseAllowedGroups(value) {
 const renderPlanTitle = (text, record, t) => {
   const subtitle = record?.plan?.subtitle;
   const plan = record?.plan;
+  const approximateTimes = getSubscriptionApproximateTimes(plan);
   const isRequestBilling = isRequestBasedSubscription(plan);
   const allowedGroups = parseAllowedGroups(plan?.allowed_groups);
   const popoverContent = (
@@ -102,6 +105,9 @@ const renderPlanTitle = (text, record, t) => {
                 plan,
                 t,
                 renderQuota,
+                {
+                  approximateTimes,
+                },
               )}
             </Text>
           </Tooltip>
@@ -126,7 +132,10 @@ const renderPlanTitle = (text, record, t) => {
         <Text>{formatSubscriptionResetPeriod(plan, t)}</Text>
         <Text type='tertiary'>{getSubscriptionQuotaLimitTitle(plan, t)}</Text>
         <Text>
-          {formatSubscriptionQuotaLimitSummary(plan, t, { maxItems: 2 })}
+          {formatSubscriptionQuotaLimitSummary(plan, t, {
+            maxItems: 2,
+            renderQuota,
+          })}
         </Text>
       </div>
     </div>
@@ -219,6 +228,7 @@ const renderShowOnHome = (text, record, t) => {
 const renderTotalAmount = (text, record, t) => {
   const total = Number(record?.plan?.total_amount || 0);
   const plan = record?.plan;
+  const approximateTimes = getSubscriptionApproximateTimes(plan);
   const isRequestBilling = isRequestBasedSubscription(plan);
   return (
     <Text type={total > 0 ? 'secondary' : 'tertiary'}>
@@ -229,9 +239,11 @@ const renderTotalAmount = (text, record, t) => {
               ? `${total} ${t('次')}`
               : `${t('原生额度')}：${total}`
           }
-        >
+          >
           <span>
-            {formatSubscriptionTotalValue(total, plan, t, renderQuota)}
+            {formatSubscriptionTotalValue(total, plan, t, renderQuota, {
+              approximateTimes,
+            })}
           </span>
         </Tooltip>
       ) : (
@@ -304,7 +316,11 @@ const renderQuotaLimits = (text, record, t) => {
       }}
     >
       {visibleItems.map((item) => {
-        const fullText = `${item.label} ${formatSubscriptionAmountValue(item.amount, item, t, renderQuota)}·${formatSubscriptionResetMode(item.mode, t, { short: true })}`;
+        const fullText = formatSubscriptionQuotaLimitItemText(
+          item,
+          t,
+          renderQuota,
+        );
 
         return (
           <Tag

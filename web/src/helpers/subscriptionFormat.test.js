@@ -7,7 +7,9 @@ import {
   filterHomepageSubscriptionPlans,
   formatSubscriptionUsageSummary,
   formatSubscriptionAmountValue,
+  formatSubscriptionTotalValue,
   formatSubscriptionQuotaLimitSummary,
+  getSubscriptionQuotaLimitItems,
 } from './subscriptionFormat.js';
 
 const t = (value) => value;
@@ -82,6 +84,54 @@ test('request-based amount formatting uses count units', () => {
   );
 });
 
+test('quota-based amount formatting can append approximate request counts', () => {
+  assert.equal(
+    formatSubscriptionAmountValue(
+      750000000,
+      { billing_mode: 'quota' },
+      t,
+      (value) => `${value / 500000} USD`,
+      { approximateTimes: 1500 },
+    ),
+    '1500 USD（约等于 1500 次）',
+  );
+
+  assert.equal(
+    formatSubscriptionTotalValue(
+      750000000,
+      { billing_mode: 'quota' },
+      t,
+      (value) => `${value / 500000} USD`,
+      { approximateTimes: 1500 },
+    ),
+    '1500 USD（约等于 1500 次）',
+  );
+});
+
+test('request-based amount formatting ignores approximate request counts', () => {
+  assert.equal(
+    formatSubscriptionAmountValue(
+      12,
+      { billing_mode: 'request' },
+      t,
+      (value) => `${value} USD`,
+      { approximateTimes: 999 },
+    ),
+    '12 次',
+  );
+
+  assert.equal(
+    formatSubscriptionTotalValue(
+      12,
+      { billing_mode: 'request' },
+      t,
+      (value) => `${value} USD`,
+      { approximateTimes: 999 },
+    ),
+    '12 次',
+  );
+});
+
 test('request-based limit summary uses count units', () => {
   assert.equal(
     formatSubscriptionQuotaLimitSummary(
@@ -93,6 +143,32 @@ test('request-based limit summary uses count units', () => {
       t,
     ),
     '每5小时 12 次 · 锚点',
+  );
+});
+
+test('quota limit items include approximate request counts', () => {
+  assert.deepEqual(
+    getSubscriptionQuotaLimitItems(
+      {
+        billing_mode: 'quota',
+        hourly_limit_amount: 10,
+        hourly_limit_hours: 3,
+        hourly_approximate_times: 20,
+        daily_limit_amount: 100,
+        daily_approximate_times: 200,
+        weekly_limit_amount: 1000,
+        weekly_approximate_times: 2000,
+        monthly_limit_amount: 10000,
+        monthly_approximate_times: 20000,
+      },
+      t,
+    ).map(({ key, approximateTimes }) => ({ key, approximateTimes })),
+    [
+      { key: 'hourly', approximateTimes: 20 },
+      { key: 'daily', approximateTimes: 200 },
+      { key: 'weekly', approximateTimes: 2000 },
+      { key: 'monthly', approximateTimes: 20000 },
+    ],
   );
 });
 

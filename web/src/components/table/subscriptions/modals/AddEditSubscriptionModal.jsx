@@ -112,19 +112,24 @@ const AddEditSubscriptionModal = ({
     sort_order: 0,
     max_purchase_per_user: 0,
     total_amount: 0,
+    approximate_times: 0,
     upgrade_group: '',
     allowed_groups: [],
     stripe_price_id: '',
     creem_product_id: '',
     // Rate limits
     hourly_limit_amount: 0,
+    hourly_approximate_times: 0,
     hourly_limit_hours: 1,
     hourly_reset_mode: 'anchor',
     daily_limit_amount: 0,
+    daily_approximate_times: 0,
     daily_reset_mode: 'anchor',
     weekly_limit_amount: 0,
+    weekly_approximate_times: 0,
     weekly_reset_mode: 'anchor',
     monthly_limit_amount: 0,
+    monthly_approximate_times: 0,
     monthly_reset_mode: 'anchor',
   });
 
@@ -154,6 +159,7 @@ const AddEditSubscriptionModal = ({
         p.billing_mode || 'quota',
         quotaToDisplayAmount,
       ),
+      approximate_times: Number(p.approximate_times || 0),
       upgrade_group: p.upgrade_group || '',
       allowed_groups: normalizeGroupList(p.allowed_groups),
       stripe_price_id: p.stripe_price_id || '',
@@ -165,6 +171,7 @@ const AddEditSubscriptionModal = ({
         quotaToDisplayAmount,
         { legacyRequestQuotaCompat: true },
       ),
+      hourly_approximate_times: Number(p.hourly_approximate_times || 0),
       hourly_limit_hours: Number(p.hourly_limit_hours || 1),
       hourly_reset_mode: normalizeSubscriptionResetMode(p.hourly_reset_mode),
       daily_limit_amount: convertSubscriptionAmountToFormValue(
@@ -173,6 +180,7 @@ const AddEditSubscriptionModal = ({
         quotaToDisplayAmount,
         { legacyRequestQuotaCompat: true },
       ),
+      daily_approximate_times: Number(p.daily_approximate_times || 0),
       daily_reset_mode: normalizeSubscriptionResetMode(p.daily_reset_mode),
       weekly_limit_amount: convertSubscriptionAmountToFormValue(
         p.weekly_limit_amount || 0,
@@ -180,6 +188,7 @@ const AddEditSubscriptionModal = ({
         quotaToDisplayAmount,
         { legacyRequestQuotaCompat: true },
       ),
+      weekly_approximate_times: Number(p.weekly_approximate_times || 0),
       weekly_reset_mode: normalizeSubscriptionResetMode(p.weekly_reset_mode),
       monthly_limit_amount: convertSubscriptionAmountToFormValue(
         p.monthly_limit_amount || 0,
@@ -187,6 +196,7 @@ const AddEditSubscriptionModal = ({
         quotaToDisplayAmount,
         { legacyRequestQuotaCompat: true },
       ),
+      monthly_approximate_times: Number(p.monthly_approximate_times || 0),
       monthly_reset_mode: normalizeSubscriptionResetMode(p.monthly_reset_mode),
     };
   };
@@ -237,6 +247,7 @@ const AddEditSubscriptionModal = ({
             values.billing_mode || 'quota',
             displayAmountToQuota,
           ),
+          approximate_times: Number(values.approximate_times || 0),
           upgrade_group: values.upgrade_group || '',
           allowed_groups: normalizeGroupList(values.allowed_groups).join(','),
           // Rate limits
@@ -244,6 +255,9 @@ const AddEditSubscriptionModal = ({
             values.hourly_limit_amount,
             values.billing_mode || 'quota',
             displayAmountToQuota,
+          ),
+          hourly_approximate_times: Number(
+            values.hourly_approximate_times || 0,
           ),
           hourly_limit_hours: Number(values.hourly_limit_hours || 1),
           hourly_reset_mode: normalizeSubscriptionResetMode(
@@ -254,6 +268,9 @@ const AddEditSubscriptionModal = ({
             values.billing_mode || 'quota',
             displayAmountToQuota,
           ),
+          daily_approximate_times: Number(
+            values.daily_approximate_times || 0,
+          ),
           daily_reset_mode: normalizeSubscriptionResetMode(
             values.daily_reset_mode,
           ),
@@ -262,6 +279,9 @@ const AddEditSubscriptionModal = ({
             values.billing_mode || 'quota',
             displayAmountToQuota,
           ),
+          weekly_approximate_times: Number(
+            values.weekly_approximate_times || 0,
+          ),
           weekly_reset_mode: normalizeSubscriptionResetMode(
             values.weekly_reset_mode,
           ),
@@ -269,6 +289,9 @@ const AddEditSubscriptionModal = ({
             values.monthly_limit_amount,
             values.billing_mode || 'quota',
             displayAmountToQuota,
+          ),
+          monthly_approximate_times: Number(
+            values.monthly_approximate_times || 0,
           ),
           monthly_reset_mode: normalizeSubscriptionResetMode(
             values.monthly_reset_mode,
@@ -427,7 +450,13 @@ const AddEditSubscriptionModal = ({
                       </Form.Select>
                     </Col>
 
-                    <Col span={12}>
+                    <Col
+                      span={
+                        values.billing_mode !== 'request'
+                          ? 12
+                          : 24
+                      }
+                    >
                       <Form.InputNumber
                         field='total_amount'
                         label={
@@ -457,6 +486,28 @@ const AddEditSubscriptionModal = ({
                         style={{ width: '100%' }}
                       />
                     </Col>
+
+                    {values.billing_mode !== 'request' && (
+                      <Col span={12}>
+                        <Form.InputNumber
+                          field='approximate_times'
+                          label={t('约等于次数')}
+                          required
+                          min={0}
+                          precision={0}
+                          rules={[
+                            {
+                              required: true,
+                              message: t('请输入约等于次数'),
+                            },
+                          ]}
+                          extraText={t(
+                            '用于记录按量计费套餐的大致可用次数，便于在前台展示说明。',
+                          )}
+                          style={{ width: '100%' }}
+                        />
+                      </Col>
+                    )}
 
                     <Col span={24}>
                       <Form.Select
@@ -706,7 +757,14 @@ const AddEditSubscriptionModal = ({
                   </div>
 
                   <Row gutter={12}>
-                    <Col span={24}>
+                    <Col
+                      span={
+                        values.billing_mode !== 'request' &&
+                        values.hourly_limit_amount > 0
+                          ? 12
+                          : 24
+                      }
+                    >
                       <Form.InputNumber
                         field='hourly_limit_amount'
                         label={
@@ -729,6 +787,23 @@ const AddEditSubscriptionModal = ({
                         style={{ width: '100%' }}
                       />
                     </Col>
+
+                    {values.billing_mode !== 'request' &&
+                      values.hourly_limit_amount > 0 && (
+                        <Col span={12}>
+                          <Form.InputNumber
+                            field='hourly_approximate_times'
+                            label={t('约等于次数')}
+                            required
+                            min={0}
+                            precision={0}
+                            extraText={t(
+                              '用于在前台展示该限额约等于多少次',
+                            )}
+                            style={{ width: '100%' }}
+                          />
+                        </Col>
+                      )}
 
                     {values.hourly_limit_amount > 0 && (
                       <>
@@ -761,7 +836,14 @@ const AddEditSubscriptionModal = ({
                       </>
                     )}
 
-                    <Col span={24}>
+                    <Col
+                      span={
+                        values.billing_mode !== 'request' &&
+                        values.daily_limit_amount > 0
+                          ? 12
+                          : 24
+                      }
+                    >
                       <Form.InputNumber
                         field='daily_limit_amount'
                         label={
@@ -783,6 +865,23 @@ const AddEditSubscriptionModal = ({
                       />
                     </Col>
 
+                    {values.billing_mode !== 'request' &&
+                      values.daily_limit_amount > 0 && (
+                        <Col span={12}>
+                          <Form.InputNumber
+                            field='daily_approximate_times'
+                            label={t('约等于次数')}
+                            required
+                            min={0}
+                            precision={0}
+                            extraText={t(
+                              '用于在前台展示该限额约等于多少次',
+                            )}
+                            style={{ width: '100%' }}
+                          />
+                        </Col>
+                      )}
+
                     {values.daily_limit_amount > 0 && (
                       <SubscriptionResetModeField
                         field='daily_reset_mode'
@@ -802,7 +901,14 @@ const AddEditSubscriptionModal = ({
                       />
                     )}
 
-                    <Col span={24}>
+                    <Col
+                      span={
+                        values.billing_mode !== 'request' &&
+                        values.weekly_limit_amount > 0
+                          ? 12
+                          : 24
+                      }
+                    >
                       <Form.InputNumber
                         field='weekly_limit_amount'
                         label={
@@ -824,6 +930,23 @@ const AddEditSubscriptionModal = ({
                       />
                     </Col>
 
+                    {values.billing_mode !== 'request' &&
+                      values.weekly_limit_amount > 0 && (
+                        <Col span={12}>
+                          <Form.InputNumber
+                            field='weekly_approximate_times'
+                            label={t('约等于次数')}
+                            required
+                            min={0}
+                            precision={0}
+                            extraText={t(
+                              '用于在前台展示该限额约等于多少次',
+                            )}
+                            style={{ width: '100%' }}
+                          />
+                        </Col>
+                      )}
+
                     {values.weekly_limit_amount > 0 && (
                       <SubscriptionResetModeField
                         field='weekly_reset_mode'
@@ -843,7 +966,14 @@ const AddEditSubscriptionModal = ({
                       />
                     )}
 
-                    <Col span={24}>
+                    <Col
+                      span={
+                        values.billing_mode !== 'request' &&
+                        values.monthly_limit_amount > 0
+                          ? 12
+                          : 24
+                      }
+                    >
                       <Form.InputNumber
                         field='monthly_limit_amount'
                         label={
@@ -864,6 +994,23 @@ const AddEditSubscriptionModal = ({
                         style={{ width: '100%' }}
                       />
                     </Col>
+
+                    {values.billing_mode !== 'request' &&
+                      values.monthly_limit_amount > 0 && (
+                        <Col span={12}>
+                          <Form.InputNumber
+                            field='monthly_approximate_times'
+                            label={t('约等于次数')}
+                            required
+                            min={0}
+                            precision={0}
+                            extraText={t(
+                              '用于在前台展示该限额约等于多少次',
+                            )}
+                            style={{ width: '100%' }}
+                          />
+                        </Col>
+                      )}
 
                     {values.monthly_limit_amount > 0 && (
                       <SubscriptionResetModeField

@@ -414,6 +414,11 @@ func ensureSubscriptionPlanTableSQLite() error {
 ` + "`weekly_reset_mode`" + ` varchar(16) DEFAULT 'anchor',
 ` + "`monthly_limit_amount`" + ` bigint DEFAULT 0,
 ` + "`monthly_reset_mode`" + ` varchar(16) DEFAULT 'anchor',
+` + "`approximate_times`" + ` bigint DEFAULT 0,
+` + "`hourly_approximate_times`" + ` bigint DEFAULT 0,
+` + "`daily_approximate_times`" + ` bigint DEFAULT 0,
+` + "`weekly_approximate_times`" + ` bigint DEFAULT 0,
+` + "`monthly_approximate_times`" + ` bigint DEFAULT 0,
 ` + "`created_at`" + ` bigint,
 ` + "`updated_at`" + ` bigint,
 PRIMARY KEY (` + "`id`" + `)
@@ -460,6 +465,11 @@ PRIMARY KEY (` + "`id`" + `)
 		{Name: "weekly_reset_mode", DDL: "`weekly_reset_mode` varchar(16) DEFAULT 'anchor'"},
 		{Name: "monthly_limit_amount", DDL: "`monthly_limit_amount` bigint DEFAULT 0"},
 		{Name: "monthly_reset_mode", DDL: "`monthly_reset_mode` varchar(16) DEFAULT 'anchor'"},
+		{Name: "approximate_times", DDL: "`approximate_times` bigint DEFAULT 0"},
+		{Name: "hourly_approximate_times", DDL: "`hourly_approximate_times` bigint DEFAULT 0"},
+		{Name: "daily_approximate_times", DDL: "`daily_approximate_times` bigint DEFAULT 0"},
+		{Name: "weekly_approximate_times", DDL: "`weekly_approximate_times` bigint DEFAULT 0"},
+		{Name: "monthly_approximate_times", DDL: "`monthly_approximate_times` bigint DEFAULT 0"},
 		{Name: "created_at", DDL: "`created_at` bigint"},
 		{Name: "updated_at", DDL: "`updated_at` bigint"},
 	}

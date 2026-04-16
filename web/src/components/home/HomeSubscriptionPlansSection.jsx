@@ -18,20 +18,16 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React, { useEffect, useState } from 'react';
-import { Button, Card, Divider, Spin, Tag, Typography } from '@douyinfe/semi-ui';
+import { Button, Card, Spin, Tag, Typography } from '@douyinfe/semi-ui';
 import { Link } from 'react-router-dom';
-import { API, renderQuota } from '../../helpers';
+import { API } from '../../helpers';
 import { convertUSDToCurrency } from '../../helpers/render';
 import {
   filterHomepageSubscriptionPlans,
-  formatSubscriptionDuration,
-  formatSubscriptionResetPeriod,
-  formatSubscriptionTotalValue,
-  getSubscriptionQuotaLimitItems,
-  getSubscriptionTotalLabel,
   isRequestBasedSubscription,
 } from '../../helpers/subscriptionFormat';
 import { useTranslation } from 'react-i18next';
+import HomeSubscriptionPlanMetrics from './HomeSubscriptionPlanMetrics';
 
 const { Text } = Typography;
 
@@ -104,9 +100,6 @@ const HomeSubscriptionPlansSection = () => {
               ? 'from-emerald-500/12 via-white to-teal-500/10 dark:from-emerald-900/20 dark:via-slate-900 dark:to-teal-900/20'
               : 'from-sky-500/12 via-white to-indigo-500/10 dark:from-sky-900/20 dark:via-slate-900 dark:to-indigo-900/20';
 
-            const quotaLimitItems = getSubscriptionQuotaLimitItems(plan, t);
-            const hasQuotaLimits = quotaLimitItems.length > 0;
-
             return (
               <Card
                 key={plan?.id}
@@ -158,87 +151,7 @@ const HomeSubscriptionPlansSection = () => {
                     </div>
                   </div>
 
-                  <div className='space-y-3 mb-8'>
-                    <div className='flex items-center justify-between gap-4'>
-                      <Text type='tertiary'>{getSubscriptionTotalLabel(plan, t)}</Text>
-                      <Text strong>
-                        {Number(plan?.total_amount || 0) > 0
-                          ? formatSubscriptionTotalValue(
-                              plan.total_amount,
-                              plan,
-                              t,
-                              renderQuota,
-                            )
-                          : t('不限')}
-                      </Text>
-                    </div>
-
-                    <div className='flex items-center justify-between gap-4'>
-                      <Text type='tertiary'>{t('有效期')}</Text>
-                      <Text strong>{formatSubscriptionDuration(plan, t)}</Text>
-                    </div>
-
-                    <div className='flex items-center justify-between gap-4'>
-                      <Text type='tertiary'>{t('购买上限')}</Text>
-                      <Text strong>
-                        {Number(plan?.max_purchase_per_user || 0) > 0
-                          ? plan.max_purchase_per_user
-                          : t('不限')}
-                      </Text>
-                    </div>
-
-                    {plan?.allowed_groups && plan.allowed_groups.trim() !== '' ? (
-                      <div className='flex items-center justify-between gap-4'>
-                        <Text type='tertiary'>{t('可用分组')}</Text>
-                        <div className='flex flex-wrap justify-end gap-1'>
-                          {plan.allowed_groups.split(',').map((group, idx) => (
-                            <Tag key={idx} size='small' style={{ margin: 0 }}>
-                              {group.trim()}
-                            </Tag>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                        <div className='flex items-center justify-between gap-4'>
-                          <Text type='tertiary'>{t('可用分组')}</Text>
-                          <div className='flex flex-wrap justify-end gap-1'>
-                            不限
-                          </div>
-                        </div>
-                    )}
-
-                    {hasQuotaLimits && (
-                      <>
-                        <div className='mb-4'>
-                          <Text type='tertiary' className='text-xs uppercase tracking-wide'>
-                            {t('用量限制')}
-                          </Text>
-                        </div>
-                        <Divider margin='12px 0' />
-
-                        <div className='space-y-2 mb-6'>
-                          {quotaLimitItems.map((item) => (
-                            <div key={item.key} className='flex items-center justify-between gap-4'>
-                              <Text type='tertiary'>{item.label}</Text>
-                              <div className='flex items-center gap-2'>
-                                <Text strong>{item.amount}</Text>
-                                <Text type='tertiary'>{t('次')}</Text>
-                                {item.nextResetTime > 0 && (
-                                  <Text type='tertiary' className='text-xs'>
-                                    ({formatSubscriptionResetPeriod(
-                                      { quota_reset_period: item.key, quota_reset_mode: item.mode },
-                                      t,
-                                      { shortMode: true },
-                                    )})
-                                  </Text>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <HomeSubscriptionPlanMetrics plan={plan} t={t} />
 
                   <div className='mt-auto'>
                     <Link to='/console/subscriptions' className='block'>

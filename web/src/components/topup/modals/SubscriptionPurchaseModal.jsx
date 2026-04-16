@@ -37,6 +37,7 @@ import {
   formatSubscriptionDuration,
   formatSubscriptionResetPeriod,
   formatSubscriptionTotalValue,
+  getSubscriptionApproximateTimes,
   getSubscriptionTotalLabel,
   isRequestBasedSubscription,
 } from '../../../helpers/subscriptionFormat';
@@ -63,6 +64,7 @@ const SubscriptionPurchaseModal = ({
 }) => {
   const plan = selectedPlan?.plan;
   const totalAmount = Number(plan?.total_amount || 0);
+  const approximateTimes = getSubscriptionApproximateTimes(plan);
   const isRequestBilling = isRequestBasedSubscription(plan);
   const { symbol, rate } = getCurrencyConfig();
   const price = plan ? Number(plan.price_amount || 0) : 0;
@@ -155,6 +157,9 @@ const SubscriptionPurchaseModal = ({
                           plan,
                           t,
                           renderQuota,
+                          {
+                            approximateTimes,
+                          },
                         )}
                       </Text>
                     </Tooltip>

@@ -75,6 +75,9 @@ const SubscriptionQuotaLimitSummary = ({
                     item,
                     t,
                     renderQuota,
+                    {
+                      approximateTimes: item.approximateTimes,
+                    },
                   )}
                 </Tag>
                 <Tag size='small' color='white'>

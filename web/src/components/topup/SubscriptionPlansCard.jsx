@@ -582,9 +582,14 @@ const SubscriptionPlansCard = ({
                 const limit = Number(plan?.max_purchase_per_user || 0);
                 const isRequestBilling = isRequestBasedSubscription(plan);
                 const limitLabel = limit > 0 ? `${t('限购')} ${limit}` : null;
+                const approximateTimes = Number(
+                  plan?.approximate_times ?? plan?.approximateTimes ?? 0,
+                );
                 const totalLabel =
                   totalAmount > 0
-                    ? `${getSubscriptionTotalLabel(plan, t)}: ${formatSubscriptionTotalValue(totalAmount, plan, t, renderQuota)}`
+                    ? `${getSubscriptionTotalLabel(plan, t)}: ${formatSubscriptionTotalValue(totalAmount, plan, t, renderQuota, {
+                        approximateTimes,
+                      })}`
                     : `${getSubscriptionTotalLabel(plan, t)}: ${t('不限')}`;
                 const upgradeLabel = plan?.upgrade_group
                   ? `${t('升级分组')}: ${plan.upgrade_group}`
