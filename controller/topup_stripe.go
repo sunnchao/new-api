@@ -176,7 +176,7 @@ func StripeWebhook(c *gin.Context) {
 	case stripe.EventTypeCheckoutSessionExpired:
 		sessionExpired(event)
 	case stripe.EventTypeCheckoutSessionAsyncPaymentSucceeded:
-		sessionAsyncPaymentSucceeded(event)
+		sessionAsyncPaymentSucceeded(event, c.ClientIP())
 	case stripe.EventTypeCheckoutSessionAsyncPaymentFailed:
 		sessionAsyncPaymentFailed(event)
 	default:
@@ -201,17 +201,17 @@ func sessionCompleted(event stripe.Event, clientIP string) {
 		return
 	}
 
-	fulfillOrder(event, referenceId, customerId)
+	fulfillOrder(event, referenceId, customerId, clientIP)
 }
 
 // sessionAsyncPaymentSucceeded handles delayed payment methods (bank transfer, SEPA, etc.)
 // that confirm payment after the checkout session completes.
-func sessionAsyncPaymentSucceeded(event stripe.Event) {
+func sessionAsyncPaymentSucceeded(event stripe.Event, clientIP string) {
 	customerId := event.GetObjectValue("customer")
 	referenceId := event.GetObjectValue("client_reference_id")
 	log.Printf("Stripe 异步支付成功: %s", referenceId)
 
-	fulfillOrder(event, referenceId, customerId)
+	fulfillOrder(event, referenceId, customerId, clientIP)
 }
 
 // sessionAsyncPaymentFailed marks orders as failed when delayed payment methods
@@ -253,7 +253,7 @@ func sessionAsyncPaymentFailed(event stripe.Event) {
 }
 
 // fulfillOrder is the shared logic for crediting quota after payment is confirmed.
-func fulfillOrder(event stripe.Event, referenceId string, customerId string) {
+func fulfillOrder(event stripe.Event, referenceId string, customerId string, clientIP string) {
 	if len(referenceId) == 0 {
 		log.Println("未提供支付单号")
 		return
