@@ -263,7 +263,7 @@ function formatSubscriptionApproximateTimes(approximateTimes, t) {
   if (!Number.isFinite(count) || count <= 0) {
     return '';
   }
-  return `（${t('约等于')} ${count} ${t('次')}）`;
+  return `（${t('约')} ${count} ${t('次')}）`;
 }
 
 export function formatSubscriptionAmountValue(

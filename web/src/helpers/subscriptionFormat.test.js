@@ -93,7 +93,7 @@ test('quota-based amount formatting can append approximate request counts', () =
       (value) => `${value / 500000} USD`,
       { approximateTimes: 1500 },
     ),
-    '1500 USD（约等于 1500 次）',
+    '1500 USD（约 1500 次）',
   );
 
   assert.equal(
@@ -104,7 +104,7 @@ test('quota-based amount formatting can append approximate request counts', () =
       (value) => `${value / 500000} USD`,
       { approximateTimes: 1500 },
     ),
-    '1500 USD（约等于 1500 次）',
+    '1500 USD（约 1500 次）',
   );
 });
 
