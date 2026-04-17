@@ -39,7 +39,7 @@ const HomeSubscriptionPlansSection = () => {
   useEffect(() => {
     let mounted = true;
 
-    API.get('/api/subscription/plans')
+    API.get('/api/subscription/home/plans')
       .then((res) => {
         if (!mounted) return;
         if (res.data?.success) {

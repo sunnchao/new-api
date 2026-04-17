@@ -26,6 +26,7 @@ import crypto from 'crypto';
 import { codeInspectorPlugin } from 'code-inspector-plugin';
 import { visualizer } from 'rollup-plugin-visualizer';
 import viteCompression from 'vite-plugin-compression';
+import { cloudflareRocketLoaderGuard } from './build/cloudflareRocketLoaderGuard.js';
 const { vitePluginSemi } = pkg;
 
 // https://vitejs.dev/config/
@@ -36,6 +37,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    cloudflareRocketLoaderGuard(),
     codeInspectorPlugin({
       bundler: 'vite',
     }),
