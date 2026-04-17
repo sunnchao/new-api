@@ -31,8 +31,8 @@ import {
   setUserData,
   onDiscordOAuthClicked,
   onCustomOAuthClicked,
+  Turnstile,
 } from '../../helpers';
-import Turnstile from 'react-turnstile';
 import {
   Button,
   Card,

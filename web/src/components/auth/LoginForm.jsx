@@ -39,8 +39,8 @@ import {
   prepareCredentialRequestOptions,
   buildAssertionResult,
   isPasskeySupported,
+  Turnstile,
 } from '../../helpers';
-import Turnstile from 'react-turnstile';
 import {
   Button,
   Card,

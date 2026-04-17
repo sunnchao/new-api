@@ -25,8 +25,8 @@ import {
   showInfo,
   showSuccess,
   getSystemName,
+  Turnstile,
 } from '../../helpers';
-import Turnstile from 'react-turnstile';
 import { Button, Card, Form, Typography } from '@douyinfe/semi-ui';
 import { IconMail } from '@douyinfe/semi-icons';
 import { Link } from 'react-router-dom';
