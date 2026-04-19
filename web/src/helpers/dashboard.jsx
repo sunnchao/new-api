@@ -50,15 +50,64 @@ export const getTimeInterval = (timeType, isSeconds = false) => {
 
 export const getInitialTimestamp = () => {
   const defaultTime = getDefaultTime();
-  const now = new Date().getTime() / 1000;
+  const now = new Date();
+  const nowSec = now.getTime() / 1000;
 
   switch (defaultTime) {
-    case 'hour':
-      return timestamp2string(now - 86400);
-    case 'week':
-      return timestamp2string(now - 86400 * 30);
+    case 'hour': {
+      // 当前小时的起点: XX:00:00
+      const startOfHour = new Date(now);
+      startOfHour.setMinutes(0, 0, 0);
+      return timestamp2string(startOfHour.getTime() / 1000);
+    }
+    case 'day': {
+      // 今日零点: 00:00:00
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      return timestamp2string(startOfDay.getTime() / 1000);
+    }
+    case 'week': {
+      // 本周一零点: Monday 00:00:00
+      const startOfWeek = new Date(now);
+      const dayOfWeek = startOfWeek.getDay(); // 0=Sun, 1=Mon, ...
+      const diffToMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 距周一的天数
+      startOfWeek.setDate(startOfWeek.getDate() - diffToMon);
+      startOfWeek.setHours(0, 0, 0, 0);
+      return timestamp2string(startOfWeek.getTime() / 1000);
+    }
     default:
-      return timestamp2string(now - 86400 * 7);
+      return timestamp2string(nowSec - 86400 * 7);
+  }
+};
+
+export const getEndTimestamp = () => {
+  const defaultTime = getDefaultTime();
+  const now = new Date();
+
+  switch (defaultTime) {
+    case 'hour': {
+      // 当前小时的终点: XX:59:59
+      const endOfHour = new Date(now);
+      endOfHour.setMinutes(59, 59, 999);
+      return timestamp2string(endOfHour.getTime() / 1000);
+    }
+    case 'day': {
+      // 今日终点: 23:59:59
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+      return timestamp2string(endOfDay.getTime() / 1000);
+    }
+    case 'week': {
+      // 本周日终点: Sunday 23:59:59
+      const endOfWeek = new Date(now);
+      const dayOfWeek = endOfWeek.getDay(); // 0=Sun, 1=Mon, ...
+      const daysUntilSun = dayOfWeek === 0 ? 0 : 7 - dayOfWeek; // 距周日的剩余天数
+      endOfWeek.setDate(endOfWeek.getDate() + daysUntilSun);
+      endOfWeek.setHours(23, 59, 59, 999);
+      return timestamp2string(endOfWeek.getTime() / 1000);
+    }
+    default:
+      return timestamp2string(now.getTime() / 1000);
   }
 };
 
