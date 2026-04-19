@@ -908,9 +908,6 @@ func ManageUser(c *gin.Context) {
 	user := model.User{
 		Id: req.Id,
 	}
-	otherParam := map[string]interface{}{
-		"RequestIp": c.ClientIP(),
-	}
 	// Fill attributes
 	model.DB.Unscoped().Where(&user).First(&user)
 	if user.Id == 0 {

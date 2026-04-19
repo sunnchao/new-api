@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -23,7 +24,7 @@ type SubscriptionBalancePayRequest struct {
 func SubscriptionRequestBalancePay(c *gin.Context) {
 	var req SubscriptionBalancePayRequest
 	if err := c.ShouldBindJSON(&req); err != nil || req.PlanId <= 0 {
-		c.JSON(200, gin.H{"message": "error", "data": "参数错误"})
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "参数错误"})
 		return
 	}
 
@@ -72,7 +73,7 @@ func SubscriptionRequestBalancePay(c *gin.Context) {
 		costQuota = 0
 	}
 	if costQuota > 0 && user.Quota < costQuota {
-		c.JSON(200, gin.H{"message": "error", "data": "余额不足，请先充值"})
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "余额不足，请先充值"})
 		return
 	}
 
@@ -90,32 +91,32 @@ func SubscriptionRequestBalancePay(c *gin.Context) {
 		Status:        common.TopUpStatusPending,
 	}
 	if err := order.Insert(); err != nil {
-		c.JSON(200, gin.H{"message": "error", "data": "创建订单失败"})
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "创建订单失败"})
 		return
 	}
 
 	if costQuota > 0 {
 		if err := model.DecreaseUserQuota(userId, costQuota, false); err != nil {
-			_ = model.ExpireSubscriptionOrder(tradeNo)
-			c.JSON(200, gin.H{"message": "error", "data": "扣款失败，请稍后重试"})
+			_ = model.ExpireSubscriptionOrder(tradeNo, order.PaymentMethod)
+			c.JSON(http.StatusOK, gin.H{"message": "error", "data": "扣款失败，请稍后重试"})
 			return
 		}
 	}
 
 	providerPayload := common.GetJsonString(map[string]any{
-		"payment_method": PaymentMethodBalance,
+		"payment_method": order.PaymentMethod,
 		"cost_quota":     costQuota,
 	})
-	if err := model.CompleteSubscriptionOrder(tradeNo, providerPayload, c.ClientIP()); err != nil {
+	if err := model.CompleteSubscriptionOrder(tradeNo, "", providerPayload, c.ClientIP()); err != nil {
 		if costQuota > 0 {
 			_ = model.IncreaseUserQuota(userId, costQuota, false)
 		}
-		_ = model.ExpireSubscriptionOrder(tradeNo)
-		c.JSON(200, gin.H{"message": "error", "data": "订阅激活失败，请稍后重试"})
+		_ = model.ExpireSubscriptionOrder(tradeNo, order.PaymentMethod)
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "订阅激活失败，请稍后重试"})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"message": "success",
 		"data": gin.H{
 			"order_id": tradeNo,
