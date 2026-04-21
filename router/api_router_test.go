@@ -23,6 +23,14 @@ type subscriptionPlansAPIResponse struct {
 	Data    []json.RawMessage `json:"data"`
 }
 
+type pricingOptionResponse struct {
+	Success bool `json:"success"`
+	Options []struct {
+		Key   string `json:"key"`
+		Value string `json:"value"`
+	} `json:"options"`
+}
+
 func setupSubscriptionRouteTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
@@ -53,6 +61,40 @@ func setupSubscriptionRouteTestDB(t *testing.T) *gorm.DB {
 		ShowOnHome: true,
 	}).Error; err != nil {
 		t.Fatalf("failed to seed subscription plan: %v", err)
+	}
+
+	t.Cleanup(func() {
+		sqlDB, err := db.DB()
+		if err == nil {
+			_ = sqlDB.Close()
+		}
+	})
+
+	return db
+}
+
+func setupPricingRouteTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+
+	gin.SetMode(gin.TestMode)
+	common.UsingSQLite = true
+	common.UsingMySQL = false
+	common.UsingPostgreSQL = false
+	common.RedisEnabled = false
+	common.GlobalApiRateLimitEnable = false
+	common.CriticalRateLimitEnable = false
+
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to open sqlite db: %v", err)
+	}
+
+	model.DB = db
+	model.LOG_DB = db
+
+	if err := db.AutoMigrate(&model.Ability{}, &model.Channel{}, &model.Vendor{}, &model.Model{}); err != nil {
+		t.Fatalf("failed to migrate pricing tables: %v", err)
 	}
 
 	t.Cleanup(func() {
@@ -107,5 +149,64 @@ func TestSubscriptionPlansStillRequireAuthentication(t *testing.T) {
 
 	if recorder.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 for anonymous authenticated plans request, got %d", recorder.Code)
+	}
+}
+
+func TestPricingIncludesAnonymousOptionSubset(t *testing.T) {
+	setupPricingRouteTestDB(t)
+
+	common.OptionMapRWMutex.Lock()
+	originalOptionMap := common.OptionMap
+	common.OptionMap = map[string]string{
+		"tier_pricing.enabled": "true",
+		"tier_pricing.rules":   `[{"id":"rule-1"}]`,
+		"GroupModelBilling":    `{"vip":{"gpt-4":{"quota_type":1}}}`,
+		"SystemSecret":         "should-not-leak",
+	}
+	common.OptionMapRWMutex.Unlock()
+	t.Cleanup(func() {
+		common.OptionMapRWMutex.Lock()
+		common.OptionMap = originalOptionMap
+		common.OptionMapRWMutex.Unlock()
+	})
+
+	server := setupSubscriptionRouteTestServer()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/pricing", nil)
+	recorder := httptest.NewRecorder()
+	server.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 for anonymous pricing request, got %d", recorder.Code)
+	}
+
+	var response pricingOptionResponse
+	if err := common.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode pricing response: %v", err)
+	}
+	if !response.Success {
+		t.Fatalf("expected success response")
+	}
+
+	if len(response.Options) != 3 {
+		t.Fatalf("expected exactly 3 pricing options, got %d", len(response.Options))
+	}
+
+	optionsByKey := make(map[string]string, len(response.Options))
+	for _, option := range response.Options {
+		optionsByKey[option.Key] = option.Value
+	}
+
+	if optionsByKey["tier_pricing.enabled"] != "true" {
+		t.Fatalf("expected tier_pricing.enabled option to be returned")
+	}
+	if optionsByKey["tier_pricing.rules"] != `[{"id":"rule-1"}]` {
+		t.Fatalf("expected tier_pricing.rules option to be returned")
+	}
+	if optionsByKey["GroupModelBilling"] != `{"vip":{"gpt-4":{"quota_type":1}}}` {
+		t.Fatalf("expected GroupModelBilling option to be returned")
+	}
+	if _, ok := optionsByKey["SystemSecret"]; ok {
+		t.Fatalf("expected non-pricing options to stay hidden")
 	}
 }

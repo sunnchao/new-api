@@ -257,6 +257,7 @@ export const useModelPricingData = () => {
       usable_group,
       supported_endpoint,
       auto_groups,
+      options,
     } = res.data;
     if (success) {
       setGroupRatio(group_ratio);
@@ -273,45 +274,40 @@ export const useModelPricingData = () => {
       setEndpointMap(supported_endpoint || {});
       setAutoGroups(auto_groups || []);
       setModelsFormat(data, group_ratio, vendorMap);
+      loadTierPricingConfig(options);
     } else {
       showError(message);
     }
     setLoading(false);
   };
 
-  const loadTierPricingConfig = async () => {
-    try {
-      const res = await API.get('/api/option/');
-      if (res.data.success) {
-        const options = res.data.data;
-        let enabled = false;
-        let rules = [];
-        let groupBilling = {};
-        options.forEach((item) => {
-          if (item.key === 'tier_pricing.enabled') {
-            enabled = item.value === 'true' || item.value === true;
-          }
-          if (item.key === 'tier_pricing.rules') {
-            try {
-              rules = JSON.parse(item.value || '[]');
-            } catch (e) {
-              rules = [];
-            }
-          }
-          if (item.key === 'GroupModelBilling') {
-            try {
-              groupBilling = JSON.parse(item.value || '{}');
-            } catch (e) {
-              groupBilling = {};
-            }
-          }
-        });
-        setTierPricingConfig({ enabled, rules });
-        setGroupModelBilling(groupBilling);
+  const loadTierPricingConfig = (options = []) => {
+    let enabled = false;
+    let rules = [];
+    let groupBilling = {};
+
+    options.forEach((item) => {
+      if (item.key === 'tier_pricing.enabled') {
+        enabled = item.value === 'true' || item.value === true;
       }
-    } catch (e) {
-      console.error('Failed to load tier pricing config:', e);
-    }
+      if (item.key === 'tier_pricing.rules') {
+        try {
+          rules = JSON.parse(item.value || '[]');
+        } catch (e) {
+          rules = [];
+        }
+      }
+      if (item.key === 'GroupModelBilling') {
+        try {
+          groupBilling = JSON.parse(item.value || '{}');
+        } catch (e) {
+          groupBilling = {};
+        }
+      }
+    });
+
+    setTierPricingConfig({ enabled, rules });
+    setGroupModelBilling(groupBilling);
   };
 
   const refresh = async () => {
@@ -371,7 +367,6 @@ export const useModelPricingData = () => {
 
   useEffect(() => {
     refresh().then();
-    loadTierPricingConfig().then();
   }, []);
 
   // 当筛选条件变化时重置到第一页

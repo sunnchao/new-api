@@ -10,6 +10,32 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var pricingOptionKeys = []string{
+	"tier_pricing.enabled",
+	"tier_pricing.rules",
+	"GroupModelBilling",
+}
+
+func getPricingOptions() []*model.Option {
+	options := make([]*model.Option, 0, len(pricingOptionKeys))
+
+	common.OptionMapRWMutex.RLock()
+	defer common.OptionMapRWMutex.RUnlock()
+
+	for _, key := range pricingOptionKeys {
+		value, ok := common.OptionMap[key]
+		if !ok {
+			continue
+		}
+		options = append(options, &model.Option{
+			Key:   key,
+			Value: value,
+		})
+	}
+
+	return options
+}
+
 func filterPricingByUsableGroups(pricing []model.Pricing, usableGroup map[string]string) []model.Pricing {
 	if len(pricing) == 0 {
 		return pricing
@@ -89,6 +115,7 @@ func GetPricing(c *gin.Context) {
 		"usable_group":       usableGroup,
 		"supported_endpoint": model.GetSupportedEndpointMap(),
 		"auto_groups":        service.GetUserAutoGroup(group),
+		"options":            getPricingOptions(),
 		"pricing_version":    "a42d372ccf0b5dd13ecf71203521f9d2",
 	})
 }
