@@ -31,6 +31,7 @@ import {
   Col,
   Spin,
   Tooltip,
+  Tag,
   Tabs,
   TabPane,
     Tag
