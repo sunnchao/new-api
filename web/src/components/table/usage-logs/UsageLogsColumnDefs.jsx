@@ -35,6 +35,7 @@ import {
   getLogOther,
   renderModelTag,
   renderModelPriceSimple,
+  renderTieredModelPriceSimple,
 } from '../../../helpers';
 import { IconHelpCircle } from '@douyinfe/semi-icons';
 import { CircleAlert, Route, Sparkles } from 'lucide-react';
@@ -56,19 +57,6 @@ const colors = [
   'violet',
   'yellow',
 ];
-
-const LogType = {
-    RECHARGE: 1, // '充值',
-    SUBSCRIPTION_PAY: 10, // '订阅',
-    CONSUME: 2, // '消费',
-    MANAGEMENT: 3, // '管理',
-    SYSTEM: 4, // '系统',
-    SIGNIN: 5, // '签到',
-    ERROR: 6, // '错误',
-    REFUND: 7, // '返现',
-    LOGARCHIVE: 8, // '日志归档',
-    ERRORADMIN: 9, // '错误(管理员)',
-};
 
 function formatRatio(ratio) {
   if (ratio === undefined || ratio === null) {
@@ -111,71 +99,59 @@ function buildChannelAffinityTooltip(affinity, t) {
 // Render functions
 function renderType(type, t) {
   switch (type) {
-    case LogType.RECHARGE:
+    case 1:
       return (
         <Tag color='cyan' shape='circle'>
           {t('充值')}
         </Tag>
       );
-    case LogType.SUBSCRIPTION_PAY:
-      return (
-        <Tag color='purple' shape='circle' size={'small'}>
-          {t('订阅')}
-        </Tag>
-      );
-    case LogType.CONSUME:
+    case 2:
       return (
         <Tag color='lime' shape='circle'>
           {t('消费')}
         </Tag>
       );
-    case LogType.MANAGEMENT:
+    case 3:
       return (
         <Tag color='orange' shape='circle'>
           {t('管理')}
         </Tag>
       );
-    case LogType.SYSTEM:
+    case 4:
       return (
         <Tag color='purple' shape='circle'>
           {t('系统')}
         </Tag>
       );
-    case LogType.SIGNIN:
+    case 5:
       return (
-        <Tag color='purple' shape='circle'>
-          {t('签到')}
+        <Tag color='red' shape='circle'>
+          {t('错误')}
         </Tag>
-      );
-    case LogType.ERROR:
-      return (
-          <Tag color='red' shape='circle'>
-            {t('错误')}
-          </Tag>
-      )
-    case LogType.REFUND:
-      return (
-          <Tag color='purple' shape='circle'>
-            {t('返现')}
-          </Tag>
-      );
-    case LogType.LOGARCHIVE:
-      return (
-          <Tag color='red' shape='circle'>
-            {t('日志归档')}
-          </Tag>
-      );
-    case LogType.ERRORADMIN:
-      return (
-          <Tag color='red' shape='circle'>
-            {t('错误(管理员)')}
-          </Tag>
       );
     case 6:
       return (
         <Tag color='teal' shape='circle'>
           {t('退款')}
         </Tag>
+      );
+    case 7:
+      return (
+          <Tag color='purple' shape='circle'>
+            {t('返现')}
+          </Tag>
+      );
+    case 8:
+      return (
+          <Tag color='red' shape='circle'>
+            {t('日志归档')}
+          </Tag>
+      );
+    case 9:
+      return (
+          <Tag color='red' shape='circle'>
+            {t('错误(管理员)')}
+          </Tag>
       );
     default:
       return (
@@ -505,50 +481,16 @@ function getUsageLogDetailSummary(record, text, billingDisplayMode, t) {
     };
   }
 
+  const summaryOpts = { ...other, displayMode: billingDisplayMode, outputMode: 'segments', completion_ratio: other.completion_ratio };
+
+  if (other?.billing_mode === 'tiered_expr') {
+    return { segments: renderTieredModelPriceSimple(summaryOpts) };
+  }
+
   return {
     segments: other?.claude
-      ? renderModelPriceSimple(
-          other.model_ratio,
-          other.model_price,
-          other.group_ratio,
-          other?.user_group_ratio,
-          other.cache_tokens || 0,
-          other.cache_ratio || 1.0,
-          other.cache_creation_tokens || 0,
-          other.cache_creation_ratio || 1.0,
-          other.cache_creation_tokens_5m || 0,
-          other.cache_creation_ratio_5m || other.cache_creation_ratio || 1.0,
-          other.cache_creation_tokens_1h || 0,
-          other.cache_creation_ratio_1h || other.cache_creation_ratio || 1.0,
-          false,
-          1.0,
-          other?.is_system_prompt_overwritten,
-          'claude',
-          billingDisplayMode,
-          'segments',
-            other.completion_ratio
-        )
-      : renderModelPriceSimple(
-          other.model_ratio,
-          other.model_price,
-          other.group_ratio,
-          other?.user_group_ratio,
-          other.cache_tokens || 0,
-          other.cache_ratio || 1.0,
-          0,
-          1.0,
-          0,
-          1.0,
-          0,
-          1.0,
-          false,
-          1.0,
-          other?.is_system_prompt_overwritten,
-          'openai',
-          billingDisplayMode,
-          'segments',
-            other.completion_ratio
-        ),
+      ? renderModelPriceSimple({ ...summaryOpts, provider: 'claude' })
+      : renderModelPriceSimple({ ...summaryOpts, provider: 'openai' }),
   };
 }
 
@@ -598,7 +540,10 @@ export const getLogsColumns = ({
         }
 
         return isAdminUser &&
-          (record.type === 0 || record.type === 2 || record.type === 6 || record.type === 9 || record.type === 7) ? (
+          (record.type === 0 ||
+            record.type === 2 ||
+            record.type === 5 ||
+            record.type === 6 || record.type === 7 || record.type === 9) ? (
           <Space>
             <span style={{ position: 'relative', display: 'inline-block' }}>
               <Tooltip content={record.channel_name || t('未知渠道')}>
@@ -688,7 +633,10 @@ export const getLogsColumns = ({
       title: t('令牌'),
       dataIndex: 'token_name',
       render: (text, record, index) => {
-        return record.type === 0 || record.type === 2 || record.type === 7 ? (
+        return record.type === 0 ||
+          record.type === 2 ||
+          record.type === 5 ||
+          record.type === 6  || record.type === 7 ? (
           <div>
             <Tag
               color='grey'
@@ -711,7 +659,12 @@ export const getLogsColumns = ({
       title: t('分组'),
       dataIndex: 'group',
       render: (text, record, index) => {
-        if (record.type === 0 || record.type === 2 || record.type === 5 || record.type === 6 || record.type === 7) {
+        if (
+          record.type === 0 ||
+          record.type === 2 ||
+          record.type === 5 ||
+          record.type === 6 || record.type === 7
+        ) {
           if (record.group) {
             return <>{renderGroup(record.group)}</>;
           } else {
@@ -751,7 +704,10 @@ export const getLogsColumns = ({
       title: t('模型'),
       dataIndex: 'model_name',
       render: (text, record, index) => {
-        return record.type === 0 || record.type === 2 || record.type === 6 || record.type === 9 || record.type === 7 ? (
+        return record.type === 0 ||
+          record.type === 2 ||
+          record.type === 5 ||
+          record.type === 6 || record.type === 7 || record.type === 9 ? (
           <>{renderModelName(record, copyText, t)}</>
         ) : (
           <></>
@@ -763,7 +719,7 @@ export const getLogsColumns = ({
       title: t('用时/首字'),
       dataIndex: 'use_time',
       render: (text, record, index) => {
-        if (!(record.type === 2)) {
+        if (!(record.type === 2 || record.type === 5)) {
           return <></>;
         }
         if (record.is_stream) {
@@ -818,7 +774,10 @@ export const getLogsColumns = ({
           cacheText = `${t('缓存写')} ${formatTokenCount(cacheSummary.cacheWriteTokens)}`;
         }
 
-        return record.type === 0 || record.type === 2 || record.type === 7 ? (
+        return record.type === 0 ||
+          record.type === 2 ||
+          record.type === 5 ||
+          record.type === 6 || record.type === 7 ? (
           <div
             style={{
               display: 'inline-flex',
@@ -852,7 +811,10 @@ export const getLogsColumns = ({
       dataIndex: 'completion_tokens',
       render: (text, record, index) => {
         return parseInt(text) > 0 &&
-          (record.type === 0 || record.type === 2 || record.type === 7) ? (
+          (record.type === 0 ||
+            record.type === 2 ||
+            record.type === 5 ||
+            record.type === 6 || record.type === 7) ? (
           <>{<span> {text} </span>}</>
         ) : (
           <></>

@@ -28,6 +28,7 @@ import UpstreamRatioSync from '../../pages/Setting/Ratio/UpstreamRatioSync';
 import GroupRatioVisualEditor from '../../pages/Setting/Ratio/GroupRatioVisualEditor';
 import GroupModelBillingVisualEditor from '../../pages/Setting/Ratio/GroupModelBillingVisualEditor';
 import TierPricingVisualEditor from '../../pages/Setting/Ratio/TierPricingVisualEditor';
+import ToolPriceSettings from '../../pages/Setting/Ratio/ToolPriceSettings';
 
 import { API, showError, toBoolean } from '../../helpers';
 
@@ -130,6 +131,9 @@ const RatioSetting = () => {
           <Tabs.TabPane tab={t('上游倍率同步')} itemKey='upstream_sync'>
             <UpstreamRatioSync options={inputs} refresh={onRefresh} />
           </Tabs.TabPane>
+          <Tabs.TabPane tab={t('工具调用定价')} itemKey='tool_price'>
+            <ToolPriceSettings options={inputs} />
+          </Tabs.TabPane>
           <Tabs.TabPane tab={t('阶梯计费')} itemKey='tier_pricing'>
             <TierPricingVisualEditor options={inputs} refresh={onRefresh} />
           </Tabs.TabPane>
@@ -140,4 +144,3 @@ const RatioSetting = () => {
 };
 
 export default RatioSetting;
-

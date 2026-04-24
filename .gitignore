@@ -29,13 +29,14 @@ data/
 .gomodcache/
 .gocache-temp
 .gopath
+.test
 /qodana.yaml
 /.github/workflows/qodana_code_quality.yml
 .kiro
 pprof
 *.MD
-.claude
 .worktrees/
 .superpowers
 
 token_estimator_test.go
+skills-lock.json

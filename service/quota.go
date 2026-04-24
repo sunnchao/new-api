@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -182,6 +183,15 @@ func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usag
 func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, modelName string,
 	usage *dto.RealtimeUsage, extraContent string) {
 
+	var tieredResult *billingexpr.TieredResult
+	tieredOk, tieredQuota, tieredRes := TryTieredSettle(relayInfo, billingexpr.TokenParams{
+		P: float64(usage.InputTokens),
+		C: float64(usage.OutputTokens),
+	})
+	if tieredOk {
+		tieredResult = tieredRes
+	}
+
 	useTimeSeconds := time.Now().Unix() - relayInfo.StartTime.Unix()
 	textInputTokens := usage.InputTokenDetails.TextTokens
 	textOutTokens := usage.OutputTokenDetails.TextTokens
@@ -233,6 +243,9 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 	}
 
 	quota := calculateAudioQuota(quotaInfo)
+	if tieredOk {
+		quota = tieredQuota
+	}
 
 	totalTokens := usage.TotalTokens
 	var logContent string
@@ -256,12 +269,19 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 		model.UpdateChannelUsedQuota(relayInfo.ChannelId, quota)
 	}
 
+	if err := SettleBilling(ctx, relayInfo, quota); err != nil {
+		logger.LogError(ctx, "error settling billing: "+err.Error())
+	}
+
 	logModel := modelName
 	if extraContent != "" {
 		logContent += ", " + extraContent
 	}
 	other := GenerateWssOtherInfo(ctx, relayInfo, usage, modelRatio, groupRatio,
 		completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
+	if tieredResult != nil {
+		InjectTieredBillingInfo(other, relayInfo, tieredResult)
+	}
 	if tierResult.Applied {
 		other["token_tier"] = true
 		other["token_tier_source"] = tierResult.Source
@@ -324,6 +344,16 @@ func CalcOpenRouterCacheCreateTokens(usage dto.Usage, priceData types.PriceData)
 
 func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage, extraContent string) {
 
+	var tieredUsedVars map[string]bool
+	if snap := relayInfo.TieredBillingSnapshot; snap != nil {
+		tieredUsedVars = billingexpr.UsedVars(snap.ExprString)
+	}
+	var tieredResult *billingexpr.TieredResult
+	tieredOk, tieredQuota, tieredRes := TryTieredSettle(relayInfo, BuildTieredTokenParams(usage, false, tieredUsedVars))
+	if tieredOk {
+		tieredResult = tieredRes
+	}
+
 	useTimeSeconds := time.Now().Unix() - relayInfo.StartTime.Unix()
 	textInputTokens := usage.PromptTokensDetails.TextTokens
 	textOutTokens := usage.CompletionTokenDetails.TextTokens
@@ -375,6 +405,9 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	}
 
 	quota := calculateAudioQuota(quotaInfo)
+	if tieredOk {
+		quota = tieredQuota
+	}
 
 	totalTokens := usage.TotalTokens
 	var logContent string
@@ -408,6 +441,9 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	}
 	other := GenerateAudioOtherInfo(ctx, relayInfo, usage, modelRatio, groupRatio,
 		completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
+	if tieredResult != nil {
+		InjectTieredBillingInfo(other, relayInfo, tieredResult)
+	}
 	if tierResult.Applied {
 		other["token_tier"] = true
 		other["token_tier_source"] = tierResult.Source

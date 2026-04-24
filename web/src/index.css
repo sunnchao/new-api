@@ -81,9 +81,9 @@ body {
 
 /* 桌面端禁止 body 纵向滚动 - 防止 VChart tooltip 触发页面滚动条 */
 @media (min-width: 768px) {
-  body {
-    overflow-y: hidden;
-  }
+    body {
+        overflow-y: hidden;
+    }
 }
 
 .app-layout {
@@ -525,7 +525,7 @@ html.dark .sbg-variant-green {
     font-size: 1.1em;
 }
 .custom-footer.na-cb6feafeb3990c78 {
-  position: relative;
+    position: relative;
 }
 
 /* 卡片内容容器通用样式 */
@@ -922,6 +922,24 @@ html.dark .with-pastel-balls::before {
     .table-scroll-card {
         height: calc(100vh - 77px);
         max-height: calc(100vh - 77px);
+    }
+
+    .semi-input-suffix-text {
+        font-size: 11px;
+        padding: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 80px;
+    }
+
+    .semi-input-prefix-text, .semi-input-suffix-text {
+        margin: 0;
+    }
+
+    .semi-select-arrow {
+        margin-left: 2px;
+        margin-right: 2px;
     }
 }
 
