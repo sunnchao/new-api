@@ -1,6 +1,7 @@
 export const SOURCE_PARAM = 'param';
 export const SOURCE_HEADER = 'header';
 export const SOURCE_TIME = 'time';
+export const SOURCE_TOKEN_GROUP = 'token_group';
 
 export const MATCH_EQ = 'eq';
 export const MATCH_CONTAINS = 'contains';
@@ -10,6 +11,9 @@ export const MATCH_LT = 'lt';
 export const MATCH_LTE = 'lte';
 export const MATCH_EXISTS = 'exists';
 export const MATCH_RANGE = 'range';
+
+export const REQUEST_RULE_ACTION_MULTIPLIER = 'multiplier';
+export const REQUEST_RULE_ACTION_FIXED = 'fixed';
 
 export const TIME_FUNCS = ['hour', 'minute', 'weekday', 'month', 'day'];
 
@@ -30,9 +34,7 @@ export const COMMON_TIMEZONES = [
 export const NUMERIC_LITERAL_REGEX =
   /^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
 
-// ---------------------------------------------------------------------------
-// Condition creators (no multiplier — multiplier lives on the group)
-// ---------------------------------------------------------------------------
+const REQUEST_RULE_WRAPPER = 'apply_request_rules';
 
 export function createEmptyCondition() {
   return { source: SOURCE_PARAM, path: '', mode: MATCH_EQ, value: '' };
@@ -50,33 +52,50 @@ export function createEmptyTimeCondition() {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Group creators
-// ---------------------------------------------------------------------------
-
 export function createEmptyRuleGroup() {
-  return { conditions: [createEmptyCondition()], multiplier: '' };
+  return {
+    conditions: [createEmptyCondition()],
+    actionType: REQUEST_RULE_ACTION_MULTIPLIER,
+    multiplier: '',
+    fixedPrice: '',
+  };
 }
 
 export function createEmptyTimeRuleGroup() {
-  return { conditions: [createEmptyTimeCondition()], multiplier: '' };
+  return {
+    conditions: [createEmptyTimeCondition()],
+    actionType: REQUEST_RULE_ACTION_MULTIPLIER,
+    multiplier: '',
+    fixedPrice: '',
+  };
 }
 
-// Kept for backward compat with old preset format
 export function createEmptyRequestRule() {
-  return { source: SOURCE_PARAM, path: '', mode: MATCH_EQ, value: '', multiplier: '' };
+  return {
+    source: SOURCE_PARAM,
+    path: '',
+    mode: MATCH_EQ,
+    value: '',
+    actionType: REQUEST_RULE_ACTION_MULTIPLIER,
+    multiplier: '',
+    fixedPrice: '',
+  };
 }
 
 export function createEmptyTimeRule() {
   return {
-    source: SOURCE_TIME, timeFunc: 'hour', timezone: 'Asia/Shanghai',
-    mode: MATCH_GTE, value: '', rangeStart: '', rangeEnd: '', multiplier: '',
+    source: SOURCE_TIME,
+    timeFunc: 'hour',
+    timezone: 'Asia/Shanghai',
+    mode: MATCH_GTE,
+    value: '',
+    rangeStart: '',
+    rangeEnd: '',
+    actionType: REQUEST_RULE_ACTION_MULTIPLIER,
+    multiplier: '',
+    fixedPrice: '',
   };
 }
-
-// ---------------------------------------------------------------------------
-// Match options
-// ---------------------------------------------------------------------------
 
 export function getRequestRuleMatchOptions(source, t) {
   if (source === SOURCE_TIME) {
@@ -92,7 +111,7 @@ export function getRequestRuleMatchOptions(source, t) {
     { value: MATCH_CONTAINS, label: t('包含') },
     { value: MATCH_EXISTS, label: t('存在') },
   ];
-  if (source === SOURCE_HEADER) {
+  if (source === SOURCE_HEADER || source === SOURCE_TOKEN_GROUP) {
     return base;
   }
   return [
@@ -104,19 +123,18 @@ export function getRequestRuleMatchOptions(source, t) {
   ];
 }
 
-// ---------------------------------------------------------------------------
-// Normalize a single condition
-// ---------------------------------------------------------------------------
-
 export function normalizeCondition(cond) {
   const source = cond?.source === SOURCE_TIME
     ? SOURCE_TIME
     : cond?.source === SOURCE_HEADER
       ? SOURCE_HEADER
-      : SOURCE_PARAM;
+      : cond?.source === SOURCE_TOKEN_GROUP
+        ? SOURCE_TOKEN_GROUP
+        : SOURCE_PARAM;
 
   if (source === SOURCE_TIME) {
-    const timeFunc = TIME_FUNCS.includes(cond?.timeFunc) ? cond.timeFunc : 'hour';
+    const timeFuncValue = cond?.timeFunc ?? cond?.time_func;
+    const timeFunc = TIME_FUNCS.includes(timeFuncValue) ? timeFuncValue : 'hour';
     const options = getRequestRuleMatchOptions(SOURCE_TIME, (v) => v);
     const mode = options.some((item) => item.value === cond?.mode) ? cond.mode : MATCH_GTE;
     return {
@@ -125,8 +143,14 @@ export function normalizeCondition(cond) {
       timezone: cond?.timezone || 'Asia/Shanghai',
       mode,
       value: cond?.value == null ? '' : String(cond.value),
-      rangeStart: cond?.rangeStart == null ? '' : String(cond.rangeStart),
-      rangeEnd: cond?.rangeEnd == null ? '' : String(cond.rangeEnd),
+      rangeStart:
+        cond?.rangeStart == null && cond?.range_start == null
+          ? ''
+          : String(cond?.rangeStart ?? cond?.range_start),
+      rangeEnd:
+        cond?.rangeEnd == null && cond?.range_end == null
+          ? ''
+          : String(cond?.rangeEnd ?? cond?.range_end),
     };
   }
 
@@ -134,21 +158,50 @@ export function normalizeCondition(cond) {
   const mode = options.some((item) => item.value === cond?.mode) ? cond.mode : MATCH_EQ;
   return {
     source,
-    path: cond?.path || '',
+    path: source === SOURCE_TOKEN_GROUP ? '' : cond?.path || '',
     mode,
     value: cond?.value == null ? '' : String(cond.value),
   };
 }
 
-// Legacy compat wrapper
 export function normalizeRequestRule(rule) {
   const base = normalizeCondition(rule);
-  return { ...base, multiplier: rule?.multiplier == null ? '' : String(rule.multiplier) };
+  const actionType = (rule?.actionType ?? rule?.action_type) === REQUEST_RULE_ACTION_FIXED
+    ? REQUEST_RULE_ACTION_FIXED
+    : REQUEST_RULE_ACTION_MULTIPLIER;
+  return {
+    ...base,
+    actionType,
+    multiplier:
+      actionType === REQUEST_RULE_ACTION_MULTIPLIER && rule?.multiplier != null
+        ? String(rule.multiplier)
+        : '',
+    fixedPrice:
+      actionType === REQUEST_RULE_ACTION_FIXED &&
+      (rule?.fixedPrice != null || rule?.fixed_price != null)
+        ? String(rule?.fixedPrice ?? rule?.fixed_price)
+        : '',
+  };
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+export function normalizeRuleGroup(group) {
+  const actionType = (group?.actionType ?? group?.action_type) === REQUEST_RULE_ACTION_FIXED
+    ? REQUEST_RULE_ACTION_FIXED
+    : REQUEST_RULE_ACTION_MULTIPLIER;
+  return {
+    conditions: (group?.conditions || []).map(normalizeCondition),
+    actionType,
+    multiplier:
+      actionType === REQUEST_RULE_ACTION_MULTIPLIER && group?.multiplier != null
+        ? String(group.multiplier)
+        : '',
+    fixedPrice:
+      actionType === REQUEST_RULE_ACTION_FIXED &&
+      (group?.fixedPrice != null || group?.fixed_price != null)
+        ? String(group?.fixedPrice ?? group?.fixed_price)
+        : '',
+  };
+}
 
 export function splitTopLevelMultiply(expr) {
   const parts = [];
@@ -201,10 +254,6 @@ function buildExprLiteral(mode, value) {
   return JSON.stringify(text);
 }
 
-// ---------------------------------------------------------------------------
-// Build a single condition expression string (no ? mult : 1 wrapper)
-// ---------------------------------------------------------------------------
-
 function buildTimeConditionExpr(cond) {
   const normalized = normalizeCondition(cond);
   const { timeFunc, timezone, mode } = normalized;
@@ -223,8 +272,10 @@ function buildTimeConditionExpr(cond) {
   return `${fn} ${opMap[mode] || '=='} ${v}`;
 }
 
-function buildRequestConditionExpr(cond) {
+function buildLegacyRequestConditionExpr(cond) {
   if (cond?.source === SOURCE_TIME) return buildTimeConditionExpr(cond);
+  if (cond?.source === SOURCE_TOKEN_GROUP) return '';
+
   const normalized = normalizeCondition(cond);
   const path = normalized.path.trim();
   if (!path) return '';
@@ -253,15 +304,11 @@ function buildRequestConditionExpr(cond) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Build a group factor: (cond1 && cond2 ? mult : 1)
-// ---------------------------------------------------------------------------
-
-function buildRuleGroupFactor(group) {
+function buildLegacyRuleGroupFactor(group) {
   const multiplier = (group.multiplier || '').trim();
   if (!NUMERIC_LITERAL_REGEX.test(multiplier)) return '';
   const condExprs = (group.conditions || [])
-    .map(buildRequestConditionExpr)
+    .map(buildLegacyRequestConditionExpr)
     .filter(Boolean);
   if (condExprs.length === 0) return '';
 
@@ -271,16 +318,7 @@ function buildRuleGroupFactor(group) {
   return `(${combined} ? ${multiplier} : 1)`;
 }
 
-export function buildRequestRuleExpr(groups) {
-  return (groups || []).map(buildRuleGroupFactor).filter(Boolean).join(' * ');
-}
-
-// ---------------------------------------------------------------------------
-// Parse a single condition from an expression fragment
-// ---------------------------------------------------------------------------
-
 function tryParseTimeCondition(expr) {
-  // Range: hour("tz") >= s || hour("tz") < e
   let m = expr.match(
     /^(hour|minute|weekday|month|day)\("([^"]+)"\) >= ([\d.eE+-]+) \|\| \1\("\2"\) < ([\d.eE+-]+)$/,
   );
@@ -290,7 +328,6 @@ function tryParseTimeCondition(expr) {
       mode: MATCH_RANGE, value: '', rangeStart: m[3], rangeEnd: m[4],
     };
   }
-  // Wrapped range: (hour("tz") >= s || hour("tz") < e)
   m = expr.match(
     /^\((hour|minute|weekday|month|day)\("([^"]+)"\) >= ([\d.eE+-]+) \|\| \1\("\2"\) < ([\d.eE+-]+)\)$/,
   );
@@ -300,7 +337,6 @@ function tryParseTimeCondition(expr) {
       mode: MATCH_RANGE, value: '', rangeStart: m[3], rangeEnd: m[4],
     };
   }
-  // Simple: hour("tz") op value
   m = expr.match(
     /^(hour|minute|weekday|month|day)\("([^"]+)"\) (==|>=|<) ([\d.eE+-]+)$/,
   );
@@ -314,7 +350,7 @@ function tryParseTimeCondition(expr) {
   return null;
 }
 
-function tryParseRequestCondition(expr) {
+function tryParseLegacyRequestCondition(expr) {
   const tc = tryParseTimeCondition(expr);
   if (tc) return tc;
 
@@ -346,12 +382,7 @@ function tryParseRequestCondition(expr) {
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Parse a group factor: (cond1 && cond2 ? mult : 1)
-// ---------------------------------------------------------------------------
-
-function tryParseRuleGroupFactor(part) {
-  // Must be wrapped in ( ... ? mult : 1)
+function tryParseLegacyRuleGroupFactor(part) {
   const m = part.match(/^\((.+) \? ([\d.eE+-]+) : 1\)$/s);
   if (!m) return null;
 
@@ -361,31 +392,99 @@ function tryParseRuleGroupFactor(part) {
   const andParts = splitTopLevelAnd(conditionStr);
   const conditions = [];
   for (const ap of andParts) {
-    const cond = tryParseRequestCondition(ap.trim());
+    const cond = tryParseLegacyRequestCondition(ap.trim());
     if (!cond) return null;
     conditions.push(normalizeCondition(cond));
   }
   if (conditions.length === 0) return null;
-  return { conditions, multiplier };
+  return {
+    conditions,
+    actionType: REQUEST_RULE_ACTION_MULTIPLIER,
+    multiplier,
+    fixedPrice: '',
+  };
 }
 
-export function tryParseRequestRuleExpr(expr) {
+function tryParseLegacyRequestRuleExpr(expr) {
   const trimmed = (expr || '').trim();
   if (!trimmed) return [];
 
   const parts = splitTopLevelMultiply(trimmed);
   const groups = [];
   for (const part of parts) {
-    const group = tryParseRuleGroupFactor(part);
+    const group = tryParseLegacyRuleGroupFactor(part);
     if (!group) return null;
     groups.push(group);
   }
   return groups;
 }
 
-// ---------------------------------------------------------------------------
-// Combine / split billing expr and request rules
-// ---------------------------------------------------------------------------
+function splitVersionPrefix(expr) {
+  const trimmed = (expr || '').trim();
+  const m = trimmed.match(/^(v\d+:)([\s\S]+)$/);
+  if (!m) {
+    return { versionPrefix: '', body: trimmed };
+  }
+  return {
+    versionPrefix: m[1],
+    body: m[2].trim(),
+  };
+}
+
+function utf8ToBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
+}
+
+function base64ToUtf8(text) {
+  const binary = atob(text);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function encodeRequestRulePayload(groups) {
+  return utf8ToBase64(JSON.stringify({
+    version: 1,
+    groups: groups.map((group) => ({
+      conditions: (group.conditions || []).map((cond) => (
+        cond.source === SOURCE_TIME
+          ? {
+            source: cond.source,
+            mode: cond.mode,
+            value: cond.value,
+            time_func: cond.timeFunc,
+            timezone: cond.timezone,
+            range_start: cond.rangeStart,
+            range_end: cond.rangeEnd,
+          }
+          : {
+            source: cond.source,
+            path: cond.path,
+            mode: cond.mode,
+            value: cond.value,
+          }
+      )),
+      action_type: group.actionType,
+      multiplier: group.multiplier,
+      fixed_price: group.fixedPrice,
+    })),
+  }));
+}
+
+function decodeRequestRulePayload(payload) {
+  try {
+    const decoded = base64ToUtf8((payload || '').trim());
+    const parsed = JSON.parse(decoded);
+    if (!Array.isArray(parsed?.groups)) return null;
+    return parsed.groups.map(normalizeRuleGroup);
+  } catch {
+    return null;
+  }
+}
 
 function hasFullOuterParens(expr) {
   if (!expr.startsWith('(') || !expr.endsWith(')')) return false;
@@ -406,16 +505,114 @@ export function unwrapOuterParens(expr) {
   return current;
 }
 
+function parseApplyRequestRulesWrapper(exprBody) {
+  const body = (exprBody || '').trim();
+  const prefix = `${REQUEST_RULE_WRAPPER}(`;
+  if (!body.startsWith(prefix) || !body.endsWith(')')) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let splitIndex = -1;
+
+  for (let i = prefix.length; i < body.length - 1; i += 1) {
+    const char = body[i];
+    if (inString) {
+      if (escape) {
+        escape = false;
+      } else if (char === '\\') {
+        escape = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+    if (char === '(') {
+      depth += 1;
+      continue;
+    }
+    if (char === ')') {
+      if (depth === 0) {
+        return null;
+      }
+      depth -= 1;
+      continue;
+    }
+    if (char === ',' && depth === 0) {
+      splitIndex = i;
+      break;
+    }
+  }
+
+  if (splitIndex === -1) return null;
+
+  const baseArg = body.slice(prefix.length, splitIndex).trim();
+  const payloadArg = body.slice(splitIndex + 1, -1).trim();
+  if (!payloadArg) return null;
+
+  try {
+    return {
+      billingExpr: unwrapOuterParens(baseArg),
+      requestRuleExpr: JSON.parse(payloadArg),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function normalizeGroupsForPayload(groups) {
+  return (groups || [])
+    .map(normalizeRuleGroup)
+    .filter((group) => {
+      if (!Array.isArray(group.conditions) || group.conditions.length === 0) {
+        return false;
+      }
+      if (group.actionType === REQUEST_RULE_ACTION_FIXED) {
+        return NUMERIC_LITERAL_REGEX.test((group.fixedPrice || '').trim());
+      }
+      return NUMERIC_LITERAL_REGEX.test((group.multiplier || '').trim());
+    });
+}
+
+export function buildRequestRuleExpr(groups) {
+  const normalizedGroups = normalizeGroupsForPayload(groups);
+  if (normalizedGroups.length === 0) {
+    return '';
+  }
+  return encodeRequestRulePayload(normalizedGroups);
+}
+
+export function tryParseRequestRuleExpr(expr) {
+  const trimmed = (expr || '').trim();
+  if (!trimmed) return [];
+
+  const decoded = decodeRequestRulePayload(trimmed);
+  if (decoded) {
+    return decoded;
+  }
+
+  return tryParseLegacyRequestRuleExpr(trimmed);
+}
+
 export function combineBillingExpr(baseExpr, requestRuleExpr) {
   const base = (baseExpr || '').trim();
   const rules = (requestRuleExpr || '').trim();
   if (!base) return '';
   if (!rules) return base;
-  return `(${base}) * ${rules}`;
+
+  const { versionPrefix, body } = splitVersionPrefix(base);
+  // Wrap base billing with the dedicated request-rule helper so fixed-price
+  // and multiplier actions share one execution path in the backend.
+  return `${versionPrefix}${REQUEST_RULE_WRAPPER}((${body}), ${JSON.stringify(rules)})`;
 }
 
-export function splitBillingExprAndRequestRules(expr) {
-  const trimmed = (expr || '').trim();
+function splitLegacyCombinedExpr(exprBody) {
+  const trimmed = (exprBody || '').trim();
   if (!trimmed) return { billingExpr: '', requestRuleExpr: '' };
 
   const parts = splitTopLevelMultiply(trimmed);
@@ -425,7 +622,8 @@ export function splitBillingExprAndRequestRules(expr) {
   const baseParts = [];
 
   parts.forEach((part) => {
-    if (tryParseRequestRuleExpr(part) !== null && tryParseRequestRuleExpr(part).length > 0) {
+    const parsed = tryParseLegacyRequestRuleExpr(part);
+    if (parsed !== null && parsed.length > 0) {
       ruleParts.push(part);
     } else {
       baseParts.push(part);
@@ -438,6 +636,34 @@ export function splitBillingExprAndRequestRules(expr) {
 
   return {
     billingExpr: unwrapOuterParens(baseParts[0]),
-    requestRuleExpr: ruleParts.join(' * '),
+    requestRuleExpr: encodeRequestRulePayload(ruleParts
+      .map((part) => tryParseLegacyRuleGroupFactor(part))
+      .filter(Boolean)),
   };
+}
+
+export function splitBillingExprAndRequestRules(expr) {
+  const trimmed = (expr || '').trim();
+  if (!trimmed) return { billingExpr: '', requestRuleExpr: '' };
+
+  const { versionPrefix, body } = splitVersionPrefix(trimmed);
+  const wrapped = parseApplyRequestRulesWrapper(body);
+  if (wrapped) {
+    return {
+      billingExpr: `${versionPrefix}${wrapped.billingExpr}`,
+      requestRuleExpr: wrapped.requestRuleExpr,
+    };
+  }
+
+  const legacy = splitLegacyCombinedExpr(body);
+  return {
+    billingExpr: legacy.billingExpr ? `${versionPrefix}${legacy.billingExpr}` : '',
+    requestRuleExpr: legacy.requestRuleExpr,
+  };
+}
+
+// Backward-compat helper kept for any legacy caller that still wants the old
+// inline multiplier expression form.
+export function buildLegacyRequestRuleExpr(groups) {
+  return (groups || []).map(buildLegacyRuleGroupFactor).filter(Boolean).join(' * ');
 }

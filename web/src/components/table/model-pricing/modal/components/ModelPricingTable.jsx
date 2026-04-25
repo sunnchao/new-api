@@ -39,7 +39,7 @@ const ModelPricingTable = ({
   usableGroup,
   autoGroups = [],
   t,
-  tierPricingConfig,
+  tierPricingConfig = [],
   groupModelBilling = {},
 }) => {
   const modelEnableGroups = Array.isArray(modelData?.enable_groups)
@@ -130,10 +130,10 @@ const ModelPricingTable = ({
         group,
         ratio: groupRatioValue,
         effectiveQuotaType,
-        billingType:
-            modelData?.billing_mode === 'tiered_expr'
-            ? t('动态计费')
-            : effectiveQuotaType === 0
+        // 这里统一复用 calculateModelPrice 的结果，避免 tiered_expr 在已可确定固定价时仍被硬编码为动态计费。
+        billingType: priceData?.isDynamicPricing
+          ? t('动态计费')
+          : effectiveQuotaType === 0
             ? t('按量计费')
             : effectiveQuotaType === 1
               ? t('按次计费')

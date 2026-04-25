@@ -42,6 +42,7 @@ import {
   createEmptyTimeRuleGroup,
   getRequestRuleMatchOptions,
   normalizeCondition,
+  normalizeRuleGroup,
   tryParseRequestRuleExpr,
   buildRequestRuleExpr,
   combineBillingExpr,
@@ -51,9 +52,12 @@ import {
   MATCH_CONTAINS,
   MATCH_RANGE,
   MATCH_GTE,
+  REQUEST_RULE_ACTION_FIXED,
+  REQUEST_RULE_ACTION_MULTIPLIER,
   SOURCE_HEADER,
   SOURCE_PARAM,
   SOURCE_TIME,
+  SOURCE_TOKEN_GROUP,
   TIME_FUNCS,
   COMMON_TIMEZONES,
 } from './requestRuleExpr';
@@ -129,7 +133,7 @@ function createDefaultVisualConfig() {
         conditions: [],
         input_unit_cost: 0,
         output_unit_cost: 0,
-        label: 'base',
+        label: '第1组',
         cache_mode: CACHE_MODE_GENERIC,
       }),
     ],
@@ -284,7 +288,6 @@ function ConditionRow({ cond, onChange, onRemove, t }) {
       alignItems: 'center',
     }}>
       <Select
-        size='small'
         value={cond.var || 'len'}
         onChange={(val) => onChange({ ...cond, var: val })}
       >
@@ -295,7 +298,6 @@ function ConditionRow({ cond, onChange, onRemove, t }) {
         ))}
       </Select>
       <Select
-        size='small'
         value={cond.op || '<'}
         onChange={(val) => onChange({ ...cond, op: val })}
         style={{ width: 70 }}
@@ -307,7 +309,6 @@ function ConditionRow({ cond, onChange, onRemove, t }) {
         ))}
       </Select>
       <InputNumber
-        size='small'
         min={0}
         value={cond.value ?? ''}
         onChange={(val) => onChange({ ...cond, value: val })}
@@ -316,12 +317,10 @@ function ConditionRow({ cond, onChange, onRemove, t }) {
         icon={<IconDelete />}
         type='danger'
         theme='borderless'
-        size='small'
         onClick={onRemove}
       />
       {hint ? (
         <Text
-          size='small'
           style={{
             color: 'var(--semi-color-text-3)',
             gridColumn: '3 / 4',
@@ -411,7 +410,6 @@ function ExtendedPriceBlock({ tier, index, onUpdate, t }) {
     <div style={{ marginTop: 8 }}>
       <Button
         theme='borderless'
-        size='small'
         onClick={() => setExpanded(!expanded)}
         style={{ padding: '2px 0', color: 'var(--semi-color-text-2)', fontSize: 12 }}
       >
@@ -430,7 +428,6 @@ function ExtendedPriceBlock({ tier, index, onUpdate, t }) {
           <div style={{ marginBottom: 8 }}>
             <RadioGroup
               type='button'
-              size='small'
               value={cacheMode}
               onChange={handleCacheModeChange}
             >
@@ -448,7 +445,6 @@ function ExtendedPriceBlock({ tier, index, onUpdate, t }) {
             {activeFields.map((cf) => (
               <div key={cf.field}>
                 <Text
-                  size='small'
                   style={{ color: 'var(--semi-color-text-2)' }}
                 >
                   {t(cf.labelKey)}
@@ -475,7 +471,6 @@ function ExtendedPriceBlock({ tier, index, onUpdate, t }) {
             {mediaFields.map((v) => ({ field: v.tierField, labelKey: v.label })).map((cf) => (
               <div key={cf.field}>
                 <Text
-                  size='small'
                   style={{ color: 'var(--semi-color-text-2)' }}
                 >
                   {t(cf.labelKey)}
@@ -553,11 +548,11 @@ function VisualTierCard({ tier, index, isLast, isOnly, onUpdate, onRemove, t }) 
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Tag color='blue' size='small'>
+          <Tag color='blue'>
             {t('第 {{n}} 档', { n: index + 1 })}
           </Tag>
           {isLast && !isOnly ? (
-            <Tag color='grey' size='small'>
+            <Tag color='grey'>
               {t('兜底档')}
             </Tag>
           ) : null}
@@ -567,7 +562,6 @@ function VisualTierCard({ tier, index, isLast, isOnly, onUpdate, onRemove, t }) 
             icon={<IconDelete />}
             type='danger'
             theme='borderless'
-            size='small'
             onClick={() => onRemove(index)}
           />
         ) : null}
@@ -575,11 +569,10 @@ function VisualTierCard({ tier, index, isLast, isOnly, onUpdate, onRemove, t }) 
 
       {/* Tier label */}
       <div style={{ marginBottom: 8 }}>
-        <Text size='small' style={{ color: 'var(--semi-color-text-2)' }}>
+        <Text style={{ color: 'var(--semi-color-text-2)' }}>
           {t('档位名称')}
         </Text>
         <Input
-          size='small'
           value={tier.label || ''}
           placeholder={t('第 {{n}} 档', { n: index + 1 })}
           onChange={(val) => onUpdate(index, 'label', val)}
@@ -591,7 +584,6 @@ function VisualTierCard({ tier, index, isLast, isOnly, onUpdate, onRemove, t }) 
       {!isLast || isOnly ? (
         <div style={{ marginBottom: 10 }}>
           <Text
-            size='small'
             style={{
               color: 'var(--semi-color-text-2)',
               display: 'block',
@@ -612,7 +604,6 @@ function VisualTierCard({ tier, index, isLast, isOnly, onUpdate, onRemove, t }) 
           {conditions.length < 2 && (
             <Button
               icon={<IconPlus />}
-              size='small'
               theme='borderless'
               onClick={addCondition}
               style={{ marginTop: 2 }}
@@ -630,7 +621,7 @@ function VisualTierCard({ tier, index, isLast, isOnly, onUpdate, onRemove, t }) 
             background: 'var(--semi-color-fill-1)',
           }}
         >
-          <Text size='small' style={{ color: 'var(--semi-color-text-3)' }}>
+          <Text style={{ color: 'var(--semi-color-text-3)' }}>
             {condSummary}
           </Text>
         </div>
@@ -641,7 +632,7 @@ function VisualTierCard({ tier, index, isLast, isOnly, onUpdate, onRemove, t }) 
         style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}
       >
         <div>
-          <Text size='small' style={{ color: 'var(--semi-color-text-2)' }}>
+          <Text style={{ color: 'var(--semi-color-text-2)' }}>
             {t('输入价格')}
           </Text>
           <PriceInput
@@ -652,7 +643,7 @@ function VisualTierCard({ tier, index, isLast, isOnly, onUpdate, onRemove, t }) 
           />
         </div>
         <div>
-          <Text size='small' style={{ color: 'var(--semi-color-text-2)' }}>
+          <Text style={{ color: 'var(--semi-color-text-2)' }}>
             {t('输出价格')}
           </Text>
           <PriceInput
@@ -743,7 +734,6 @@ function VisualEditor({ visualConfig, onChange, t }) {
       ))}
       <Button
         icon={<IconPlus />}
-        size='small'
         theme='light'
         onClick={addTier}
         style={{ marginTop: 4 }}
@@ -841,13 +831,12 @@ function PresetSection({ applyPreset, t }) {
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <Text size='small' style={{ color: 'var(--semi-color-text-2)' }}>
+        <Text style={{ color: 'var(--semi-color-text-2)' }}>
           {t('预设模板')}
         </Text>
         {hasMore && (
           <Button
             theme='borderless'
-            size='small'
             onClick={() => setExpanded(!expanded)}
             style={{ padding: '0 4px', fontSize: 12, color: 'var(--semi-color-primary)' }}
           >
@@ -858,11 +847,11 @@ function PresetSection({ applyPreset, t }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {visibleGroups.map((g) => (
           <div key={g.group} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <Tag size='small' color='grey' style={{ minWidth: 60, textAlign: 'center' }}>
+            <Tag color='grey' style={{ minWidth: 60, textAlign: 'center' }}>
               {t(g.group)}
             </Tag>
             {g.presets.map((p) => (
-              <Button key={p.key} size='small' theme='light' onClick={() => applyPreset(p)}>
+              <Button key={p.key} theme='light' onClick={() => applyPreset(p)}>
                 {p.label}
               </Button>
             ))}
@@ -945,7 +934,7 @@ function CacheTokenEstimatorInputs({
     >
       {EXTRA_ESTIMATOR_FIELDS.map((cf) => (
         <div key={cf.var}>
-          <Text size='small' className='mb-1' style={{ display: 'block' }}>
+          <Text className='mb-1' style={{ display: 'block' }}>
             {t(cf.labelKey)}
           </Text>
           <InputNumber
@@ -1024,7 +1013,7 @@ function RuleConditionRow({ cond, onChange, onRemove, t }) {
 
   const sourceSelect = (
     <Select
-      size='small'
+
       value={normalized.source}
       onChange={(value) => {
         if (value === SOURCE_TIME) {
@@ -1037,12 +1026,13 @@ function RuleConditionRow({ cond, onChange, onRemove, t }) {
     >
       <Select.Option value={SOURCE_PARAM}>{t('请求参数')}</Select.Option>
       <Select.Option value={SOURCE_HEADER}>{t('请求头')}</Select.Option>
+      <Select.Option value={SOURCE_TOKEN_GROUP}>{t('令牌分组')}</Select.Option>
       <Select.Option value={SOURCE_TIME}>{t('时间条件')}</Select.Option>
     </Select>
   );
 
   const removeBtn = (
-    <Button icon={<IconDelete />} type='danger' theme='borderless' size='small' onClick={onRemove} />
+    <Button icon={<IconDelete />} type='danger' theme='borderless' onClick={onRemove} />
   );
 
   if (isTime) {
@@ -1062,7 +1052,7 @@ function RuleConditionRow({ cond, onChange, onRemove, t }) {
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {sourceSelect}
           <Select
-            size='small'
+
             value={normalized.timeFunc}
             onChange={(value) => onChange({ ...normalized, timeFunc: value })}
             style={{ flex: 1 }}
@@ -1074,7 +1064,7 @@ function RuleConditionRow({ cond, onChange, onRemove, t }) {
           {removeBtn}
         </div>
         <Select
-          size='small'
+
           value={normalized.timezone}
           onChange={(value) => onChange({ ...normalized, timezone: value })}
           filter
@@ -1087,7 +1077,7 @@ function RuleConditionRow({ cond, onChange, onRemove, t }) {
         </Select>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <Select
-            size='small'
+
             value={normalized.mode}
             onChange={(value) => onChange(normalizeCondition({ ...normalized, mode: value }))}
             style={{ flex: 1 }}
@@ -1098,16 +1088,16 @@ function RuleConditionRow({ cond, onChange, onRemove, t }) {
           </Select>
           {isRange ? (
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', flex: 1 }}>
-              <Input size='small' value={normalized.rangeStart} placeholder={ph} style={{ flex: 1 }} onChange={(value) => onChange({ ...normalized, rangeStart: value })} />
+              <Input value={normalized.rangeStart} placeholder={ph} style={{ flex: 1 }} onChange={(value) => onChange({ ...normalized, rangeStart: value })} />
               <span>~</span>
-              <Input size='small' value={normalized.rangeEnd} placeholder={ph} style={{ flex: 1 }} onChange={(value) => onChange({ ...normalized, rangeEnd: value })} />
+              <Input value={normalized.rangeEnd} placeholder={ph} style={{ flex: 1 }} onChange={(value) => onChange({ ...normalized, rangeEnd: value })} />
             </div>
           ) : (
-            <Input size='small' value={normalized.value} placeholder={ph} style={{ flex: 1 }} onChange={(value) => onChange({ ...normalized, value })} />
+            <Input value={normalized.value} placeholder={ph} style={{ flex: 1 }} onChange={(value) => onChange({ ...normalized, value })} />
           )}
         </div>
         {hint && (
-          <Text size='small' style={{ color: 'var(--semi-color-text-3)' }}>
+          <Text style={{ color: 'var(--semi-color-text-3)' }}>
             {t(hint)}
           </Text>
         )}
@@ -1116,41 +1106,58 @@ function RuleConditionRow({ cond, onChange, onRemove, t }) {
   }
 
   const showValue = normalized.mode !== MATCH_EXISTS;
+  const isTokenGroup = normalized.source === SOURCE_TOKEN_GROUP;
   return (
     <div style={{
       marginBottom: 8,
       padding: '8px 10px',
       borderRadius: 6,
       background: 'var(--semi-color-fill-0)',
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr auto',
-      gap: '6px 8px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 6,
     }}>
-      {sourceSelect}
-      <Input
-        size='small'
-        value={normalized.path}
-        placeholder={normalized.source === SOURCE_HEADER ? t('例如 anthropic-beta') : t('例如 service_tier')}
-        onChange={(value) => onChange({ ...normalized, path: value })}
-      />
-      {removeBtn}
-      <Select
-        size='small'
-        value={normalized.mode}
-        onChange={(value) => onChange(normalizeCondition({ ...normalized, mode: value, value: value === MATCH_EXISTS ? '' : normalized.value }))}
-      >
-        {matchOptions.map((item) => (
-          <Select.Option key={item.value} value={item.value}>{item.label}</Select.Option>
-        ))}
-      </Select>
-      <Input
-        size='small'
-        value={normalized.value}
-        placeholder={normalized.mode === MATCH_CONTAINS ? t('匹配内容') : normalized.mode === MATCH_EXISTS ? '' : t('匹配值')}
-        disabled={!showValue}
-        onChange={(value) => onChange({ ...normalized, value })}
-      />
-      <div />
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        {sourceSelect}
+        {isTokenGroup ? (
+          <Text style={{ flex: 1, color: 'var(--semi-color-text-2)' }}>
+            {t('匹配请求最终生效的令牌分组')}
+          </Text>
+        ) : (
+          <Input
+            value={normalized.path}
+            placeholder={normalized.source === SOURCE_HEADER ? t('例如 anthropic-beta') : t('例如 service_tier')}
+            onChange={(value) => onChange({ ...normalized, path: value })}
+          />
+        )}
+        {removeBtn}
+      </div>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <Select
+          value={normalized.mode}
+          onChange={(value) => onChange(normalizeCondition({ ...normalized, mode: value, value: value === MATCH_EXISTS ? '' : normalized.value }))}
+          style={{ flex: 1 }}
+        >
+          {matchOptions.map((item) => (
+            <Select.Option key={item.value} value={item.value}>{item.label}</Select.Option>
+          ))}
+        </Select>
+        <Input
+          value={normalized.value}
+          placeholder={
+            normalized.mode === MATCH_CONTAINS
+              ? t('匹配内容')
+              : normalized.mode === MATCH_EXISTS
+                ? ''
+                : isTokenGroup
+                  ? t('例如 vip')
+                  : t('匹配值')
+          }
+          disabled={!showValue}
+          onChange={(value) => onChange({ ...normalized, value })}
+          style={{ flex: 1 }}
+        />
+      </div>
     </div>
   );
 }
@@ -1181,14 +1188,14 @@ function RuleGroupCard({ group, index, onChange, onRemove, t }) {
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <Tag color='blue' size='small'>
+        <Tag color='blue'>
           {t('第 {{n}} 组', { n: index + 1 })}
         </Tag>
-        <Button icon={<IconDelete />} type='danger' theme='borderless' size='small' onClick={onRemove} />
+        <Button icon={<IconDelete />} type='danger' theme='borderless' onClick={onRemove} />
       </div>
 
       <div style={{ marginBottom: 8 }}>
-        <Text size='small' style={{ color: 'var(--semi-color-text-2)', display: 'block', marginBottom: 4 }}>
+        <Text style={{ color: 'var(--semi-color-text-2)', display: 'block', marginBottom: 4 }}>
           {t('条件')}{conditions.length > 1 ? ` (${t('同时满足')})` : ''}
         </Text>
         {conditions.map((cond, ci) => (
@@ -1201,26 +1208,69 @@ function RuleGroupCard({ group, index, onChange, onRemove, t }) {
           />
         ))}
         <div style={{ display: 'flex', gap: 6 }}>
-          <Button icon={<IconPlus />} size='small' theme='borderless' onClick={() => addCondition(createEmptyCondition())}>
+          <Button icon={<IconPlus />} theme='borderless' onClick={() => addCondition(createEmptyCondition())}>
             {t('添加条件')}
           </Button>
-          <Button icon={<IconPlus />} size='small' theme='borderless' onClick={() => addCondition(createEmptyTimeCondition())}>
+          <Button icon={<IconPlus />} theme='borderless' onClick={() => addCondition(createEmptyTimeCondition())}>
             {t('添加时间条件')}
           </Button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Text size='small' style={{ color: 'var(--semi-color-text-2)', whiteSpace: 'nowrap' }}>
-          {t('倍率')}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <Text style={{ color: 'var(--semi-color-text-2)', whiteSpace: 'nowrap' }}>
+          {t('动作')}
         </Text>
+        <RadioGroup
+          type='button'
+          value={group.actionType || REQUEST_RULE_ACTION_MULTIPLIER}
+          onChange={(event) => {
+            const nextActionType = event.target.value;
+            onChange(normalizeRuleGroup({
+              ...group,
+              actionType: nextActionType,
+              multiplier:
+                nextActionType === REQUEST_RULE_ACTION_MULTIPLIER
+                  ? group.multiplier
+                  : '',
+              fixedPrice:
+                nextActionType === REQUEST_RULE_ACTION_FIXED
+                  ? group.fixedPrice
+                  : '',
+            }));
+          }}
+        >
+          <Radio value={REQUEST_RULE_ACTION_MULTIPLIER}>{t('倍率')}</Radio>
+          <Radio value={REQUEST_RULE_ACTION_FIXED}>{t('固定计费')}</Radio>
+        </RadioGroup>
         <Input
-          size='small'
-          value={group.multiplier || ''}
-          placeholder={t('例如 0.5 或 2')}
-          suffix='x'
-          onChange={(value) => onChange({ ...group, multiplier: value })}
-          style={{ width: 160 }}
+          value={
+            (group.actionType || REQUEST_RULE_ACTION_MULTIPLIER) === REQUEST_RULE_ACTION_FIXED
+              ? group.fixedPrice || ''
+              : group.multiplier || ''
+          }
+          placeholder={
+            (group.actionType || REQUEST_RULE_ACTION_MULTIPLIER) === REQUEST_RULE_ACTION_FIXED
+              ? t('例如 0.02')
+              : t('例如 0.5 或 2')
+          }
+          suffix={
+            (group.actionType || REQUEST_RULE_ACTION_MULTIPLIER) === REQUEST_RULE_ACTION_FIXED
+              ? t('$/次')
+              : 'x'
+          }
+          onChange={(value) => onChange(normalizeRuleGroup({
+            ...group,
+            multiplier:
+              (group.actionType || REQUEST_RULE_ACTION_MULTIPLIER) === REQUEST_RULE_ACTION_MULTIPLIER
+                ? value
+                : group.multiplier,
+            fixedPrice:
+              (group.actionType || REQUEST_RULE_ACTION_MULTIPLIER) === REQUEST_RULE_ACTION_FIXED
+                ? value
+                : group.fixedPrice,
+          }))}
+          style={{ width: 180 }}
         />
       </div>
     </div>
@@ -1330,7 +1380,6 @@ function LlmPromptHelper({ t, model }) {
     <div style={{ marginBottom: 12 }}>
       <Button
         theme='borderless'
-        size='small'
         icon={<IconCopy />}
         onClick={() => setOpen(!open)}
         style={{ color: 'var(--semi-color-tertiary)' }}
@@ -1343,12 +1392,11 @@ function LlmPromptHelper({ t, model }) {
           style={{ marginTop: 8, background: 'var(--semi-color-fill-0)' }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <Text size='small' type='secondary'>
+            <Text type='secondary'>
               {t('复制以下提示词发送给 LLM（如 ChatGPT / Claude），让它帮你设计计费表达式')}
             </Text>
             <Button
               icon={<IconCopy />}
-              size='small'
               theme='light'
               onClick={handleCopy}
             >
@@ -1520,7 +1568,7 @@ export default function TieredPricingEditor({ model, onExprChange, requestRuleEx
       <div style={{ marginBottom: 12 }}>
         <RadioGroup
           type='button'
-          size='small'
+
           value={editorMode}
           onChange={handleModeSwitch}
         >
@@ -1551,12 +1599,17 @@ export default function TieredPricingEditor({ model, onExprChange, requestRuleEx
 
             <div className='font-medium mb-2'>{t('请求条件调价')}</div>
             <div style={{ marginBottom: 12 }}>
-              <Text type='secondary' size='small'>
-                {t('满足条件时，整单价格乘以 X；如果有多条同时命中，会继续相乘。')}
+              <Text type='secondary'>
+                {t('满足条件时，可以按倍率调整整单价格，也可以直接改为固定整单计费；多条倍率同时命中时会继续相乘。')}
               </Text>
               <div style={{ marginTop: 2 }}>
-                <Text type='secondary' size='small'>
-                  {t('X 也可以小于 1，当折扣用。想做"只给输出加价"或"额外加固定费用"，请直接写完整计费公式。')}
+                <Text type='secondary'>
+                  {t('X 也可以小于 1，当折扣用。想做"只给输出加价"或"在整单计费之外再叠加额外固定费用"，请直接写完整计费公式。')}
+                </Text>
+              </div>
+              <div style={{ marginTop: 2 }}>
+                <Text type='secondary'>
+                  {t('固定计费会先替换基础价格，再继续应用其它倍率条件；多条固定计费同时命中时，仅首条生效。')}
                 </Text>
               </div>
             </div>
@@ -1590,7 +1643,6 @@ export default function TieredPricingEditor({ model, onExprChange, requestRuleEx
                 ))}
                 <Button
                   icon={<IconPlus />}
-                  size='small'
                   theme='light'
                   onClick={() => handleRequestRuleGroupsChange([...requestRuleGroups, createEmptyRuleGroup()])}
                   style={{ marginTop: 4 }}
@@ -1620,7 +1672,7 @@ export default function TieredPricingEditor({ model, onExprChange, requestRuleEx
           }}
         >
           <div>
-            <Text size='small' className='mb-1' style={{ display: 'block' }}>
+            <Text className='mb-1' style={{ display: 'block' }}>
               {t('输入 Token 数')} (p)
             </Text>
             <InputNumber
@@ -1631,7 +1683,7 @@ export default function TieredPricingEditor({ model, onExprChange, requestRuleEx
             />
           </div>
           <div>
-            <Text size='small' className='mb-1' style={{ display: 'block' }}>
+            <Text className='mb-1' style={{ display: 'block' }}>
               {t('输出 Token 数')} (c)
             </Text>
             <InputNumber
@@ -1670,13 +1722,12 @@ export default function TieredPricingEditor({ model, onExprChange, requestRuleEx
                   {t('预计费用')}：{renderQuota(evalResult.cost, 4)}
                 </Text>
                 {evalResult.matchedTier && (
-                  <Tag size='small' color='blue' type='light'>
+                  <Tag color='blue' type='light'>
                     {t('命中档位')}：{evalResult.matchedTier}
                   </Tag>
                 )}
               </div>
               <Text
-                size='small'
                 style={{
                   display: 'block',
                   marginTop: 2,

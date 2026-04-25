@@ -609,7 +609,7 @@ export const useLogsData = () => {
         const planTitle = other?.subscription_plan_title || '';
         const subscriptionId = other?.subscription_id;
         const billingMode = other?.subscription_billing_mode || 'quota';
-        const unit = billingMode === 'request' ? t('次') : t('额度');
+        const unit = ""; //billingMode === 'request' ? t('次') : t('额度');
         const pre = other?.subscription_pre_consumed ?? 0;
         const postDelta = other?.subscription_post_delta ?? 0;
         const finalConsumed = other?.subscription_consumed ?? pre + postDelta;
@@ -644,7 +644,7 @@ export const useLogsData = () => {
         if (remain !== undefined && total !== undefined) {
           expandDataLocal.push({
             key: t('订阅剩余'),
-            value: `${remain}/${total} ${unit}`,
+            value: `${renderQuota(remain, 6)}/${renderQuota(total, 6)} ${unit}`,
           });
         }
         expandDataLocal.push({

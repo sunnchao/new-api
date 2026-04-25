@@ -56,6 +56,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     admin_token: true,
     packages: true,
     subscription: true,
+    'subscription-overview': true,
     setting: true,
   },
 };

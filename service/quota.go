@@ -15,7 +15,6 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
-	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/QuantumNous/new-api/types"
@@ -115,19 +114,6 @@ func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usag
 	groupRatio := ratio_setting.GetGroupRatio(relayInfo.UsingGroup)
 	modelRatio, _, _ := ratio_setting.GetModelRatio(modelName)
 	completionRatio := ratio_setting.GetCompletionRatio(modelName)
-	if !relayInfo.UsePrice {
-		tierResult := model_setting.ResolveTokenTierPricing(model_setting.TokenTierResolveInput{
-			UserID:          relayInfo.UserId,
-			ModelName:       modelName,
-			PromptTokens:    usage.InputTokens,
-			ModelRatio:      modelRatio,
-			CompletionRatio: completionRatio,
-		})
-		if tierResult.Applied {
-			modelRatio = tierResult.ModelRatio
-			completionRatio = tierResult.CompletionRatio
-		}
-	}
 
 	autoGroup, exists := common.GetContextKey(ctx, constant.ContextKeyAutoGroup)
 	if exists {
@@ -209,20 +195,6 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 	groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
 	modelPrice := relayInfo.PriceData.ModelPrice
 	usePrice := relayInfo.PriceData.UsePrice
-	tierResult := model_setting.TokenTierResolveResult{}
-	if !usePrice {
-		tierResult = model_setting.ResolveTokenTierPricing(model_setting.TokenTierResolveInput{
-			UserID:          relayInfo.UserId,
-			ModelName:       modelName,
-			PromptTokens:    usage.InputTokens,
-			ModelRatio:      modelRatio,
-			CompletionRatio: completionRatioValue,
-		})
-		if tierResult.Applied {
-			modelRatio = tierResult.ModelRatio
-			completionRatioValue = tierResult.CompletionRatio
-		}
-	}
 	completionRatio := decimal.NewFromFloat(completionRatioValue)
 	audioRatio := decimal.NewFromFloat(audioRatioValue)
 	audioCompletionRatio := decimal.NewFromFloat(audioCompletionRatioValue)
@@ -282,29 +254,6 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 		completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
 	if tieredResult != nil {
 		InjectTieredBillingInfo(other, relayInfo, tieredResult)
-	}
-	if tierResult.Applied {
-		other["token_tier"] = true
-		other["token_tier_source"] = tierResult.Source
-		other["token_tier_prompt_tokens"] = usage.InputTokens
-		if tierResult.RuleID != "" {
-			other["token_tier_rule_id"] = tierResult.RuleID
-		}
-		if tierResult.ThresholdTokens > 0 {
-			other["token_tier_threshold"] = tierResult.ThresholdTokens
-		}
-		if tierResult.RolloutMode != "" {
-			other["token_tier_rollout_mode"] = tierResult.RolloutMode
-		}
-		if tierResult.RolloutAllowlistSize > 0 {
-			other["token_tier_rollout_allowlist_size"] = tierResult.RolloutAllowlistSize
-		}
-		if tierResult.InputPriceMultiplier > 0 {
-			other["token_tier_input_multiplier"] = tierResult.InputPriceMultiplier
-		}
-		if tierResult.OutputPriceMultiplier > 0 {
-			other["token_tier_output_multiplier"] = tierResult.OutputPriceMultiplier
-		}
 	}
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
@@ -371,20 +320,6 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
 	modelPrice := relayInfo.PriceData.ModelPrice
 	usePrice := relayInfo.PriceData.UsePrice
-	tierResult := model_setting.TokenTierResolveResult{}
-	if !usePrice {
-		tierResult = model_setting.ResolveTokenTierPricing(model_setting.TokenTierResolveInput{
-			UserID:          relayInfo.UserId,
-			ModelName:       relayInfo.OriginModelName,
-			PromptTokens:    usage.PromptTokens,
-			ModelRatio:      modelRatio,
-			CompletionRatio: completionRatioValue,
-		})
-		if tierResult.Applied {
-			modelRatio = tierResult.ModelRatio
-			completionRatioValue = tierResult.CompletionRatio
-		}
-	}
 	completionRatio := decimal.NewFromFloat(completionRatioValue)
 	audioRatio := decimal.NewFromFloat(audioRatioValue)
 	audioCompletionRatio := decimal.NewFromFloat(audioCompletionRatioValue)
@@ -444,29 +379,6 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 		completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
 	if tieredResult != nil {
 		InjectTieredBillingInfo(other, relayInfo, tieredResult)
-	}
-	if tierResult.Applied {
-		other["token_tier"] = true
-		other["token_tier_source"] = tierResult.Source
-		other["token_tier_prompt_tokens"] = usage.PromptTokens
-		if tierResult.RuleID != "" {
-			other["token_tier_rule_id"] = tierResult.RuleID
-		}
-		if tierResult.ThresholdTokens > 0 {
-			other["token_tier_threshold"] = tierResult.ThresholdTokens
-		}
-		if tierResult.RolloutMode != "" {
-			other["token_tier_rollout_mode"] = tierResult.RolloutMode
-		}
-		if tierResult.RolloutAllowlistSize > 0 {
-			other["token_tier_rollout_allowlist_size"] = tierResult.RolloutAllowlistSize
-		}
-		if tierResult.InputPriceMultiplier > 0 {
-			other["token_tier_input_multiplier"] = tierResult.InputPriceMultiplier
-		}
-		if tierResult.OutputPriceMultiplier > 0 {
-			other["token_tier_output_multiplier"] = tierResult.OutputPriceMultiplier
-		}
 	}
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
@@ -648,8 +560,8 @@ func checkAndSendSubscriptionQuotaNotify(relayInfo *relaycommon.RelayInfo) {
 			content = "{{value}}，当前{{value}}为 {{value}}，请及时充值。"
 			values = []interface{}{prompt, remainingLabel, remainingText}
 		} else {
-			content = "{{value}}，当前{{value}}为 {{value}}，为了不影响您的使用，请及时充值。<br/>充值链接：<a href='{{value}}'>{{value}}</a>"
-			values = []interface{}{prompt, remainingLabel, remainingText, topUpLink, topUpLink}
+			content = "{{value}}，当前剩余额度为 {{value}}，为了不影响您的使用，请及时充值。<br/>充值链接：<a href='{{value}}'>{{value}}</a>"
+			values = []interface{}{prompt, logger.FormatQuota(int(remaining)), topUpLink, topUpLink}
 		}
 
 		if err := NotifyUser(relayInfo.UserId, relayInfo.UserEmail, relayInfo.UserSetting, dto.NewNotify(dto.NotifyTypeQuotaExceed, prompt, content, values)); err != nil {

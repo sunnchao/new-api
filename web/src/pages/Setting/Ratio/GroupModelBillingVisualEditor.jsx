@@ -25,16 +25,14 @@ import {
   Checkbox,
   Empty,
   Input,
-  Radio,
-  RadioGroup,
   Select,
+  Row,
+  Col,
   Space,
   Spin,
   Table,
   Tag,
   Typography,
-    Row,
-    Col
 } from '@douyinfe/semi-ui';
 import { IconDelete, IconSave, IconSearch } from '@douyinfe/semi-icons';
 import { useTranslation } from 'react-i18next';
@@ -45,16 +43,11 @@ import { useIsMobile } from '../../../hooks/common/useIsMobile';
 const { Text } = Typography;
 
 const DEFAULT_ENTRY = Object.freeze({
-  mode: 'inherit',
-  modelPrice: '',
   billingSource: '',
 });
 
-// Reserved pseudo-model key used to persist group-level default quota_type /
-// model_price / billing_source.
+// Reserved pseudo-model key used to persist group-level default billing_source.
 const GROUP_DEFAULT_MODEL_KEY = '__default__';
-
-const NUMERIC_INPUT_REGEX = /^(\d+(\.\d*)?|\.\d*)?$/;
 
 const parseOptionJSON = (rawValue) => {
   if (!rawValue || rawValue.trim() === '') {
@@ -180,37 +173,7 @@ const parseBillingDraft = (rawValue) => {
       }
 
       const billingSource = `${config.billing_source || ''}`.trim();
-
-      if (modelName === GROUP_DEFAULT_MODEL_KEY) {
-        const mode = Number(config.quota_type) === 1 ? 'per-request' : 'inherit';
-        const modelPrice =
-          Number(config.quota_type) === 1
-            ? toNumericString(config.model_price)
-            : '';
-
-        if (mode === 'inherit' && !billingSource) {
-          return;
-        }
-
-        if (!result[groupName]) {
-          result[groupName] = {};
-        }
-
-        result[groupName][modelName] = {
-          mode,
-          modelPrice,
-          billingSource,
-        };
-        return;
-      }
-
-      const mode = Number(config.quota_type) === 1 ? 'per-request' : 'inherit';
-      const modelPrice =
-        Number(config.quota_type) === 1
-          ? toNumericString(config.model_price)
-          : '';
-
-      if (mode === 'inherit' && !billingSource) {
+      if (!billingSource) {
         return;
       }
 
@@ -219,8 +182,6 @@ const parseBillingDraft = (rawValue) => {
       }
 
       result[groupName][modelName] = {
-        mode,
-        modelPrice,
         billingSource,
       };
     });
@@ -362,18 +323,6 @@ const getGlobalSummary = (modelInfo, t) => {
 };
 
 const getOverrideSummary = (entry, groupDefaultEntry, t) => {
-  const effectiveMode =
-    entry?.mode === 'per-request'
-      ? 'per-request'
-      : groupDefaultEntry?.mode === 'per-request'
-        ? 'per-request'
-        : 'inherit';
-  const effectiveModelPrice =
-    entry?.mode === 'per-request'
-      ? entry?.modelPrice
-      : groupDefaultEntry?.mode === 'per-request'
-        ? groupDefaultEntry?.modelPrice
-        : '';
   const effectiveBillingSource =
     entry?.billingSource || groupDefaultEntry?.billingSource || '';
   const sourceTag = getBillingSourceTag(effectiveBillingSource, t);
@@ -383,34 +332,24 @@ const getOverrideSummary = (entry, groupDefaultEntry, t) => {
       ? t('分组默认：{{value}}', { value: sourceTag.text })
       : t('跟随用户偏好');
 
-  if (
-    !entry &&
-    groupDefaultEntry?.mode !== 'per-request' &&
-    !groupDefaultEntry?.billingSource
-  ) {
+  if (!entry && !groupDefaultEntry?.billingSource) {
     return {
-      text: t('跟随全局计费与用户偏好'),
+      text: t('跟随用户计费偏好'),
       tagColor: 'grey',
       tagText: t('无覆盖'),
     };
   }
-  if (entry?.mode === 'per-request') {
+  if (entry?.billingSource) {
     return {
-      text: t('模型按次覆盖：{{price}}｜{{source}}', {
-        price: formatPrice(entry.modelPrice, t),
-        source: sourceLabel,
-      }),
-      tagColor: 'teal',
+      text: t('模型来源覆盖：{{source}}', { source: sourceLabel }),
+      tagColor: 'cyan',
       tagText: t('模型覆盖'),
     };
   }
 
-  if (effectiveMode === 'per-request') {
+  if (groupDefaultEntry?.billingSource) {
     return {
-      text: t('继承分组默认按次计费：{{price}}｜{{source}}', {
-        price: formatPrice(effectiveModelPrice, t),
-        source: sourceLabel,
-      }),
+      text: t('继承分组默认来源：{{source}}', { source: sourceLabel }),
       tagColor: 'cyan',
       tagText: t('分组默认'),
     };
@@ -428,64 +367,17 @@ const serializeBillingDraft = (billingDraft) => {
 
   for (const [groupName, groupModels] of Object.entries(billingDraft)) {
     for (const [modelName, entry] of Object.entries(groupModels || {})) {
-      const mode = entry?.mode === 'per-request' ? 'per-request' : 'inherit';
       const billingSource = `${entry?.billingSource || ''}`.trim();
-
-      if (modelName === GROUP_DEFAULT_MODEL_KEY) {
-        if (mode === 'inherit' && !billingSource) {
-          continue;
-        }
-        if (!result[groupName]) {
-          result[groupName] = {};
-        }
-        if (mode === 'per-request') {
-          const modelPrice = toNumberOrNull(entry?.modelPrice);
-          if (modelPrice === null || modelPrice < 0) {
-            throw new Error(
-              `分组 ${groupName} 的默认配置缺少有效的按次价格`,
-            );
-          }
-          result[groupName][modelName] = {
-            quota_type: 1,
-            model_price: modelPrice,
-          };
-        } else {
-          result[groupName][modelName] = {};
-        }
-        if (billingSource) {
-          result[groupName][modelName].billing_source = billingSource;
-        }
-        continue;
-      }
-
-      if (mode === 'inherit' && !billingSource) {
+      if (!billingSource) {
         continue;
       }
 
       if (!result[groupName]) {
         result[groupName] = {};
       }
-
-      if (mode === 'per-request') {
-        const modelPrice = toNumberOrNull(entry?.modelPrice);
-        if (modelPrice === null || modelPrice < 0) {
-          throw new Error(
-            `分组 ${groupName} 下模型 ${modelName} 缺少有效的按次价格`,
-          );
-        }
-        result[groupName][modelName] = {
-          quota_type: 1,
-          model_price: modelPrice,
-        };
-      } else {
-        result[groupName][modelName] = {
-          quota_type: 0,
-        };
-      }
-
-      if (billingSource) {
-        result[groupName][modelName].billing_source = billingSource;
-      }
+      result[groupName][modelName] = {
+        billing_source: billingSource,
+      };
     }
 
     if (result[groupName] && Object.keys(result[groupName]).length === 0) {
@@ -648,7 +540,6 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
           overrideSummary,
           hasEffectiveOverride:
             Boolean(currentEntry) ||
-            groupDefaultEntry?.mode === 'per-request' ||
             Boolean(groupDefaultEntry?.billingSource),
           availableInGroup: Array.isArray(modelInfo?.enableGroups)
             ? modelInfo.enableGroups.includes(selectedGroup)
@@ -722,20 +613,11 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
         ...previousEntry,
         ...partial,
       };
-
       const normalizedEntry = {
-        mode: mergedEntry.mode === 'per-request' ? 'per-request' : 'inherit',
-        modelPrice:
-          mergedEntry.mode === 'per-request'
-            ? mergedEntry.modelPrice ?? ''
-            : '',
         billingSource: `${mergedEntry.billingSource || ''}`.trim(),
       };
 
-      if (
-        normalizedEntry.mode === 'inherit' &&
-        normalizedEntry.billingSource === ''
-      ) {
+      if (normalizedEntry.billingSource === '') {
         delete previousGroup[selectedModelName];
       } else {
         previousGroup[selectedModelName] = normalizedEntry;
@@ -766,16 +648,10 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
         ...partial,
       };
       const normalizedEntry = {
-        mode: mergedEntry.mode === 'per-request' ? 'per-request' : 'inherit',
-        modelPrice:
-          mergedEntry.mode === 'per-request' ? mergedEntry.modelPrice ?? '' : '',
         billingSource: `${mergedEntry.billingSource || ''}`.trim(),
       };
 
-      if (
-        normalizedEntry.mode === 'inherit' &&
-        normalizedEntry.billingSource === ''
-      ) {
+      if (normalizedEntry.billingSource === '') {
         delete previousGroup[GROUP_DEFAULT_MODEL_KEY];
       } else {
         previousGroup[GROUP_DEFAULT_MODEL_KEY] = normalizedEntry;
@@ -793,16 +669,12 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
 
   const handleDeleteCurrentEntry = () => {
     updateCurrentEntry({
-      mode: 'inherit',
-      modelPrice: '',
       billingSource: '',
     });
   };
 
   const handleDeleteGroupDefaultEntry = () => {
     updateGroupDefaultEntry({
-      mode: 'inherit',
-      modelPrice: '',
       billingSource: '',
     });
   };
@@ -919,12 +791,12 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
             <div className='space-y-1 text-sm'>
               <div>
                 {t(
-                  '此编辑器用于配置“分组 + 模型”级别的计费覆盖，支持按次价格覆盖与计费来源限制。',
+                  '此编辑器用于配置“分组 + 模型”级别的计费来源覆盖，仅保留钱包/订阅来源限制。',
                 )}
               </div>
               <div>
                 {t(
-                  '模型级配置优先级最高；若模型自身未填写价格模式或计费来源，则回退到当前分组的 __default__；若分组默认也未设置，则继续跟随全局价格配置与用户钱包偏好。',
+                  '模型级 billing_source 优先级最高；若模型自身未设置，则回退到当前分组的 __default__；若分组默认也未设置，则继续跟随用户钱包页保存的计费偏好。',
                 )}
               </div>
               <div>
@@ -934,7 +806,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
               </div>
               <div>
                 {t(
-                  '你也可以通过保留键 __default__ 设置分组默认的价格模式、按次价格和计费来源；当模型未显式设置这些字段时，会自动继承分组默认值。',
+                  '你也可以通过保留键 __default__ 设置分组默认计费来源；当模型未显式设置 billing_source 时，会自动继承分组默认值。',
                 )}
               </div>
             </div>
@@ -997,50 +869,6 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
             >
               {/* Left column: Configuration */}
               <Space vertical style={{ width: '100%' }} spacing={16}>
-                <Row style={{width: '100%'}}>
-                  <Col>
-                    <div className='mb-2 font-medium text-gray-700'>
-                      {t('分组 {{group}} 的默认价格模式', { group: selectedGroup })}
-                    </div>
-                    <RadioGroup
-                        type='button'
-                        value={selectedGroupDefaultEntry.mode}
-                        onChange={(event) =>
-                            updateGroupDefaultEntry({ mode: event.target.value })
-                        }
-                    >
-                      <Radio value='inherit'>{t('不设置分组默认价格')}</Radio>
-                      <Radio value='per-request'>{t('分组默认按次计费')}</Radio>
-                    </RadioGroup>
-                    <div className='mt-2 text-xs text-gray-500'>
-                      {t(
-                          '启用后，当前分组下未单独配置价格模式的模型，将默认继承该分组的按次价格。',
-                      )}
-                    </div>
-                  </Col>
-                </Row>
-
-                {selectedGroupDefaultEntry.mode === 'per-request' ? (
-                  <Row style={{width: '100%'}}>
-                    <Col>
-                      <div className='mb-2 font-medium text-gray-700'>
-                        {t('分组默认按次价格')}
-                      </div>
-                      <Input
-                          value={selectedGroupDefaultEntry.modelPrice}
-                          placeholder={t('输入每次调用价格')}
-                          suffix={t('$/次')}
-                          onChange={(value) => {
-                            if (!NUMERIC_INPUT_REGEX.test(value)) {
-                              return;
-                            }
-                            updateGroupDefaultEntry({ modelPrice: value });
-                          }}
-                      />
-                    </Col>
-                  </Row>
-                ) : null}
-
                 <Row style={{width: '100%'}}>
                   <Col>
                     <div className='mb-2 font-medium text-gray-700'>
@@ -1178,7 +1006,7 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
           </Card>
 
           <Card
-            title={selectedRow ? selectedRow.modelName : t('分组模型计费覆盖编辑器')}
+            title={selectedRow ? selectedRow.modelName : t('分组模型计费来源编辑器')}
             style={isMobile ? { order: 1 } : undefined}
             headerExtraContent={
               selectedRow ? (
@@ -1228,48 +1056,6 @@ export default function GroupModelBillingVisualEditor({ options, refresh }) {
                     </Col>
                   </Row>
                 </Card>
-
-                <Row>
-                  <div className='mb-2 font-medium text-gray-700'>
-                    {t('价格模式')}
-                  </div>
-                  <RadioGroup
-                    type='button'
-                    value={currentEntry.mode}
-                    onChange={(event) =>
-                      updateCurrentEntry({ mode: event.target.value })
-                    }
-                  >
-                    <Radio value='inherit'>{t('继承分组默认 / 全局配置')}</Radio>
-                    <Radio value='per-request'>{t('模型按次覆盖')}</Radio>
-                  </RadioGroup>
-                  <div className='mt-2 text-xs text-gray-500'>
-                    {t(
-                      '选择“继承”后，会优先尝试当前分组的 __default__ 配置；若分组未设置默认价格，再回退到全局模型计费配置。',
-                    )}
-                  </div>
-                </Row>
-
-                {currentEntry.mode === 'per-request' ? (
-                  <Row style={{width: '100%'}}>
-                    <Col>
-                      <div className='mb-2 font-medium text-gray-700'>
-                        {t('按次价格')}
-                      </div>
-                      <Input
-                          value={currentEntry.modelPrice}
-                          placeholder={t('输入每次调用价格')}
-                          suffix={t('$/次')}
-                          onChange={(value) => {
-                            if (!NUMERIC_INPUT_REGEX.test(value)) {
-                              return;
-                            }
-                            updateCurrentEntry({ modelPrice: value });
-                          }}
-                      />
-                    </Col>
-                  </Row>
-                ) : null}
 
                 <Row style={{ width: '100%' }}>
                   <Col>

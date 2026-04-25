@@ -28,6 +28,7 @@ func TestResolveIncomingBillingExprRequestInput(t *testing.T) {
 	ctx.Set(common.KeyRequestBody, body)
 
 	info := &relaycommon.RelayInfo{
+		UsingGroup:     "vip",
 		RequestHeaders: map[string]string{"Content-Type": "application/json"},
 	}
 
@@ -35,6 +36,7 @@ func TestResolveIncomingBillingExprRequestInput(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, body, input.Body)
 	require.Equal(t, "application/json", input.Headers["Content-Type"])
+	require.Equal(t, "vip", input.UsingGroup)
 }
 
 func TestBuildBillingExprRequestInputFromRequest(t *testing.T) {

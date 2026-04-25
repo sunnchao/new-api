@@ -52,7 +52,6 @@ export const useModelPricingData = () => {
   const [usableGroup, setUsableGroup] = useState({});
   const [endpointMap, setEndpointMap] = useState({});
   const [autoGroups, setAutoGroups] = useState([]);
-  const [tierPricingConfig, setTierPricingConfig] = useState({ enabled: false, rules: [] });
   const [groupModelBilling, setGroupModelBilling] = useState({});
 
   const [statusState] = useContext(StatusContext);
@@ -282,21 +281,9 @@ export const useModelPricingData = () => {
   };
 
   const loadTierPricingConfig = (options = []) => {
-    let enabled = false;
-    let rules = [];
     let groupBilling = {};
 
     options.forEach((item) => {
-      if (item.key === 'tier_pricing.enabled') {
-        enabled = item.value === 'true' || item.value === true;
-      }
-      if (item.key === 'tier_pricing.rules') {
-        try {
-          rules = JSON.parse(item.value || '[]');
-        } catch (e) {
-          rules = [];
-        }
-      }
       if (item.key === 'GroupModelBilling') {
         try {
           groupBilling = JSON.parse(item.value || '{}');
@@ -306,7 +293,6 @@ export const useModelPricingData = () => {
       }
     });
 
-    setTierPricingConfig({ enabled, rules });
     setGroupModelBilling(groupBilling);
   };
 
@@ -425,7 +411,6 @@ export const useModelPricingData = () => {
     usableGroup,
     endpointMap,
     autoGroups,
-    tierPricingConfig,
     groupModelBilling,
 
     // 计算属性

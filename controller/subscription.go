@@ -509,3 +509,44 @@ func AdminDeleteUserSubscription(c *gin.Context) {
 	}
 	common.ApiSuccess(c, nil)
 }
+
+// ---- Admin: all site subscriptions overview ----
+
+type AdminAllUserSubscriptionsRequest struct {
+	Page       int    `form:"page" binding:"omitempty,min=1"`
+	PageSize   int    `form:"page_size" binding:"omitempty,min=1,max=100"`
+	Username   string `form:"username" binding:"omitempty"`
+	PlanId     int    `form:"plan_id" binding:"omitempty,min=1"`
+	Status     string `form:"status" binding:"omitempty"`
+	UserGroup  string `form:"user_group" binding:"omitempty"`
+}
+
+// AdminListAllUserSubscriptions lists all user subscriptions across the site with pagination and filtering.
+func AdminListAllUserSubscriptions(c *gin.Context) {
+	var req AdminAllUserSubscriptionsRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		common.ApiErrorMsg(c, "参数错误: "+err.Error())
+		return
+	}
+
+	// Set defaults
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.PageSize <= 0 {
+		req.PageSize = 20
+	}
+
+	overviews, total, err := model.AdminListAllUserSubscriptions(req.Page, req.PageSize, req.Username, req.PlanId, req.Status, req.UserGroup)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	common.ApiSuccess(c, gin.H{
+		"data":  overviews,
+		"total": total,
+		"page":  req.Page,
+		"page_size": req.PageSize,
+	})
+}

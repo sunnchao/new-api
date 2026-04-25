@@ -514,6 +514,7 @@ func attachTestBillingRequestInput(info *relaycommon.RelayInfo, request dto.Requ
 	if err != nil {
 		return err
 	}
+	input.UsingGroup = info.UsingGroup
 	info.BillingRequestInput = &input
 	return nil
 }

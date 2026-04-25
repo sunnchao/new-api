@@ -27,7 +27,6 @@ import ModelRatioNotSetEditor from '../../pages/Setting/Ratio/ModelRationNotSetE
 import UpstreamRatioSync from '../../pages/Setting/Ratio/UpstreamRatioSync';
 import GroupRatioVisualEditor from '../../pages/Setting/Ratio/GroupRatioVisualEditor';
 import GroupModelBillingVisualEditor from '../../pages/Setting/Ratio/GroupModelBillingVisualEditor';
-import TierPricingVisualEditor from '../../pages/Setting/Ratio/TierPricingVisualEditor';
 import ToolPriceSettings from '../../pages/Setting/Ratio/ToolPriceSettings';
 
 import { API, showError, toBoolean } from '../../helpers';
@@ -52,8 +51,6 @@ const RatioSetting = () => {
     UserUsableGroups: '',
     UserUnselectableGroups: '',
     'group_ratio_setting.group_special_usable_group': '',
-    'tier_pricing.enabled': false,
-    'tier_pricing.rules': '[]',
     GroupModelBilling: ''
   });
 
@@ -72,17 +69,8 @@ const RatioSetting = () => {
             // Keep raw value when backend returns non-JSON content.
           }
         }
-        if (['DefaultUseAutoGroup', 'ExposeRatioEnabled', 'tier_pricing.enabled'].includes(item.key)) {
+        if (['DefaultUseAutoGroup', 'ExposeRatioEnabled'].includes(item.key)) {
           newInputs[item.key] = toBoolean(item.value);
-        } else if (item.key === 'tier_pricing.rules') {
-          if (item.value !== '') {
-            try {
-              item.value = JSON.stringify(JSON.parse(item.value), null, 2);
-            } catch (e) {
-              // Keep raw value
-            }
-          }
-          newInputs[item.key] = item.value;
         } else {
           newInputs[item.key] = item.value;
         }
@@ -122,7 +110,7 @@ const RatioSetting = () => {
           {/*<Tabs.TabPane tab={t('分组倍率可视化设置')} itemKey='group_visual'>*/}
           {/*  <GroupRatioVisualEditor options={inputs} refresh={onRefresh} />*/}
           {/*</Tabs.TabPane>*/}
-          <Tabs.TabPane tab={t('分组模型计费覆盖')} itemKey='group_model_billing_visual'>
+          <Tabs.TabPane tab={t('分组模型计费来源')} itemKey='group_model_billing_visual'>
             <GroupModelBillingVisualEditor options={inputs} refresh={onRefresh} />
           </Tabs.TabPane>
           <Tabs.TabPane tab={t('未设置价格模型')} itemKey='unset_models'>
@@ -133,9 +121,6 @@ const RatioSetting = () => {
           </Tabs.TabPane>
           <Tabs.TabPane tab={t('工具调用定价')} itemKey='tool_price'>
             <ToolPriceSettings options={inputs} />
-          </Tabs.TabPane>
-          <Tabs.TabPane tab={t('阶梯计费')} itemKey='tier_pricing'>
-            <TierPricingVisualEditor options={inputs} refresh={onRefresh} />
           </Tabs.TabPane>
         </Tabs>
       </Card>

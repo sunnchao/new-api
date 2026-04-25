@@ -23,9 +23,11 @@ import { IconPriceTag } from '@douyinfe/semi-icons';
 import { parseTiersFromExpr, getCurrencyConfig } from '../../../../../helpers';
 import { BILLING_PRICING_VARS } from '../../../../../constants';
 import {
+  REQUEST_RULE_ACTION_FIXED,
   splitBillingExprAndRequestRules,
   tryParseRequestRuleExpr,
   SOURCE_TIME,
+  SOURCE_TOKEN_GROUP,
   MATCH_RANGE,
   MATCH_EQ,
   MATCH_GTE,
@@ -72,6 +74,11 @@ function describeCondition(cond, t) {
     }
     const opMap = { [MATCH_EQ]: '=', [MATCH_GTE]: '≥', [MATCH_LT]: '<' };
     return `${fn} ${opMap[cond.mode] || '='} ${cond.value} (${tz})`;
+  }
+  if (cond.source === SOURCE_TOKEN_GROUP) {
+    if (cond.mode === MATCH_EXISTS) return `${t('令牌分组')} ${t('存在')}`;
+    if (cond.mode === MATCH_CONTAINS) return `${t('令牌分组')} ${t('包含')} "${cond.value}"`;
+    return `${t('令牌分组')} = ${cond.value}`;
   }
   const src = cond.source === 'header' ? t('请求头') : t('请求参数');
   const path = cond.path || '';
@@ -179,7 +186,7 @@ export default function DynamicPricingBreakdown({ billingExpr, t }) {
       {hasRules && (
         <div style={{ marginBottom: 16 }}>
           <Text strong className='text-sm' style={{ display: 'block', marginBottom: 8 }}>
-            {t('条件乘数')}
+            {t('请求规则')}
           </Text>
           {ruleGroups.map((group, gi) => (
             <div
@@ -195,7 +202,11 @@ export default function DynamicPricingBreakdown({ billingExpr, t }) {
               }}
             >
               <Text size='small'>{describeGroup(group, t)}</Text>
-              <Tag color='orange' size='small'>{group.multiplier}x</Tag>
+              {(group.actionType || '') === REQUEST_RULE_ACTION_FIXED ? (
+                <Tag color='teal' size='small'>${group.fixedPrice}/{t('次')}</Tag>
+              ) : (
+                <Tag color='orange' size='small'>{group.multiplier}x</Tag>
+              )}
             </div>
           ))}
         </div>

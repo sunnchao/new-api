@@ -107,7 +107,7 @@ func SubscriptionRequestBalancePay(c *gin.Context) {
 		"payment_method": order.PaymentMethod,
 		"cost_quota":     costQuota,
 	})
-	if err := model.CompleteSubscriptionOrder(tradeNo, "", providerPayload, c.ClientIP()); err != nil {
+	if err := model.CompleteSubscriptionOrder(tradeNo, "", providerPayload, order.PaymentMethod, c.ClientIP()); err != nil {
 		if costQuota > 0 {
 			_ = model.IncreaseUserQuota(userId, costQuota, false)
 		}

@@ -6,8 +6,9 @@ import (
 )
 
 type RequestInput struct {
-	Headers map[string]string
-	Body    []byte
+	Headers    map[string]string
+	Body       []byte
+	UsingGroup string
 }
 
 // TokenParams holds all token dimensions passed into an Expr evaluation.

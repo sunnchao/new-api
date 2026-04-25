@@ -9,7 +9,6 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
-	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/QuantumNous/new-api/setting/billing_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -78,38 +77,7 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		return modelPriceHelperTiered(c, info, promptTokens, meta, groupRatioInfo)
 	}
 
-	// 检查分组是否覆盖了模型计费类型；若模型未显式设置，则回退到分组默认 __default__。
-	if groupBilling, ok := ratio_setting.GetEffectiveGroupModelBilling(info.UsingGroup, info.OriginModelName); ok {
-		if groupBilling.QuotaType == 1 {
-			// 分组覆盖为按次计费
-			modelPrice := groupBilling.ModelPrice
-			if meta.ImagePriceRatio != 0 {
-				modelPrice = modelPrice * meta.ImagePriceRatio
-			}
-			quota := int(modelPrice * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
-
-			freeModel := false
-			if !operation_setting.GetQuotaSetting().EnableFreeModelPreConsume {
-				if groupRatioInfo.GroupRatio == 0 || modelPrice == 0 {
-					quota = 0
-					freeModel = true
-				}
-			}
-
-			priceData := types.PriceData{
-				FreeModel:         freeModel,
-				ModelPrice:        modelPrice,
-				UsePrice:          true,
-				GroupRatioInfo:    groupRatioInfo,
-				QuotaToPreConsume: quota,
-			}
-			info.PriceData = priceData
-			return priceData, nil
-		}
-		// 如果覆盖为按量计费(QuotaType=0)，继续下方的默认逻辑
-	}
-
-	modelPrice, usePrice := ratio_setting.GetModelPrice(info.OriginModelName, false)
+	modelPrice, usePrice = ratio_setting.GetModelPrice(info.OriginModelName, false)
 
 	var preConsumedQuota int
 	var modelRatio float64
@@ -149,18 +117,7 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		audioRatio = ratio_setting.GetAudioRatio(info.OriginModelName)
 		audioCompletionRatio = ratio_setting.GetAudioCompletionRatio(info.OriginModelName)
 		ratio := modelRatio * groupRatioInfo.GroupRatio
-		ratioForPreConsume := ratio
-		tierResult := model_setting.ResolveTokenTierPricing(model_setting.TokenTierResolveInput{
-			UserID:          info.UserId,
-			ModelName:       info.OriginModelName,
-			PromptTokens:    promptTokens,
-			ModelRatio:      modelRatio,
-			CompletionRatio: completionRatio,
-		})
-		if tierResult.Applied {
-			ratioForPreConsume = tierResult.ModelRatio * groupRatioInfo.GroupRatio
-		}
-		preConsumedQuota = int(float64(preConsumedTokens) * ratioForPreConsume)
+		preConsumedQuota = int(float64(preConsumedTokens) * ratio)
 	} else {
 		if meta.ImagePriceRatio != 0 {
 			modelPrice = modelPrice * meta.ImagePriceRatio

@@ -1926,3 +1926,166 @@ func PostConsumeUserSubscriptionDelta(userSubscriptionId int, delta int64) error
 		return tx.Save(&sub).Error
 	})
 }
+// AdminListAllUserSubscriptions returns all user subscriptions with user and plan info for admin overview.
+
+// AdminUserSubscriptionOverview is the response type for admin subscription overview.
+type AdminUserSubscriptionOverview struct {
+	Id                     int     `json:"id"`
+	UserId                 int     `json:"user_id"`
+	Username               string  `json:"username"`
+	UserDisplayName        string  `json:"user_display_name"`
+	UserEmail              string  `json:"user_email"`
+	UserGroup              string  `json:"user_group"`
+	PlanId                 int     `json:"plan_id"`
+	PlanTitle              string  `json:"plan_title"`
+	Status                 string  `json:"status"`
+	BillingMode            string  `json:"billing_mode"`
+	AmountTotal            int64   `json:"amount_total"`
+	AmountUsed             int64   `json:"amount_used"`
+	AmountRemaining        int64   `json:"amount_remaining"`
+	StartTime              int64   `json:"start_time"`
+	EndTime                int64   `json:"end_time"`
+	ApproximateTimes       int64   `json:"approximate_times"`
+	ApproximateTimesUsed   int64   `json:"approximate_times_used"`
+	UpgradeGroup           string  `json:"upgrade_group"`
+	AllowedGroups          string  `json:"allowed_groups"`
+	PrevUserGroup          string  `json:"prev_user_group"`
+	HourlyLimitAmount      int64   `json:"hourly_limit_amount"`
+	HourlyAmountUsed       int64   `json:"hourly_amount_used"`
+	HourlyLimitHours       int     `json:"hourly_limit_hours"`
+	HourlyNextResetTime    int64   `json:"hourly_next_reset_time"`
+	DailyLimitAmount       int64   `json:"daily_limit_amount"`
+	DailyAmountUsed        int64   `json:"daily_amount_used"`
+	DailyNextResetTime     int64   `json:"daily_next_reset_time"`
+	WeeklyLimitAmount      int64   `json:"weekly_limit_amount"`
+	WeeklyAmountUsed       int64   `json:"weekly_amount_used"`
+	WeeklyNextResetTime    int64   `json:"weekly_next_reset_time"`
+	MonthlyLimitAmount     int64   `json:"monthly_limit_amount"`
+	MonthlyAmountUsed      int64   `json:"monthly_amount_used"`
+	MonthlyNextResetTime   int64   `json:"monthly_next_reset_time"`
+}
+
+func AdminListAllUserSubscriptions(page int, pageSize int, username string, planId int, status string, userGroup string) ([]AdminUserSubscriptionOverview, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+
+	var total int64
+	var results []AdminUserSubscriptionOverview
+
+	// Build query with JOINs
+	query := DB.Table("user_subscriptions").
+		Select(`
+			user_subscriptions.id,
+			user_subscriptions.user_id,
+			users.username as username,
+			users.display_name as user_display_name,
+			users.email as user_email,
+			users.group as user_group,
+			user_subscriptions.plan_id,
+			subscription_plans.title as plan_title,
+			user_subscriptions.status,
+			user_subscriptions.billing_mode,
+			user_subscriptions.amount_total,
+			user_subscriptions.amount_used,
+			user_subscriptions.start_time,
+			user_subscriptions.end_time,
+			user_subscriptions.approximate_times,
+			user_subscriptions.upgrade_group,
+			user_subscriptions.allowed_groups,
+			user_subscriptions.prev_user_group,
+			user_subscriptions.hourly_limit_amount,
+			user_subscriptions.hourly_amount_used,
+			user_subscriptions.hourly_limit_hours,
+			user_subscriptions.hourly_next_reset_time,
+			user_subscriptions.daily_limit_amount,
+			user_subscriptions.daily_amount_used,
+			user_subscriptions.daily_next_reset_time,
+			user_subscriptions.weekly_limit_amount,
+			user_subscriptions.weekly_amount_used,
+			user_subscriptions.weekly_next_reset_time,
+			user_subscriptions.monthly_limit_amount,
+			user_subscriptions.monthly_amount_used,
+			user_subscriptions.monthly_next_reset_time
+		`).
+		Joins("LEFT JOIN users ON user_subscriptions.user_id = users.id").
+		Joins("LEFT JOIN subscription_plans ON user_subscriptions.plan_id = subscription_plans.id")
+
+	// Apply filters
+	if username != "" {
+		username = strings.TrimSpace(username)
+		if common.UsingPostgreSQL {
+			query = query.Where("users.username ILIKE ? OR users.display_name ILIKE ? OR users.email ILIKE ?", "%"+username+"%", "%"+username+"%", "%"+username+"%")
+		} else {
+			query = query.Where("users.username LIKE ? OR users.display_name LIKE ? OR users.email LIKE ?", "%"+username+"%", "%"+username+"%", "%"+username+"%")
+		}
+	}
+	if planId > 0 {
+		query = query.Where("user_subscriptions.plan_id = ?", planId)
+	}
+	if status != "" {
+		status = strings.TrimSpace(status)
+		query = query.Where("user_subscriptions.status = ?", status)
+	}
+	if userGroup != "" {
+		userGroup = strings.TrimSpace(userGroup)
+		if common.UsingPostgreSQL {
+			query = query.Where("users.\"group\" ILIKE ?", "%"+userGroup+"%")
+		} else {
+			query = query.Where("users.`group` LIKE ?", "%"+userGroup+"%")
+		}
+	}
+
+	// Count total
+	countQuery := DB.Table("user_subscriptions").
+		Joins("LEFT JOIN users ON user_subscriptions.user_id = users.id")
+	if username != "" {
+		if common.UsingPostgreSQL {
+			countQuery = countQuery.Where("users.username ILIKE ? OR users.display_name ILIKE ? OR users.email ILIKE ?", "%"+username+"%", "%"+username+"%", "%"+username+"%")
+		} else {
+			countQuery = countQuery.Where("users.username LIKE ? OR users.display_name LIKE ? OR users.email LIKE ?", "%"+username+"%", "%"+username+"%", "%"+username+"%")
+		}
+	}
+	if planId > 0 {
+		countQuery = countQuery.Where("user_subscriptions.plan_id = ?", planId)
+	}
+	if status != "" {
+		countQuery = countQuery.Where("user_subscriptions.status = ?", status)
+	}
+	if userGroup != "" {
+		if common.UsingPostgreSQL {
+			countQuery = countQuery.Where("users.\"group\" ILIKE ?", "%"+userGroup+"%")
+		} else {
+			countQuery = countQuery.Where("users.`group` LIKE ?", "%"+userGroup+"%")
+		}
+	}
+	if err := countQuery.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination and ordering
+	offset := (page - 1) * pageSize
+	query = query.Order("user_subscriptions.end_time DESC, user_subscriptions.id DESC").
+		Limit(pageSize).
+		Offset(offset)
+
+	if err := query.Find(&results).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Calculate remaining amounts and approximate times used
+	for i := range results {
+		results[i].AmountRemaining = results[i].AmountTotal - results[i].AmountUsed
+		if results[i].AmountRemaining < 0 {
+			results[i].AmountRemaining = 0
+		}
+		if results[i].AmountTotal > 0 && results[i].ApproximateTimes > 0 {
+			results[i].ApproximateTimesUsed = int64(float64(results[i].AmountUsed) / float64(results[i].AmountTotal) * float64(results[i].ApproximateTimes))
+		}
+	}
+
+	return results, total, nil
+}

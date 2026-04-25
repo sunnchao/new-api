@@ -12,7 +12,6 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
-	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/types"
 
@@ -53,7 +52,6 @@ type textQuotaSummary struct {
 	FileSearchCallCount      int
 	AudioInputPrice          float64
 	ImageGenerationCallPrice float64
-	TierResult               model_setting.TokenTierResolveResult
 	ToolCallSurchargeQuota   decimal.Decimal
 }
 
@@ -173,27 +171,6 @@ func calculateTextQuotaSummary(ctx *gin.Context, relayInfo *relaycommon.RelayInf
 		UsageSemantic:        usageSemanticFromUsage(relayInfo, usage),
 	}
 	summary.IsClaudeUsageSemantic = summary.UsageSemantic == "anthropic"
-
-	if !relayInfo.PriceData.UsePrice {
-		promptTokens := 0
-		if usage != nil {
-			promptTokens = usage.PromptTokens
-		} else {
-			promptTokens = relayInfo.GetEstimatePromptTokens()
-		}
-		tierResult := model_setting.ResolveTokenTierPricing(model_setting.TokenTierResolveInput{
-			UserID:          relayInfo.UserId,
-			ModelName:       relayInfo.OriginModelName,
-			PromptTokens:    promptTokens,
-			ModelRatio:      summary.ModelRatio,
-			CompletionRatio: summary.CompletionRatio,
-		})
-		if tierResult.Applied {
-			summary.ModelRatio = tierResult.ModelRatio
-			summary.CompletionRatio = tierResult.CompletionRatio
-		}
-		summary.TierResult = tierResult
-	}
 
 	if usage == nil {
 		usage = &dto.Usage{
@@ -421,29 +398,6 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 	}
 	if adminRejectReason != "" {
 		other["reject_reason"] = adminRejectReason
-	}
-	if summary.TierResult.Applied {
-		other["token_tier"] = true
-		other["token_tier_source"] = summary.TierResult.Source
-		other["token_tier_prompt_tokens"] = summary.PromptTokens
-		if summary.TierResult.RuleID != "" {
-			other["token_tier_rule_id"] = summary.TierResult.RuleID
-		}
-		if summary.TierResult.ThresholdTokens > 0 {
-			other["token_tier_threshold"] = summary.TierResult.ThresholdTokens
-		}
-		if summary.TierResult.RolloutMode != "" {
-			other["token_tier_rollout_mode"] = summary.TierResult.RolloutMode
-		}
-		if summary.TierResult.RolloutAllowlistSize > 0 {
-			other["token_tier_rollout_allowlist_size"] = summary.TierResult.RolloutAllowlistSize
-		}
-		if summary.TierResult.InputPriceMultiplier > 0 {
-			other["token_tier_input_multiplier"] = summary.TierResult.InputPriceMultiplier
-		}
-		if summary.TierResult.OutputPriceMultiplier > 0 {
-			other["token_tier_output_multiplier"] = summary.TierResult.OutputPriceMultiplier
-		}
 	}
 	if summary.ImageTokens != 0 {
 		other["image"] = true

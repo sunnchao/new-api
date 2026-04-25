@@ -51,6 +51,7 @@ func RunExprByHashWithRequest(exprStr, hash string, params TokenParams, request 
 func runProgram(prog *vm.Program, params TokenParams, request RequestInput) (float64, TraceResult, error) {
 	trace := TraceResult{}
 	headers := normalizeHeaders(request.Headers)
+	var helperErr error
 
 	env := map[string]interface{}{
 		"p":    params.P,
@@ -61,11 +62,24 @@ func runProgram(prog *vm.Program, params TokenParams, request RequestInput) (flo
 		"cc1h": params.CC1h,
 		"img":  params.Img,
 		"img_o": params.ImgO,
-		"ai":   params.AI,
-		"ao":   params.AO,
+		"ai":    params.AI,
+		"ao":    params.AO,
 		"tier": func(name string, value float64) float64 {
 			trace.MatchedTier = name
 			trace.Cost = value
+			return value
+		},
+		// apply_request_rules keeps request-conditional pricing in one helper so
+		// the main billing expression stays focused on base pricing logic.
+		"apply_request_rules": func(base float64, payload string) float64 {
+			if helperErr != nil {
+				return 0
+			}
+			value, err := ApplyRequestPricingRules(base, payload, request, &trace)
+			if err != nil {
+				helperErr = err
+				return 0
+			}
 			return value
 		},
 		"header": func(key string) string {
@@ -103,6 +117,9 @@ func runProgram(prog *vm.Program, params TokenParams, request RequestInput) (flo
 	out, err := expr.Run(prog, env)
 	if err != nil {
 		return 0, trace, fmt.Errorf("expr run error: %w", err)
+	}
+	if helperErr != nil {
+		return 0, trace, helperErr
 	}
 	f, ok := out.(float64)
 	if !ok {

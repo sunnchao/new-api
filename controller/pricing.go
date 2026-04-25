@@ -11,8 +11,6 @@ import (
 )
 
 var pricingOptionKeys = []string{
-	"tier_pricing.enabled",
-	"tier_pricing.rules",
 	"GroupModelBilling",
 }
 

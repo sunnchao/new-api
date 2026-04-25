@@ -158,10 +158,8 @@ func TestPricingIncludesAnonymousOptionSubset(t *testing.T) {
 	common.OptionMapRWMutex.Lock()
 	originalOptionMap := common.OptionMap
 	common.OptionMap = map[string]string{
-		"tier_pricing.enabled": "true",
-		"tier_pricing.rules":   `[{"id":"rule-1"}]`,
-		"GroupModelBilling":    `{"vip":{"gpt-4":{"quota_type":1}}}`,
-		"SystemSecret":         "should-not-leak",
+		"GroupModelBilling": `{"vip":{"gpt-4":{"quota_type":1}}}`,
+		"SystemSecret":      "should-not-leak",
 	}
 	common.OptionMapRWMutex.Unlock()
 	t.Cleanup(func() {
@@ -197,12 +195,6 @@ func TestPricingIncludesAnonymousOptionSubset(t *testing.T) {
 		optionsByKey[option.Key] = option.Value
 	}
 
-	if optionsByKey["tier_pricing.enabled"] != "true" {
-		t.Fatalf("expected tier_pricing.enabled option to be returned")
-	}
-	if optionsByKey["tier_pricing.rules"] != `[{"id":"rule-1"}]` {
-		t.Fatalf("expected tier_pricing.rules option to be returned")
-	}
 	if optionsByKey["GroupModelBilling"] != `{"vip":{"gpt-4":{"quota_type":1}}}` {
 		t.Fatalf("expected GroupModelBilling option to be returned")
 	}

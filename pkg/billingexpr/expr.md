@@ -108,15 +108,22 @@ tier("base", p * 2 + c * 8 + img * 2.5)
 tier("base", p * 0.43 + c * 3.06 + img * 0.78 + ai * 3.81 + ao * 15.11)
 ```
 
-### Request Rules (appended after `|||`)
+### Request Rules
 
-Request-conditional multipliers are appended to the expression after a `|||` separator:
+请求条件规则会包装在主表达式外层，通过 `apply_request_rules(base_expr, payload)` 统一执行。
+
+- **倍率规则**：命中后继续乘到当前价格上
+- **固定计费规则**：命中后先把基础价格替换为 `$ / 次`，再继续应用后续倍率规则
+- **令牌分组规则**：匹配最终生效的 `UsingGroup`，可用于替代旧版 `GroupModelBilling` 的价格覆盖
+
+示例（格式化后）：
 
 ```
-tier("base", p * 5 + c * 25)|||when(header("anthropic-beta") has "fast-mode") * 6
+apply_request_rules(
+  tier("base", p * 5 + c * 25),
+  "<base64-json-payload>"
+)
 ```
-
-These are parsed and applied separately by the request rule system.
 
 ---
 

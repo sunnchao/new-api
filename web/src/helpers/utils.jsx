@@ -27,6 +27,7 @@ import {
 } from '../constants/playground.constants';
 import { TABLE_COMPACT_MODES_KEY } from '../constants';
 import { MOBILE_BREAKPOINT } from '../hooks/common/useIsMobile';
+import { resolveTieredDisplayPricing } from './dynamicPricingDisplay';
 
 const HTMLToastContent = ({ htmlContent }) => {
   return <div dangerouslySetInnerHTML={{ __html: htmlContent }} />;
@@ -649,11 +650,12 @@ export const getEffectiveModelBillingContext = ({
     }
   }
 
-  // 1.5 检查分组模型计费覆盖配置，并兼容 __default__ 分组兜底。
+  // 1.5 GroupModelBilling 现在只保留 billing_source，价格展示继续跟随全局模型配置。
   let effectiveQuotaType = record.quota_type;
   let effectiveModelPrice = record.model_price;
   let effectiveBillingSource = '';
   let inheritedQuotaTypeFromGroupDefault = false;
+  let resolvedTieredDisplayPricing = false;
 
   if (usedGroup && groupModelBilling[usedGroup]) {
     const groupBillingMap = groupModelBilling[usedGroup] || {};
@@ -661,26 +663,25 @@ export const getEffectiveModelBillingContext = ({
       groupBillingMap[GROUP_MODEL_BILLING_DEFAULT_KEY] || null;
     const modelBilling = groupBillingMap[record.model_name] || null;
 
-    if (defaultBilling && Number(defaultBilling.quota_type) === 1) {
-      effectiveQuotaType = 1;
-      inheritedQuotaTypeFromGroupDefault = true;
-      if (defaultBilling.model_price !== undefined) {
-        effectiveModelPrice = defaultBilling.model_price;
-      }
-    }
     if (defaultBilling?.billing_source) {
       effectiveBillingSource = defaultBilling.billing_source;
     }
 
-    if (modelBilling && Number(modelBilling.quota_type) === 1) {
-      effectiveQuotaType = 1;
-      inheritedQuotaTypeFromGroupDefault = false;
-      if (modelBilling.model_price !== undefined) {
-        effectiveModelPrice = modelBilling.model_price;
-      }
-    }
     if (modelBilling?.billing_source) {
       effectiveBillingSource = modelBilling.billing_source;
+    }
+  }
+
+  // 动态计费展示优先尝试解析“仅依赖令牌分组”的固定价格，避免模型广场始终退化为动态计费标签。
+  if (record.billing_mode === 'tiered_expr' && record.billing_expr) {
+    const resolvedPricing = resolveTieredDisplayPricing({
+      billingExpr: record.billing_expr,
+      usingGroup: usedGroup,
+    });
+    if (resolvedPricing) {
+      effectiveQuotaType = resolvedPricing.effectiveQuotaType;
+      effectiveModelPrice = resolvedPricing.modelPrice;
+      resolvedTieredDisplayPricing = true;
     }
   }
 
@@ -691,6 +692,7 @@ export const getEffectiveModelBillingContext = ({
     effectiveModelPrice,
     effectiveBillingSource,
     inheritedQuotaTypeFromGroupDefault,
+    resolvedTieredDisplayPricing,
   };
 };
 
@@ -712,6 +714,7 @@ export const calculateModelPrice = ({
     effectiveModelPrice,
     effectiveBillingSource,
     inheritedQuotaTypeFromGroupDefault,
+    resolvedTieredDisplayPricing,
   } = getEffectiveModelBillingContext({
     record,
     selectedGroup,
@@ -719,18 +722,22 @@ export const calculateModelPrice = ({
     groupModelBilling,
   });
 
-    // 2. 动态计费（tiered_expr）
-    if (record.billing_mode === 'tiered_expr' && record.billing_expr) {
-        return {
-            isDynamicPricing: true,
-            billingExpr: record.billing_expr,
-            usedGroup,
-            usedGroupRatio,
-        };
-    }
+  // 2. 动态计费（tiered_expr）默认展示为动态；仅当上面已解析出令牌分组可确定的固定价时，才回落到普通按次展示。
+  if (
+    record.billing_mode === 'tiered_expr' &&
+    record.billing_expr &&
+    !resolvedTieredDisplayPricing
+  ) {
+    return {
+      isDynamicPricing: true,
+      billingExpr: record.billing_expr,
+      usedGroup,
+      usedGroupRatio,
+    };
+  }
 
   // 3. 根据计费类型计算价格
-    if (record.quota_type === 0) {
+  if (effectiveQuotaType === 0) {
     // 按量计费
     const isTokensDisplay = quotaDisplayType === 'TOKENS';
     const inputRatioPriceUSD = record.model_ratio * 2 * usedGroupRatio;
@@ -1020,7 +1027,7 @@ export const formatDynamicPriceSummary = (billingExpr, t, groupRatio = 1) => {
   const varLabels = BILLING_PRICING_VARS.map((v) => [v.key, v.label]);
 
   const hasTimeCondition = /\b(?:hour|minute|weekday|month|day)\(/.test(exprBody);
-  const hasRequestCondition = /\b(?:param|header)\(/.test(exprBody);
+  const hasRequestCondition = /\b(?:param|header|apply_request_rules)\(/.test(exprBody);
 
   const tags = [];
   if (tierCount > 1) tags.push(`${tierCount}${t('档')}`);

@@ -418,7 +418,7 @@ export default function ModelPricingEditor({
                   </RadioGroup>
                   <div className='mt-2 text-xs text-gray-500'>
                     {t(
-                      '普通按量/按次直接填价格就行；如果价格要跟请求参数或请求头联动，请切到表达式/阶梯计费。',
+                      '普通按量/按次直接填价格就行；如果价格要跟请求参数、请求头或令牌分组联动，请切到表达式/阶梯计费。',
                     )}
                   </div>
                 </div>

@@ -375,8 +375,8 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 
 	pref := common.NormalizeBillingPreference(relayInfo.UserSetting.BillingPreference)
 
-	// === 检查分组模型计费配置，覆盖用户偏好 ===
-	// 优先使用模型显式 billing_source，其次回退到分组默认 billing_source。
+	// === 检查分组模型计费来源配置，覆盖用户偏好 ===
+	// GroupModelBilling 现在只保留 billing_source；价格覆盖已迁移到动态计费规则。
 	if billingSource, ok := ratio_setting.GetGroupModelBillingSource(relayInfo.UsingGroup, relayInfo.OriginModelName); ok {
 		pref = billingSource
 	}

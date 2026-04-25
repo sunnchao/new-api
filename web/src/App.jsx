@@ -43,6 +43,7 @@ import Midjourney from './pages/Midjourney';
 import Pricing from './pages/Pricing';
 import Task from './pages/Task';
 import AdminPackages from './pages/AdminPackages';
+import SubscriptionOverview from './pages/SubscriptionOverview';
 import AdminToken from './pages/Admin/Token';
 import ModelPage from './pages/Model';
 import ModelDeploymentPage from './pages/ModelDeployment';
@@ -137,6 +138,14 @@ function App() {
           element={
             <AdminRoute>
               <Subscription />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path='/console/subscription-overview'
+          element={
+            <AdminRoute>
+              <SubscriptionOverview />
             </AdminRoute>
           }
         />

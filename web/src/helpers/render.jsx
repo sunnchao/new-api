@@ -27,6 +27,20 @@ import {
   BILLING_VAR_KEY_TO_FIELD,
   BILLING_VAR_REGEX,
 } from '../constants';
+import {
+  splitBillingExprAndRequestRules,
+  tryParseRequestRuleExpr,
+  REQUEST_RULE_ACTION_FIXED,
+  REQUEST_RULE_ACTION_MULTIPLIER,
+  SOURCE_TIME,
+  SOURCE_TOKEN_GROUP,
+  MATCH_RANGE,
+  MATCH_EQ,
+  MATCH_GTE,
+  MATCH_LT,
+  MATCH_CONTAINS,
+  MATCH_EXISTS,
+} from '../pages/Setting/Ratio/components/requestRuleExpr';
 import { visit } from 'unist-util-visit';
 import * as LobeIcons from '@lobehub/icons';
 import {
@@ -2308,6 +2322,38 @@ export function parseTiersFromExpr(exprStr) {
   }
 }
 
+// Helper function: describe a request rule condition (same logic as DynamicPricingBreakdown)
+const TIME_FUNC_LABELS = { hour: '小时', minute: '分钟', weekday: '星期', month: '月份', day: '日期' };
+const VAR_LABELS = { p: '输入', c: '输出' };
+
+function describeRequestRuleCondition(cond) {
+  if (cond.source === SOURCE_TIME) {
+    const fn = i18next.t(TIME_FUNC_LABELS[cond.timeFunc] || cond.timeFunc);
+    const tz = cond.timezone || 'UTC';
+    if (cond.mode === MATCH_RANGE) {
+      return `${fn} ${cond.rangeStart}:00~${cond.rangeEnd}:00 (${tz})`;
+    }
+    const opMap = { [MATCH_EQ]: '=', [MATCH_GTE]: '≥', [MATCH_LT]: '<' };
+    return `${fn} ${opMap[cond.mode] || '='} ${cond.value} (${tz})`;
+  }
+  if (cond.source === SOURCE_TOKEN_GROUP) {
+    if (cond.mode === MATCH_EXISTS) return `${i18next.t('令牌分组')} ${i18next.t('存在')}`;
+    if (cond.mode === MATCH_CONTAINS) return `${i18next.t('令牌分组')} ${i18next.t('包含')} "${cond.value}"`;
+    return `${i18next.t('令牌分组')} = ${cond.value}`;
+  }
+  const src = cond.source === 'header' ? i18next.t('请求头') : i18next.t('请求参数');
+  const path = cond.path || '';
+  if (cond.mode === MATCH_EXISTS) return `${src} ${path} ${i18next.t('存在')}`;
+  if (cond.mode === MATCH_CONTAINS) return `${src} ${path} ${i18next.t('包含')} "${cond.value}"`;
+  const opMap = { eq: '=', gt: '>', gte: '≥', lt: '<', lte: '≤' };
+  return `${src} ${path} ${opMap[cond.mode] || '='} ${cond.value}`;
+}
+
+function describeRequestRuleGroup(group) {
+  const parts = (group.conditions || []).map((c) => describeRequestRuleCondition(c));
+  return parts.join(' && ');
+}
+
 export function renderTieredModelPrice(opts) {
   const {
     prompt_tokens: inputTokens = 0,
@@ -2315,26 +2361,51 @@ export function renderTieredModelPrice(opts) {
     expr_b64: exprB64,
     matched_tier: matchedTier,
     group_ratio: groupRatio,
+    user_group_ratio,
     cache_tokens: cacheTokens = 0,
     cache_creation_tokens: cacheCreationTokens = 0,
     cache_creation_tokens_5m: cacheCreationTokens5m = 0,
     cache_creation_tokens_1h: cacheCreationTokens1h = 0,
+    displayMode = 'price',
   } = opts;
   let exprStr = '';
   try { exprStr = atob(exprB64); } catch { /* ignore */ }
-  const tiers = parseTiersFromExpr(exprStr);
+
+  // Header: indicate dynamic pricing mode
+  const headerLine = buildBillingText('【动态计费】', {});
+
+  // Split billing expression and request rules
+  const { billingExpr: baseExpr, requestRuleExpr } = splitBillingExprAndRequestRules(exprStr);
+  const tiers = parseTiersFromExpr(baseExpr || exprStr);
+  const ruleGroups = tryParseRequestRuleExpr(requestRuleExpr || '');
+
   if (tiers.length === 0) {
-    return i18next.t('阶梯计费（表达式解析失败）');
+    // Show expression directly when tier parsing fails
+    const exprDisplay = exprStr
+      ? buildBillingText('表达式：{{expr}}', { expr: exprStr })
+      : buildBillingText('表达式：无法解码', {});
+    return renderBillingArticle([
+      headerLine,
+      buildBillingText('计费模式：动态计费（表达式计费）', {}),
+      exprDisplay,
+      matchedTier
+        ? buildBillingText('命中档位：{{tier}}', { tier: matchedTier })
+        : null,
+      getGroupRatioText(groupRatio, user_group_ratio),
+    ].filter(Boolean));
   }
 
   const tier = tiers.find((t) => t.label === matchedTier) || tiers[0];
   const { symbol, rate } = getCurrencyConfig();
-  const gr = groupRatio || 1;
 
   const priceLines = BILLING_PRICING_VARS.map((v) => [v.field, v.label]);
 
-  const lines = [
-    buildBillingText('命中档位：{{tier}}', { tier: matchedTier || tier.label }),
+  // Build tier price lines
+  const tierLines = [
+    headerLine,
+    matchedTier
+      ? buildBillingText('命中档位：{{tier}}', { tier: matchedTier })
+      : buildBillingText('档位：{{tier}}', { tier: tier.label }),
     ...priceLines
       .filter(([field]) => tier[field] > 0)
       .map(([field, label]) =>
@@ -2342,7 +2413,29 @@ export function renderTieredModelPrice(opts) {
       ),
   ];
 
-  return renderBillingArticle(lines);
+  // Add request rules section if present
+  if (ruleGroups && ruleGroups.length > 0) {
+    tierLines.push(buildBillingText('请求条件调价：', {}));
+    for (const group of ruleGroups) {
+      const conditionText = describeRequestRuleGroup(group);
+      if ((group.actionType || '') === REQUEST_RULE_ACTION_FIXED) {
+        tierLines.push(buildBillingText('  {{cond}} → 固定价格 ${{price}}/次', {
+          cond: conditionText,
+          price: group.fixedPrice || '',
+        }));
+      } else {
+        tierLines.push(buildBillingText('  {{cond}} → 倍率 {{multiplier}}x', {
+          cond: conditionText,
+          multiplier: group.multiplier || '1',
+        }));
+      }
+    }
+  }
+
+  // Add group ratio at the end
+  tierLines.push(getGroupRatioText(groupRatio, user_group_ratio));
+
+  return renderBillingArticle(tierLines.filter(Boolean));
 }
 
 export function renderTieredModelPriceSimple(opts) {
@@ -2360,16 +2453,45 @@ export function renderTieredModelPriceSimple(opts) {
   } = opts;
   let exprStr = '';
   try { exprStr = atob(exprB64); } catch { /* ignore */ }
-  const tiers = parseTiersFromExpr(exprStr);
+
+  // Split billing expression and request rules
+  const { billingExpr: baseExpr, requestRuleExpr } = splitBillingExprAndRequestRules(exprStr);
+  const tiers = parseTiersFromExpr(baseExpr || exprStr);
   const tier = tiers.find((t) => t.label === matchedTier) || tiers[0];
+  const ruleGroups = tryParseRequestRuleExpr(requestRuleExpr || '');
 
   if (outputMode === 'segments') {
     const segments = [
       {
         tone: 'primary',
-        text: getGroupRatioText(groupRatio, user_group_ratio),
+        text: i18next.t('动态计费'),
       },
     ];
+
+    // Show group ratio if present
+    const groupText = getGroupRatioText(groupRatio, user_group_ratio);
+    if (groupText) {
+      segments.push({
+        tone: 'primary',
+        text: groupText,
+      });
+    }
+
+    // Show matched tier
+    if (matchedTier) {
+      segments.push({
+        tone: 'secondary',
+        text: i18next.t('档位 {{tier}}', { tier: matchedTier }),
+      });
+    }
+
+    // Show request rules indicator if present
+    if (ruleGroups && ruleGroups.length > 0) {
+      segments.push({
+        tone: 'secondary',
+        text: i18next.t('含请求条件调价'),
+      });
+    }
 
     if (tier && isPriceDisplayMode(displayMode)) {
       const priceSegments = BILLING_PRICING_VARS.map((v) => [v.field, v.shortLabel]);
