@@ -139,13 +139,11 @@ export function formatSubscriptionQuotaLimitSummary(source, t, options = {}) {
   }
 
   const maxItems = Number(options.maxItems || items.length);
-  const segments = items
-    .slice(0, maxItems)
-    .map((item) =>
-      formatSubscriptionQuotaLimitItemText(item, t, options.renderQuota, {
-        includeMode: options.includeMode,
-      }),
-    );
+  const segments = items.slice(0, maxItems).map((item) =>
+    formatSubscriptionQuotaLimitItemText(item, t, options.renderQuota, {
+      includeMode: options.includeMode,
+    }),
+  );
 
   if (items.length > maxItems) {
     segments.push(t('另 {{count}} 项', { count: items.length - maxItems }));
@@ -353,5 +351,38 @@ export function formatSubscriptionUsageSummary(
       t,
       renderQuota,
     ),
+  };
+}
+
+export function getSubscriptionUsageMetrics(
+  { used = 0, total = 0 } = {},
+  target,
+  t,
+  renderQuota,
+) {
+  const usedValue = Number(used || 0);
+  const totalValue = Number(total || 0);
+  const isUnlimited = totalValue <= 0;
+  const remainValue = isUnlimited ? 0 : Math.max(0, totalValue - usedValue);
+  const percent = isUnlimited
+    ? 0
+    : Math.max(0, Math.min(100, Math.round((usedValue / totalValue) * 100)));
+  const summary = formatSubscriptionUsageSummary(
+    {
+      used: usedValue,
+      total: totalValue,
+    },
+    target,
+    t,
+    renderQuota,
+  );
+
+  return {
+    usedValue,
+    totalValue,
+    remainValue,
+    percent,
+    isUnlimited,
+    ...summary,
   };
 }

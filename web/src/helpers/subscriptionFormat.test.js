@@ -9,6 +9,7 @@ import {
   formatSubscriptionAmountValue,
   formatSubscriptionTotalValue,
   formatSubscriptionQuotaLimitSummary,
+  getSubscriptionUsageMetrics,
   getSubscriptionQuotaLimitItems,
 } from './subscriptionFormat.js';
 
@@ -206,6 +207,54 @@ test('request usage summary uses request counts for purchased subscriptions', ()
       usedText: '12 次',
       totalText: '30 次',
       remainText: '18 次',
+    },
+  );
+});
+
+test('usage metrics clamp percent and remaining amount for overused request subscriptions', () => {
+  assert.deepEqual(
+    getSubscriptionUsageMetrics(
+      {
+        used: 35,
+        total: 30,
+      },
+      { billing_mode: 'request' },
+      t,
+      (value) => `${value} USD`,
+    ),
+    {
+      usedValue: 35,
+      totalValue: 30,
+      remainValue: 0,
+      percent: 100,
+      isUnlimited: false,
+      usedText: '35 次',
+      totalText: '30 次',
+      remainText: '0 次',
+    },
+  );
+});
+
+test('usage metrics mark zero total subscriptions as unlimited', () => {
+  assert.deepEqual(
+    getSubscriptionUsageMetrics(
+      {
+        used: 750000000,
+        total: 0,
+      },
+      { billing_mode: 'quota' },
+      t,
+      (value) => `${value / 500000} USD`,
+    ),
+    {
+      usedValue: 750000000,
+      totalValue: 0,
+      remainValue: 0,
+      percent: 0,
+      isUnlimited: true,
+      usedText: '1500 USD',
+      totalText: '0 USD',
+      remainText: '0 USD',
     },
   );
 });

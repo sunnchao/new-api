@@ -1926,43 +1926,52 @@ func PostConsumeUserSubscriptionDelta(userSubscriptionId int, delta int64) error
 		return tx.Save(&sub).Error
 	})
 }
+
 // AdminListAllUserSubscriptions returns all user subscriptions with user and plan info for admin overview.
 
 // AdminUserSubscriptionOverview is the response type for admin subscription overview.
 type AdminUserSubscriptionOverview struct {
-	Id                     int     `json:"id"`
-	UserId                 int     `json:"user_id"`
-	Username               string  `json:"username"`
-	UserDisplayName        string  `json:"user_display_name"`
-	UserEmail              string  `json:"user_email"`
-	UserGroup              string  `json:"user_group"`
-	PlanId                 int     `json:"plan_id"`
-	PlanTitle              string  `json:"plan_title"`
-	Status                 string  `json:"status"`
-	BillingMode            string  `json:"billing_mode"`
-	AmountTotal            int64   `json:"amount_total"`
-	AmountUsed             int64   `json:"amount_used"`
-	AmountRemaining        int64   `json:"amount_remaining"`
-	StartTime              int64   `json:"start_time"`
-	EndTime                int64   `json:"end_time"`
-	ApproximateTimes       int64   `json:"approximate_times"`
-	ApproximateTimesUsed   int64   `json:"approximate_times_used"`
-	UpgradeGroup           string  `json:"upgrade_group"`
-	AllowedGroups          string  `json:"allowed_groups"`
-	PrevUserGroup          string  `json:"prev_user_group"`
-	HourlyLimitAmount      int64   `json:"hourly_limit_amount"`
-	HourlyAmountUsed       int64   `json:"hourly_amount_used"`
-	HourlyLimitHours       int     `json:"hourly_limit_hours"`
-	HourlyNextResetTime    int64   `json:"hourly_next_reset_time"`
-	DailyLimitAmount       int64   `json:"daily_limit_amount"`
-	DailyAmountUsed        int64   `json:"daily_amount_used"`
-	DailyNextResetTime     int64   `json:"daily_next_reset_time"`
-	WeeklyLimitAmount      int64   `json:"weekly_limit_amount"`
-	WeeklyAmountUsed       int64   `json:"weekly_amount_used"`
-	WeeklyNextResetTime    int64   `json:"weekly_next_reset_time"`
-	MonthlyLimitAmount     int64   `json:"monthly_limit_amount"`
-	MonthlyAmountUsed      int64   `json:"monthly_amount_used"`
-	MonthlyNextResetTime   int64   `json:"monthly_next_reset_time"`
+	Id                      int    `json:"id"`
+	UserId                  int    `json:"user_id"`
+	Username                string `json:"username"`
+	UserDisplayName         string `json:"user_display_name"`
+	UserEmail               string `json:"user_email"`
+	UserGroup               string `json:"user_group"`
+	PlanId                  int    `json:"plan_id"`
+	PlanTitle               string `json:"plan_title"`
+	Status                  string `json:"status"`
+	BillingMode             string `json:"billing_mode"`
+	AmountTotal             int64  `json:"amount_total"`
+	AmountUsed              int64  `json:"amount_used"`
+	AmountRemaining         int64  `json:"amount_remaining"`
+	StartTime               int64  `json:"start_time"`
+	EndTime                 int64  `json:"end_time"`
+	ApproximateTimes        int64  `json:"approximate_times"`
+	ApproximateTimesUsed    int64  `json:"approximate_times_used"`
+	UpgradeGroup            string `json:"upgrade_group"`
+	AllowedGroups           string `json:"allowed_groups"`
+	PrevUserGroup           string `json:"prev_user_group"`
+	HourlyLimitAmount       int64  `json:"hourly_limit_amount"`
+	HourlyAmountUsed        int64  `json:"hourly_amount_used"`
+	HourlyLimitHours        int    `json:"hourly_limit_hours"`
+	HourlyResetMode         string `json:"hourly_reset_mode"`
+	HourlyNextResetTime     int64  `json:"hourly_next_reset_time"`
+	HourlyApproximateTimes  int64  `json:"hourly_approximate_times"`
+	DailyLimitAmount        int64  `json:"daily_limit_amount"`
+	DailyAmountUsed         int64  `json:"daily_amount_used"`
+	DailyResetMode          string `json:"daily_reset_mode"`
+	DailyNextResetTime      int64  `json:"daily_next_reset_time"`
+	DailyApproximateTimes   int64  `json:"daily_approximate_times"`
+	WeeklyLimitAmount       int64  `json:"weekly_limit_amount"`
+	WeeklyAmountUsed        int64  `json:"weekly_amount_used"`
+	WeeklyResetMode         string `json:"weekly_reset_mode"`
+	WeeklyNextResetTime     int64  `json:"weekly_next_reset_time"`
+	WeeklyApproximateTimes  int64  `json:"weekly_approximate_times"`
+	MonthlyLimitAmount      int64  `json:"monthly_limit_amount"`
+	MonthlyAmountUsed       int64  `json:"monthly_amount_used"`
+	MonthlyResetMode        string `json:"monthly_reset_mode"`
+	MonthlyNextResetTime    int64  `json:"monthly_next_reset_time"`
+	MonthlyApproximateTimes int64  `json:"monthly_approximate_times"`
 }
 
 func AdminListAllUserSubscriptions(page int, pageSize int, username string, planId int, status string, userGroup string) ([]AdminUserSubscriptionOverview, int64, error) {
@@ -2000,16 +2009,24 @@ func AdminListAllUserSubscriptions(page int, pageSize int, username string, plan
 			user_subscriptions.hourly_limit_amount,
 			user_subscriptions.hourly_amount_used,
 			user_subscriptions.hourly_limit_hours,
+			user_subscriptions.hourly_reset_mode,
 			user_subscriptions.hourly_next_reset_time,
+			user_subscriptions.hourly_approximate_times,
 			user_subscriptions.daily_limit_amount,
 			user_subscriptions.daily_amount_used,
+			user_subscriptions.daily_reset_mode,
 			user_subscriptions.daily_next_reset_time,
+			user_subscriptions.daily_approximate_times,
 			user_subscriptions.weekly_limit_amount,
 			user_subscriptions.weekly_amount_used,
+			user_subscriptions.weekly_reset_mode,
 			user_subscriptions.weekly_next_reset_time,
+			user_subscriptions.weekly_approximate_times,
 			user_subscriptions.monthly_limit_amount,
 			user_subscriptions.monthly_amount_used,
-			user_subscriptions.monthly_next_reset_time
+			user_subscriptions.monthly_reset_mode,
+			user_subscriptions.monthly_next_reset_time,
+			user_subscriptions.monthly_approximate_times
 		`).
 		Joins("LEFT JOIN users ON user_subscriptions.user_id = users.id").
 		Joins("LEFT JOIN subscription_plans ON user_subscriptions.plan_id = subscription_plans.id")
