@@ -90,6 +90,12 @@ func SubscriptionRequestBalancePay(c *gin.Context) {
 		CreateTime:    time.Now().Unix(),
 		Status:        common.TopUpStatusPending,
 	}
+
+	providerPayload := common.GetJsonString(map[string]any{
+		"payment_method": order.PaymentMethod,
+		"cost_quota":     costQuota,
+	})
+	order.PaymentProvider = providerPayload
 	if err := order.Insert(); err != nil {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "创建订单失败"})
 		return
@@ -103,11 +109,7 @@ func SubscriptionRequestBalancePay(c *gin.Context) {
 		}
 	}
 
-	providerPayload := common.GetJsonString(map[string]any{
-		"payment_method": order.PaymentMethod,
-		"cost_quota":     costQuota,
-	})
-	if err := model.CompleteSubscriptionOrder(tradeNo, "", providerPayload, order.PaymentMethod, c.ClientIP()); err != nil {
+	if err := model.CompleteSubscriptionOrder(tradeNo, providerPayload, order.PaymentProvider, PaymentMethodBalance, c.ClientIP()); err != nil {
 		if costQuota > 0 {
 			_ = model.IncreaseUserQuota(userId, costQuota, false)
 		}
