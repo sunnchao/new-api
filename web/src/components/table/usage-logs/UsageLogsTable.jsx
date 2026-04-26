@@ -88,7 +88,7 @@ const LogsTable = (logsData) => {
       {...(hasExpandableRows() && {
         expandedRowRender: expandRowRender,
         expandRowByClick: true,
-        rowExpandable: (record) =>
+        rowExpandable: (record) => record.type == 5 ? false :
           expandData[record.key] && expandData[record.key].length > 0,
       })}
       dataSource={logs}

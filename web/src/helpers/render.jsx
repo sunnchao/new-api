@@ -2478,12 +2478,12 @@ export function renderTieredModelPriceSimple(opts) {
     }
 
     // Show matched tier
-    if (matchedTier) {
-      segments.push({
-        tone: 'secondary',
-        text: i18next.t('档位 {{tier}}', { tier: matchedTier }),
-      });
-    }
+    // if (matchedTier) {
+    //   segments.push({
+    //     tone: 'secondary',
+    //     text: i18next.t('档位 {{tier}}', { tier: matchedTier }),
+    //   });
+    // }
 
     // Show request rules indicator if present
     if (ruleGroups && ruleGroups.length > 0) {
@@ -2493,20 +2493,20 @@ export function renderTieredModelPriceSimple(opts) {
       });
     }
 
-    if (tier && isPriceDisplayMode(displayMode)) {
-      const priceSegments = BILLING_PRICING_VARS.map((v) => [v.field, v.shortLabel]);
-      for (const [field, label] of priceSegments) {
-        if (tier[field] > 0) {
-          segments.push({
-            tone: 'secondary',
-            text: i18next.t('{{label}} {{price}} / 1M tokens', {
-              label: i18next.t(label),
-              price: formatCompactDisplayPrice(tier[field]),
-            }),
-          });
-        }
-      }
-    }
+    // if (tier && isPriceDisplayMode(displayMode)) {
+    //   const priceSegments = BILLING_PRICING_VARS.map((v) => [v.field, v.shortLabel]);
+    //   for (const [field, label] of priceSegments) {
+    //     if (tier[field] > 0) {
+    //       segments.push({
+    //         tone: 'secondary',
+    //         text: i18next.t('{{label}} {{price}} / 1M tokens', {
+    //           label: i18next.t(label),
+    //           price: formatCompactDisplayPrice(tier[field]),
+    //         }),
+    //       });
+    //     }
+    //   }
+    // }
 
     return segments;
   }

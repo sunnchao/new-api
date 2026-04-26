@@ -397,6 +397,10 @@ export const useLogsData = () => {
           key: t('渠道信息'),
           value: `${logs[i].channel} - ${logs[i].channel_name || '[未知]'}`,
         });
+        expandDataLocal.push({
+          key: t('UserAgent'),
+          value: `${other?.admin_info?.user_agent || '[未知]'}`,
+        });
       }
       if (logs[i].request_id) {
         expandDataLocal.push({

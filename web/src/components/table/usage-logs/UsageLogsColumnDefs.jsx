@@ -126,13 +126,13 @@ function renderType(type, t) {
     case 5:
       return (
         <Tag color='red' shape='circle'>
-          {t('错误')}
+          {t('签到')}
         </Tag>
       );
     case 6:
       return (
         <Tag color='teal' shape='circle'>
-          {t('退款')}
+          {t('错误')}
         </Tag>
       );
     case 7:
@@ -542,7 +542,6 @@ export const getLogsColumns = ({
         return isAdminUser &&
           (record.type === 0 ||
             record.type === 2 ||
-            record.type === 5 ||
             record.type === 6 || record.type === 7 || record.type === 9) ? (
           <Space>
             <span style={{ position: 'relative', display: 'inline-block' }}>
@@ -635,7 +634,6 @@ export const getLogsColumns = ({
       render: (text, record, index) => {
         return record.type === 0 ||
           record.type === 2 ||
-          record.type === 5 ||
           record.type === 6  || record.type === 7 ? (
           <div>
             <Tag
@@ -706,7 +704,6 @@ export const getLogsColumns = ({
       render: (text, record, index) => {
         return record.type === 0 ||
           record.type === 2 ||
-          record.type === 5 ||
           record.type === 6 || record.type === 7 || record.type === 9 ? (
           <>{renderModelName(record, copyText, t)}</>
         ) : (
@@ -719,7 +716,7 @@ export const getLogsColumns = ({
       title: t('用时/首字'),
       dataIndex: 'use_time',
       render: (text, record, index) => {
-        if (!(record.type === 2 || record.type === 5)) {
+        if (!(record.type === 2)) {
           return <></>;
         }
         if (record.is_stream) {
@@ -776,7 +773,6 @@ export const getLogsColumns = ({
 
         return record.type === 0 ||
           record.type === 2 ||
-          record.type === 5 ||
           record.type === 6 || record.type === 7 ? (
           <div
             style={{
@@ -813,7 +809,6 @@ export const getLogsColumns = ({
         return parseInt(text) > 0 &&
           (record.type === 0 ||
             record.type === 2 ||
-            record.type === 5 ||
             record.type === 6 || record.type === 7) ? (
           <>{<span> {text} </span>}</>
         ) : (
