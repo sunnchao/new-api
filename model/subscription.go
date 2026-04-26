@@ -882,7 +882,7 @@ func GetAllActiveUserSubscriptions(userId int) ([]SubscriptionSummary, error) {
 	now := common.GetTimestamp()
 	var subs []UserSubscription
 	err := DB.Where("user_id = ? AND status = ? AND end_time > ?", userId, "active", now).
-		Order("end_time desc, id desc").
+		Order("start_time desc, id desc").
 		Find(&subs).Error
 	if err != nil {
 		return nil, err
@@ -984,7 +984,7 @@ func GetAllUserSubscriptions(userId int) ([]SubscriptionSummary, error) {
 	}
 	var subs []UserSubscription
 	err := DB.Where("user_id = ?", userId).
-		Order("end_time desc, id desc").
+		Order("start_time desc, id desc").
 		Find(&subs).Error
 	if err != nil {
 		return nil, err
@@ -2085,7 +2085,7 @@ func AdminListAllUserSubscriptions(page int, pageSize int, username string, plan
 
 	// Apply pagination and ordering
 	offset := (page - 1) * pageSize
-	query = query.Order("user_subscriptions.end_time DESC, user_subscriptions.id DESC").
+	query = query.Order("user_subscriptions.start_time DESC, user_subscriptions.id DESC").
 		Limit(pageSize).
 		Offset(offset)
 

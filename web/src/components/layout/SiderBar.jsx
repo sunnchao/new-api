@@ -169,12 +169,6 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         className: isAdmin() ? '' : 'tableHiddle',
       },
       {
-        text: t('用户订阅'),
-        itemKey: 'subscription-overview',
-        to: '/console/subscription-overview',
-        className: isAdmin() ? '' : 'tableHiddle',
-      },
-      {
         text: t('模型管理'),
         itemKey: 'models',
         to: '/console/models',

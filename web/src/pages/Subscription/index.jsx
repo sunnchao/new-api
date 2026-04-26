@@ -18,12 +18,26 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
+import { Tabs } from '@douyinfe/semi-ui';
+import { useTranslation } from 'react-i18next';
 import SubscriptionsPage from '../../components/table/subscriptions';
+import SubscriptionOverviewPage from '../../components/table/subscription-overview';
+
+const { TabPane } = Tabs;
 
 const Subscription = () => {
+  const { t } = useTranslation();
+
   return (
     <div className='mt-[60px] px-2'>
-      <SubscriptionsPage />
+      <Tabs type='line' defaultActiveKey='plans'>
+        <TabPane tab={t('订阅套餐')} itemKey='plans'>
+          <SubscriptionsPage />
+        </TabPane>
+        <TabPane tab={t('用户订阅')} itemKey='users'>
+          <SubscriptionOverviewPage />
+        </TabPane>
+      </Tabs>
     </div>
   );
 };
