@@ -749,7 +749,7 @@ export const useLogsData = () => {
             operatorValue = `${adminInfo.admin_username} (ID: ${adminInfo.admin_id})`;
           } else if (hasUsername) {
             operatorValue = String(adminInfo.admin_username);
-          } else {
+          } else { 
             operatorValue = `ID: ${adminInfo.admin_id}`;
           }
           expandDataLocal.push({

@@ -456,10 +456,10 @@ function encodeRequestRulePayload(groups) {
             source: cond.source,
             mode: cond.mode,
             value: cond.value,
-            time_func: cond.timeFunc,
+            timeFunc: cond.timeFunc,
             timezone: cond.timezone,
-            range_start: cond.rangeStart,
-            range_end: cond.rangeEnd,
+            rangeStart: cond.rangeStart,
+            rangeEnd: cond.rangeEnd,
           }
           : {
             source: cond.source,
