@@ -758,19 +758,6 @@ export const useLogsData = () => {
           });
         }
       }
-      if (other.subscriptions_used?.length) {
-        expandDataLocal.push({
-          key: t('资源包'),
-          value: other.subscriptions_used?.map((item) => (
-            <Space spacing={'tight'}>
-              <Tag onClick={(event) => copyText(event, item.subscription_id)}>
-                {item.subscription_id}
-              </Tag>
-              {renderQuota(item.quota, 6)}
-            </Space>
-          )),
-        });
-      }
       expandDatesLocal[logs[i].key] = expandDataLocal;
     }
 
