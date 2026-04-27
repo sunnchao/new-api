@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Banner,
   Button,
@@ -33,7 +33,7 @@ import {
 } from '@douyinfe/semi-ui';
 import { IconCopy, IconDelete, IconPlus } from '@douyinfe/semi-icons';
 import { renderQuota } from '../../../../helpers/render';
-import { copy, showSuccess } from '../../../../helpers';
+import { API, copy, showSuccess } from '../../../../helpers';
 import { BILLING_EXTRA_VARS, BILLING_CACHE_VAR_MAP, BILLING_CONDITION_VARS } from '../../../../constants';
 import {
   createEmptyCondition,
@@ -1006,7 +1006,7 @@ const TIME_FUNC_PLACEHOLDERS = {
   day: '1-31',
 };
 
-function RuleConditionRow({ cond, onChange, onRemove, t }) {
+function RuleConditionRow({ cond, onChange, onRemove, t, tokenGroups }) {
   const normalized = normalizeCondition(cond);
   const isTime = normalized.source === SOURCE_TIME;
   const matchOptions = getRequestRuleMatchOptions(normalized.source, t);
@@ -1022,7 +1022,6 @@ function RuleConditionRow({ cond, onChange, onRemove, t }) {
           onChange(normalizeCondition({ source: value, path: '', mode: MATCH_EQ }));
         }
       }}
-      style={{ width: 110 }}
     >
       <Select.Option value={SOURCE_PARAM}>{t('请求参数')}</Select.Option>
       <Select.Option value={SOURCE_HEADER}>{t('请求头')}</Select.Option>
@@ -1142,27 +1141,40 @@ function RuleConditionRow({ cond, onChange, onRemove, t }) {
             <Select.Option key={item.value} value={item.value}>{item.label}</Select.Option>
           ))}
         </Select>
-        <Input
-          value={normalized.value}
-          placeholder={
-            normalized.mode === MATCH_CONTAINS
-              ? t('匹配内容')
-              : normalized.mode === MATCH_EXISTS
-                ? ''
-                : isTokenGroup
-                  ? t('例如 vip')
+        {isTokenGroup && showValue ? (
+          <Select
+            value={normalized.value || undefined}
+            placeholder={t('选择分组')}
+            onChange={(value) => onChange({ ...normalized, value })}
+            style={{ flex: 1 }}
+            filter
+            showClear
+          >
+            {(tokenGroups || []).map((group) => (
+              <Select.Option key={group} value={group}>{group}</Select.Option>
+            ))}
+          </Select>
+        ) : (
+          <Input
+            value={normalized.value}
+            placeholder={
+              normalized.mode === MATCH_CONTAINS
+                ? t('匹配内容')
+                : normalized.mode === MATCH_EXISTS
+                  ? ''
                   : t('匹配值')
-          }
-          disabled={!showValue}
-          onChange={(value) => onChange({ ...normalized, value })}
-          style={{ flex: 1 }}
-        />
+            }
+            disabled={!showValue}
+            onChange={(value) => onChange({ ...normalized, value })}
+            style={{ flex: 1 }}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function RuleGroupCard({ group, index, onChange, onRemove, t }) {
+function RuleGroupCard({ group, index, onChange, onRemove, t, tokenGroups }) {
   const conditions = group.conditions || [];
 
   const updateCondition = (ci, newCond) => {
@@ -1205,6 +1217,7 @@ function RuleGroupCard({ group, index, onChange, onRemove, t }) {
             onChange={(nc) => updateCondition(ci, nc)}
             onRemove={() => removeCondition(ci)}
             t={t}
+            tokenGroups={tokenGroups}
           />
         ))}
         <div style={{ display: 'flex', gap: 6 }}>
@@ -1434,6 +1447,17 @@ export default function TieredPricingEditor({ model, onExprChange, requestRuleEx
   const [imageOutputTokens, setImageOutputTokens] = useState(0);
   const [audioInputTokens, setAudioInputTokens] = useState(0);
   const [audioOutputTokens, setAudioOutputTokens] = useState(0);
+  const [tokenGroups, setTokenGroups] = useState([]);
+
+  useEffect(() => {
+    API.get('/api/group/')
+      .then((res) => {
+        if (res?.data?.data) {
+          setTokenGroups(res.data.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const currentRequestRuleExpr = requestRuleExpr || '';
   const parsedRequestRuleGroups = useMemo(
@@ -1442,8 +1466,13 @@ export default function TieredPricingEditor({ model, onExprChange, requestRuleEx
   );
   const canUseVisualRules = parsedRequestRuleGroups !== null;
   const [requestRuleGroups, setRequestRuleGroups] = useState(parsedRequestRuleGroups || []);
+  const isLocalEditRef = useRef(false);
 
   useEffect(() => {
+    if (isLocalEditRef.current) {
+      isLocalEditRef.current = false;
+      return;
+    }
     if (parsedRequestRuleGroups) {
       setRequestRuleGroups(parsedRequestRuleGroups);
     } else {
@@ -1452,6 +1481,7 @@ export default function TieredPricingEditor({ model, onExprChange, requestRuleEx
   }, [currentRequestRuleExpr, parsedRequestRuleGroups]);
 
   const handleRequestRuleGroupsChange = useCallback((nextGroups) => {
+    isLocalEditRef.current = true;
     setRequestRuleGroups(nextGroups);
     onRequestRuleExprChange(buildRequestRuleExpr(nextGroups));
   }, [onRequestRuleExprChange]);
@@ -1631,6 +1661,7 @@ export default function TieredPricingEditor({ model, onExprChange, requestRuleEx
                     group={group}
                     index={gi}
                     t={t}
+                    tokenGroups={tokenGroups}
                     onChange={(nextGroup) => {
                       const next = [...requestRuleGroups];
                       next[gi] = nextGroup;

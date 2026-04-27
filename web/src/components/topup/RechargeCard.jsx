@@ -149,7 +149,7 @@ const RechargeCard = ({
                     className='text-base sm:text-2xl font-bold mb-2'
                     style={{ color: 'white' }}
                   >
-                    {renderQuota(userState?.user?.quota)}
+                    {renderQuota(userState?.user?.quota, 6)}
                   </div>
                   <div className='flex items-center justify-center text-sm'>
                     <Wallet
