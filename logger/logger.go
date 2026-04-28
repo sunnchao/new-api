@@ -33,6 +33,9 @@ var setupLogWorking bool
 var currentLogPath string
 var currentLogPathMu sync.RWMutex
 var currentLogFile *os.File
+var currentLogHour int
+var hourlyRotationStarted bool
+var hourlyRotationMu sync.Mutex
 
 func GetCurrentLogPath() string {
 	currentLogPathMu.RLock()
@@ -53,7 +56,9 @@ func SetupLogger() {
 		defer func() {
 			setupLogLock.Unlock()
 		}()
-		logPath := filepath.Join(*common.LogDir, fmt.Sprintf("oneapi-%s.log", time.Now().Format("20060102150405")))
+
+		now := time.Now()
+		logPath := filepath.Join(*common.LogDir, fmt.Sprintf("oneapi-%s.log", now.Format("20060102150405")))
 		fd, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatal("failed to open log file")
@@ -62,6 +67,7 @@ func SetupLogger() {
 		oldFile := currentLogFile
 		currentLogPath = logPath
 		currentLogFile = fd
+		currentLogHour = now.Hour()
 		currentLogPathMu.Unlock()
 
 		common.LogWriterMu.Lock()
@@ -71,7 +77,85 @@ func SetupLogger() {
 			_ = oldFile.Close()
 		}
 		common.LogWriterMu.Unlock()
+
+		// Start hourly rotation checker (only once)
+		startHourlyRotation()
 	}
+}
+
+// startHourlyRotation starts a background goroutine that checks for hour changes
+// and rotates the log file when the hour changes.
+func startHourlyRotation() {
+	hourlyRotationMu.Lock()
+	if hourlyRotationStarted {
+		hourlyRotationMu.Unlock()
+		return
+	}
+	hourlyRotationStarted = true
+	hourlyRotationMu.Unlock()
+
+	gopool.Go(func() {
+		// Calculate time until next hour
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			if *common.LogDir == "" {
+				continue
+			}
+
+			now := time.Now()
+			currentLogPathMu.RLock()
+			lastHour := currentLogHour
+			currentLogPathMu.RUnlock()
+
+			// Check if hour has changed
+			if now.Hour() != lastHour {
+				rotateLogFile()
+			}
+		}
+	})
+}
+
+// rotateLogFile rotates the current log file when hour changes.
+// It renames the current log file with the timestamp of when it was created,
+// then creates a new log file for the new hour.
+func rotateLogFile() {
+	ok := setupLogLock.TryLock()
+	if !ok {
+		return
+	}
+	defer setupLogLock.Unlock()
+
+	if *common.LogDir == "" {
+		return
+	}
+
+	now := time.Now()
+	newLogPath := filepath.Join(*common.LogDir, fmt.Sprintf("oneapi-%s.log", now.Format("20060102150405")))
+
+	fd, err := os.OpenFile(newLogPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Printf("failed to open new log file for rotation: %v", err)
+		return
+	}
+
+	currentLogPathMu.Lock()
+	oldFile := currentLogFile
+	currentLogPath = newLogPath
+	currentLogFile = fd
+	currentLogHour = now.Hour()
+	currentLogPathMu.Unlock()
+
+	common.LogWriterMu.Lock()
+	gin.DefaultWriter = io.MultiWriter(os.Stdout, fd)
+	gin.DefaultErrorWriter = io.MultiWriter(os.Stderr, fd)
+	if oldFile != nil {
+		_ = oldFile.Close()
+	}
+	common.LogWriterMu.Unlock()
+
+	log.Printf("log file rotated to: %s", newLogPath)
 }
 
 func LogInfo(ctx context.Context, msg string) {
