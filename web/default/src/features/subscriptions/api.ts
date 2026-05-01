@@ -8,6 +8,8 @@ import type {
   SubscriptionPayResponse,
   SubscriptionPayRequest,
   SelfSubscriptionData,
+  AdminAllSubscriptionsParams,
+  AdminAllSubscriptionsResponse,
 } from './types'
 
 // ============================================================================
@@ -86,6 +88,13 @@ export async function deleteUserSubscription(
   return res.data
 }
 
+export async function getAllUserSubscriptions(
+  params: AdminAllSubscriptionsParams = {}
+): Promise<ApiResponse<AdminAllSubscriptionsResponse>> {
+  const res = await api.get('/api/subscription/admin/all', { params })
+  return res.data
+}
+
 // ============================================================================
 // User-facing Subscription Payment
 // ============================================================================
@@ -101,6 +110,13 @@ export async function paySubscriptionCreem(
   data: SubscriptionPayRequest
 ): Promise<SubscriptionPayResponse> {
   const res = await api.post('/api/subscription/creem/pay', data)
+  return res.data
+}
+
+export async function paySubscriptionBalance(
+  data: SubscriptionPayRequest
+): Promise<SubscriptionPayResponse & { data?: { order_id?: string } | string }> {
+  const res = await api.post('/api/subscription/balance/pay', data)
   return res.data
 }
 
@@ -134,6 +150,11 @@ export async function getSelfSubscriptionFull(): Promise<
 
 export async function getPublicPlans(): Promise<ApiResponse<PlanRecord[]>> {
   const res = await api.get('/api/subscription/plans')
+  return res.data
+}
+
+export async function getHomePlans(): Promise<ApiResponse<PlanRecord[]>> {
+  const res = await api.get('/api/subscription/home/plans')
   return res.data
 }
 

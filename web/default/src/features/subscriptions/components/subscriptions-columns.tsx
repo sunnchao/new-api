@@ -4,7 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
-import { formatDuration, formatResetPeriod } from '../lib'
+import {
+  formatDuration,
+  formatResetPeriod,
+  formatBillingMode,
+} from '../lib'
 import type { PlanRecord } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
 
@@ -85,6 +89,42 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
             {formatResetPeriod(row.original.plan, t)}
           </span>
         ),
+        size: 80,
+      },
+      {
+        id: 'billing_mode',
+        meta: { label: t('Billing Mode'), mobileHidden: true },
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('Billing Mode')} />
+        ),
+        cell: ({ row }) => (
+          <span className='text-muted-foreground'>
+            {formatBillingMode(row.original.plan.billing_mode, t)}
+          </span>
+        ),
+        size: 100,
+      },
+      {
+        accessorFn: (row) => row.plan.show_on_home,
+        id: 'show_on_home',
+        meta: { label: t('Show on Home'), mobileHidden: true },
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('Show on Home')} />
+        ),
+        cell: ({ row }) =>
+          row.original.plan.show_on_home ? (
+            <StatusBadge
+              label={t('Yes')}
+              variant='success'
+              copyable={false}
+            />
+          ) : (
+            <StatusBadge
+              label={t('No')}
+              variant='neutral'
+              copyable={false}
+            />
+          ),
         size: 80,
       },
       {

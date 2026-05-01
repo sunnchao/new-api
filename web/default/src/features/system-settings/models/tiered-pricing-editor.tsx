@@ -10,6 +10,7 @@ import {
   type InputHTMLAttributes,
   type MouseEvent as ReactMouseEvent,
 } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Copy, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -39,9 +40,12 @@ import {
   MATCH_EQ,
   MATCH_EXISTS,
   MATCH_RANGE,
+  REQUEST_RULE_ACTION_FIXED,
+  REQUEST_RULE_ACTION_MULTIPLIER,
   SOURCE_HEADER,
   SOURCE_PARAM,
   SOURCE_TIME,
+  SOURCE_TOKEN_GROUP,
   TIME_FUNCS,
   buildRequestRuleExpr,
   combineBillingExpr,
@@ -75,6 +79,7 @@ import {
   normalizeVisualTier,
   tryParseVisualConfig,
 } from '@/features/pricing/lib/tier-expr'
+import { getGroups } from '@/features/users/api'
 
 const PRICE_SUFFIX = '$/1M tokens'
 
@@ -441,6 +446,7 @@ function ConditionRow({ condition, onChange, onRemove }: ConditionRowProps) {
         {formatTokenHint(condition.value)}
       </span>
       <Button
+        type='button'
         variant='ghost'
         size='icon'
         onClick={onRemove}
@@ -565,6 +571,7 @@ function VisualTierCard({
           />
         </div>
         <Button
+          type='button'
           variant='ghost'
           size='icon'
           onClick={onRemove}
@@ -579,6 +586,7 @@ function VisualTierCard({
         <div className='flex items-center justify-between'>
           <Label className='text-xs'>{t('Conditions (AND)')}</Label>
           <Button
+            type='button'
             variant='ghost'
             size='sm'
             onClick={onAddCondition}
@@ -766,7 +774,7 @@ function VisualEditor({ visualConfig, onChange }: VisualEditorProps) {
           onAddCondition={() => handleAddCondition(index)}
         />
       ))}
-      <Button variant='outline' size='sm' onClick={handleAddTier}>
+      <Button type='button' variant='outline' size='sm' onClick={handleAddTier}>
         <Plus className='mr-2 h-4 w-4' />
         {t('Add tier')}
       </Button>
@@ -821,12 +829,14 @@ function RawExprEditor({ exprString, onChange }: RawExprEditorProps) {
 
 type RuleConditionRowProps = {
   condition: RequestCondition
+  tokenGroups: string[]
   onChange: (next: RequestCondition) => void
   onRemove: () => void
 }
 
 function RuleConditionRow({
   condition,
+  tokenGroups,
   onChange,
   onRemove,
 }: RuleConditionRowProps) {
@@ -836,10 +846,15 @@ function RuleConditionRow({
   const handleSourceChange = (source: string) => {
     if (source === SOURCE_TIME) {
       onChange(createEmptyTimeCondition())
-    } else if (source === SOURCE_HEADER || source === SOURCE_PARAM) {
+    } else if (
+      source === SOURCE_HEADER ||
+      source === SOURCE_PARAM ||
+      source === SOURCE_TOKEN_GROUP
+    ) {
       onChange({
         ...createEmptyCondition(),
-        source: source as 'param' | 'header',
+        source: source as 'param' | 'header' | 'token_group',
+        path: '',
       })
     }
   }
@@ -927,40 +942,76 @@ function RuleConditionRow({
     </>
   )
 
-  const renderParamHeaderCondition = (phCond: ParamHeaderCondition) => (
-    <>
-      <Input
-        value={phCond.path}
-        onChange={(event) => onChange({ ...phCond, path: event.target.value })}
-        placeholder={
-          phCond.source === SOURCE_HEADER ? 'X-Header-Name' : 'service_tier'
-        }
-        className='w-44'
-      />
-      <Select value={phCond.mode} onValueChange={handleModeChange}>
-        <SelectTrigger className='w-32' size='sm'>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {matchOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {t(option.labelKey)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {phCond.mode !== MATCH_EXISTS && (
-        <Input
-          value={phCond.value}
-          onChange={(event) =>
-            onChange({ ...phCond, value: event.target.value })
-          }
-          placeholder={t('Value')}
-          className='w-44'
-        />
-      )}
-    </>
-  )
+  const renderParamHeaderCondition = (phCond: ParamHeaderCondition) => {
+    const tokenGroupOptions =
+      phCond.source === SOURCE_TOKEN_GROUP &&
+      phCond.value &&
+      !tokenGroups.includes(phCond.value)
+        ? [phCond.value, ...tokenGroups]
+        : tokenGroups
+
+    return (
+      <>
+        {phCond.source === SOURCE_TOKEN_GROUP ? (
+          <div className='text-muted-foreground min-w-44 flex-1 text-xs'>
+            {t('Matches the final token group used by the request')}
+          </div>
+        ) : (
+          <Input
+            value={phCond.path}
+            onChange={(event) =>
+              onChange({ ...phCond, path: event.target.value })
+            }
+            placeholder={
+              phCond.source === SOURCE_HEADER ? 'X-Header-Name' : 'service_tier'
+            }
+            className='w-44'
+          />
+        )}
+        <Select value={phCond.mode} onValueChange={handleModeChange}>
+          <SelectTrigger className='w-32' size='sm'>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {matchOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {t(option.labelKey)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {phCond.source === SOURCE_TOKEN_GROUP &&
+        phCond.mode !== MATCH_EXISTS ? (
+          <Select
+            value={phCond.value || undefined}
+            onValueChange={(value) => onChange({ ...phCond, value })}
+          >
+            <SelectTrigger className='w-44' size='sm'>
+              <SelectValue placeholder={t('Select group')} />
+            </SelectTrigger>
+            <SelectContent>
+              {tokenGroupOptions.map((group) => (
+                <SelectItem key={group} value={group}>
+                  {group}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          phCond.mode !== MATCH_EXISTS && (
+            <Input
+              value={phCond.value}
+              onChange={(event) =>
+                onChange({ ...phCond, value: event.target.value })
+              }
+              placeholder={t('Value')}
+              className='w-44'
+            />
+          )
+        )}
+      </>
+    )
+  }
 
   return (
     <div className='flex flex-wrap items-center gap-2'>
@@ -971,6 +1022,7 @@ function RuleConditionRow({
         <SelectContent>
           <SelectItem value={SOURCE_PARAM}>{t('Body param')}</SelectItem>
           <SelectItem value={SOURCE_HEADER}>{t('Header')}</SelectItem>
+          <SelectItem value={SOURCE_TOKEN_GROUP}>{t('Token group')}</SelectItem>
           <SelectItem value={SOURCE_TIME}>{t('Time')}</SelectItem>
         </SelectContent>
       </Select>
@@ -978,6 +1030,7 @@ function RuleConditionRow({
         ? renderTimeCondition(condition as TimeCondition)
         : renderParamHeaderCondition(condition as ParamHeaderCondition)}
       <Button
+        type='button'
         variant='ghost'
         size='icon'
         onClick={onRemove}
@@ -997,6 +1050,7 @@ function RuleConditionRow({
 type RuleGroupCardProps = {
   group: RequestRuleGroup
   index: number
+  tokenGroups: string[]
   onChange: (next: RequestRuleGroup) => void
   onRemove: () => void
 }
@@ -1004,10 +1058,12 @@ type RuleGroupCardProps = {
 function RuleGroupCard({
   group,
   index,
+  tokenGroups,
   onChange,
   onRemove,
 }: RuleGroupCardProps) {
   const { t } = useTranslation()
+  const actionType = group.actionType || REQUEST_RULE_ACTION_MULTIPLIER
 
   const handleConditionChange = (
     conditionIndex: number,
@@ -1028,6 +1084,25 @@ function RuleGroupCard({
     })
   }
 
+  const handleActionTypeChange = (value: string) => {
+    const nextActionType =
+      value === REQUEST_RULE_ACTION_FIXED
+        ? REQUEST_RULE_ACTION_FIXED
+        : REQUEST_RULE_ACTION_MULTIPLIER
+    onChange({
+      ...group,
+      actionType: nextActionType,
+      multiplier:
+        nextActionType === REQUEST_RULE_ACTION_MULTIPLIER
+          ? group.multiplier || ''
+          : '',
+      fixedPrice:
+        nextActionType === REQUEST_RULE_ACTION_FIXED
+          ? group.fixedPrice || ''
+          : '',
+    })
+  }
+
   return (
     <div className='bg-muted/30 space-y-3 rounded-md border p-3'>
       <div className='flex items-center justify-between gap-2'>
@@ -1035,6 +1110,7 @@ function RuleGroupCard({
           {t('Rule group')} #{index + 1}
         </Badge>
         <Button
+          type='button'
           variant='ghost'
           size='icon'
           onClick={onRemove}
@@ -1049,6 +1125,7 @@ function RuleGroupCard({
           <RuleConditionRow
             key={conditionIndex}
             condition={condition}
+            tokenGroups={tokenGroups}
             onChange={(next) => handleConditionChange(conditionIndex, next)}
             onRemove={() =>
               onChange({
@@ -1062,6 +1139,7 @@ function RuleGroupCard({
         ))}
         <div className='flex flex-wrap gap-2'>
           <Button
+            type='button'
             variant='ghost'
             size='sm'
             onClick={() => handleAddCondition(false)}
@@ -1070,6 +1148,7 @@ function RuleGroupCard({
             {t('Add param/header')}
           </Button>
           <Button
+            type='button'
             variant='ghost'
             size='sm'
             onClick={() => handleAddCondition(true)}
@@ -1080,21 +1159,58 @@ function RuleGroupCard({
         </div>
       </div>
 
-      <div className='flex items-center gap-2'>
-        <Label className='text-xs'>{t('Multiplier')}</Label>
-        <DraftNumberInput
-          min={0}
-          step={0.01}
-          value={group.multiplier}
-          onValueChange={(value) =>
-            onChange({ ...group, multiplier: String(value) })
-          }
-          className='w-32'
-          placeholder='1.0'
-        />
-        <span className='text-muted-foreground text-xs'>
-          {t('Final cost = base × multiplier when conditions match')}
-        </span>
+      <div className='flex flex-wrap items-center gap-2'>
+        <Label className='text-xs'>{t('Action')}</Label>
+        <Select
+          value={group.actionType || REQUEST_RULE_ACTION_MULTIPLIER}
+          onValueChange={handleActionTypeChange}
+        >
+          <SelectTrigger className='w-36' size='sm'>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={REQUEST_RULE_ACTION_MULTIPLIER}>
+              {t('Multiplier')}
+            </SelectItem>
+            <SelectItem value={REQUEST_RULE_ACTION_FIXED}>
+              {t('Fixed price')}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        {actionType === REQUEST_RULE_ACTION_FIXED ? (
+          <>
+            <Input
+              type='number'
+              min={0}
+              step={0.01}
+              value={group.fixedPrice || ''}
+              onChange={(event) =>
+                onChange({ ...group, fixedPrice: event.target.value })
+              }
+              className='w-32'
+              placeholder='0.2'
+            />
+            <span className='text-muted-foreground text-xs'>
+              {t('Final cost = fixed price per request when conditions match')}
+            </span>
+          </>
+        ) : (
+          <>
+            <DraftNumberInput
+                min={0}
+                step={0.01}
+                value={group.multiplier}
+                onValueChange={(value) =>
+                    onChange({ ...group, multiplier: String(value) })
+                }
+                className='w-32'
+                placeholder='1.0'
+            />
+            <span className='text-muted-foreground text-xs'>
+              {t('Final cost = base × multiplier when conditions match')}
+            </span>
+          </>
+        )}
       </div>
     </div>
   )
@@ -1122,6 +1238,7 @@ function PresetSection({ applyPreset }: PresetSectionProps) {
         </span>
         {hasMore && (
           <Button
+            type='button'
             variant='ghost'
             size='sm'
             className='h-6 px-2 text-xs'
@@ -1142,6 +1259,7 @@ function PresetSection({ applyPreset }: PresetSectionProps) {
             </Badge>
             {presetGroup.presets.map((preset) => (
               <Button
+                type='button'
                 key={preset.key}
                 variant='outline'
                 size='sm'
@@ -1197,7 +1315,7 @@ function CostEstimator({ effectiveExpr }: EstimatorProps) {
         <h4 className='text-sm font-medium'>{t('Token estimator')}</h4>
         <p className='text-muted-foreground text-xs'>
           {t(
-            'Enter token counts to preview the estimated cost (excluding group multipliers).'
+            'Enter token counts to preview the estimated cost (excluding request rules).'
           )}
         </p>
       </div>
@@ -1389,7 +1507,12 @@ function LlmPromptHelper({ modelName }: LlmPromptHelperProps) {
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger asChild>
-        <Button variant='ghost' size='sm' className='h-7 px-2 text-xs'>
+        <Button
+          type='button'
+          variant='ghost'
+          size='sm'
+          className='h-7 px-2 text-xs'
+        >
           <Copy className='mr-1.5 h-3 w-3' />
           {t('LLM prompt helper')}
         </Button>
@@ -1403,6 +1526,7 @@ function LlmPromptHelper({ modelName }: LlmPromptHelperProps) {
               )}
             </p>
             <Button
+              type='button'
               variant='outline'
               size='sm'
               className='ml-3 shrink-0'
@@ -1458,6 +1582,15 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
     RequestRuleGroup[]
   >(() => tryParseRequestRuleExpr(currentRequestRuleExpr) || [])
   const initRef = useRef(false)
+  const { data: groupsData } = useQuery({
+    queryKey: ['request-rule-token-groups'],
+    queryFn: getGroups,
+    staleTime: 5 * 60 * 1000,
+  })
+  const tokenGroups = useMemo(
+    () => (groupsData?.success && groupsData.data ? groupsData.data : []),
+    [groupsData]
+  )
 
   useEffect(() => {
     if (initRef.current) return
@@ -1620,7 +1753,7 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
               </h4>
               <p className='text-muted-foreground text-xs'>
                 {t(
-                  'When conditions match, the final price is multiplied by X. Multiple matches multiply together; values < 1 act as discounts.'
+                  'When conditions match, apply a multiplier or replace the base price with a fixed per-request charge. Multiple matching multipliers multiply together.'
                 )}
               </p>
             </div>
@@ -1640,6 +1773,7 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
                     key={groupIndex}
                     group={group}
                     index={groupIndex}
+                    tokenGroups={tokenGroups}
                     onChange={(next) => {
                       const updated = [...requestRuleGroups]
                       updated[groupIndex] = next
@@ -1654,6 +1788,7 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
                 ))}
                 <div className='flex flex-wrap gap-2'>
                   <Button
+                    type='button'
                     variant='outline'
                     size='sm'
                     onClick={() =>
@@ -1667,6 +1802,7 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
                     {t('Add rule group')}
                   </Button>
                   <Button
+                    type='button'
                     variant='ghost'
                     size='sm'
                     onClick={() =>

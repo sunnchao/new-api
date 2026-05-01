@@ -20,7 +20,9 @@ import {
   MATCH_GTE,
   MATCH_LT,
   MATCH_RANGE,
+  REQUEST_RULE_ACTION_FIXED,
   SOURCE_TIME,
+  SOURCE_TOKEN_GROUP,
   normalizeTierLabel,
   parseTiersFromExpr,
   splitBillingExprAndRequestRules,
@@ -110,6 +112,14 @@ function describeCondition(
     }
     return `${fn} ${opMap[cond.mode] || '='} ${cond.value} (${tz})`
   }
+  if (cond.source === SOURCE_TOKEN_GROUP) {
+    const src = t('Token group')
+    if (cond.mode === MATCH_EXISTS) return `${src} ${t('Exists')}`
+    if (cond.mode === MATCH_CONTAINS) {
+      return `${src} ${t('Contains')} "${cond.value}"`
+    }
+    return `${src} = ${cond.value}`
+  }
   const src = cond.source === 'header' ? t('Header') : t('Body param')
   const path = cond.path || ''
   if (cond.mode === MATCH_EXISTS) return `${src} ${path} ${t('Exists')}`
@@ -133,6 +143,18 @@ function describeGroup(
   return (group.conditions || [])
     .map((c) => describeCondition(c, t))
     .join(' && ')
+}
+
+function describeGroupAction(
+  group: RequestRuleGroup,
+  symbol: string,
+  rate: number
+): string {
+  if (group.actionType === REQUEST_RULE_ACTION_FIXED) {
+    const fixedPrice = Number(group.fixedPrice || 0)
+    return `${symbol}${(fixedPrice * rate).toFixed(4)}/request`
+  }
+  return `${group.multiplier}x`
 }
 
 export function DynamicPricingBreakdown({
@@ -376,7 +398,7 @@ export function DynamicPricingBreakdown({
       {hasRules && (
         <div>
           <div className='text-foreground mb-2 text-sm font-semibold'>
-            {t('Conditional multipliers')}
+            {t('Request pricing rules')}
           </div>
           <ul className='space-y-1.5'>
             {ruleGroups.map((group, gi) => (
@@ -389,9 +411,9 @@ export function DynamicPricingBreakdown({
                 </span>
                 <Badge
                   variant='secondary'
-                  className='shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300'
+                  className='shrink-0 bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300'
                 >
-                  {group.multiplier}x
+                  {describeGroupAction(group, symbol, rate)}
                 </Badge>
               </li>
             ))}

@@ -154,6 +154,7 @@ const BILLING_VAR_REGEX = new RegExp(
 export const SOURCE_PARAM = 'param'
 export const SOURCE_HEADER = 'header'
 export const SOURCE_TIME = 'time'
+export const SOURCE_TOKEN_GROUP = 'token_group'
 
 export const MATCH_EQ = 'eq'
 export const MATCH_CONTAINS = 'contains'
@@ -163,6 +164,9 @@ export const MATCH_LT = 'lt'
 export const MATCH_LTE = 'lte'
 export const MATCH_EXISTS = 'exists'
 export const MATCH_RANGE = 'range'
+
+export const REQUEST_RULE_ACTION_MULTIPLIER = 'multiplier'
+export const REQUEST_RULE_ACTION_FIXED = 'fixed'
 
 export const TIME_FUNCS = ['hour', 'minute', 'weekday', 'month', 'day'] as const
 export type TimeFunc = (typeof TIME_FUNCS)[number]
@@ -185,9 +189,10 @@ export const COMMON_TIMEZONES: { value: string; label: string }[] = [
 ]
 
 const NUMERIC_LITERAL_REGEX = /^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/
+const REQUEST_RULE_WRAPPER = 'apply_request_rules'
 
 export type ParamHeaderCondition = {
-  source: 'param' | 'header'
+  source: 'param' | 'header' | 'token_group'
   path: string
   mode: string
   value: string
@@ -207,7 +212,11 @@ export type RequestCondition = TimeCondition | ParamHeaderCondition
 
 export type RequestRuleGroup = {
   conditions: RequestCondition[]
+  actionType?:
+    | typeof REQUEST_RULE_ACTION_MULTIPLIER
+    | typeof REQUEST_RULE_ACTION_FIXED
   multiplier: string
+  fixedPrice?: string
 }
 
 export type TierCondition = {
@@ -346,6 +355,21 @@ function parseExprLiteral(raw: string): string | null {
   }
 }
 
+function utf8ToBase64(text: string): string {
+  const bytes = new TextEncoder().encode(text)
+  let binary = ''
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte)
+  })
+  return btoa(binary)
+}
+
+function base64ToUtf8(text: string): string {
+  const binary = atob(text)
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
+}
+
 function tryParseTimeCondition(expr: string): RequestCondition | null {
   let m = expr.match(
     /^(hour|minute|weekday|month|day)\("([^"]+)"\) >= ([\d.eE+-]+) \|\| \1\("\2"\) < ([\d.eE+-]+)$/
@@ -470,7 +494,58 @@ function tryParseRuleGroupFactor(part: string): RequestRuleGroup | null {
     conditions.push(cond)
   }
   if (conditions.length === 0) return null
-  return { conditions, multiplier }
+  return {
+    conditions,
+    actionType: REQUEST_RULE_ACTION_MULTIPLIER,
+    multiplier,
+    fixedPrice: '',
+  }
+}
+
+function encodeRequestRulePayload(groups: RequestRuleGroup[]): string {
+  return utf8ToBase64(
+    JSON.stringify({
+      version: 1,
+      groups: groups.map((group) => ({
+        conditions: (group.conditions || []).map((cond) =>
+          cond.source === SOURCE_TIME
+            ? {
+                source: cond.source,
+                mode: cond.mode,
+                value: cond.value,
+                timeFunc: cond.timeFunc,
+                timezone: cond.timezone,
+                rangeStart: cond.rangeStart,
+                rangeEnd: cond.rangeEnd,
+              }
+            : {
+                source: cond.source,
+                path: cond.path,
+                mode: cond.mode,
+                value: cond.value,
+              }
+        ),
+        action_type: group.actionType || REQUEST_RULE_ACTION_MULTIPLIER,
+        multiplier: group.multiplier || '',
+        fixed_price: group.fixedPrice || '',
+      })),
+    })
+  )
+}
+
+function decodeRequestRulePayload(payload: string): RequestRuleGroup[] | null {
+  try {
+    const decoded = base64ToUtf8((payload || '').trim())
+    const parsed = JSON.parse(decoded) as {
+      groups?: unknown[]
+    }
+    if (!Array.isArray(parsed.groups)) return null
+    return parsed.groups.map((group) =>
+      normalizeRuleGroup(group as Partial<RequestRuleGroup>)
+    )
+  } catch {
+    return null
+  }
 }
 
 export function tryParseRequestRuleExpr(
@@ -478,6 +553,9 @@ export function tryParseRequestRuleExpr(
 ): RequestRuleGroup[] | null {
   const trimmed = (expr || '').trim()
   if (!trimmed) return []
+
+  const decoded = decodeRequestRulePayload(trimmed)
+  if (decoded) return decoded
 
   const parts = splitTopLevelMultiply(trimmed)
   const groups: RequestRuleGroup[] = []
@@ -492,6 +570,16 @@ export function tryParseRequestRuleExpr(
 // ---------------------------------------------------------------------------
 // Combine / split billing expr and request rules
 // ---------------------------------------------------------------------------
+
+function splitVersionPrefix(expr: string): {
+  versionPrefix: string
+  body: string
+} {
+  const trimmed = (expr || '').trim()
+  const m = trimmed.match(/^(v\d+:)([\s\S]+)$/)
+  if (!m) return { versionPrefix: '', body: trimmed }
+  return { versionPrefix: m[1], body: m[2].trim() }
+}
 
 function hasFullOuterParens(expr: string): boolean {
   if (!expr.startsWith('(') || !expr.endsWith(')')) return false
@@ -512,11 +600,72 @@ function unwrapOuterParens(expr: string): string {
   return current
 }
 
-export function splitBillingExprAndRequestRules(expr: string): {
+function parseApplyRequestRulesWrapper(exprBody: string): {
+  billingExpr: string
+  requestRuleExpr: string
+} | null {
+  const body = (exprBody || '').trim()
+  const prefix = `${REQUEST_RULE_WRAPPER}(`
+  if (!body.startsWith(prefix) || !body.endsWith(')')) return null
+
+  let depth = 0
+  let inString = false
+  let escape = false
+  let splitIndex = -1
+
+  for (let i = prefix.length; i < body.length - 1; i += 1) {
+    const char = body[i]
+    if (inString) {
+      if (escape) {
+        escape = false
+      } else if (char === '\\') {
+        escape = true
+      } else if (char === '"') {
+        inString = false
+      }
+      continue
+    }
+
+    if (char === '"') {
+      inString = true
+      continue
+    }
+    if (char === '(') {
+      depth += 1
+      continue
+    }
+    if (char === ')') {
+      if (depth === 0) return null
+      depth -= 1
+      continue
+    }
+    if (char === ',' && depth === 0) {
+      splitIndex = i
+      break
+    }
+  }
+
+  if (splitIndex === -1) return null
+
+  const baseArg = body.slice(prefix.length, splitIndex).trim()
+  const payloadArg = body.slice(splitIndex + 1, -1).trim()
+  if (!payloadArg) return null
+
+  try {
+    return {
+      billingExpr: unwrapOuterParens(baseArg),
+      requestRuleExpr: JSON.parse(payloadArg) as string,
+    }
+  } catch {
+    return null
+  }
+}
+
+function splitLegacyCombinedExpr(exprBody: string): {
   billingExpr: string
   requestRuleExpr: string
 } {
-  const trimmed = (expr || '').trim()
+  const trimmed = (exprBody || '').trim()
   if (!trimmed) return { billingExpr: '', requestRuleExpr: '' }
 
   const parts = splitTopLevelMultiply(trimmed)
@@ -540,7 +689,36 @@ export function splitBillingExprAndRequestRules(expr: string): {
 
   return {
     billingExpr: unwrapOuterParens(baseParts[0]),
-    requestRuleExpr: ruleParts.join(' * '),
+    requestRuleExpr: encodeRequestRulePayload(
+      ruleParts
+        .map((part) => tryParseRuleGroupFactor(part))
+        .filter(Boolean) as RequestRuleGroup[]
+    ),
+  }
+}
+
+export function splitBillingExprAndRequestRules(expr: string): {
+  billingExpr: string
+  requestRuleExpr: string
+} {
+  const trimmed = (expr || '').trim()
+  if (!trimmed) return { billingExpr: '', requestRuleExpr: '' }
+
+  const { versionPrefix, body } = splitVersionPrefix(trimmed)
+  const wrapped = parseApplyRequestRulesWrapper(body)
+  if (wrapped) {
+    return {
+      billingExpr: `${versionPrefix}${wrapped.billingExpr}`,
+      requestRuleExpr: wrapped.requestRuleExpr,
+    }
+  }
+
+  const legacy = splitLegacyCombinedExpr(body)
+  return {
+    billingExpr: legacy.billingExpr
+      ? `${versionPrefix}${legacy.billingExpr}`
+      : '',
+    requestRuleExpr: legacy.requestRuleExpr,
   }
 }
 
@@ -552,7 +730,9 @@ export function combineBillingExpr(
   const rules = (requestRuleExpr || '').trim()
   if (!base) return ''
   if (!rules) return base
-  return `(${base}) * ${rules}`
+
+  const { versionPrefix, body } = splitVersionPrefix(base)
+  return `${versionPrefix}${REQUEST_RULE_WRAPPER}((${body}), ${JSON.stringify(rules)})`
 }
 
 // ---------------------------------------------------------------------------
@@ -576,11 +756,21 @@ export function createEmptyTimeCondition(): TimeCondition {
 }
 
 export function createEmptyRuleGroup(): RequestRuleGroup {
-  return { conditions: [createEmptyCondition()], multiplier: '' }
+  return {
+    conditions: [createEmptyCondition()],
+    actionType: REQUEST_RULE_ACTION_MULTIPLIER,
+    multiplier: '',
+    fixedPrice: '',
+  }
 }
 
 export function createEmptyTimeRuleGroup(): RequestRuleGroup {
-  return { conditions: [createEmptyTimeCondition()], multiplier: '' }
+  return {
+    conditions: [createEmptyTimeCondition()],
+    actionType: REQUEST_RULE_ACTION_MULTIPLIER,
+    multiplier: '',
+    fixedPrice: '',
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -603,7 +793,7 @@ export function getRequestRuleMatchOptions(source: string): MatchOption[] {
     { value: MATCH_CONTAINS, labelKey: 'Contains' },
     { value: MATCH_EXISTS, labelKey: 'Exists' },
   ]
-  if (source === SOURCE_HEADER) return base
+  if (source === SOURCE_HEADER || source === SOURCE_TOKEN_GROUP) return base
   return [
     ...base,
     { value: MATCH_GT, labelKey: 'Greater than' },
@@ -629,7 +819,9 @@ export function normalizeCondition(
       ? 'time'
       : cond?.source === 'header'
         ? 'header'
-        : 'param'
+        : cond?.source === SOURCE_TOKEN_GROUP
+          ? SOURCE_TOKEN_GROUP
+          : 'param'
 
   if (source === 'time') {
     const timeCond = cond as Partial<TimeCondition> | null | undefined
@@ -659,9 +851,42 @@ export function normalizeCondition(
     : MATCH_EQ
   return {
     source,
-    path: phCond?.path || '',
+    path: source === SOURCE_TOKEN_GROUP ? '' : phCond?.path || '',
     mode,
     value: phCond?.value == null ? '' : String(phCond.value),
+  }
+}
+
+export function normalizeRuleGroup(
+  group: Partial<RequestRuleGroup> | null | undefined
+): RequestRuleGroup {
+  const rawGroup = group as
+    | (Partial<RequestRuleGroup> & {
+        action_type?: string
+        fixed_price?: string
+      })
+    | null
+    | undefined
+  const actionType =
+    rawGroup?.actionType === REQUEST_RULE_ACTION_FIXED ||
+    rawGroup?.action_type === REQUEST_RULE_ACTION_FIXED
+      ? REQUEST_RULE_ACTION_FIXED
+      : REQUEST_RULE_ACTION_MULTIPLIER
+
+  return {
+    conditions: (group?.conditions || []).map((condition) =>
+      normalizeCondition(condition)
+    ),
+    actionType,
+    multiplier:
+      actionType === REQUEST_RULE_ACTION_MULTIPLIER && group?.multiplier != null
+        ? String(group.multiplier)
+        : '',
+    fixedPrice:
+      actionType === REQUEST_RULE_ACTION_FIXED &&
+      (rawGroup?.fixedPrice != null || rawGroup?.fixed_price != null)
+        ? String(rawGroup.fixedPrice ?? rawGroup.fixed_price)
+        : '',
   }
 }
 
@@ -703,6 +928,7 @@ function buildTimeConditionExpr(cond: TimeCondition): string {
 
 function buildRequestConditionExpr(cond: RequestCondition): string {
   if (cond.source === 'time') return buildTimeConditionExpr(cond)
+  if (cond.source === SOURCE_TOKEN_GROUP) return ''
   const normalized = normalizeCondition(cond) as ParamHeaderCondition
   const path = normalized.path.trim()
   if (!path) return ''
@@ -756,6 +982,26 @@ function buildRuleGroupFactor(group: RequestRuleGroup): string {
   return `(${combined} ? ${multiplier} : 1)`
 }
 
+function normalizeGroupsForPayload(
+  groups: RequestRuleGroup[]
+): RequestRuleGroup[] {
+  return (groups || []).map(normalizeRuleGroup).filter((group) => {
+    if (!Array.isArray(group.conditions) || group.conditions.length === 0) {
+      return false
+    }
+    if (group.actionType === REQUEST_RULE_ACTION_FIXED) {
+      return NUMERIC_LITERAL_REGEX.test((group.fixedPrice || '').trim())
+    }
+    return NUMERIC_LITERAL_REGEX.test((group.multiplier || '').trim())
+  })
+}
+
 export function buildRequestRuleExpr(groups: RequestRuleGroup[]): string {
+  const normalizedGroups = normalizeGroupsForPayload(groups)
+  if (normalizedGroups.length === 0) return ''
+  return encodeRequestRulePayload(normalizedGroups)
+}
+
+export function buildLegacyRequestRuleExpr(groups: RequestRuleGroup[]): string {
   return (groups || []).map(buildRuleGroupFactor).filter(Boolean).join(' * ')
 }

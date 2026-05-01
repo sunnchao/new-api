@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SectionPageLayout } from '@/components/layout'
+import { AllSubscriptionsTable } from './components/all-subscriptions-table'
 import { SubscriptionsDialogs } from './components/subscriptions-dialogs'
 import { SubscriptionsPrimaryButtons } from './components/subscriptions-primary-buttons'
 import { SubscriptionsProvider } from './components/subscriptions-provider'
@@ -9,6 +12,8 @@ import { SubscriptionsTable } from './components/subscriptions-table'
 
 export function Subscriptions() {
   const { t } = useTranslation()
+  const [activeTab, setActiveTab] = useState('plans')
+
   return (
     <SubscriptionsProvider>
       <SectionPageLayout>
@@ -19,20 +24,35 @@ export function Subscriptions() {
           {t('Manage subscription plan creation, pricing and status')}
         </SectionPageLayout.Description>
         <SectionPageLayout.Actions>
-          <div className='flex items-center gap-2'>
-            <Alert variant='default' className='hidden px-3 py-2 sm:flex'>
-              <Info className='h-4 w-4' />
-              <AlertDescription className='text-xs'>
-                {t(
-                  'Stripe/Creem requires creating products on the third-party platform and entering the ID'
-                )}
-              </AlertDescription>
-            </Alert>
-            <SubscriptionsPrimaryButtons />
-          </div>
+          {activeTab === 'plans' && (
+            <div className='flex items-center gap-2'>
+              <Alert variant='default' className='hidden px-3 py-2 sm:flex'>
+                <Info className='h-4 w-4' />
+                <AlertDescription className='text-xs'>
+                  {t(
+                    'Stripe/Creem requires creating products on the third-party platform and entering the ID'
+                  )}
+                </AlertDescription>
+              </Alert>
+              <SubscriptionsPrimaryButtons />
+            </div>
+          )}
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
-          <SubscriptionsTable />
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value='plans'>{t('Plans')}</TabsTrigger>
+              <TabsTrigger value='all-subscriptions'>
+                {t('All Subscriptions')}
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value='plans' className='mt-4'>
+              <SubscriptionsTable />
+            </TabsContent>
+            <TabsContent value='all-subscriptions' className='mt-4'>
+              <AllSubscriptionsTable />
+            </TabsContent>
+          </Tabs>
         </SectionPageLayout.Content>
       </SectionPageLayout>
 

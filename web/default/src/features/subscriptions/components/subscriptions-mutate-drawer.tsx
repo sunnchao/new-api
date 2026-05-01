@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CalendarClock, CreditCard, RefreshCw, Settings2 } from 'lucide-react'
+import {
+  CalendarClock,
+  ChevronDown,
+  CreditCard,
+  Gauge,
+  RefreshCw,
+  Settings2,
+  SlidersHorizontal,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   Form,
   FormControl,
@@ -33,7 +42,13 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { createPlan, updatePlan, getGroups } from '../api'
-import { getDurationUnitOptions, getResetPeriodOptions } from '../constants'
+import {
+  getDurationUnitOptions,
+  getResetPeriodOptions,
+  getBillingModeOptions,
+  getResetModeOptions,
+} from '../constants'
+import { cn } from '@/lib/utils'
 import {
   getPlanFormSchema,
   PLAN_FORM_DEFAULTS,
@@ -50,6 +65,30 @@ interface Props {
   currentRow?: PlanRecord
 }
 
+function CardHeading({
+  title,
+  icon,
+  description,
+}: {
+  title: string
+  icon: React.ReactNode
+  description?: string
+}) {
+  return (
+    <div className='flex items-center gap-2.5'>
+      <span className='bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-lg'>
+        {icon}
+      </span>
+      <div className='space-y-0.5'>
+        <h3 className='text-sm font-semibold tracking-tight'>{title}</h3>
+        {description && (
+          <p className='text-muted-foreground text-xs'>{description}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function SubscriptionsMutateDrawer({
   open,
   onOpenChange,
@@ -60,6 +99,7 @@ export function SubscriptionsMutateDrawer({
   const { triggerRefresh } = useSubscriptions()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [groupOptions, setGroupOptions] = useState<string[]>([])
+  const [rateLimitsOpen, setRateLimitsOpen] = useState(false)
 
   const schema = getPlanFormSchema(t)
   const form = useForm<PlanFormValues>({
@@ -84,6 +124,8 @@ export function SubscriptionsMutateDrawer({
 
   const durationUnit = form.watch('duration_unit')
   const resetPeriod = form.watch('quota_reset_period')
+  const billingMode = form.watch('billing_mode')
+  const hourlyLimitAmount = form.watch('hourly_limit_amount')
 
   const onSubmit = async (values: PlanFormValues) => {
     setIsSubmitting(true)
@@ -113,6 +155,8 @@ export function SubscriptionsMutateDrawer({
 
   const durationUnitOpts = getDurationUnitOptions(t)
   const resetPeriodOpts = getResetPeriodOptions(t)
+  const billingModeOpts = getBillingModeOptions(t)
+  const resetModeOpts = getResetModeOptions(t)
 
   return (
     <Sheet
@@ -144,11 +188,11 @@ export function SubscriptionsMutateDrawer({
             className='flex-1 space-y-4 overflow-y-auto px-3 py-3 pb-4 sm:space-y-6 sm:px-4'
           >
             {/* Basic Info */}
-            <div className='space-y-4'>
-              <h3 className='flex items-center gap-2 text-sm font-medium'>
-                <Settings2 className='h-4 w-4' />
-                {t('Basic Info')}
-              </h3>
+            <div className='bg-card space-y-4 rounded-xl border p-5'>
+              <CardHeading
+                title={t('Basic Info')}
+                icon={<Settings2 className='h-4 w-4' />}
+              />
 
               <FormField
                 control={form.control}
@@ -330,11 +374,11 @@ export function SubscriptionsMutateDrawer({
             </div>
 
             {/* Duration Settings */}
-            <div className='space-y-4'>
-              <h3 className='flex items-center gap-2 text-sm font-medium'>
-                <CalendarClock className='h-4 w-4' />
-                {t('Duration Settings')}
-              </h3>
+            <div className='bg-card space-y-4 rounded-xl border p-5'>
+              <CardHeading
+                title={t('Duration Settings')}
+                icon={<CalendarClock className='h-4 w-4' />}
+              />
 
               <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
                 <FormField
@@ -412,11 +456,11 @@ export function SubscriptionsMutateDrawer({
             </div>
 
             {/* Quota Reset */}
-            <div className='space-y-4'>
-              <h3 className='flex items-center gap-2 text-sm font-medium'>
-                <RefreshCw className='h-4 w-4' />
-                {t('Quota Reset')}
-              </h3>
+            <div className='bg-card space-y-4 rounded-xl border p-5'>
+              <CardHeading
+                title={t('Quota Reset')}
+                icon={<RefreshCw className='h-4 w-4' />}
+              />
 
               <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
                 <FormField
@@ -449,6 +493,39 @@ export function SubscriptionsMutateDrawer({
 
                 <FormField
                   control={form.control}
+                  name='quota_reset_mode'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Reset Mode')}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || 'anchor'}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {resetModeOpts.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        {t('Anchor mode resets from subscription start')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {resetPeriod === 'custom' && (
+                <FormField
+                  control={form.control}
                   name='quota_reset_custom_seconds'
                   render={({ field }) => (
                     <FormItem>
@@ -458,7 +535,6 @@ export function SubscriptionsMutateDrawer({
                           {...field}
                           type='number'
                           min={0}
-                          disabled={resetPeriod !== 'custom'}
                           onChange={(e) =>
                             field.onChange(parseInt(e.target.value, 10) || 0)
                           }
@@ -468,15 +544,502 @@ export function SubscriptionsMutateDrawer({
                     </FormItem>
                   )}
                 />
-              </div>
+              )}
             </div>
 
+            {/* Billing & Display */}
+            <div className='bg-card space-y-4 rounded-xl border p-5'>
+              <CardHeading
+                title={t('Billing & Display')}
+                icon={<SlidersHorizontal className='h-4 w-4' />}
+              />
+
+              <div className='grid grid-cols-2 gap-3'>
+                <FormField
+                  control={form.control}
+                  name='billing_mode'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Billing Mode')}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || 'quota'}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {billingModeOpts.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='show_on_home'
+                  render={({ field }) => (
+                    <FormItem className='flex flex-row items-center gap-2 pt-8'>
+                      <FormControl>
+                        <Switch
+                          checked={field.value || false}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className='!mt-0'>
+                        {t('Show on Home')}
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name='allowed_groups'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Allowed Groups')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder={t('e.g. group1, group2')}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('Empty means no restriction')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {billingMode === 'quota' && (
+                <FormField
+                  control={form.control}
+                  name='approximate_times'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Approximate Times')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type='number'
+                          min={0}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value, 10) || 0)
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t('Estimated request count for quota-based plans')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
+            {/* Rate Limits (Collapsible) */}
+            <Collapsible open={rateLimitsOpen} onOpenChange={setRateLimitsOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type='button'
+                  className='bg-card hover:bg-accent/50 flex w-full items-center justify-between rounded-xl border px-5 py-4 text-left transition-colors'
+                >
+                  <div className='flex items-center gap-2.5'>
+                    <span className='bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-lg'>
+                      <Gauge className='h-4 w-4' />
+                    </span>
+                    <div className='space-y-0.5'>
+                      <div className='text-[13px] font-semibold'>
+                        {t('Rate Limits')}
+                      </div>
+                      <div className='text-muted-foreground text-xs'>
+                        {t('Configure per-window quota limits')}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      'text-muted-foreground h-4 w-4 shrink-0 transition-transform',
+                      rateLimitsOpen && 'rotate-180'
+                    )}
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className='mt-4 space-y-4'>
+                {/* Hourly */}
+                <div className='bg-card space-y-4 rounded-xl border p-5'>
+                  <CardHeading
+                    title={t('Hourly Limit')}
+                    icon={<Gauge className='h-4 w-4' />}
+                  />
+                  <div className='grid grid-cols-3 gap-3'>
+                    <FormField
+                      control={form.control}
+                      name='hourly_limit_amount'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Quota Amount')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type='number'
+                              min={0}
+                              onChange={(e) =>
+                                field.onChange(
+                                  parseInt(e.target.value, 10) || 0
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t('0 means no limit')}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name='hourly_limit_hours'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Window (hours)')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type='number'
+                              min={1}
+                              max={24}
+                              disabled={!hourlyLimitAmount}
+                              onChange={(e) =>
+                                field.onChange(
+                                  parseInt(e.target.value, 10) || 1
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name='hourly_reset_mode'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Reset Mode')}</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || 'anchor'}
+                            disabled={!hourlyLimitAmount}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {resetModeOpts.map((o) => (
+                                <SelectItem key={o.value} value={o.value}>
+                                  {o.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name='hourly_approximate_times'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Approximate Times')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type='number'
+                            min={0}
+                            disabled={!hourlyLimitAmount}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value, 10) || 0)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Daily */}
+                <div className='bg-card space-y-4 rounded-xl border p-5'>
+                  <CardHeading
+                    title={t('Daily Limit')}
+                    icon={<Gauge className='h-4 w-4' />}
+                  />
+                  <div className='grid grid-cols-2 gap-3'>
+                    <FormField
+                      control={form.control}
+                      name='daily_limit_amount'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Quota Amount')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type='number'
+                              min={0}
+                              onChange={(e) =>
+                                field.onChange(
+                                  parseInt(e.target.value, 10) || 0
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t('0 means no limit')}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name='daily_reset_mode'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Reset Mode')}</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || 'anchor'}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {resetModeOpts.map((o) => (
+                                <SelectItem key={o.value} value={o.value}>
+                                  {o.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name='daily_approximate_times'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Approximate Times')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type='number'
+                            min={0}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value, 10) || 0)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Weekly */}
+                <div className='bg-card space-y-4 rounded-xl border p-5'>
+                  <CardHeading
+                    title={t('Weekly Limit')}
+                    icon={<Gauge className='h-4 w-4' />}
+                  />
+                  <div className='grid grid-cols-2 gap-3'>
+                    <FormField
+                      control={form.control}
+                      name='weekly_limit_amount'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Quota Amount')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type='number'
+                              min={0}
+                              onChange={(e) =>
+                                field.onChange(
+                                  parseInt(e.target.value, 10) || 0
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t('0 means no limit')}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name='weekly_reset_mode'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Reset Mode')}</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || 'anchor'}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {resetModeOpts.map((o) => (
+                                <SelectItem key={o.value} value={o.value}>
+                                  {o.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name='weekly_approximate_times'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Approximate Times')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type='number'
+                            min={0}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value, 10) || 0)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Monthly */}
+                <div className='bg-card space-y-4 rounded-xl border p-5'>
+                  <CardHeading
+                    title={t('Monthly Limit')}
+                    icon={<Gauge className='h-4 w-4' />}
+                  />
+                  <div className='grid grid-cols-2 gap-3'>
+                    <FormField
+                      control={form.control}
+                      name='monthly_limit_amount'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Quota Amount')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type='number'
+                              min={0}
+                              onChange={(e) =>
+                                field.onChange(
+                                  parseInt(e.target.value, 10) || 0
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t('0 means no limit')}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name='monthly_reset_mode'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Reset Mode')}</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || 'anchor'}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {resetModeOpts.map((o) => (
+                                <SelectItem key={o.value} value={o.value}>
+                                  {o.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name='monthly_approximate_times'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Approximate Times')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type='number'
+                            min={0}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value, 10) || 0)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
             {/* Payment Config */}
-            <div className='space-y-4'>
-              <h3 className='flex items-center gap-2 text-sm font-medium'>
-                <CreditCard className='h-4 w-4' />
-                {t('Third-party Payment Config')}
-              </h3>
+            <div className='bg-card space-y-4 rounded-xl border p-5'>
+              <CardHeading
+                title={t('Third-party Payment Config')}
+                icon={<CreditCard className='h-4 w-4' />}
+              />
 
               <FormField
                 control={form.control}

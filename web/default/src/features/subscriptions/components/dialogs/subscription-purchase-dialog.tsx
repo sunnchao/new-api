@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Crown, CalendarClock, Package } from 'lucide-react'
+import { Crown, CalendarClock, Package, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -23,6 +23,7 @@ import {
   paySubscriptionStripe,
   paySubscriptionCreem,
   paySubscriptionEpay,
+  paySubscriptionBalance,
 } from '../../api'
 import { formatDuration, formatResetPeriod } from '../../lib'
 import type { PlanRecord } from '../../types'
@@ -39,9 +40,12 @@ interface Props {
   enableStripe?: boolean
   enableCreem?: boolean
   enableOnlineTopUp?: boolean
+  enableBalancePay?: boolean
   epayMethods?: PaymentMethod[]
   purchaseLimit?: number
   purchaseCount?: number
+  /** Called after a synchronous payment (e.g. balance) succeeds, before the dialog closes. */
+  onPaymentSuccess?: () => void
 }
 
 export function SubscriptionPurchaseDialog(props: Props) {
@@ -64,7 +68,8 @@ export function SubscriptionPurchaseDialog(props: Props) {
   const hasCreem = props.enableCreem && !!plan.creem_product_id
   const hasEpay =
     props.enableOnlineTopUp && (props.epayMethods || []).length > 0
-  const hasAnyPayment = hasStripe || hasCreem || hasEpay
+  const hasBalance = props.enableBalancePay !== false
+  const hasAnyPayment = hasStripe || hasCreem || hasEpay || hasBalance
   const totalAmount = Number(plan.total_amount || 0)
   const price = Number(plan.price_amount || 0).toFixed(2)
   const limitReached =
@@ -107,6 +112,30 @@ export function SubscriptionPurchaseDialog(props: Props) {
             ? res.message
             : t('Payment request failed')
         )
+      }
+    } catch {
+      toast.error(t('Payment request failed'))
+    } finally {
+      setPaying(false)
+    }
+  }
+
+  const handlePayBalance = async () => {
+    setPaying(true)
+    try {
+      const res = await paySubscriptionBalance({ plan_id: plan.id })
+      if (res.message === 'success') {
+        toast.success(t('Purchase successful'))
+        props.onPaymentSuccess?.()
+        props.onOpenChange(false)
+      } else {
+        const errMsg =
+          typeof res.data === 'string'
+            ? res.data
+            : res.message && res.message !== 'success'
+              ? res.message
+              : t('Payment request failed')
+        toast.error(errMsg)
       }
     } catch {
       toast.error(t('Payment request failed'))
@@ -238,8 +267,19 @@ export function SubscriptionPurchaseDialog(props: Props) {
               <p className='text-muted-foreground text-xs'>
                 {t('Select payment method')}
               </p>
-              {(hasStripe || hasCreem) && (
-                <div className='grid grid-cols-2 gap-2 sm:flex'>
+              {(hasStripe || hasCreem || hasBalance) && (
+                <div className='grid grid-cols-2 gap-2 sm:flex sm:flex-wrap'>
+                  {hasBalance && (
+                    <Button
+                      variant='outline'
+                      className='flex-1'
+                      onClick={handlePayBalance}
+                      disabled={paying || limitReached}
+                    >
+                      <Wallet className='mr-1 h-4 w-4' />
+                      {t('Balance Pay')}
+                    </Button>
+                  )}
                   {hasStripe && (
                     <Button
                       variant='outline'

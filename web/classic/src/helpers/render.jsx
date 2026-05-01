@@ -1364,7 +1364,7 @@ function renderPriceSimpleCore({
                                  isSystemPromptOverride = false,
                                  displayMode = 'price',
                                  outputMode = 'text',
-                                 completion_ratio = 1
+                                   completion_ratio = 1
 
                                }) {
   const { ratio: effectiveGroupRatio, label: ratioLabel } = getEffectiveRatio(
@@ -2354,7 +2354,6 @@ function describeRequestRuleGroup(group) {
   const parts = (group.conditions || []).map((c) => describeRequestRuleCondition(c));
   return parts.join(' && ');
 }
-
 
 export const decodeFromBase64 = (base64) => {
     if (!base64) return '';

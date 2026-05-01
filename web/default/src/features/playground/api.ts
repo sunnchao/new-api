@@ -20,20 +20,29 @@ export async function sendChatCompletion(
 }
 
 /**
- * Get user available models
+ * Get user available models, with per-model enable_groups mapping for client-side filtering.
  */
-export async function getUserModels(): Promise<ModelOption[]> {
+export async function getUserModels(): Promise<{
+  models: ModelOption[]
+  modelGroups: Record<string, string[]>
+  autoGroups: string[]
+}> {
   const res = await api.get(API_ENDPOINTS.USER_MODELS)
   const { data } = res
 
   if (!data.success || !Array.isArray(data.data)) {
-    return []
+    return { models: [], modelGroups: {}, autoGroups: [] }
   }
 
-  return data.data.map((model: string) => ({
+  const models = (data.data as string[]).map((model) => ({
     label: model,
     value: model,
   }))
+  const modelGroups =
+    (data.model_groups as Record<string, string[]> | undefined) ?? {}
+  const autoGroups = (data.auto_groups as string[] | undefined) ?? []
+
+  return { models, modelGroups, autoGroups }
 }
 
 /**

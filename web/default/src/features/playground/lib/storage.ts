@@ -70,10 +70,16 @@ export function loadMessages(): Message[] | null {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.MESSAGES)
     if (saved) {
-      const parsed: Message[] = JSON.parse(saved)
+      const raw: unknown = JSON.parse(saved)
+      // Backward compatibility: legacy format stored as { messages: [...], timestamp }
+      const parsed: Message[] = Array.isArray(raw)
+        ? (raw as Message[])
+        : raw && typeof raw === 'object' && Array.isArray((raw as { messages?: unknown }).messages)
+          ? ((raw as { messages: Message[] }).messages)
+          : []
       const sanitized = sanitizeMessagesOnLoad(parsed)
-      // Persist sanitized result to avoid re-sanitizing on subsequent loads
-      if (sanitized !== parsed) {
+      // Persist sanitized result (or migrated array form) to avoid re-processing on subsequent loads
+      if (!Array.isArray(raw) || sanitized !== parsed) {
         saveMessages(sanitized)
       }
       return sanitized

@@ -100,11 +100,19 @@ export function SidebarModulesSection({
         title: t('Profile'),
         description: t('Personal settings and profile management.'),
       },
+      subscription: {
+        title: t('My Subscriptions'),
+        description: t('Purchase a plan to enjoy model benefits'),
+      },
     },
     admin: {
       channel: {
         title: t('Channels'),
         description: t('Configure upstream providers and routing.'),
+      },
+      admin_token: {
+        title: t('Token Management'),
+        description: t('API token management'),
       },
       models: {
         title: t('Models'),

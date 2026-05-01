@@ -1,6 +1,11 @@
 import { formatCurrencyFromUSD } from '@/lib/currency'
 import { QUOTA_TYPE_VALUES, TOKEN_UNIT_DIVISORS } from '../constants'
 import type { PricingModel, TokenUnit, PriceType } from '../types'
+import {
+  parseTiersFromExpr,
+  splitBillingExprAndRequestRules,
+  type ParsedTier,
+} from './billing-expr'
 
 // ----------------------------------------------------------------------------
 // Price Calculation Utilities
@@ -66,6 +71,9 @@ function calculateTokenPrice(
   type: PriceType,
   ratio: number
 ): number {
+  const tieredExprPrice = calculateTieredExprTokenPrice(model, type, ratio)
+  if (tieredExprPrice !== null) return tieredExprPrice
+
   const base = model.model_ratio * 2 * ratio
 
   switch (type) {
@@ -97,6 +105,39 @@ function calculateTokenPrice(
             Number(model.audio_completion_ratio)
         : NaN
   }
+}
+
+const PRICE_TYPE_TO_TIER_FIELD: Record<PriceType, string> = {
+  input: 'inputPrice',
+  output: 'outputPrice',
+  cache: 'cacheReadPrice',
+  create_cache: 'cacheCreatePrice',
+  image: 'imagePrice',
+  audio_input: 'audioInputPrice',
+  audio_output: 'audioOutputPrice',
+}
+
+function getDisplayTier(tiers: ParsedTier[]): ParsedTier | undefined {
+  return tiers.find((tier) => tier.conditions.length === 0) || tiers[0]
+}
+
+function calculateTieredExprTokenPrice(
+  model: PricingModel,
+  type: PriceType,
+  ratio: number
+): number | null {
+  if (model.billing_mode !== 'tiered_expr' || !model.billing_expr) {
+    return null
+  }
+
+  const { billingExpr } = splitBillingExprAndRequestRules(model.billing_expr)
+  const tier = getDisplayTier(parseTiersFromExpr(billingExpr))
+  if (!tier) return null
+
+  const value = Number(tier[PRICE_TYPE_TO_TIER_FIELD[type]])
+  if (!Number.isFinite(value)) return NaN
+
+  return value * ratio
 }
 
 function hasRatio(value: number | null | undefined): boolean {

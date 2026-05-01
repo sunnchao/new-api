@@ -46,3 +46,19 @@ export function formatTimestamp(ts: number): string {
   if (!ts) return '-'
   return dayjs(ts * 1000).format('YYYY-MM-DD HH:mm:ss')
 }
+
+export function formatBillingMode(
+  mode: string | undefined,
+  t: TFunction
+): string {
+  if (mode === 'request') return t('Request-based')
+  return t('Quota-based')
+}
+
+export function formatResetMode(
+  mode: string | undefined,
+  t: TFunction
+): string {
+  if (mode === 'natural') return t('Natural Calendar')
+  return t('Anchor')
+}

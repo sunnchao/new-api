@@ -32,7 +32,7 @@ export function ProfileDropdown() {
         <SheetTrigger asChild>
           <Button variant='ghost' className='relative h-9 w-9 rounded-full p-0'>
             <Avatar className='h-9 w-9'>
-              <AvatarImage src='/avatars/01.png' alt={`@${displayName}`} />
+              <AvatarImage src={`${user?.avatar_url || ''}`} alt={`@${displayName}`} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
           </Button>
@@ -50,7 +50,7 @@ export function ProfileDropdown() {
             <div className='border-b p-2.5 pb-6.5'>
               <div className='flex items-center gap-2.5'>
                 <Avatar className='size-9'>
-                  <AvatarImage src='/avatars/01.png' alt={`@${displayName}`} />
+                  <AvatarImage src={`${user?.avatar_url || ''}`} alt={`@${displayName}`} />
                   <AvatarFallback className='text-xs'>
                     {initials}
                   </AvatarFallback>

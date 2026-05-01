@@ -50,10 +50,12 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     enabled: true,
     topup: true,
     personal: true,
+    subscription: true,
   },
   admin: {
     enabled: true,
     channel: true,
+    admin_token: true,
     models: true,
     redemption: true,
     user: true,

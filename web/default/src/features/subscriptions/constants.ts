@@ -27,3 +27,29 @@ export function getDurationUnitOptions(t: TFunction) {
 export function getResetPeriodOptions(t: TFunction) {
   return RESET_PERIODS.map((p) => ({ value: p.value, label: t(p.labelKey) }))
 }
+
+// ============================================================================
+// Billing Mode Options
+// ============================================================================
+
+export const BILLING_MODES = [
+  { value: 'quota', labelKey: 'Quota-based' },
+  { value: 'request', labelKey: 'Request-based' },
+] as const
+
+export function getBillingModeOptions(t: TFunction) {
+  return BILLING_MODES.map((m) => ({ value: m.value, label: t(m.labelKey) }))
+}
+
+// ============================================================================
+// Reset Mode Options (anchor vs natural calendar)
+// ============================================================================
+
+export const RESET_MODES = [
+  { value: 'anchor', labelKey: 'Anchor' },
+  { value: 'natural', labelKey: 'Natural Calendar' },
+] as const
+
+export function getResetModeOptions(t: TFunction) {
+  return RESET_MODES.map((m) => ({ value: m.value, label: t(m.labelKey) }))
+}

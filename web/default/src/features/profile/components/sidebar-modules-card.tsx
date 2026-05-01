@@ -100,6 +100,11 @@ export function SidebarModulesCard() {
           title: t('Personal Settings'),
           description: t('Personal info settings'),
         },
+        {
+          key: 'subscription',
+          title: t('My Subscriptions'),
+          description: t('Purchase a plan to enjoy model benefits'),
+        },
       ],
     },
   ]

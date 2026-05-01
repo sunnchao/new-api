@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getUserModels, getUserGroups } from './api'
 import { PlaygroundChat } from './components/playground-chat'
@@ -32,6 +32,10 @@ export function Playground() {
     null
   )
 
+  // Per-model enable_groups mapping; used for client-side filtering by selected group.
+  const [modelGroups, setModelGroups] = useState<Record<string, string[]>>({})
+  const [autoGroups, setAutoGroups] = useState<string[]>([])
+
   // Load models
   const { data: modelsData, isLoading: isLoadingModels } = useQuery({
     queryKey: ['playground-models'],
@@ -48,14 +52,34 @@ export function Playground() {
   useEffect(() => {
     if (!modelsData) return
 
-    setModels(modelsData)
+    setModels(modelsData.models)
+    setModelGroups(modelsData.modelGroups)
+    setAutoGroups(modelsData.autoGroups)
+  }, [modelsData, setModels])
 
-    // Set default model if current model is not available
-    const isCurrentModelValid = modelsData.some((m) => m.value === config.model)
-    if (modelsData.length > 0 && !isCurrentModelValid) {
-      updateConfig('model', modelsData[0].value)
+  // Filter models by selected token group; fall back to full list when mapping is unavailable.
+  const filteredModels = useMemo(() => {
+    if (models.length === 0) return models
+    if (!modelGroups || Object.keys(modelGroups).length === 0) return models
+
+    if (config.group === DEFAULT_GROUP) {
+      if (autoGroups.length === 0) return models
+      const autoSet = new Set(autoGroups)
+      return models.filter((m) =>
+        modelGroups[m.value]?.some((g) => autoSet.has(g))
+      )
     }
-  }, [modelsData, config.model, setModels, updateConfig])
+    return models.filter((m) => modelGroups[m.value]?.includes(config.group))
+  }, [models, modelGroups, autoGroups, config.group])
+
+  // Ensure currently selected model is valid for the active group.
+  useEffect(() => {
+    if (filteredModels.length === 0) return
+    const isValid = filteredModels.some((m) => m.value === config.model)
+    if (!isValid) {
+      updateConfig('model', filteredModels[0].value)
+    }
+  }, [filteredModels, config.model, updateConfig])
 
   // Update groups when data changes
   useEffect(() => {
@@ -179,7 +203,7 @@ export function Playground() {
           isGenerating={isGenerating}
           isModelLoading={isLoadingModels}
           modelValue={config.model}
-          models={models}
+          models={filteredModels}
           onGroupChange={(value) => updateConfig('group', value)}
           onModelChange={(value) => updateConfig('model', value)}
           onStop={stopGeneration}

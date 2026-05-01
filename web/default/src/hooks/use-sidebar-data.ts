@@ -4,6 +4,7 @@ import {
   Key,
   FileText,
   Wallet,
+  CreditCard,
   Box,
   Users,
   Ticket,
@@ -12,7 +13,6 @@ import {
   Radio,
   FlaskConical,
   MessageSquare,
-  CreditCard,
   ListTodo,
   Settings,
 } from 'lucide-react'
@@ -92,6 +92,11 @@ export function useSidebarData(): SidebarData {
             icon: Wallet,
           },
           {
+            title: t('My Subscriptions'),
+            url: '/my-subscriptions',
+            icon: CreditCard,
+          },
+          {
             title: t('Profile'),
             url: '/profile',
             icon: User,
@@ -106,6 +111,11 @@ export function useSidebarData(): SidebarData {
             title: t('Channels'),
             url: '/channels',
             icon: Radio,
+          },
+          {
+            title: t('Token Management'),
+            url: '/admin-tokens',
+            icon: Key,
           },
           {
             title: t('Models'),

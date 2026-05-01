@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "rsbuild dev",
-    "build": "rsbuild build",
-    "build:check": "tsc -b && rsbuild build",
+    "build": "rsbuild build && cp -r ../functions dist/functions",
+    "build:check": "tsc -b && rsbuild build && cp -r ../functions dist/functions",
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "preview": "rsbuild preview",

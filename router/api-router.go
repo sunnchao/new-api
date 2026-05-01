@@ -147,7 +147,7 @@ func SetApiRouter(router *gin.Engine) {
 		// Subscription public endpoints for anonymous pages
 		subscriptionPublicRoute := apiRouter.Group("/subscription")
 		{
-			subscriptionPublicRoute.GET("/home/plans", controller.GetSubscriptionPlans)
+			subscriptionPublicRoute.GET("/home/plans", controller.GetHomeSubscriptionPlans)
 		}
 
 		// Subscription billing (plans, purchase, admin management)
