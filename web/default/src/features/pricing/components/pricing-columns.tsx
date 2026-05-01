@@ -10,18 +10,13 @@ import {
 import { DataTableColumnHeader } from '@/components/data-table/column-header'
 import { GroupBadge } from '@/components/group-badge'
 import { DEFAULT_TOKEN_UNIT, QUOTA_TYPE_VALUES } from '../constants'
-import {
-  getDynamicDisplayGroupRatio,
-  getDynamicPricingSummary,
-} from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
-import { getDefaultRequestPriceDisplay } from '../lib/group-price'
-import { isTokenBasedModel } from '../lib/model-helpers'
 import {
-  formatPrice,
-  formatRequestPrice,
-  stripTrailingZeros,
-} from '../lib/price'
+  formatModelListTokenPrice,
+  getModelListPricingContext,
+} from '../lib/model-list-price'
+import { isTokenBasedModel } from '../lib/model-helpers'
+import { formatRequestPrice, stripTrailingZeros } from '../lib/price'
 import type { PricingModel, TokenUnit } from '../types'
 
 // ----------------------------------------------------------------------------
@@ -33,6 +28,7 @@ export interface PricingColumnsOptions {
   priceRate?: number
   usdExchangeRate?: number
   showRechargePrice?: boolean
+  groupFilter?: string
 }
 
 function renderLimitedTags(
@@ -86,6 +82,7 @@ export function usePricingColumns(
     priceRate = 1,
     usdExchangeRate = 1,
     showRechargePrice = false,
+    groupFilter,
   } = options
 
   const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
@@ -123,8 +120,9 @@ export function usePricingColumns(
       header: t('Type'),
       cell: ({ row }) => {
         const isTokenBased = row.original.quota_type === QUOTA_TYPE_VALUES.TOKEN
-        const defaultRequestPriceDisplay = getDefaultRequestPriceDisplay({
+        const pricingContext = getModelListPricingContext({
           model: row.original,
+          groupFilter,
           tokenUnit,
           showWithRecharge: showRechargePrice,
           priceRate,
@@ -132,7 +130,7 @@ export function usePricingColumns(
         })
         return (
           <span className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
-            {defaultRequestPriceDisplay || !isTokenBased
+            {pricingContext.requestPriceDisplay || !isTokenBased
               ? t('Request')
               : t('Token')}
           </span>
@@ -151,21 +149,21 @@ export function usePricingColumns(
       ),
       cell: ({ row }) => {
         const model = row.original
-        const defaultRequestPriceDisplay = getDefaultRequestPriceDisplay({
+        const pricingContext = getModelListPricingContext({
           model,
+          groupFilter,
           tokenUnit,
           showWithRecharge: showRechargePrice,
           priceRate,
           usdExchangeRate,
         })
+        const requestPriceDisplay = pricingContext.requestPriceDisplay
 
-        if (defaultRequestPriceDisplay) {
+        if (requestPriceDisplay) {
           return (
             <div className='min-w-[100px]'>
               <span className='font-mono text-sm tabular-nums'>
-                {stripTrailingZeros(
-                  defaultRequestPriceDisplay.items[0]?.value ?? '-'
-                )}
+                {stripTrailingZeros(requestPriceDisplay.items[0]?.value ?? '-')}
               </span>
               <div className='text-muted-foreground/50 text-[10px]'>
                 / {t('request')}
@@ -174,13 +172,7 @@ export function usePricingColumns(
           )
         }
 
-        const dynamicSummary = getDynamicPricingSummary(model, {
-          tokenUnit,
-          showRechargePrice,
-          priceRate,
-          usdExchangeRate,
-          groupRatioMultiplier: getDynamicDisplayGroupRatio(model),
-        })
+        const dynamicSummary = pricingContext.dynamicSummary
 
         if (dynamicSummary) {
           if (dynamicSummary.isSpecialExpression) {
@@ -235,24 +227,10 @@ export function usePricingColumns(
 
         if (isTokenBased) {
           const inputPrice = stripTrailingZeros(
-            formatPrice(
-              model,
-              'input',
-              tokenUnit,
-              showRechargePrice,
-              priceRate,
-              usdExchangeRate
-            )
+            formatModelListTokenPrice(pricingContext, 'input')
           )
           const outputPrice = stripTrailingZeros(
-            formatPrice(
-              model,
-              'output',
-              tokenUnit,
-              showRechargePrice,
-              priceRate,
-              usdExchangeRate
-            )
+            formatModelListTokenPrice(pricingContext, 'output')
           )
 
           return (
@@ -298,25 +276,20 @@ export function usePricingColumns(
       header: t('Cached'),
       cell: ({ row }) => {
         const model = row.original
-        const defaultRequestPriceDisplay = getDefaultRequestPriceDisplay({
+        const pricingContext = getModelListPricingContext({
           model,
+          groupFilter,
           tokenUnit,
           showWithRecharge: showRechargePrice,
           priceRate,
           usdExchangeRate,
         })
 
-        if (defaultRequestPriceDisplay) {
+        if (pricingContext.requestPriceDisplay) {
           return <span className='text-muted-foreground/30 text-xs'>—</span>
         }
 
-        const dynamicSummary = getDynamicPricingSummary(model, {
-          tokenUnit,
-          showRechargePrice,
-          priceRate,
-          usdExchangeRate,
-          groupRatioMultiplier: getDynamicDisplayGroupRatio(model),
-        })
+        const dynamicSummary = pricingContext.dynamicSummary
 
         if (dynamicSummary) {
           if (dynamicSummary.isSpecialExpression) {
@@ -353,14 +326,7 @@ export function usePricingColumns(
         }
 
         const cachedPrice = stripTrailingZeros(
-          formatPrice(
-            model,
-            'cache',
-            tokenUnit,
-            showRechargePrice,
-            priceRate,
-            usdExchangeRate
-          )
+          formatModelListTokenPrice(pricingContext, 'cache')
         )
 
         return (
