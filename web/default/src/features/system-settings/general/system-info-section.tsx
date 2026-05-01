@@ -62,8 +62,8 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
 
   const normalizedDefaults: SystemInfoFormValues = {
     theme: {
-      frontend:
-        defaultValues.theme?.frontend === 'classic' ? 'classic' : 'default',
+      frontend: 'default'
+        // defaultValues.theme?.frontend === 'classic' ? 'classic' : 'default',
     },
     Notice: normalizeValue(defaultValues.Notice),
     SystemName: normalizeValue(defaultValues.SystemName),
@@ -136,7 +136,7 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('Frontend Theme')}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled>
                     <FormControl>
                       <SelectTrigger className='w-full'>
                         <SelectValue />
