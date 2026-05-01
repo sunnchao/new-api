@@ -96,7 +96,9 @@ func SubscriptionRequestBalancePay(c *gin.Context) {
 		"cost_quota":     costQuota,
 	})
 	order.PaymentProvider = providerPayload
+	order.ProviderPayload = providerPayload
 	if err := order.Insert(); err != nil {
+		common.ApiErrorMsg(c, fmt.Sprintf("创建订单失败: %s", err))
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "创建订单失败"})
 		return
 	}
