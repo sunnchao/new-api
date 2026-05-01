@@ -1,18 +1,10 @@
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { defineConfig, loadEnv, type RsbuildPlugin } from '@rsbuild/core'
+import { defineConfig, loadEnv } from '@rsbuild/core'
 import { pluginReact } from '@rsbuild/plugin-react'
 import { tanstackRouter } from '@tanstack/router-plugin/rspack'
-import { addCfAsyncToScripts } from '../src/lib/cloudflareRocketLoaderGuard'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-const pluginCfRocketLoaderGuard = (): RsbuildPlugin => ({
-  name: 'cf-rocket-loader-guard',
-  setup(api) {
-    api.modifyHTML((html) => addCfAsyncToScripts(html))
-  },
-})
 
 export default defineConfig(({ envMode }) => {
   const env = loadEnv({ mode: envMode, prefixes: ['VITE_'] })
@@ -30,7 +22,7 @@ export default defineConfig(({ envMode }) => {
   ) as Record<string, { target: string; changeOrigin: boolean }>
 
   return {
-    plugins: [pluginReact(), pluginCfRocketLoaderGuard()],
+    plugins: [pluginReact()],
     // Rsbuild 2: replaces deprecated `performance.chunkSplit` (RSPack 2 aligned)
     splitChunks: {
       preset: 'default',
