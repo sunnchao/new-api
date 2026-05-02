@@ -86,6 +86,11 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
               searchKey: 'username',
               type: 'string' as const,
             },
+            {
+              columnId: '请求 IP',
+              searchKey: 'request_ip',
+              type: 'string' as const,
+            },
           ]
         : []),
     ],

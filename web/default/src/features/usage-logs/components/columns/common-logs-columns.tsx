@@ -419,7 +419,25 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
           )
         },
         meta: { label: t('User'), mobileHidden: true },
-      }
+      },
+        {
+          id: 'request_ip',
+          header: ({ column }) => (
+              <DataTableColumnHeader column={column} title={t('request_ip')} />
+          ),
+          cell: ({row}) => {
+            const log = row.original
+
+            return (
+              <div className='flex max-w-[150px] flex-col gap-0.5'>
+                <span className='text-muted-foreground truncate text-sm'>
+                  {log.request_ip}
+                </span>
+              </div>
+            )
+          },
+          meta: { label: t('request_ip'), mobileHidden: false },
+        }
     )
   }
 
