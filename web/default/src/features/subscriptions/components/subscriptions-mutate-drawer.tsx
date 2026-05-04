@@ -12,8 +12,14 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import {
   Form,
   FormControl,
@@ -48,7 +54,6 @@ import {
   getBillingModeOptions,
   getResetModeOptions,
 } from '../constants'
-import { cn } from '@/lib/utils'
 import {
   getPlanFormSchema,
   PLAN_FORM_DEFAULTS,
@@ -126,6 +131,31 @@ export function SubscriptionsMutateDrawer({
   const resetPeriod = form.watch('quota_reset_period')
   const billingMode = form.watch('billing_mode')
   const hourlyLimitAmount = form.watch('hourly_limit_amount')
+  const dailyLimitAmount = form.watch('daily_limit_amount')
+  const weeklyLimitAmount = form.watch('weekly_limit_amount')
+  const monthlyLimitAmount = form.watch('monthly_limit_amount')
+  const currencyDisplay = getCurrencyDisplay()
+  const currencyMeta = currencyDisplay.meta
+  const currencyLabel = getCurrencyLabel()
+  const isQuotaMode = billingMode !== 'request'
+  const totalQuotaLabel = isQuotaMode
+    ? `${t('Total Quota')} (${currencyLabel})`
+    : t('Request Count')
+  const limitAmountLabel = isQuotaMode
+    ? `${t('Quota Amount')} (${currencyLabel})`
+    : t('Request Count')
+  let totalQuotaPlaceholder: string | undefined
+  if (isQuotaMode) {
+    const totalQuotaPlaceholderKey =
+      currencyMeta.kind === 'tokens'
+        ? 'Enter quota in tokens'
+        : 'Enter quota in {{currency}}'
+    totalQuotaPlaceholder = t(totalQuotaPlaceholderKey, {
+      currency: currencyLabel,
+    })
+  }
+  const totalQuotaStep =
+    !isQuotaMode || currencyMeta.kind === 'tokens' ? 1 : 0.01
 
   const onSubmit = async (values: PlanFormValues) => {
     setIsSubmitting(true)
@@ -253,12 +283,14 @@ export function SubscriptionsMutateDrawer({
                   name='total_amount'
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('Total Quota')}</FormLabel>
+                      <FormLabel>{totalQuotaLabel}</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type='number'
+                          step={totalQuotaStep}
                           min={0}
+                          placeholder={totalQuotaPlaceholder}
                           onChange={(e) =>
                             field.onChange(parseFloat(e.target.value) || 0)
                           }
@@ -690,16 +722,15 @@ export function SubscriptionsMutateDrawer({
                       name='hourly_limit_amount'
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('Quota Amount')}</FormLabel>
+                          <FormLabel>{limitAmountLabel}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               type='number'
+                              step={totalQuotaStep}
                               min={0}
                               onChange={(e) =>
-                                field.onChange(
-                                  parseInt(e.target.value, 10) || 0
-                                )
+                                field.onChange(parseFloat(e.target.value) || 0)
                               }
                             />
                           </FormControl>
@@ -763,27 +794,30 @@ export function SubscriptionsMutateDrawer({
                       )}
                     />
                   </div>
-                  <FormField
-                    control={form.control}
-                    name='hourly_approximate_times'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Approximate Times')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type='number'
-                            min={0}
-                            disabled={!hourlyLimitAmount}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value, 10) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {isQuotaMode && Number(hourlyLimitAmount || 0) > 0 && (
+                    <FormField
+                      control={form.control}
+                      name='hourly_approximate_times'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Approximate Times')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type='number'
+                              min={0}
+                              onChange={(e) =>
+                                field.onChange(
+                                  parseInt(e.target.value, 10) || 0
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
 
                 {/* Daily */}
@@ -798,16 +832,15 @@ export function SubscriptionsMutateDrawer({
                       name='daily_limit_amount'
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('Quota Amount')}</FormLabel>
+                          <FormLabel>{limitAmountLabel}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               type='number'
+                              step={totalQuotaStep}
                               min={0}
                               onChange={(e) =>
-                                field.onChange(
-                                  parseInt(e.target.value, 10) || 0
-                                )
+                                field.onChange(parseFloat(e.target.value) || 0)
                               }
                             />
                           </FormControl>
@@ -846,26 +879,30 @@ export function SubscriptionsMutateDrawer({
                       )}
                     />
                   </div>
-                  <FormField
-                    control={form.control}
-                    name='daily_approximate_times'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Approximate Times')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type='number'
-                            min={0}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value, 10) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {isQuotaMode && Number(dailyLimitAmount || 0) > 0 && (
+                    <FormField
+                      control={form.control}
+                      name='daily_approximate_times'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Approximate Times')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type='number'
+                              min={0}
+                              onChange={(e) =>
+                                field.onChange(
+                                  parseInt(e.target.value, 10) || 0
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
 
                 {/* Weekly */}
@@ -880,16 +917,15 @@ export function SubscriptionsMutateDrawer({
                       name='weekly_limit_amount'
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('Quota Amount')}</FormLabel>
+                          <FormLabel>{limitAmountLabel}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               type='number'
+                              step={totalQuotaStep}
                               min={0}
                               onChange={(e) =>
-                                field.onChange(
-                                  parseInt(e.target.value, 10) || 0
-                                )
+                                field.onChange(parseFloat(e.target.value) || 0)
                               }
                             />
                           </FormControl>
@@ -928,26 +964,30 @@ export function SubscriptionsMutateDrawer({
                       )}
                     />
                   </div>
-                  <FormField
-                    control={form.control}
-                    name='weekly_approximate_times'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Approximate Times')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type='number'
-                            min={0}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value, 10) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {isQuotaMode && Number(weeklyLimitAmount || 0) > 0 && (
+                    <FormField
+                      control={form.control}
+                      name='weekly_approximate_times'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Approximate Times')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type='number'
+                              min={0}
+                              onChange={(e) =>
+                                field.onChange(
+                                  parseInt(e.target.value, 10) || 0
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
 
                 {/* Monthly */}
@@ -962,16 +1002,15 @@ export function SubscriptionsMutateDrawer({
                       name='monthly_limit_amount'
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('Quota Amount')}</FormLabel>
+                          <FormLabel>{limitAmountLabel}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               type='number'
+                              step={totalQuotaStep}
                               min={0}
                               onChange={(e) =>
-                                field.onChange(
-                                  parseInt(e.target.value, 10) || 0
-                                )
+                                field.onChange(parseFloat(e.target.value) || 0)
                               }
                             />
                           </FormControl>
@@ -1010,26 +1049,30 @@ export function SubscriptionsMutateDrawer({
                       )}
                     />
                   </div>
-                  <FormField
-                    control={form.control}
-                    name='monthly_approximate_times'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Approximate Times')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type='number'
-                            min={0}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value, 10) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {isQuotaMode && Number(monthlyLimitAmount || 0) > 0 && (
+                    <FormField
+                      control={form.control}
+                      name='monthly_approximate_times'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Approximate Times')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type='number'
+                              min={0}
+                              onChange={(e) =>
+                                field.onChange(
+                                  parseInt(e.target.value, 10) || 0
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </CollapsibleContent>
             </Collapsible>

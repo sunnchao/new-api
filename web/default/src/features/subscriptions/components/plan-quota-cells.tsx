@@ -86,7 +86,7 @@ export function PlanQuotaLimitsCell(props: PlanQuotaCellProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className='flex max-w-[240px] flex-wrap gap-x-2 gap-y-1'>
+        <div className='flex max-w-[240px] flex-col gap-y-1'>
           {items.map((item) => (
             <StatusBadge
               key={item.key}
