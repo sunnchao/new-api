@@ -4,13 +4,14 @@ import { useTranslation } from 'react-i18next'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
-import {
-  formatDuration,
-  formatResetPeriod,
-  formatBillingMode,
-} from '../lib'
+import { formatDuration, formatResetPeriod, formatBillingMode } from '../lib'
 import type { PlanRecord } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
+import {
+  PlanPriceCell,
+  PlanQuotaLimitsCell,
+  PlanTotalQuotaCell,
+} from './plan-quota-cells'
 
 export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
   const { t } = useTranslation()
@@ -54,16 +55,12 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
       {
         accessorFn: (row) => row.plan.price_amount,
         id: 'price',
-        meta: { label: t('Price') },
+        meta: { label: t('Actual Amount') },
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Price')} />
+          <DataTableColumnHeader column={column} title={t('Actual Amount')} />
         ),
-        cell: ({ row }) => (
-          <span className='font-semibold text-emerald-600'>
-            ${Number(row.original.plan.price_amount || 0).toFixed(2)}
-          </span>
-        ),
-        size: 100,
+        cell: ({ row }) => <PlanPriceCell plan={row.original.plan} />,
+        size: 120,
       },
       {
         id: 'duration',
@@ -113,17 +110,9 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
         ),
         cell: ({ row }) =>
           row.original.plan.show_on_home ? (
-            <StatusBadge
-              label={t('Yes')}
-              variant='success'
-              copyable={false}
-            />
+            <StatusBadge label={t('Yes')} variant='success' copyable={false} />
           ) : (
-            <StatusBadge
-              label={t('No')}
-              variant='neutral'
-              copyable={false}
-            />
+            <StatusBadge label={t('No')} variant='neutral' copyable={false} />
           ),
         size: 80,
       },
@@ -195,15 +184,17 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('Total Quota')} />
         ),
-        cell: ({ row }) => {
-          const total = Number(row.original.plan.total_amount || 0)
-          return (
-            <span className='text-muted-foreground'>
-              {total > 0 ? total : t('Unlimited')}
-            </span>
-          )
-        },
-        size: 100,
+        cell: ({ row }) => <PlanTotalQuotaCell plan={row.original.plan} />,
+        size: 160,
+      },
+      {
+        id: 'quota_limits',
+        meta: { label: t('Quota Limits'), mobileHidden: true },
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('Quota Limits')} />
+        ),
+        cell: ({ row }) => <PlanQuotaLimitsCell plan={row.original.plan} />,
+        size: 240,
       },
       {
         id: 'upgrade_group',
@@ -214,7 +205,9 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
         cell: ({ row }) => {
           const group = row.original.plan.upgrade_group
           if (!group) {
-            return <span className='text-muted-foreground'>{t('No Upgrade')}</span>
+            return (
+              <span className='text-muted-foreground'>{t('No Upgrade')}</span>
+            )
           }
           return <GroupBadge group={group} />
         },
