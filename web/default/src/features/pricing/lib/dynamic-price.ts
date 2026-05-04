@@ -46,22 +46,6 @@ export function isDynamicPricingModel(model: PricingModel): boolean {
   return model.billing_mode === 'tiered_expr' && Boolean(model.billing_expr)
 }
 
-export function getDynamicDisplayGroupRatio(model: PricingModel): number {
-  const groups = Array.isArray(model.enable_groups) ? model.enable_groups : []
-  const ratios = model.group_ratio || {}
-  if (groups.length === 0) return 1
-
-  let minRatio = Number.POSITIVE_INFINITY
-  for (const group of groups) {
-    const ratio = ratios[group]
-    if (ratio !== undefined && ratio < minRatio) {
-      minRatio = ratio
-    }
-  }
-
-  return minRatio === Number.POSITIVE_INFINITY ? 1 : minRatio
-}
-
 function applyRechargeRate(
   price: number,
   showWithRecharge: boolean,

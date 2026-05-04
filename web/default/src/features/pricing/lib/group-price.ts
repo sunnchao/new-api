@@ -430,18 +430,61 @@ export function getGroupPriceDisplay({
 
 export function getDefaultGroupPriceDisplay({
   model,
-  groupRatio,
-  ...options
+  tokenUnit,
+  showWithRecharge = false,
+  priceRate = 1,
+  usdExchangeRate = 1,
 }: DefaultGroupPriceDisplayInput): GroupPriceDisplay | null {
-  const group = model.enable_groups?.[0] || ''
-  if (!group) return null
+  const ratio = 1
 
-  return getGroupPriceDisplay({
-    model,
-    group,
-    groupRatio: groupRatio || model.group_ratio || {},
-    ...options,
-  })
+  if (model.quota_type === QUOTA_TYPE_VALUES.TOKEN) {
+    const suffix = `/ 1${tokenUnit} tokens`
+    return {
+      group: '',
+      ratio,
+      billingType: 'token',
+      effectiveQuotaType: model.quota_type,
+      items: TOKEN_PRICE_TYPES.filter((priceType) => priceType.available(model))
+        .map((priceType) => ({
+          key: priceType.key,
+          labelKey: priceType.labelKey,
+          value: formatGroupPrice(
+            model,
+            '',
+            priceType.type,
+            tokenUnit,
+            showWithRecharge,
+            priceRate,
+            usdExchangeRate,
+            {}
+          ),
+          suffix,
+        }))
+        .filter((item) => item.value !== '-'),
+    }
+  }
+
+  return {
+    group: '',
+    ratio,
+    billingType: 'request',
+    effectiveQuotaType: model.quota_type,
+    items: [
+      {
+        key: 'fixed',
+        labelKey: 'Model Price',
+        value: formatFixedPrice(
+          model,
+          '',
+          showWithRecharge,
+          priceRate,
+          usdExchangeRate,
+          {}
+        ),
+        suffixKey: 'per request',
+      },
+    ].filter((item) => item.value !== '-'),
+  }
 }
 
 export function getDefaultRequestPriceDisplay(

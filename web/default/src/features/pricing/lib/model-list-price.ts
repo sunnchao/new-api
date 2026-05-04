@@ -1,7 +1,6 @@
 import { FILTER_ALL } from '../constants'
 import type { PriceType, PricingModel, TokenUnit } from '../types'
 import {
-  getDynamicDisplayGroupRatio,
   getDynamicPricingSummary,
   type DynamicPricingSummary,
 } from './dynamic-price'
@@ -48,11 +47,11 @@ export function resolveModelListPricingGroup(
 }
 
 function getSelectedGroupRatio(
-  model: PricingModel,
+  _model: PricingModel,
   selectedGroup: string | null,
   groupRatio: Record<string, number>
 ): number {
-  if (!selectedGroup) return getDynamicDisplayGroupRatio(model)
+  if (!selectedGroup) return 1
 
   const ratio = groupRatio[selectedGroup]
   return Number.isFinite(ratio) ? ratio : 1
@@ -142,6 +141,7 @@ export function formatModelListTokenPrice(
     context.tokenUnit,
     context.showWithRecharge,
     context.priceRate,
-    context.usdExchangeRate
+    context.usdExchangeRate,
+    1
   )
 }
