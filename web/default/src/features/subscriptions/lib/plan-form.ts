@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { TFunction } from 'i18next'
+import { parseQuotaFromDollars, quotaUnitsToDollars } from '@/lib/format'
 import type { SubscriptionPlan, PlanPayload } from '../types'
 
 export function getPlanFormSchema(t: TFunction) {
@@ -88,7 +89,31 @@ export const PLAN_FORM_DEFAULTS: PlanFormValues = {
   monthly_approximate_times: 0,
 }
 
+function getBillingMode(mode: SubscriptionPlan['billing_mode'] | undefined) {
+  return mode === 'request' ? 'request' : 'quota'
+}
+
+function planAmountToFormValue(
+  amount: number | undefined,
+  billingMode: PlanFormValues['billing_mode']
+): number {
+  const value = Number(amount || 0)
+  if (billingMode === 'request') return value
+  return quotaUnitsToDollars(value)
+}
+
+function formAmountToPlanValue(
+  amount: number | undefined,
+  billingMode: PlanFormValues['billing_mode']
+): number {
+  const value = Number(amount || 0)
+  if (billingMode === 'request') return Math.round(value)
+  return parseQuotaFromDollars(value)
+}
+
 export function planToFormValues(plan: SubscriptionPlan): PlanFormValues {
+  const billingMode = getBillingMode(plan.billing_mode)
+
   return {
     title: plan.title || '',
     subtitle: plan.subtitle || '',
@@ -97,28 +122,45 @@ export function planToFormValues(plan: SubscriptionPlan): PlanFormValues {
     duration_value: Number(plan.duration_value || 1),
     custom_seconds: Number(plan.custom_seconds || 0),
     quota_reset_period: plan.quota_reset_period || 'never',
-    quota_reset_mode: (plan.quota_reset_mode as 'anchor' | 'natural') || 'anchor',
+    quota_reset_mode:
+      (plan.quota_reset_mode as 'anchor' | 'natural') || 'anchor',
     quota_reset_custom_seconds: Number(plan.quota_reset_custom_seconds || 0),
     enabled: plan.enabled !== false,
     show_on_home: plan.show_on_home || false,
     sort_order: Number(plan.sort_order || 0),
     max_purchase_per_user: Number(plan.max_purchase_per_user || 0),
-    total_amount: Number(plan.total_amount || 0),
+    total_amount: planAmountToFormValue(plan.total_amount, billingMode),
     upgrade_group: plan.upgrade_group || '',
     allowed_groups: plan.allowed_groups || '',
-    billing_mode: (plan.billing_mode as 'quota' | 'request') || 'quota',
+    billing_mode: billingMode,
     stripe_price_id: plan.stripe_price_id || '',
     creem_product_id: plan.creem_product_id || '',
     // Rate limits
-    hourly_limit_amount: Number(plan.hourly_limit_amount || 0),
+    hourly_limit_amount: planAmountToFormValue(
+      plan.hourly_limit_amount,
+      billingMode
+    ),
     hourly_limit_hours: Number(plan.hourly_limit_hours || 1),
-    hourly_reset_mode: (plan.hourly_reset_mode as 'anchor' | 'natural') || 'anchor',
-    daily_limit_amount: Number(plan.daily_limit_amount || 0),
-    daily_reset_mode: (plan.daily_reset_mode as 'anchor' | 'natural') || 'anchor',
-    weekly_limit_amount: Number(plan.weekly_limit_amount || 0),
-    weekly_reset_mode: (plan.weekly_reset_mode as 'anchor' | 'natural') || 'anchor',
-    monthly_limit_amount: Number(plan.monthly_limit_amount || 0),
-    monthly_reset_mode: (plan.monthly_reset_mode as 'anchor' | 'natural') || 'anchor',
+    hourly_reset_mode:
+      (plan.hourly_reset_mode as 'anchor' | 'natural') || 'anchor',
+    daily_limit_amount: planAmountToFormValue(
+      plan.daily_limit_amount,
+      billingMode
+    ),
+    daily_reset_mode:
+      (plan.daily_reset_mode as 'anchor' | 'natural') || 'anchor',
+    weekly_limit_amount: planAmountToFormValue(
+      plan.weekly_limit_amount,
+      billingMode
+    ),
+    weekly_reset_mode:
+      (plan.weekly_reset_mode as 'anchor' | 'natural') || 'anchor',
+    monthly_limit_amount: planAmountToFormValue(
+      plan.monthly_limit_amount,
+      billingMode
+    ),
+    monthly_reset_mode:
+      (plan.monthly_reset_mode as 'anchor' | 'natural') || 'anchor',
     // Approximate times
     approximate_times: Number(plan.approximate_times || 0),
     hourly_approximate_times: Number(plan.hourly_approximate_times || 0),
@@ -129,6 +171,8 @@ export function planToFormValues(plan: SubscriptionPlan): PlanFormValues {
 }
 
 export function formValuesToPlanPayload(values: PlanFormValues): PlanPayload {
+  const billingMode = values.billing_mode || 'quota'
+
   return {
     plan: {
       ...values,
@@ -144,20 +188,32 @@ export function formValuesToPlanPayload(values: PlanFormValues): PlanPayload {
           : 0,
       sort_order: Number(values.sort_order || 0),
       max_purchase_per_user: Number(values.max_purchase_per_user || 0),
-      total_amount: Number(values.total_amount || 0),
+      total_amount: formAmountToPlanValue(values.total_amount, billingMode),
       upgrade_group: values.upgrade_group || '',
       allowed_groups: values.allowed_groups || '',
-      billing_mode: values.billing_mode || 'quota',
+      billing_mode: billingMode,
       show_on_home: values.show_on_home || false,
       // Rate limits
-      hourly_limit_amount: Number(values.hourly_limit_amount || 0),
+      hourly_limit_amount: formAmountToPlanValue(
+        values.hourly_limit_amount,
+        billingMode
+      ),
       hourly_limit_hours: Number(values.hourly_limit_hours || 1),
       hourly_reset_mode: values.hourly_reset_mode || 'anchor',
-      daily_limit_amount: Number(values.daily_limit_amount || 0),
+      daily_limit_amount: formAmountToPlanValue(
+        values.daily_limit_amount,
+        billingMode
+      ),
       daily_reset_mode: values.daily_reset_mode || 'anchor',
-      weekly_limit_amount: Number(values.weekly_limit_amount || 0),
+      weekly_limit_amount: formAmountToPlanValue(
+        values.weekly_limit_amount,
+        billingMode
+      ),
       weekly_reset_mode: values.weekly_reset_mode || 'anchor',
-      monthly_limit_amount: Number(values.monthly_limit_amount || 0),
+      monthly_limit_amount: formAmountToPlanValue(
+        values.monthly_limit_amount,
+        billingMode
+      ),
       monthly_reset_mode: values.monthly_reset_mode || 'anchor',
       // Approximate times
       approximate_times: Number(values.approximate_times || 0),
