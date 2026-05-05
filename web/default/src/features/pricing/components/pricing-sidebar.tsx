@@ -54,6 +54,7 @@ export interface PricingSidebarProps {
   hasActiveFilters: boolean
   onClearFilters: () => void
   className?: string
+  groupLabels?: Record<string, string>
 }
 
 function countBy(
@@ -162,7 +163,7 @@ export function PricingSidebar(props: PricingSidebarProps) {
     },
     ...props.groups.map((group) => ({
       value: group,
-      label: group,
+      label: props.groupLabels?.[group] || group,
       suffix: formatGroupRatio(props.groupRatios?.[group]),
     })),
   ]

@@ -85,6 +85,18 @@ export function Pricing() {
     [usableGroup]
   )
 
+  // 获取availableGroups 对应的 label Record<string, string>
+  const availableGroupLabels = useMemo(
+      () => {
+        const groupLabels = {};
+        availableGroups.forEach((g) => {
+          groupLabels[g] = usableGroup?.[g] || g
+        })
+        return groupLabels
+      },
+      [availableGroups, usableGroup]
+  ) 
+
   const handleClearAll = useCallback(() => {
     clearFilters()
     clearSearch()
@@ -201,6 +213,7 @@ export function Pricing() {
               hasActiveFilters={hasActiveFilters}
               onClearFilters={clearFilters}
               className='sticky top-20 hidden max-h-[calc(100vh-6rem)] overflow-y-auto xl:block'
+              groupLabels={availableGroupLabels}
             />
 
             <main className='min-w-0 space-y-4'>
