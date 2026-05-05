@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query'
 import {
   ChevronDown,
   KeyRound,
+  Minus,
+  Plus,
   Settings2,
   WalletCards,
   type LucideIcon,
@@ -50,6 +52,7 @@ import {
   apiKeyFormSchema,
   type ApiKeyFormValues,
   getApiKeyFormDefaultValues,
+  normalizeBackupGroups,
   transformFormDataToPayload,
   transformApiKeyToFormDefaults,
 } from '../lib'
@@ -74,6 +77,8 @@ type ApiKeyFormSectionProps = {
   children: ReactNode
 }
 
+const EMPTY_BACKUP_GROUPS: string[] = []
+
 function ApiKeyFormSection(props: ApiKeyFormSectionProps) {
   const Icon = props.icon
 
@@ -84,7 +89,7 @@ function ApiKeyFormSection(props: ApiKeyFormSectionProps) {
           <Icon className='size-4 sm:size-5' />
         </div>
         <div className='min-w-0'>
-          <h3 className='text-sm font-medium leading-none'>{props.title}</h3>
+          <h3 className='text-sm leading-none font-medium'>{props.title}</h3>
           <p className='text-muted-foreground mt-0.5 text-xs sm:mt-1'>
             {props.description}
           </p>
@@ -240,7 +245,61 @@ export function ApiKeysMutateDrawer({
     ? t('Enter quota in tokens')
     : t('Enter quota in {{currency}}', { currency: currencyLabel })
   const selectedGroup = form.watch('group')
+  const backupGroups = form.watch('backup_group') ?? EMPTY_BACKUP_GROUPS
   const unlimitedQuota = form.watch('unlimited_quota')
+
+  const getBackupGroupOptions = (currentIndex: number) => {
+    const selectedGroups = backupGroups.filter(Boolean)
+    return groups
+      .filter((option) => option.value !== selectedGroup)
+      .filter((option) => option.value !== 'auto')
+      .filter(
+        (option) =>
+          !selectedGroups.includes(option.value) ||
+          option.value === backupGroups[currentIndex]
+      )
+  }
+
+  const handleBackupGroupChange = (index: number, value: string) => {
+    const next = [...backupGroups]
+    next[index] = value
+    form.setValue('backup_group', next, {
+      shouldDirty: true,
+      shouldValidate: true,
+    })
+  }
+
+  const handleAddBackupGroup = () => {
+    form.setValue('backup_group', [...backupGroups, ''], {
+      shouldDirty: true,
+      shouldValidate: true,
+    })
+  }
+
+  const handleRemoveBackupGroup = (index: number) => {
+    form.setValue(
+      'backup_group',
+      backupGroups.filter((_, idx) => idx !== index),
+      {
+        shouldDirty: true,
+        shouldValidate: true,
+      }
+    )
+  }
+
+  useEffect(() => {
+    if (selectedGroup === 'auto') {
+      if (backupGroups.length > 0) {
+        form.setValue('backup_group', [], { shouldDirty: true })
+      }
+      return
+    }
+
+    const normalized = normalizeBackupGroups(backupGroups, selectedGroup)
+    if (normalized.length !== backupGroups.length) {
+      form.setValue('backup_group', normalized, { shouldDirty: true })
+    }
+  }, [backupGroups, form, selectedGroup])
 
   return (
     <Sheet
@@ -285,10 +344,7 @@ export function ApiKeysMutateDrawer({
                   <FormItem>
                     <FormLabel>{t('Name')}</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        placeholder={t('Enter a name')}
-                      />
+                      <Input {...field} placeholder={t('Enter a name')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -313,6 +369,60 @@ export function ApiKeysMutateDrawer({
                   </FormItem>
                 )}
               />
+
+              {selectedGroup !== 'auto' && (
+                <FormField
+                  control={form.control}
+                  name='backup_group'
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>{t('Backup Groups')}</FormLabel>
+                      <div className='space-y-2'>
+                        {backupGroups.map((group, index) => (
+                          <div
+                            key={`${group}-${index}`}
+                            className='grid grid-cols-[minmax(0,1fr)_auto] gap-2'
+                          >
+                            <ApiKeyGroupCombobox
+                              options={getBackupGroupOptions(index)}
+                              value={group}
+                              onValueChange={(value) =>
+                                handleBackupGroupChange(index, value)
+                              }
+                              placeholder={t('Select a backup group')}
+                            />
+                            <Button
+                              type='button'
+                              variant='outline'
+                              size='icon'
+                              className='h-auto min-h-14 w-10 self-stretch sm:min-h-20'
+                              onClick={() => handleRemoveBackupGroup(index)}
+                              aria-label={t('Remove backup group')}
+                            >
+                              <Minus className='size-4' />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          type='button'
+                          variant='outline'
+                          size='sm'
+                          onClick={handleAddBackupGroup}
+                        >
+                          <Plus className='size-4' />
+                          {t('Add backup group')}
+                        </Button>
+                      </div>
+                      <FormDescription>
+                        {t(
+                          'Fallback groups are tried in order when the primary group has no available channel.'
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {selectedGroup === 'auto' && (
                 <FormField
@@ -501,7 +611,7 @@ export function ApiKeysMutateDrawer({
                       <Settings2 className='size-4 sm:size-5' />
                     </div>
                     <div className='min-w-0 flex-1'>
-                      <h3 className='text-sm font-medium leading-none'>
+                      <h3 className='text-sm leading-none font-medium'>
                         {t('Advanced Settings')}
                       </h3>
                       <p className='text-muted-foreground mt-1 text-xs'>

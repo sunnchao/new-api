@@ -42,6 +42,7 @@ import {
   TableEmpty,
   TableSkeleton,
 } from '@/components/data-table'
+import { GroupBadge } from '@/components/group-badge'
 import { PageFooterPortal } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
 import {
@@ -58,6 +59,13 @@ function getQuotaProgressColor(percentage: number): string {
   if (percentage <= 10) return '[&_[data-slot=progress-indicator]]:bg-rose-500'
   if (percentage <= 30) return '[&_[data-slot=progress-indicator]]:bg-amber-500'
   return '[&_[data-slot=progress-indicator]]:bg-emerald-500'
+}
+
+function parseGroupList(value?: string | null): string[] {
+  return (value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 function AdminTokenKeyCell({ token }: { token: AdminToken }) {
@@ -199,11 +207,24 @@ function useAdminTokenColumns(): ColumnDef<AdminToken>[] {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('Group')} />
         ),
-        cell: ({ row }) => (
-          <span className='text-xs font-medium'>
-            {(row.getValue('group') as string) || t('Default')}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const token = row.original
+          const group = row.getValue('group') as string
+          const backupGroups = parseGroupList(token.backup_group)
+
+          return (
+            <span className='inline-flex max-w-[240px] flex-wrap items-center gap-1.5'>
+              <GroupBadge group={group} />
+              {backupGroups.map((backupGroup) => (
+                <GroupBadge
+                  key={backupGroup}
+                  group={backupGroup}
+                  className='opacity-70'
+                />
+              ))}
+            </span>
+          )
+        },
         meta: { label: t('Group'), mobileHidden: true },
       },
       {

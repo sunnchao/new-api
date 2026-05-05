@@ -27,6 +27,7 @@ export const apiKeySchema = z.object({
   model_limits_enabled: z.boolean(),
   model_limits: z.string().nullish().default(''),
   allow_ips: z.string().nullish().default(''),
+  backup_group: z.string().nullish().default(''),
 })
 
 export type ApiKey = z.infer<typeof apiKeySchema>
@@ -74,6 +75,7 @@ export interface ApiKeyFormData {
   allow_ips: string
   group: string
   cross_group_retry: boolean
+  backup_group: string
 }
 
 // ============================================================================

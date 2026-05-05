@@ -32,6 +32,13 @@ function getQuotaProgressColor(percentage: number): string {
   return '[&_[data-slot=progress-indicator]]:bg-emerald-500'
 }
 
+function parseGroupList(value?: string | null): string[] {
+  return (value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
 function useGroupRatios(): Record<string, number> {
   const isAdmin = useAuthStore((s) =>
     Boolean(s.auth.user?.role && s.auth.user.role >= 10)
@@ -215,34 +222,57 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
         const apiKey = row.original
         const group = row.getValue('group') as string
         const ratio = group && group !== 'auto' ? groupRatios[group] : undefined
+        const backupGroups = parseGroupList(apiKey.backup_group)
 
         if (group === 'auto') {
           return (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className='inline-flex items-center gap-1.5 text-xs'>
-                  <GroupBadge group='auto' />
-                  {apiKey.cross_group_retry && (
-                    <>
-                      <span className='text-muted-foreground/30'>·</span>
-                      <span className='text-muted-foreground/60'>
-                        {t('Cross-group')}
-                      </span>
-                    </>
-                  )}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className='text-xs'>
-                  {t(
-                    'Automatically selects the best available group with circuit breaker mechanism'
-                  )}
-                </span>
-              </TooltipContent>
-            </Tooltip>
+            <span className='inline-flex max-w-[240px] flex-wrap items-center gap-1.5'>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className='inline-flex items-center gap-1.5 text-xs'>
+                    <GroupBadge group='auto' />
+                    {apiKey.cross_group_retry && (
+                      <>
+                        <span className='text-muted-foreground/30'>·</span>
+                        <span className='text-muted-foreground/60'>
+                          {t('Cross-group')}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span className='text-xs'>
+                    {t(
+                      'Automatically selects the best available group with circuit breaker mechanism'
+                    )}
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+              {backupGroups.map((backupGroup) => (
+                <GroupBadge
+                  key={backupGroup}
+                  group={backupGroup}
+                  ratio={groupRatios[backupGroup]}
+                  className='opacity-70'
+                />
+              ))}
+            </span>
           )
         }
-        return <GroupBadge group={group} ratio={ratio} />
+        return (
+          <span className='inline-flex max-w-[240px] flex-wrap items-center gap-1.5'>
+            <GroupBadge group={group} ratio={ratio} />
+            {backupGroups.map((backupGroup) => (
+              <GroupBadge
+                key={backupGroup}
+                group={backupGroup}
+                ratio={groupRatios[backupGroup]}
+                className='opacity-70'
+              />
+            ))}
+          </span>
+        )
       },
       meta: { label: t('Group'), mobileHidden: true },
     },

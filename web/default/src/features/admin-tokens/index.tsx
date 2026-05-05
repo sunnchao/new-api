@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { SectionPageLayout } from '@/components/layout'
+import '@/features/keys/i18n'
 import { AdminTokensTable } from './components/admin-tokens-table'
 
 export function AdminTokens() {

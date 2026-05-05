@@ -3,6 +3,7 @@ import { SectionPageLayout } from '@/components/layout'
 import { ApiKeysDialogs } from './components/api-keys-dialogs'
 import { ApiKeysProvider } from './components/api-keys-provider'
 import { ApiKeysTable } from './components/api-keys-table'
+import './i18n'
 
 export function ApiKeys() {
   const { t } = useTranslation()
