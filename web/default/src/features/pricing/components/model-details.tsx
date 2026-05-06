@@ -36,6 +36,7 @@ import { usePricingData } from '../hooks/use-pricing-data'
 import {
   getDynamicPricingSummary,
   getDynamicPricingTiers,
+  isDynamicPricingModel,
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
 import { getDefaultRequestPriceDisplay } from '../lib/group-price'
