@@ -7,18 +7,34 @@ import { type ApiKeyFormData, type ApiKey } from '../types'
 // Form Schema
 // ============================================================================
 
-export const apiKeyFormSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  remain_quota_dollars: z.number().min(0).optional(),
-  expired_time: z.date().optional(),
-  unlimited_quota: z.boolean(),
-  model_limits: z.array(z.string()),
-  allow_ips: z.string().optional(),
-  group: z.string().optional(),
-  cross_group_retry: z.boolean().optional(),
-  backup_group: z.array(z.string()).optional(),
-  tokenCount: z.number().min(1).optional(),
-})
+export const apiKeyFormSchema = z
+  .object({
+    name: z.string().min(1, 'Please enter a name'),
+    remain_quota_dollars: z.number().optional(),
+    expired_time: z.date().optional(),
+    unlimited_quota: z.boolean(),
+    model_limits: z.array(z.string()),
+    allow_ips: z.string().optional(),
+    group: z.string().optional(),
+    cross_group_retry: z.boolean().optional(),
+    backup_group: z.array(z.string()).optional(),
+    tokenCount: z.number().min(1).optional(),
+  })
+  .check((ctx) => {
+    if (ctx.value.unlimited_quota) return
+    const quota = ctx.value.remain_quota_dollars ?? 0
+    if (quota >= 0) return
+
+    ctx.issues.push({
+      code: 'too_small',
+      minimum: 0,
+      input: quota,
+      inclusive: true,
+      origin: 'number',
+      path: ['remain_quota_dollars'],
+      message: 'Please enter a valid number',
+    })
+  })
 
 export type ApiKeyFormValues = z.infer<typeof apiKeyFormSchema>
 
@@ -68,6 +84,39 @@ export function normalizeBackupGroups(
   for (const group of groupList ?? []) {
     const groupName = group.trim()
     if (!groupName || groupName === 'auto') continue
+    if (currentPrimaryGroup && groupName === currentPrimaryGroup) continue
+    if (seen.has(groupName)) continue
+
+    seen.add(groupName)
+    normalized.push(groupName)
+  }
+
+  return normalized
+}
+
+/**
+ * Keep the backup group list tidy while the user is still editing it.
+ *
+ * Empty rows are preserved here so clicking "Add backup group" has visible
+ * feedback; the final API payload still uses normalizeBackupGroups().
+ */
+export function normalizeBackupGroupDraft(
+  groupList: string[] | undefined,
+  primaryGroup = ''
+): string[] {
+  const normalized: string[] = []
+  const seen = new Set<string>()
+  const currentPrimaryGroup = primaryGroup.trim()
+
+  for (const group of groupList ?? []) {
+    const groupName = group.trim()
+    if (!groupName) {
+      if (!normalized.includes('')) {
+        normalized.push('')
+      }
+      continue
+    }
+    if (groupName === 'auto') continue
     if (currentPrimaryGroup && groupName === currentPrimaryGroup) continue
     if (seen.has(groupName)) continue
 

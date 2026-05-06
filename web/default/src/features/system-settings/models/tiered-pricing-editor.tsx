@@ -1060,43 +1060,6 @@ function RuleConditionRow({
     </>
   )
 
-  const renderParamHeaderCondition = (phCond: ParamHeaderCondition) => (
-    <>
-      <Input
-        value={phCond.path}
-        onChange={(event) => onChange({ ...phCond, path: event.target.value })}
-        placeholder={
-          phCond.source === SOURCE_HEADER ? 'X-Header-Name' : 'service_tier'
-        }
-        className='w-44'
-      />
-      <Select
-        value={phCond.mode}
-        onValueChange={(v) => v !== null && handleModeChange(v)}
-      >
-        <SelectTrigger className='w-32' size='sm'>
-          <SelectValue>{getMatchLabel(phCond.mode)}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {matchOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {getMatchLabel(option.value)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {phCond.mode !== MATCH_EXISTS && (
-        <Input
-          value={phCond.value}
-          onChange={(event) =>
-            onChange({ ...phCond, value: event.target.value })
-          }
-          placeholder={t('Value')}
-          className='w-44'
-        />
-      )}
-    </>
-  )
   const renderParamHeaderCondition = (phCond: ParamHeaderCondition) => {
     const tokenGroupOptions =
       phCond.source === SOURCE_TOKEN_GROUP &&

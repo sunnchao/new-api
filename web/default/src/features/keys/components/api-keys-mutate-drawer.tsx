@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -52,7 +52,7 @@ import {
   apiKeyFormSchema,
   type ApiKeyFormValues,
   getApiKeyFormDefaultValues,
-  normalizeBackupGroups,
+  normalizeBackupGroupDraft,
   transformFormDataToPayload,
   transformApiKeyToFormDefaults,
 } from '../lib'
@@ -223,6 +223,15 @@ export function ApiKeysMutateDrawer({
     }
   }
 
+  const onInvalid = (errors: FieldErrors<ApiKeyFormValues>) => {
+    const firstError = Object.values(errors)[0]
+    const message =
+      typeof firstError?.message === 'string'
+        ? firstError.message
+        : ERROR_MESSAGES.UNEXPECTED
+    toast.error(t(message))
+  }
+
   const handleSetExpiry = (months: number, days: number, hours: number) => {
     if (months === 0 && days === 0 && hours === 0) {
       form.setValue('expired_time', undefined)
@@ -295,8 +304,8 @@ export function ApiKeysMutateDrawer({
       return
     }
 
-    const normalized = normalizeBackupGroups(backupGroups, selectedGroup)
-    if (normalized.length !== backupGroups.length) {
+    const normalized = normalizeBackupGroupDraft(backupGroups, selectedGroup)
+    if (normalized.join('\n') !== backupGroups.join('\n')) {
       form.setValue('backup_group', normalized, { shouldDirty: true })
     }
   }, [backupGroups, form, selectedGroup])
@@ -329,7 +338,7 @@ export function ApiKeysMutateDrawer({
         <Form {...form}>
           <form
             id='api-key-form'
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={form.handleSubmit(onSubmit, onInvalid)}
             className='min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 py-3 sm:space-y-4 sm:px-4 sm:py-4'
           >
             <ApiKeyFormSection
