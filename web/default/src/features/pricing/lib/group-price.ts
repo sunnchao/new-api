@@ -430,12 +430,37 @@ export function getGroupPriceDisplay({
 
 export function getDefaultGroupPriceDisplay({
   model,
+  groupRatio,
   tokenUnit,
   showWithRecharge = false,
   priceRate = 1,
   usdExchangeRate = 1,
+  now = new Date(),
 }: DefaultGroupPriceDisplayInput): GroupPriceDisplay | null {
   const ratio = 1
+  const defaultGroup = 'default'
+  const enableGroups = Array.isArray(model.enable_groups)
+    ? model.enable_groups
+    : []
+
+  if (
+    model.billing_mode === 'tiered_expr' &&
+    model.billing_expr &&
+    enableGroups.includes(defaultGroup)
+  ) {
+    const display = getGroupPriceDisplay({
+      model,
+      group: defaultGroup,
+      groupRatio: groupRatio || model.group_ratio || {},
+      tokenUnit,
+      showWithRecharge,
+      priceRate,
+      usdExchangeRate,
+      now,
+    })
+
+    if (display.billingType === 'request') return display
+  }
 
   if (model.quota_type === QUOTA_TYPE_VALUES.TOKEN) {
     const suffix = `/ 1${tokenUnit} tokens`

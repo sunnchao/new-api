@@ -30,16 +30,21 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CopyButton } from '@/components/copy-button'
+import { GroupBadge } from '@/components/group-badge'
 import { PublicLayout } from '@/components/layout'
 import { DEFAULT_TOKEN_UNIT, QUOTA_TYPE_VALUES } from '../constants'
 import { usePricingData } from '../hooks/use-pricing-data'
 import {
+  getDynamicPriceEntries,
   getDynamicPricingSummary,
   getDynamicPricingTiers,
   isDynamicPricingModel,
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
-import { getDefaultRequestPriceDisplay } from '../lib/group-price'
+import {
+  getDefaultRequestPriceDisplay,
+  getGroupPriceDisplay,
+} from '../lib/group-price'
 import {
   getAvailableGroups,
   isTokenBasedModel,
@@ -48,8 +53,8 @@ import {
 import { inferModelMetadata } from '../lib/model-metadata'
 import { formatFixedPrice, formatGroupPrice } from '../lib/price'
 import type { PriceType, PricingModel, TokenUnit } from '../types'
+import { DynamicRequestGroupPricingSection } from './dynamic-group-pricing-section'
 import { DynamicPricingBreakdown } from './dynamic-pricing-breakdown'
-import { GroupPricingSection } from './group-pricing-section'
 import { ModelDetailsApi, ModelDetailsProviderInfo } from './model-details-api'
 import { ModelDetailsApps } from './model-details-apps'
 import { ModelDetailsCapabilities } from './model-details-capabilities'
@@ -168,9 +173,9 @@ function PriceSection(props: {
     usdExchangeRate: props.usdExchangeRate,
   })
   const defaultRequestPriceItem =
-      defaultGroupPriceDisplay?.billingType === 'request'
-          ? defaultGroupPriceDisplay.items[0]
-          : null
+    defaultGroupPriceDisplay?.billingType === 'request'
+      ? defaultGroupPriceDisplay.items[0]
+      : null
   const baseGroupKey = '_base'
   const baseGroupRatioMap = { [baseGroupKey]: 1 }
   const dynamicSummary = getDynamicPricingSummary(props.model, {
@@ -533,29 +538,67 @@ function GroupPricingSection(props: {
 
   if (isDynamicPricingModel(props.model)) {
     const dynamicTiers = getDynamicPricingTiers(props.model)
+    const groupPriceRowMap = new Map(
+      availableGroups.map((group) => [
+        group,
+        getGroupPriceDisplay({
+          model: props.model,
+          group,
+          groupRatio: props.groupRatio,
+          tokenUnit: props.tokenUnit,
+          showWithRecharge: showRechargePrice,
+          priceRate: props.priceRate,
+          usdExchangeRate: props.usdExchangeRate,
+        }),
+      ])
+    )
+    const hasDynamicTokenRows = availableGroups.some(
+      (group) => groupPriceRowMap.get(group)?.billingType !== 'request'
+    )
 
     if (dynamicTiers.length === 0) {
       return (
         <section>
           <SectionTitle>{t('Pricing by Group')}</SectionTitle>
           <AutoGroupChain model={props.model} autoGroups={props.autoGroups} />
-          <div className='rounded-lg border border-amber-200/70 bg-amber-50/70 p-3 dark:border-amber-500/20 dark:bg-amber-500/10'>
-            <div className='text-sm font-medium text-amber-800 dark:text-amber-200'>
-              {t('Special billing expression')}
-            </div>
-            <p className='text-muted-foreground mt-1 text-xs'>
-              {t(
-                'Group prices cannot be expanded because this expression is not a standard tiered pricing expression.'
-              )}
-            </p>
-            <div className='mt-3'>
-              <div className='text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase'>
-                {t('Raw expression')}
-              </div>
-              <code className='text-muted-foreground bg-background/80 block max-h-28 overflow-auto rounded-md border px-2 py-1.5 font-mono text-xs break-all'>
-                {props.model.billing_expr}
-              </code>
-            </div>
+          <div className='space-y-3'>
+            {availableGroups.map((group) => {
+              const groupPriceRow = groupPriceRowMap.get(group)
+
+              if (groupPriceRow?.billingType === 'request') {
+                return (
+                  <DynamicRequestGroupPricingSection
+                    key={group}
+                    usableGroup={props.usableGroup}
+                    row={groupPriceRow}
+                  />
+                )
+              }
+
+              return (
+                <div
+                  key={group}
+                  className='rounded-lg border border-amber-200/70 bg-amber-50/70 p-3 dark:border-amber-500/20 dark:bg-amber-500/10'
+                >
+                  <div className='text-sm font-medium text-amber-800 dark:text-amber-200'>
+                    {t('Special billing expression')}
+                  </div>
+                  <p className='text-muted-foreground mt-1 text-xs'>
+                    {t(
+                      'Group prices cannot be expanded because this expression is not a standard tiered pricing expression.'
+                    )}
+                  </p>
+                  <div className='mt-3'>
+                    <div className='text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase'>
+                      {t('Raw expression')}
+                    </div>
+                    <code className='text-muted-foreground bg-background/80 block max-h-28 overflow-auto rounded-md border px-2 py-1.5 font-mono text-xs break-all'>
+                      {props.model.billing_expr}
+                    </code>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </section>
       )
@@ -583,6 +626,17 @@ function GroupPricingSection(props: {
         <AutoGroupChain model={props.model} autoGroups={props.autoGroups} />
         <div className='space-y-3'>
           {availableGroups.map((group) => {
+            const groupPriceRow = groupPriceRowMap.get(group)
+            if (groupPriceRow?.billingType === 'request') {
+              return (
+                <DynamicRequestGroupPricingSection
+                  key={group}
+                  usableGroup={props.usableGroup}
+                  row={groupPriceRow}
+                />
+              )
+            }
+
             const ratio = props.groupRatio[group] || 1
             return (
               <div key={group} className='overflow-hidden rounded-lg border'>
@@ -645,9 +699,11 @@ function GroupPricingSection(props: {
               </div>
             )
           })}
-          <p className='text-muted-foreground/40 mt-1.5 text-[10px]'>
-            {t('Prices shown per')} {tokenUnitLabel} tokens
-          </p>
+          {hasDynamicTokenRows && (
+            <p className='text-muted-foreground/40 mt-1.5 text-[10px]'>
+              {t('Prices shown per')} {tokenUnitLabel} tokens
+            </p>
+          )}
         </div>
       </section>
     )
