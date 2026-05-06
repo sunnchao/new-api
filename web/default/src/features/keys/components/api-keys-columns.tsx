@@ -92,10 +92,8 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
       id: 'select',
       header: ({ table }) => (
         <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate')
-          }
+          checked={table.getIsAllPageRowsSelected()}
+          indeterminate={table.getIsSomePageRowsSelected()}
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label='Select all'
           className='translate-y-[2px]'
@@ -178,21 +176,19 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
 
         return (
           <Tooltip>
-            <TooltipTrigger asChild>
-              <div className='w-[150px] space-y-1'>
-                <div className='flex justify-between text-xs'>
-                  <span className='font-medium tabular-nums'>
-                    {formatQuota(remaining)}
-                  </span>
-                  <span className='text-muted-foreground tabular-nums'>
-                    {formatQuota(total)}
-                  </span>
-                </div>
-                <Progress
-                  value={percentage}
-                  className={cn('h-1.5', getQuotaProgressColor(percentage))}
-                />
+            <TooltipTrigger render={<div className='w-[150px] space-y-1' />}>
+              <div className='flex justify-between text-xs'>
+                <span className='font-medium tabular-nums'>
+                  {formatQuota(remaining)}
+                </span>
+                <span className='text-muted-foreground tabular-nums'>
+                  {formatQuota(total)}
+                </span>
               </div>
+              <Progress
+                value={percentage}
+                className={cn('h-1.5', getQuotaProgressColor(percentage))}
+              />
             </TooltipTrigger>
             <TooltipContent>
               <div className='space-y-1 text-xs'>
@@ -226,38 +222,40 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
 
         if (group === 'auto') {
           return (
-            <span className='inline-flex max-w-[240px] flex-wrap items-center gap-1.5'>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className='inline-flex items-center gap-1.5 text-xs'>
-                    <GroupBadge group='auto' />
-                    {apiKey.cross_group_retry && (
-                      <>
-                        <span className='text-muted-foreground/30'>·</span>
-                        <span className='text-muted-foreground/60'>
-                          {t('Cross-group')}
-                        </span>
-                      </>
-                    )}
+              <span className='inline-flex max-w-[240px] flex-wrap items-center gap-1.5'>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span className='inline-flex items-center gap-1.5 text-xs' />
+                }
+              >
+                <GroupBadge group='auto' />
+                {apiKey.cross_group_retry && (
+                  <>
+                    <span className='text-muted-foreground/30'>·</span>
+                    <span className='text-muted-foreground/60'>
+                      {t('Cross-group')}
+                    </span>
+                  </>
+                )}
+              </TooltipTrigger>
+              <TooltipContent>
+                <span className='text-xs'>
+                  {t(
+                    'Automatically selects the best available group with circuit breaker mechanism'
+                  )}
+                </span>
+              </TooltipContent>
+            </Tooltip>
+                {backupGroups.map((backupGroup) => (
+                    <GroupBadge
+                        key={backupGroup}
+                        group={backupGroup}
+                        ratio={groupRatios[backupGroup]}
+                        className='opacity-70'
+                    />
+                ))}
                   </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <span className='text-xs'>
-                    {t(
-                      'Automatically selects the best available group with circuit breaker mechanism'
-                    )}
-                  </span>
-                </TooltipContent>
-              </Tooltip>
-              {backupGroups.map((backupGroup) => (
-                <GroupBadge
-                  key={backupGroup}
-                  group={backupGroup}
-                  ratio={groupRatios[backupGroup]}
-                  className='opacity-70'
-                />
-              ))}
-            </span>
           )
         }
         return (

@@ -1,5 +1,3 @@
-import type { MaintenanceSettings } from '../types'
-
 export type HeaderNavPricingConfig = {
   enabled: boolean
   requireAuth: boolean
@@ -62,21 +60,6 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     setting: true,
     subscription: true,
   },
-}
-
-export const DEFAULT_MAINTENANCE_SETTINGS: MaintenanceSettings = {
-  Notice: '',
-  LogConsumeEnabled: false,
-  HeaderNavModules: JSON.stringify(HEADER_NAV_DEFAULT),
-  SidebarModulesAdmin: JSON.stringify(SIDEBAR_MODULES_DEFAULT),
-  'performance_setting.disk_cache_enabled': false,
-  'performance_setting.disk_cache_threshold_mb': 10,
-  'performance_setting.disk_cache_max_size_mb': 1024,
-  'performance_setting.disk_cache_path': '',
-  'performance_setting.monitor_enabled': false,
-  'performance_setting.monitor_cpu_threshold': 90,
-  'performance_setting.monitor_memory_threshold': 90,
-  'performance_setting.monitor_disk_threshold': 95,
 }
 
 const toBoolean = (value: unknown, fallback: boolean): boolean => {

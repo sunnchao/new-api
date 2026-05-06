@@ -59,6 +59,10 @@ const perfSchema = z.object({
     .number()
     .min(0)
     .max(100),
+  'perf_metrics_setting.enabled': z.boolean(),
+  'perf_metrics_setting.flush_interval': z.coerce.number().min(1),
+  'perf_metrics_setting.bucket_time': z.enum(['minute', '5min', 'hour']),
+  'perf_metrics_setting.retention_days': z.coerce.number().min(0),
 })
 
 type PerfFormValues = z.infer<typeof perfSchema>
@@ -248,6 +252,7 @@ export function PerformanceSection(props: Props) {
 
   const diskEnabled = form.watch('performance_setting.disk_cache_enabled')
   const monitorEnabled = form.watch('performance_setting.monitor_enabled')
+  const perfMetricsEnabled = form.watch('perf_metrics_setting.enabled')
   const maxCacheSizeMb = form.watch(
     'performance_setting.disk_cache_max_size_mb'
   )
@@ -452,6 +457,97 @@ export function PerformanceSection(props: Props) {
             />
           </div>
 
+          <Separator />
+
+          <div>
+            <h4 className='font-medium'>{t('Model performance metrics')}</h4>
+            <p className='text-muted-foreground mt-1 text-xs'>
+              {t(
+                'Collect relay latency and success-rate metrics for the model square.'
+              )}
+            </p>
+          </div>
+
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-4'>
+            <FormField
+              control={form.control}
+              name='perf_metrics_setting.enabled'
+              render={({ field }) => (
+                <FormItem className='flex items-center gap-2'>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel>{t('Enable model performance metrics')}</FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='perf_metrics_setting.flush_interval'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Flush interval (minutes)')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={1}
+                      {...field}
+                      disabled={!perfMetricsEnabled}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='perf_metrics_setting.bucket_time'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Aggregation bucket')}</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={!perfMetricsEnabled}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value='minute'>{t('1 minute')}</SelectItem>
+                      <SelectItem value='5min'>{t('5 minutes')}</SelectItem>
+                      <SelectItem value='hour'>{t('1 hour')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='perf_metrics_setting.retention_days'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Retention days')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      {...field}
+                      disabled={!perfMetricsEnabled}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t('0 means data is kept permanently')}
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+          </div>
+
           <Button type='submit' disabled={updateOption.isPending}>
             {updateOption.isPending ? t('Saving...') : t('Save Changes')}
           </Button>
@@ -510,7 +606,7 @@ export function PerformanceSection(props: Props) {
                 <Label className='text-xs'>{t('Cleanup Mode')}</Label>
                 <Select
                   value={logCleanupMode}
-                  onValueChange={setLogCleanupMode}
+                  onValueChange={(v) => v !== null && setLogCleanupMode(v)}
                 >
                   <SelectTrigger className='w-[160px]'>
                     <SelectValue />
@@ -541,16 +637,18 @@ export function PerformanceSection(props: Props) {
                 />
               </div>
               <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant='destructive'
-                    size='sm'
-                    disabled={logCleanupLoading}
-                  >
-                    {logCleanupLoading
-                      ? t('Cleaning...')
-                      : t('Clean Up Log Files')}
-                  </Button>
+                <AlertDialogTrigger
+                  render={
+                    <Button
+                      variant='destructive'
+                      size='sm'
+                      disabled={logCleanupLoading}
+                    />
+                  }
+                >
+                  {logCleanupLoading
+                    ? t('Cleaning...')
+                    : t('Clean Up Log Files')}
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
@@ -604,10 +702,8 @@ export function PerformanceSection(props: Props) {
             {t('Refresh Stats')}
           </Button>
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant='outline' size='sm'>
-                {t('Clean up inactive cache')}
-              </Button>
+            <AlertDialogTrigger render={<Button variant='outline' size='sm' />}>
+              {t('Clean up inactive cache')}
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>

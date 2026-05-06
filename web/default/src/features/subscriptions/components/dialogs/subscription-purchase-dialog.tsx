@@ -305,7 +305,9 @@ export function SubscriptionPurchaseDialog(props: Props) {
                 <div className='grid grid-cols-[minmax(0,1fr)_auto] gap-2'>
                   <Select
                     value={selectedEpayMethod}
-                    onValueChange={setSelectedEpayMethod}
+                    onValueChange={(v) =>
+                      v !== null && setSelectedEpayMethod(v)
+                    }
                     disabled={limitReached}
                   >
                     <SelectTrigger className='flex-1'>

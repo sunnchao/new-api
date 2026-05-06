@@ -6,13 +6,7 @@ import { formatCurrencyUSD, formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { useStatus } from '@/hooks/use-status'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardDescription, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import {
   Select,
@@ -294,7 +288,7 @@ export function SubscriptionPlansCard({
             <div className='flex w-full items-center gap-2 sm:w-auto'>
               <Select
                 value={displayPref}
-                onValueChange={handlePreferenceChange}
+                onValueChange={(v) => v !== null && handlePreferenceChange(v)}
               >
                 <SelectTrigger className='h-8 flex-1 text-xs sm:w-[140px] sm:flex-none'>
                   <SelectValue />
@@ -363,11 +357,122 @@ export function SubscriptionPlansCard({
                   const isCancelled = subscription?.status === 'cancelled'
                   const isActive =
                     subscription?.status === 'active' && !isExpired
-                  const allowedGroups = subscription?.allowed_groups
-                    ?.split(',')
-                    .map((g) => g.trim())
-                    .filter(Boolean)
+                    const allowedGroups = subscription?.allowed_groups
+                        ?.split(',')
+                        .map((g) => g.trim())
+                        .filter(Boolean)
 
+                  return (
+                    <div
+                      key={subscription?.id}
+                      className='bg-background rounded-md border p-3 text-xs'
+                    >
+                      <div className='flex items-center justify-between'>
+                        <div className='flex items-center gap-2'>
+                          <span className='font-medium'>
+                            {planTitle
+                              ? `${planTitle} · ${t('Subscription')} #${subscription?.id}`
+                              : `${t('Subscription')} #${subscription?.id}`}
+                          </span>
+                          {isActive ? (
+                            <StatusBadge
+                              label={t('Active')}
+                              variant='success'
+                              copyable={false}
+                            />
+                          ) : isCancelled ? (
+                            <StatusBadge
+                              label={t('Cancelled')}
+                              variant='neutral'
+                              copyable={false}
+                            />
+                          ) : (
+                            <StatusBadge
+                              label={t('Expired')}
+                              variant='neutral'
+                              copyable={false}
+                            />
+                          )}
+                            <StatusBadge
+                                label={formatBillingMode(
+                                    subscription?.billing_mode,
+                                    t
+                                )}
+                                variant='neutral'
+                                copyable={false}
+                            />
+                            {subscription?.source && (
+                                <StatusBadge
+                                    label={
+                                        subscription.source === 'admin'
+                                            ? t('Admin Assigned')
+                                            : t('Self Purchased')
+                                    }
+                                    variant='neutral'
+                                    copyable={false}
+                                />
+                            )}
+                        </div>
+                        {isActive && (
+                          <span className='text-muted-foreground'>
+                            {t('{{count}} days remaining', {
+                              count: remainDays,
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      <div className='text-muted-foreground mt-1.5'>
+                        {isActive
+                          ? t('Until')
+                          : isCancelled
+                            ? t('Cancelled at')
+                            : t('Expired at')}{' '}
+                        {new Date(
+                          (subscription?.end_time || 0) * 1000
+                        ).toLocaleString()}
+                      </div>
+                      {isActive && (subscription?.next_reset_time ?? 0) > 0 && (
+                        <div className='text-muted-foreground mt-1'>
+                          {t('Next reset')}:{' '}
+                          {new Date(
+                            subscription!.next_reset_time! * 1000
+                          ).toLocaleString()}
+                        </div>
+                      )}
+                      <div className='text-muted-foreground mt-1'>
+                        {t('Total Quota')}:{' '}
+                        {totalAmount > 0 ? (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={<span className='cursor-help' />}
+                            >
+                              {formatQuota(usedAmount)}/
+                              {formatQuota(totalAmount)} · {t('Remaining')}{' '}
+                              {formatQuota(remainAmount)}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {t('Raw Quota')}: {usedAmount}/{totalAmount} ·{' '}
+                              {t('Remaining')} {remainAmount}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          t('Unlimited')
+                        )}
+                        {totalAmount > 0 && (
+                          <span className='ml-2'>
+                            {t('Used')} {usagePercent}%
+                          </span>
+                        )}
+                      </div>
+                      {totalAmount > 0 && isActive && (
+                        <Progress value={usagePercent} className='mt-2 h-1.5' />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
                   return (
                     <div
                       key={subscription?.id}
@@ -628,68 +733,70 @@ export function SubscriptionPlansCard({
               const plan = p?.plan
               if (!plan) return null
               const totalAmount = Number(plan.total_amount || 0)
+              const price = Number(plan.price_amount || 0).toFixed(2)
               const isPopular = index === 0 && plans.length > 1
               const limit = Number(plan.max_purchase_per_user || 0)
               const count = planPurchaseCountMap.get(plan.id) || 0
               const reached = limit > 0 && count >= limit
-              const allowedGroups = plan.allowed_groups
+
+            const allowedGroups = plan.allowed_groups
                 ?.split(',')
                 .map((g) => g.trim())
                 .filter(Boolean)
 
-              const isRequestPlan = plan.billing_mode === 'request'
-              const fmtPlanAmount = (v: number) =>
+            const isRequestPlan = plan.billing_mode === 'request'
+            const fmtPlanAmount = (v: number) =>
                 isRequestPlan
-                  ? `${v.toLocaleString()}${t('times')}`
-                  : formatQuota(v)
-              const approxSuffix = (n?: number) =>
+                    ? `${v.toLocaleString()}${t('times')}`
+                    : formatQuota(v)
+            const approxSuffix = (n?: number) =>
                 !isRequestPlan && n && n > 0
-                  ? ` (${t('Approx.')} ${n.toLocaleString()}${t('times')})`
-                  : ''
-              const rateLimitSummary = (() => {
+                    ? ` (${t('Approx.')} ${n.toLocaleString()}${t('times')})`
+                    : ''
+            const rateLimitSummary = (() => {
                 const parts: string[] = []
                 if (plan.hourly_limit_amount && plan.hourly_limit_amount > 0) {
-                  const hourLabel = `${t('Every')}${
-                    plan.hourly_limit_hours || 1
-                  }${t('hours')}`
-                  parts.push(
-                    `${hourLabel}: ${fmtPlanAmount(plan.hourly_limit_amount)}${approxSuffix(plan.hourly_approximate_times)}`
-                  )
+                    const hourLabel = `${t('Every')}${
+                        plan.hourly_limit_hours || 1
+                    }${t('hours')}`
+                    parts.push(
+                        `${hourLabel}: ${fmtPlanAmount(plan.hourly_limit_amount)}${approxSuffix(plan.hourly_approximate_times)}`
+                    )
                 }
                 if (plan.daily_limit_amount && plan.daily_limit_amount > 0)
-                  parts.push(
-                    `${t('Daily')}: ${fmtPlanAmount(plan.daily_limit_amount)}${approxSuffix(plan.daily_approximate_times)}`
-                  )
+                    parts.push(
+                        `${t('Daily')}: ${fmtPlanAmount(plan.daily_limit_amount)}${approxSuffix(plan.daily_approximate_times)}`
+                    )
                 if (plan.weekly_limit_amount && plan.weekly_limit_amount > 0)
-                  parts.push(
-                    `${t('Weekly')}: ${fmtPlanAmount(plan.weekly_limit_amount)}${approxSuffix(plan.weekly_approximate_times)}`
-                  )
+                    parts.push(
+                        `${t('Weekly')}: ${fmtPlanAmount(plan.weekly_limit_amount)}${approxSuffix(plan.weekly_approximate_times)}`
+                    )
                 if (plan.monthly_limit_amount && plan.monthly_limit_amount > 0)
-                  parts.push(
-                    `${t('Monthly')}: ${fmtPlanAmount(plan.monthly_limit_amount)}${approxSuffix(plan.monthly_approximate_times)}`
-                  )
+                    parts.push(
+                        `${t('Monthly')}: ${fmtPlanAmount(plan.monthly_limit_amount)}${approxSuffix(plan.monthly_approximate_times)}`
+                    )
                 return parts.length > 0
-                  ? `${t('Quota Limits')}: ${parts.join(' / ')}`
-                  : null
-              })()
+                    ? `${t('Quota Limits')}: ${parts.join(' / ')}`
+                    : null
+            })()
 
               const benefits = [
                 `${t('Validity Period')}: ${formatDuration(plan, t)}`,
-                `${t('Billing Mode')}: ${formatBillingMode(plan.billing_mode, t)}`,
+                  `${t('Billing Mode')}: ${formatBillingMode(plan.billing_mode, t)}`,
                 formatResetPeriod(plan, t) !== t('No Reset')
                   ? `${t('Quota Reset')}: ${formatResetPeriod(plan, t)}`
                   : null,
-                totalAmount > 0
-                  ? `${t('Total Quota')}: ${fmtPlanAmount(totalAmount)}${approxSuffix(plan.approximate_times)}`
-                  : `${t('Total Quota')}: ${t('Unlimited')}`,
-                allowedGroups?.length
-                  ? `${t('Allowed Groups')}: ${allowedGroups.join(', ')}`
-                  : `${t('Allowed Groups')}: ${t('All Groups')}`,
-                limit > 0 ? `${t('Purchase Limit')}: ${limit}` : null,
-                plan.upgrade_group
-                  ? `${t('Upgrade Group')}: ${plan.upgrade_group}`
-                  : null,
-                rateLimitSummary,
+                  totalAmount > 0
+                      ? `${t('Total Quota')}: ${fmtPlanAmount(totalAmount)}${approxSuffix(plan.approximate_times)}`
+                      : `${t('Total Quota')}: ${t('Unlimited')}`,
+                  allowedGroups?.length
+                      ? `${t('Allowed Groups')}: ${allowedGroups.join(', ')}`
+                      : `${t('Allowed Groups')}: ${t('All Groups')}`,
+                  limit > 0 ? `${t('Purchase Limit')}: ${limit}` : null,
+                  plan.upgrade_group
+                      ? `${t('Upgrade Group')}: ${plan.upgrade_group}`
+                      : null,
+                  rateLimitSummary,
               ].filter(Boolean) as string[]
 
               return (
@@ -746,16 +853,10 @@ export function SubscriptionPlansCard({
 
                     {reached ? (
                       <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div>
-                            <Button
-                              variant='outline'
-                              className='w-full'
-                              disabled
-                            >
-                              {t('Limit Reached')}
-                            </Button>
-                          </div>
+                        <TooltipTrigger render={<div />}>
+                          <Button variant='outline' className='w-full' disabled>
+                            {t('Limit Reached')}
+                          </Button>
                         </TooltipTrigger>
                         <TooltipContent>
                           {t('Purchase limit reached')} ({count}/{limit})
