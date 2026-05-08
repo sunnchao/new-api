@@ -266,7 +266,7 @@ export function ModelDetailsPerformance(props: { model: PricingModel }) {
                     <GroupBadge group={perf.group} size='sm' />
                   </TableCell>
                   <TableCell className='py-2.5 text-right font-mono'>
-                    {formatThroughput(perf.avg_tps)}
+                    {formatThroughput(perf.avg_tps || 0)}
                   </TableCell>
                   <TableCell className='py-2.5 text-right font-mono'>
                     {formatLatency(perf.avg_ttft_ms)}

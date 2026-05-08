@@ -59,6 +59,7 @@ import type {
   PricingModel,
   TokenUnit,
 } from '../types'
+import { DynamicRequestGroupPricingSection } from './dynamic-group-pricing-section'
 import { DynamicPricingBreakdown } from './dynamic-pricing-breakdown'
 import { ModelDetailsApi, ModelDetailsProviderInfo } from './model-details-api'
 import { ModalityIcons } from './model-details-modalities'
