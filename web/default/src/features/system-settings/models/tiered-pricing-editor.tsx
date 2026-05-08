@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -420,6 +421,12 @@ function ConditionRow({ condition, onChange, onRemove }: ConditionRowProps) {
   return (
     <div className='flex items-center gap-2'>
       <Select
+        items={[
+          ...CONDITION_INPUT_OPTIONS.map((option) => ({
+            value: option.value,
+            label: t(option.labelKey),
+          })),
+        ]}
         value={condition.var}
         onValueChange={(value) =>
           onChange({ ...condition, var: value as TierConditionInput['var'] })
@@ -432,15 +439,18 @@ function ConditionRow({ condition, onChange, onRemove }: ConditionRowProps) {
               : condition.var}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent>
-          {CONDITION_INPUT_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {t(option.labelKey)}
-            </SelectItem>
-          ))}
+        <SelectContent alignItemWithTrigger={false}>
+          <SelectGroup>
+            {CONDITION_INPUT_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {t(option.labelKey)}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
       <Select
+        items={[...OPS.map((op) => ({ value: op, label: op }))]}
         value={condition.op}
         onValueChange={(value) =>
           onChange({ ...condition, op: value as TierConditionInput['op'] })
@@ -449,12 +459,14 @@ function ConditionRow({ condition, onChange, onRemove }: ConditionRowProps) {
         <SelectTrigger className='w-20' size='sm'>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
-          {OPS.map((op) => (
-            <SelectItem key={op} value={op}>
-              {op}
-            </SelectItem>
-          ))}
+        <SelectContent alignItemWithTrigger={false}>
+          <SelectGroup>
+            {OPS.map((op) => (
+              <SelectItem key={op} value={op}>
+                {op}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
       <DraftNumberInput
@@ -468,7 +480,6 @@ function ConditionRow({ condition, onChange, onRemove }: ConditionRowProps) {
         {formatTokenHint(condition.value)}
       </span>
       <Button
-        type='button'
         variant='ghost'
         size='icon'
         onClick={onRemove}
@@ -609,7 +620,6 @@ function VisualTierCard({
           />
         </div>
         <Button
-          type='button'
           variant='ghost'
           size='icon'
           onClick={onRemove}
@@ -625,7 +635,6 @@ function VisualTierCard({
         <div className='flex h-7 items-center justify-between'>
           <Label className='text-xs font-medium'>{t('Tier conditions')}</Label>
           <Button
-            type='button'
             variant='ghost'
             size='sm'
             onClick={onAddCondition}
@@ -835,7 +844,6 @@ function VisualEditor({ visualConfig, onChange }: VisualEditorProps) {
         />
       ))}
       <Button
-          type='button'
         variant='outline'
         size='sm'
         className='h-9 w-36 justify-center'
@@ -976,6 +984,12 @@ function RuleConditionRow({
   const renderTimeCondition = (timeCond: TimeCondition) => (
     <>
       <Select
+        items={[
+          ...TIME_FUNCS.map((fn) => ({
+            value: fn,
+            label: getTimeFuncLabel(fn),
+          })),
+        ]}
         value={timeCond.timeFunc}
         onValueChange={(value) =>
           onChange({ ...timeCond, timeFunc: value as TimeFunc })
@@ -984,15 +998,23 @@ function RuleConditionRow({
         <SelectTrigger className='w-32' size='sm'>
           <SelectValue>{getTimeFuncLabel(timeCond.timeFunc)}</SelectValue>
         </SelectTrigger>
-        <SelectContent>
-          {TIME_FUNCS.map((fn) => (
-            <SelectItem key={fn} value={fn}>
-              {getTimeFuncLabel(fn)}
-            </SelectItem>
-          ))}
+        <SelectContent alignItemWithTrigger={false}>
+          <SelectGroup>
+            {TIME_FUNCS.map((fn) => (
+              <SelectItem key={fn} value={fn}>
+                {getTimeFuncLabel(fn)}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
       <Select
+        items={[
+          ...COMMON_TIMEZONES.map((tz) => ({
+            value: tz.value,
+            label: tz.label,
+          })),
+        ]}
         value={timeCond.timezone}
         onValueChange={(value) =>
           value !== null && onChange({ ...timeCond, timezone: value })
@@ -1004,27 +1026,37 @@ function RuleConditionRow({
               ?.label ?? timeCond.timezone}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent>
-          {COMMON_TIMEZONES.map((tz) => (
-            <SelectItem key={tz.value} value={tz.value}>
-              {tz.label}
-            </SelectItem>
-          ))}
+        <SelectContent alignItemWithTrigger={false}>
+          <SelectGroup>
+            {COMMON_TIMEZONES.map((tz) => (
+              <SelectItem key={tz.value} value={tz.value}>
+                {tz.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
       <Select
+        items={[
+          ...matchOptions.map((option) => ({
+            value: option.value,
+            label: getMatchLabel(option.value),
+          })),
+        ]}
         value={timeCond.mode}
         onValueChange={(v) => v !== null && handleModeChange(v)}
       >
         <SelectTrigger className='w-32' size='sm'>
           <SelectValue>{getMatchLabel(timeCond.mode)}</SelectValue>
         </SelectTrigger>
-        <SelectContent>
-          {matchOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {getMatchLabel(option.value)}
-            </SelectItem>
-          ))}
+        <SelectContent alignItemWithTrigger={false}>
+          <SelectGroup>
+            {matchOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {getMatchLabel(option.value)}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
       {timeCond.mode === MATCH_RANGE ? (
@@ -1086,17 +1118,28 @@ function RuleConditionRow({
             className='w-44'
           />
         )}
-        <Select value={phCond.mode} onValueChange={handleModeChange}>
+          <Select
+              items={[
+                  ...matchOptions.map((option) => ({
+                      value: option.value,
+                      label: getMatchLabel(option.value),
+                  })),
+              ]}
+              value={phCond.mode}
+              onValueChange={(v) => v !== null && handleModeChange(v)}
+          >
           <SelectTrigger className='w-32' size='sm'>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            {matchOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {t(option.labelKey)}
-              </SelectItem>
-            ))}
-          </SelectContent>
+              <SelectContent alignItemWithTrigger={false}>
+                  <SelectGroup>
+                      {matchOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                              {getMatchLabel(option.value)}
+                          </SelectItem>
+                      ))}
+                  </SelectGroup>
+              </SelectContent>
         </Select>
         {phCond.source === SOURCE_TOKEN_GROUP &&
         phCond.mode !== MATCH_EXISTS ? (
@@ -1134,17 +1177,25 @@ function RuleConditionRow({
   return (
     <div className='flex flex-wrap items-center gap-2'>
       <Select
+        items={[
+          { value: SOURCE_PARAM, label: t('Body param') },
+          { value: SOURCE_HEADER, label: t('Header') },
+          { value: SOURCE_TIME, label: t('Time') },
+          { value: SOURCE_TOKEN_GROUP, label: t('Token group') },
+        ]}
         value={condition.source}
         onValueChange={(v) => v !== null && handleSourceChange(v)}
       >
         <SelectTrigger className='w-28' size='sm'>
           <SelectValue>{sourceLabel}</SelectValue>
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={SOURCE_PARAM}>{t('Body param')}</SelectItem>
-          <SelectItem value={SOURCE_HEADER}>{t('Header')}</SelectItem>
-          <SelectItem value={SOURCE_TOKEN_GROUP}>{t('Token group')}</SelectItem>
-          <SelectItem value={SOURCE_TIME}>{t('Time')}</SelectItem>
+        <SelectContent alignItemWithTrigger={false}>
+          <SelectGroup>
+            <SelectItem value={SOURCE_PARAM}>{t('Body param')}</SelectItem>
+            <SelectItem value={SOURCE_HEADER}>{t('Header')}</SelectItem>
+            <SelectItem value={SOURCE_TIME}>{t('Time')}</SelectItem>
+              <SelectItem value={SOURCE_TOKEN_GROUP}>{t('Token group')}</SelectItem>
+          </SelectGroup>
         </SelectContent>
       </Select>
       {condition.source === SOURCE_TIME
@@ -1359,7 +1410,6 @@ function PresetSection({ applyPreset }: PresetSectionProps) {
         </span>
         {hasMore && (
           <Button
-            type='button'
             variant='ghost'
             size='sm'
             className='h-6 px-2 text-xs'
@@ -1380,7 +1430,6 @@ function PresetSection({ applyPreset }: PresetSectionProps) {
             </Badge>
             {presetGroup.presets.map((preset) => (
               <Button
-                type='button'
                 key={preset.key}
                 variant='outline'
                 size='sm'
@@ -1627,7 +1676,7 @@ function LlmPromptHelper({ modelName }: LlmPromptHelperProps) {
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger
         render={
-          <Button type='button' variant='ghost' size='sm' className='h-7 px-2 text-xs' />
+          <Button variant='ghost' size='sm' className='h-7 px-2 text-xs' />
         }
       >
         <Copy className='mr-1.5 h-3 w-3' />
@@ -1642,7 +1691,6 @@ function LlmPromptHelper({ modelName }: LlmPromptHelperProps) {
               )}
             </p>
             <Button
-              type='button'
               variant='outline'
               size='sm'
               className='ml-3 shrink-0'
@@ -1831,15 +1879,21 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
       <div className='flex items-center justify-between gap-2'>
         <Label className='text-xs'>{t('Editor mode')}</Label>
         <Select
+          items={[
+            { value: 'visual', label: t('Visual editor') },
+            { value: 'raw', label: t('Expression editor') },
+          ]}
           value={editorMode}
           onValueChange={(value) => handleModeChange(value as EditorMode)}
         >
           <SelectTrigger className='w-44' size='sm'>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='visual'>{t('Visual editor')}</SelectItem>
-            <SelectItem value='raw'>{t('Expression editor')}</SelectItem>
+          <SelectContent alignItemWithTrigger={false}>
+            <SelectGroup>
+              <SelectItem value='visual'>{t('Visual editor')}</SelectItem>
+              <SelectItem value='raw'>{t('Expression editor')}</SelectItem>
+            </SelectGroup>
           </SelectContent>
         </Select>
       </div>
@@ -1903,7 +1957,6 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
                   />
                 ))}
                 <Button
-                    type='button'
                   variant='outline'
                   size='sm'
                   className='h-9 w-36 justify-center'

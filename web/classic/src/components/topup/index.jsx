@@ -52,9 +52,7 @@ const TopUp = () => {
   const [topUpCount, setTopUpCount] = useState(
     statusState?.status?.min_topup || 1,
   );
-  const [topUpLink, setTopUpLink] = useState(
-    statusState?.status?.top_up_link || '',
-  );
+  const [topUpLink, setTopUpLink] = useState('');
   const [enableOnlineTopUp, setEnableOnlineTopUp] = useState(
     statusState?.status?.enable_online_topup || false,
   );
@@ -660,6 +658,7 @@ const TopUp = () => {
           setWaffoPancakeMinTopUp(data.waffo_pancake_min_topup || 1);
           setMinTopUp(minTopUpValue);
           setTopUpCount(minTopUpValue);
+          setTopUpLink(data.topup_link || '');
 
           // 设置 Creem 产品
           try {
@@ -766,7 +765,6 @@ const TopUp = () => {
       // const minTopUpValue = statusState.status.min_topup || 1;
       // setMinTopUp(minTopUpValue);
       // setTopUpCount(minTopUpValue);
-      setTopUpLink(statusState.status.top_up_link || '');
       setPriceRatio(statusState.status.price || 1);
 
       setStatusLoading(false);

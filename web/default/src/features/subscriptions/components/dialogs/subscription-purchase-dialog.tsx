@@ -13,6 +13,7 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -70,6 +71,12 @@ export function SubscriptionPurchaseDialog(props: Props) {
     props.enableOnlineTopUp && (props.epayMethods || []).length > 0
   const hasBalance = props.enableBalancePay !== false
   const hasAnyPayment = hasStripe || hasCreem || hasEpay || hasBalance
+  const selectedEpayMethodLabel =
+    (props.epayMethods || []).find((m) => m.type === selectedEpayMethod)
+      ?.name ||
+    selectedEpayMethod ||
+    t('Select payment method')
+  const totalAmount = Number(plan.total_amount || 0)
   const price = Number(plan.price_amount || 0).toFixed(2)
   const limitReached =
     (props.purchaseLimit || 0) > 0 &&
@@ -304,6 +311,12 @@ export function SubscriptionPurchaseDialog(props: Props) {
               {hasEpay && (
                 <div className='grid grid-cols-[minmax(0,1fr)_auto] gap-2'>
                   <Select
+                    items={[
+                      ...(props.epayMethods || []).map((m) => ({
+                        value: m.type,
+                        label: m.name || m.type,
+                      })),
+                    ]}
                     value={selectedEpayMethod}
                     onValueChange={(v) =>
                       v !== null && setSelectedEpayMethod(v)
@@ -311,14 +324,16 @@ export function SubscriptionPurchaseDialog(props: Props) {
                     disabled={limitReached}
                   >
                     <SelectTrigger className='flex-1'>
-                      <SelectValue placeholder={t('Select payment method')} />
+                      <SelectValue>{selectedEpayMethodLabel}</SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
-                      {(props.epayMethods || []).map((m) => (
-                        <SelectItem key={m.type} value={m.type}>
-                          {m.name || m.type}
-                        </SelectItem>
-                      ))}
+                    <SelectContent alignItemWithTrigger={false}>
+                      <SelectGroup>
+                        {(props.epayMethods || []).map((m) => (
+                          <SelectItem key={m.type} value={m.type}>
+                            {m.name || m.type}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                   <Button
