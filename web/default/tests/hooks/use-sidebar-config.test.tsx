@@ -70,6 +70,64 @@ test('keeps the user subscription entry visible for legacy admin sidebar configs
   ])
 })
 
+test('keeps the invoice entry visible for legacy admin sidebar configs', () => {
+  sidebarModulesAdmin = JSON.stringify({
+    personal: {
+      enabled: true,
+      topup: true,
+      personal: true,
+      subscription: true,
+    },
+  })
+
+  const filtered = renderFilteredNavGroups([
+    {
+      id: 'general',
+      title: 'General',
+      items: [
+        { title: 'Wallet', url: '/wallet' },
+        { title: 'Invoices', url: '/invoices' },
+        { title: 'Profile', url: '/profile' },
+      ],
+    },
+  ])
+
+  expect(filtered[0].items.map((item) => item.title)).toEqual([
+    'Wallet',
+    'Invoices',
+    'Profile',
+  ])
+})
+
+test('hides the invoice entry when admin disables it explicitly', () => {
+  sidebarModulesAdmin = JSON.stringify({
+    personal: {
+      enabled: true,
+      topup: true,
+      invoice: false,
+      personal: true,
+      subscription: true,
+    },
+  })
+
+  const filtered = renderFilteredNavGroups([
+    {
+      id: 'general',
+      title: 'General',
+      items: [
+        { title: 'Wallet', url: '/wallet' },
+        { title: 'Invoices', url: '/invoices' },
+        { title: 'Profile', url: '/profile' },
+      ],
+    },
+  ])
+
+  expect(filtered[0].items.map((item) => item.title)).toEqual([
+    'Wallet',
+    'Profile',
+  ])
+})
+
 test('hides the user subscription entry when admin disables it explicitly', () => {
   sidebarModulesAdmin = JSON.stringify({
     personal: {
