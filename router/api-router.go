@@ -193,6 +193,37 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/subscription/epay/notify", controller.SubscriptionEpayNotify)
 		apiRouter.GET("/subscription/epay/return", controller.SubscriptionEpayReturn)
 		apiRouter.POST("/subscription/epay/return", controller.SubscriptionEpayReturn)
+
+		invoiceAdminRoute := apiRouter.Group("/invoice/admin")
+		invoiceAdminRoute.Use(middleware.AdminAuth())
+		{
+			invoiceAdminRoute.GET("", controller.AdminListInvoices)
+			invoiceAdminRoute.GET("/:id", controller.AdminGetInvoiceDetail)
+			invoiceAdminRoute.POST("/:id/approve", controller.AdminApproveInvoice)
+			invoiceAdminRoute.POST("/:id/reject", controller.AdminRejectInvoice)
+			invoiceAdminRoute.POST("/:id/issue", controller.AdminIssueInvoice)
+		}
+
+		invoiceRoute := apiRouter.Group("/invoice")
+		invoiceRoute.Use(middleware.UserAuth())
+		{
+			invoiceRoute.GET("/eligible-topups", controller.GetEligibleInvoiceTopUps)
+			invoiceRoute.GET("/self", controller.ListSelfInvoices)
+			invoiceRoute.GET("/profile", controller.GetInvoiceProfiles)
+			invoiceRoute.PUT("/profile", controller.UpdateInvoiceProfile)
+			invoiceRoute.GET("/:id", controller.GetInvoiceDetail)
+			invoiceRoute.POST("", middleware.CriticalRateLimit(), controller.CreateInvoice)
+			invoiceRoute.POST("/:id/cancel", middleware.CriticalRateLimit(), controller.CancelInvoice)
+		}
+
+		realNameRoute := apiRouter.Group("/realname")
+		realNameRoute.Use(middleware.UserAuth())
+		{
+			realNameRoute.GET("/status", controller.GetRealNameStatus)
+			realNameRoute.POST("/session", middleware.CriticalRateLimit(), controller.CreateRealNameSession)
+		}
+		apiRouter.POST("/realname/callback/:provider", controller.RealNameCallback)
+
 		optionRoute := apiRouter.Group("/option")
 		optionRoute.Use(middleware.RootAuth())
 		{
