@@ -152,6 +152,37 @@ func TestSubscriptionPlansStillRequireAuthentication(t *testing.T) {
 	}
 }
 
+func TestInvoiceAndRealNameRoutesRegister(t *testing.T) {
+	setupSubscriptionRouteTestServer()
+}
+
+func TestInvoiceAndRealNameAuthBoundaries(t *testing.T) {
+	setupSubscriptionRouteTestDB(t)
+	server := setupSubscriptionRouteTestServer()
+
+	cases := []string{
+		"/api/invoice/eligible-topups",
+		"/api/invoice/self",
+		"/api/invoice/profile",
+		"/api/realname/status",
+	}
+	for _, path := range cases {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		recorder := httptest.NewRecorder()
+		server.ServeHTTP(recorder, req)
+		if recorder.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 for anonymous request path=%s, got %d", path, recorder.Code)
+		}
+	}
+
+	adminReq := httptest.NewRequest(http.MethodGet, "/api/invoice/admin", nil)
+	adminRecorder := httptest.NewRecorder()
+	server.ServeHTTP(adminRecorder, adminReq)
+	if adminRecorder.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for anonymous invoice admin request, got %d", adminRecorder.Code)
+	}
+}
+
 func TestPricingIncludesAnonymousOptionSubset(t *testing.T) {
 	setupPricingRouteTestDB(t)
 

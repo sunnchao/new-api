@@ -55,7 +55,8 @@ type CallbackResult struct {
 	LegalPersonName   string
 	ResultCode        string
 	ResultMessage     string
-	RawPayload        string
+	// SafeAuditPayload must not contain raw callback payloads or unmasked PII.
+	SafeAuditPayload string
 }
 
 type Provider interface {
@@ -128,8 +129,40 @@ func (p MockProvider) VerifyCallback(ctx context.Context, request CallbackReques
 		LegalPersonName:   request.LegalPersonName,
 		ResultCode:        request.ResultCode,
 		ResultMessage:     request.ResultMessage,
-		RawPayload:        request.RawPayload,
+		SafeAuditPayload:  BuildSafeAuditPayload(request),
 	}, nil
+}
+
+func BuildSafeAuditPayload(request CallbackRequest) string {
+	audit := map[string]string{
+		"provider_request_id": request.ProviderRequestID,
+		"status":              request.Status,
+		"result_code":         request.ResultCode,
+		"raw_payload_hmac":    common.GenerateHMAC(request.RawPayload),
+	}
+	if strings.TrimSpace(request.ResultMessage) != "" {
+		audit["result_message_hmac"] = common.GenerateHMAC(request.ResultMessage)
+	}
+	if strings.TrimSpace(request.IdNo) != "" {
+		audit["id_no_hmac"] = common.GenerateHMAC(request.IdNo)
+	}
+	if strings.TrimSpace(request.CreditCode) != "" {
+		audit["credit_code_hmac"] = common.GenerateHMAC(request.CreditCode)
+	}
+	if strings.TrimSpace(request.VerifiedName) != "" {
+		audit["verified_name_hmac"] = common.GenerateHMAC(request.VerifiedName)
+	}
+	if strings.TrimSpace(request.CompanyName) != "" {
+		audit["company_name_hmac"] = common.GenerateHMAC(request.CompanyName)
+	}
+	if strings.TrimSpace(request.LegalPersonName) != "" {
+		audit["legal_person_name_hmac"] = common.GenerateHMAC(request.LegalPersonName)
+	}
+	payload, err := common.Marshal(audit)
+	if err != nil {
+		return ""
+	}
+	return string(payload)
 }
 
 func init() {

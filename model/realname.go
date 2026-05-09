@@ -85,7 +85,8 @@ type RealNameVerificationResultInput struct {
 	LegalPersonName       string
 	ProviderResultCode    string
 	ProviderResultMessage string
-	RawPayloadEncrypted   string
+	// SafeAuditPayload must be provider-sanitized and must not contain raw callback payloads or unmasked PII.
+	SafeAuditPayload string
 }
 
 func IsValidVerifyType(value string) bool {
@@ -264,7 +265,7 @@ func ApplyRealNameVerificationResult(input RealNameVerificationResultInput) erro
 			"status":                  input.Status,
 			"provider_result_code":    strings.TrimSpace(input.ProviderResultCode),
 			"provider_result_message": strings.TrimSpace(input.ProviderResultMessage),
-			"raw_payload_encrypted":   strings.TrimSpace(input.RawPayloadEncrypted),
+			"raw_payload_encrypted":   strings.TrimSpace(input.SafeAuditPayload),
 		}
 		if input.Status == RealNameStatusVerified {
 			updates["verified_at"] = common.GetTimestamp()

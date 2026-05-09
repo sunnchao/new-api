@@ -101,7 +101,7 @@ func TestCreateRealNameSessionAndApplyVerifiedPersonalProfile(t *testing.T) {
 		IdNo:                  "110101199001011234",
 		ProviderResultCode:    "OK",
 		ProviderResultMessage: "verified",
-		RawPayloadEncrypted:   "encrypted-payload",
+		SafeAuditPayload:      "safe-audit-payload",
 	})
 	require.NoError(t, err)
 
@@ -158,7 +158,7 @@ func TestApplyRealNameVerificationResultIgnoresLateDowngrade(t *testing.T) {
 		IdNo:                  "110101199001011234",
 		ProviderResultCode:    "OK",
 		ProviderResultMessage: "verified",
-		RawPayloadEncrypted:   "encrypted-payload",
+		SafeAuditPayload:      "safe-audit-payload",
 	})
 	require.NoError(t, err)
 
@@ -168,7 +168,7 @@ func TestApplyRealNameVerificationResultIgnoresLateDowngrade(t *testing.T) {
 		Status:                RealNameStatusFailed,
 		ProviderResultCode:    "ERR",
 		ProviderResultMessage: "late callback",
-		RawPayloadEncrypted:   "late-payload",
+		SafeAuditPayload:      "late-safe-audit-payload",
 	})
 	require.NoError(t, err)
 
