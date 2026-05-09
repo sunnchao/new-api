@@ -1,6 +1,14 @@
 import type { InvoiceStatus, InvoiceType, RealNameStatus } from '../types'
+import { formatBillingCurrencyFromUSD } from '@/lib/currency'
 
 export function formatInvoiceMoney(amount: number, currency = 'USD') {
+  if (currency === 'USD') {
+    return formatBillingCurrencyFromUSD(amount, {
+      digitsLarge: 2,
+      digitsSmall: 2,
+      abbreviate: false,
+    })
+  }
   return new Intl.NumberFormat(undefined, {
     style: 'currency',
     currency,
