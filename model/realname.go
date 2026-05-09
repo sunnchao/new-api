@@ -43,7 +43,7 @@ type UserRealNameVerification struct {
 	LegalPersonNameMasked string `json:"legal_person_name_masked" gorm:"type:varchar(255);not null;default:''"`
 	ProviderResultCode    string `json:"provider_result_code" gorm:"type:varchar(64);not null;default:''"`
 	ProviderResultMessage string `json:"provider_result_message" gorm:"type:varchar(255);not null;default:''"`
-	RawPayloadEncrypted   string `json:"-" gorm:"type:text;not null;default:''"`
+	RawPayloadEncrypted   string `json:"-" gorm:"type:text;not null"`
 	StartedAt             int64  `json:"started_at" gorm:"bigint;not null;default:0"`
 	VerifiedAt            int64  `json:"verified_at" gorm:"bigint;not null;default:0"`
 	ExpiredAt             int64  `json:"expired_at" gorm:"bigint;not null;default:0"`

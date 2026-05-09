@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -67,6 +68,32 @@ func TestInvoiceDomainAutoMigrateSQLite(t *testing.T) {
 	require.True(t, db.Migrator().HasTable(&InvoiceRequestItem{}))
 	require.True(t, db.Migrator().HasTable(&UserInvoiceProfile{}))
 	require.True(t, db.Migrator().HasColumn(&InvoiceRequestItem{}, "topup_id"))
+}
+
+func TestInvoiceAndRealNameTextColumnsDoNotDeclareDefaults(t *testing.T) {
+	models := []any{
+		InvoiceRequest{},
+		UserRealNameVerification{},
+	}
+
+	for _, model := range models {
+		modelType := reflect.TypeOf(model)
+		for i := 0; i < modelType.NumField(); i++ {
+			field := modelType.Field(i)
+			tag := strings.ToLower(field.Tag.Get("gorm"))
+			if !strings.Contains(tag, "type:text") {
+				continue
+			}
+			require.NotContainsf(
+				t,
+				tag,
+				"default:",
+				"%s.%s is a TEXT column and must not declare a default value; MySQL rejects TEXT defaults",
+				modelType.Name(),
+				field.Name,
+			)
+		}
+	}
 }
 
 func TestListEligibleInvoiceTopUpsFiltersReadOnlyTopUps(t *testing.T) {

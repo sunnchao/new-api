@@ -63,11 +63,11 @@ type InvoiceRequest struct {
 	Amount                 float64              `json:"amount" gorm:"type:decimal(10,2);not null;default:0"`
 	Currency               string               `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
 	Status                 string               `json:"status" gorm:"type:varchar(16);not null;index"`
-	Remark                 string               `json:"remark" gorm:"type:text;not null;default:''"`
-	RejectReason           string               `json:"reject_reason" gorm:"type:text;not null;default:''"`
+	Remark                 string               `json:"remark" gorm:"type:text;not null"`
+	RejectReason           string               `json:"reject_reason" gorm:"type:text;not null"`
 	InvoiceNo              string               `json:"invoice_no" gorm:"type:varchar(128);not null;default:''"`
-	InvoiceUrl             string               `json:"invoice_url" gorm:"type:text;not null;default:''"`
-	IssueNote              string               `json:"issue_note" gorm:"type:text;not null;default:''"`
+	InvoiceUrl             string               `json:"invoice_url" gorm:"type:text;not null"`
+	IssueNote              string               `json:"issue_note" gorm:"type:text;not null"`
 	IssuedAt               int64                `json:"issued_at" gorm:"bigint;not null;default:0"`
 	ReviewedBy             int                  `json:"reviewed_by" gorm:"index;not null;default:0"`
 	ReviewedAt             int64                `json:"reviewed_at" gorm:"bigint;not null;default:0"`
