@@ -44,3 +44,4 @@ pprof
 token_estimator_test.go
 skills-lock.json
 node_modules
+web/next/.next
