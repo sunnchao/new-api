@@ -29,8 +29,10 @@ func setupInvoiceModelTestDB(t *testing.T) *gorm.DB {
 	require.NoError(t, db.AutoMigrate(
 		&User{},
 		&TopUp{},
+		&SubscriptionOrder{},
 		&InvoiceRequest{},
 		&InvoiceRequestItem{},
+		&InvoiceRequestSubscriptionItem{},
 		&UserInvoiceProfile{},
 	))
 
@@ -61,13 +63,46 @@ func seedInvoiceTopUp(t *testing.T, userID int, tradeNo string, status string, a
 	return topUp
 }
 
+func setInvoiceSubscriptionRecordsEnabledForTest(t *testing.T, enabled bool) {
+	t.Helper()
+	common.OptionMapRWMutex.Lock()
+	if common.OptionMap == nil {
+		common.OptionMap = make(map[string]string)
+	}
+	if enabled {
+		common.OptionMap[InvoiceAllowSubscriptionRecordsOption] = "true"
+	} else {
+		common.OptionMap[InvoiceAllowSubscriptionRecordsOption] = "false"
+	}
+	common.OptionMapRWMutex.Unlock()
+}
+
+func seedInvoiceSubscriptionOrder(t *testing.T, userID int, tradeNo string, status string, money float64, provider string) SubscriptionOrder {
+	t.Helper()
+	order := SubscriptionOrder{
+		UserId:          userID,
+		PlanId:          10,
+		Money:           money,
+		TradeNo:         tradeNo,
+		PaymentMethod:   provider,
+		PaymentProvider: provider,
+		Status:          status,
+		CreateTime:      1200,
+		CompleteTime:    1300,
+	}
+	require.NoError(t, DB.Create(&order).Error)
+	return order
+}
+
 func TestInvoiceDomainAutoMigrateSQLite(t *testing.T) {
 	db := setupInvoiceModelTestDB(t)
 
 	require.True(t, db.Migrator().HasTable(&InvoiceRequest{}))
 	require.True(t, db.Migrator().HasTable(&InvoiceRequestItem{}))
+	require.True(t, db.Migrator().HasTable(&InvoiceRequestSubscriptionItem{}))
 	require.True(t, db.Migrator().HasTable(&UserInvoiceProfile{}))
 	require.True(t, db.Migrator().HasColumn(&InvoiceRequestItem{}, "topup_id"))
+	require.True(t, db.Migrator().HasColumn(&InvoiceRequestSubscriptionItem{}, "subscription_order_id"))
 }
 
 func TestInvoiceAndRealNameTextColumnsDoNotDeclareDefaults(t *testing.T) {
@@ -147,6 +182,38 @@ func TestListEligibleInvoiceTopUpsExcludesAlreadyUsedTopUp(t *testing.T) {
 	require.Equal(t, free.Id, items[0].Id)
 }
 
+func TestListEligibleInvoiceRecordsIncludesSubscriptionOrdersOnlyWhenEnabled(t *testing.T) {
+	setupInvoiceModelTestDB(t)
+	setInvoiceSubscriptionRecordsEnabledForTest(t, false)
+
+	topUp := seedInvoiceTopUp(t, 7, "topup-valid", common.TopUpStatusSuccess, 100, 12.50, PaymentProviderStripe)
+	subscription := seedInvoiceSubscriptionOrder(t, 7, "subscription-valid", common.TopUpStatusSuccess, 20.25, PaymentProviderStripe)
+	seedInvoiceSubscriptionOrder(t, 8, "subscription-other-user", common.TopUpStatusSuccess, 20.25, PaymentProviderStripe)
+	seedInvoiceSubscriptionOrder(t, 7, "subscription-pending", common.TopUpStatusPending, 20.25, PaymentProviderStripe)
+	seedInvoiceSubscriptionOrder(t, 7, "subscription-free", common.TopUpStatusSuccess, 0, PaymentProviderStripe)
+
+	items, total, err := ListEligibleInvoiceRecords(7, "", 0, 20)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	require.Len(t, items, 1)
+	require.Equal(t, InvoiceSourceTypeTopUp, items[0].SourceType)
+	require.Equal(t, topUp.Id, items[0].SourceId)
+
+	setInvoiceSubscriptionRecordsEnabledForTest(t, true)
+
+	items, total, err = ListEligibleInvoiceRecords(7, "", 0, 20)
+	require.NoError(t, err)
+	require.Equal(t, int64(2), total)
+	require.Len(t, items, 2)
+
+	sources := map[string]int{}
+	for _, item := range items {
+		sources[item.SourceType] = item.SourceId
+	}
+	require.Equal(t, topUp.Id, sources[InvoiceSourceTypeTopUp])
+	require.Equal(t, subscription.Id, sources[InvoiceSourceTypeSubscriptionOrder])
+}
+
 func TestCreateInvoiceRequestCreatesSnapshotsAndRejectsDuplicate(t *testing.T) {
 	setupInvoiceModelTestDB(t)
 
@@ -183,6 +250,70 @@ func TestCreateInvoiceRequestCreatesSnapshotsAndRejectsDuplicate(t *testing.T) {
 		Email:       "alice@example.com",
 	})
 	require.ErrorIs(t, err, ErrInvoiceTopUpAlreadyUsed)
+}
+
+func TestCreateInvoiceRequestCreatesSubscriptionSnapshotsWhenEnabled(t *testing.T) {
+	setupInvoiceModelTestDB(t)
+	setInvoiceSubscriptionRecordsEnabledForTest(t, true)
+
+	topUp := seedInvoiceTopUp(t, 7, "topup-for-mixed-invoice", common.TopUpStatusSuccess, 100, 12.50, PaymentProviderStripe)
+	subscription := seedInvoiceSubscriptionOrder(t, 7, "subscription-for-invoice", common.TopUpStatusSuccess, 20.25, PaymentProviderCreem)
+
+	request, err := CreateInvoiceRequest(InvoiceCreateInput{
+		UserId:   7,
+		Username: "alice",
+		Items: []InvoiceCreateItem{
+			{SourceType: InvoiceSourceTypeTopUp, SourceId: topUp.Id},
+			{SourceType: InvoiceSourceTypeSubscriptionOrder, SourceId: subscription.Id},
+		},
+		InvoiceType: InvoiceTypePersonal,
+		Title:       "Alice",
+		Email:       "alice@example.com",
+	})
+	require.NoError(t, err)
+	require.Equal(t, 32.75, request.Amount)
+
+	var topUpItems []InvoiceRequestItem
+	require.NoError(t, DB.Where("invoice_request_id = ?", request.Id).Find(&topUpItems).Error)
+	require.Len(t, topUpItems, 1)
+	require.Equal(t, topUp.Id, topUpItems[0].TopUpId)
+
+	var subscriptionItems []InvoiceRequestSubscriptionItem
+	require.NoError(t, DB.Where("invoice_request_id = ?", request.Id).Find(&subscriptionItems).Error)
+	require.Len(t, subscriptionItems, 1)
+	require.Equal(t, subscription.Id, subscriptionItems[0].SubscriptionOrderId)
+	require.Equal(t, subscription.TradeNo, subscriptionItems[0].TradeNo)
+
+	_, err = CreateInvoiceRequest(InvoiceCreateInput{
+		UserId:   7,
+		Username: "alice",
+		Items: []InvoiceCreateItem{
+			{SourceType: InvoiceSourceTypeSubscriptionOrder, SourceId: subscription.Id},
+		},
+		InvoiceType: InvoiceTypePersonal,
+		Title:       "Alice",
+		Email:       "alice@example.com",
+	})
+	require.ErrorIs(t, err, ErrInvoiceSubscriptionOrderAlreadyUsed)
+}
+
+func TestCreateInvoiceRequestRejectsSubscriptionRecordsWhenDisabled(t *testing.T) {
+	setupInvoiceModelTestDB(t)
+	setInvoiceSubscriptionRecordsEnabledForTest(t, false)
+
+	subscription := seedInvoiceSubscriptionOrder(t, 7, "subscription-disabled", common.TopUpStatusSuccess, 20.25, PaymentProviderStripe)
+
+	_, err := CreateInvoiceRequest(InvoiceCreateInput{
+		UserId:   7,
+		Username: "alice",
+		Items: []InvoiceCreateItem{
+			{SourceType: InvoiceSourceTypeSubscriptionOrder, SourceId: subscription.Id},
+		},
+		InvoiceType: InvoiceTypePersonal,
+		Title:       "Alice",
+		Email:       "alice@example.com",
+	})
+	require.ErrorIs(t, err, ErrInvoiceSubscriptionRecordsDisabled)
 }
 
 func TestCreateInvoiceRequestValidatesOwnerAndCompanyTaxNumber(t *testing.T) {

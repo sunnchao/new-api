@@ -10,13 +10,14 @@ import (
 )
 
 type createInvoiceRequest struct {
-	TopUpIds    []int  `json:"topup_ids"`
-	InvoiceType string `json:"invoice_type"`
-	Title       string `json:"title"`
-	TaxNo       string `json:"tax_no"`
-	Email       string `json:"email"`
-	Phone       string `json:"phone"`
-	Remark      string `json:"remark"`
+	TopUpIds    []int                     `json:"topup_ids"`
+	Items       []model.InvoiceCreateItem `json:"items"`
+	InvoiceType string                    `json:"invoice_type"`
+	Title       string                    `json:"title"`
+	TaxNo       string                    `json:"tax_no"`
+	Email       string                    `json:"email"`
+	Phone       string                    `json:"phone"`
+	Remark      string                    `json:"remark"`
 }
 
 type invoiceProfileRequest struct {
@@ -46,6 +47,19 @@ func GetEligibleInvoiceTopUps(c *gin.Context) {
 	userID := c.GetInt("id")
 	pageInfo := common.GetPageQuery(c)
 	items, total, err := model.ListEligibleInvoiceTopUps(userID, c.Query("keyword"), pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(items)
+	common.ApiSuccess(c, pageInfo)
+}
+
+func GetEligibleInvoiceRecords(c *gin.Context) {
+	userID := c.GetInt("id")
+	pageInfo := common.GetPageQuery(c)
+	items, total, err := model.ListEligibleInvoiceRecords(userID, c.Query("keyword"), pageInfo.GetStartIdx(), pageInfo.GetPageSize())
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -92,6 +106,7 @@ func CreateInvoice(c *gin.Context) {
 		UserId:      c.GetInt("id"),
 		Username:    c.GetString("username"),
 		TopUpIds:    req.TopUpIds,
+		Items:       req.Items,
 		InvoiceType: req.InvoiceType,
 		Title:       req.Title,
 		TaxNo:       req.TaxNo,

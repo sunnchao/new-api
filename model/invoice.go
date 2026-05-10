@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"net/mail"
+	"sort"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -24,6 +25,11 @@ const (
 
 	InvoiceCurrencyUSD      = "USD"
 	MaxInvoiceTopUpItemSize = 50
+
+	InvoiceSourceTypeTopUp             = "topup"
+	InvoiceSourceTypeSubscriptionOrder = "subscription_order"
+
+	InvoiceAllowSubscriptionRecordsOption = "InvoiceAllowSubscriptionRecordsEnabled"
 )
 
 var invoiceablePaymentProviders = []string{
@@ -35,45 +41,50 @@ var invoiceablePaymentProviders = []string{
 }
 
 var (
-	ErrInvoiceTopUpRequired        = errors.New("invoice top-up ids are required")
-	ErrInvoiceTopUpLimitExceeded   = errors.New("invoice top-up selection exceeds limit")
-	ErrInvoiceTopUpNotInvoiceable  = errors.New("selected top-up is not invoiceable")
-	ErrInvoiceTopUpAlreadyUsed     = errors.New("selected top-up has already been used")
-	ErrInvoiceTypeInvalid          = errors.New("invoice type must be personal or company")
-	ErrInvoiceTitleRequired        = errors.New("invoice title is required")
-	ErrInvoiceTaxNoRequired        = errors.New("company invoice requires tax number")
-	ErrInvoiceEmailInvalid         = errors.New("invoice email is invalid")
-	ErrInvoiceNotFound             = errors.New("invoice request not found")
-	ErrInvoiceStatusTransition     = errors.New("invoice status transition is not allowed")
-	ErrInvoiceRejectReasonRequired = errors.New("reject reason is required")
-	ErrInvoiceNumberRequired       = errors.New("invoice number is required")
+	ErrInvoiceTopUpRequired                   = errors.New("invoice top-up ids are required")
+	ErrInvoiceTopUpLimitExceeded              = errors.New("invoice top-up selection exceeds limit")
+	ErrInvoiceTopUpNotInvoiceable             = errors.New("selected top-up is not invoiceable")
+	ErrInvoiceTopUpAlreadyUsed                = errors.New("selected top-up has already been used")
+	ErrInvoiceSourceInvalid                   = errors.New("selected invoice source is invalid")
+	ErrInvoiceSubscriptionRecordsDisabled     = errors.New("subscription invoice records are disabled")
+	ErrInvoiceSubscriptionOrderNotInvoiceable = errors.New("selected subscription order is not invoiceable")
+	ErrInvoiceSubscriptionOrderAlreadyUsed    = errors.New("selected subscription order has already been used")
+	ErrInvoiceTypeInvalid                     = errors.New("invoice type must be personal or company")
+	ErrInvoiceTitleRequired                   = errors.New("invoice title is required")
+	ErrInvoiceTaxNoRequired                   = errors.New("company invoice requires tax number")
+	ErrInvoiceEmailInvalid                    = errors.New("invoice email is invalid")
+	ErrInvoiceNotFound                        = errors.New("invoice request not found")
+	ErrInvoiceStatusTransition                = errors.New("invoice status transition is not allowed")
+	ErrInvoiceRejectReasonRequired            = errors.New("reject reason is required")
+	ErrInvoiceNumberRequired                  = errors.New("invoice number is required")
 )
 
 type InvoiceRequest struct {
-	Id                     int                  `json:"id"`
-	UserId                 int                  `json:"user_id" gorm:"index;not null"`
-	Username               string               `json:"username" gorm:"type:varchar(128);not null;default:'';index"`
-	InvoiceType            string               `json:"invoice_type" gorm:"type:varchar(16);not null;index"`
-	ProfileSource          string               `json:"profile_source" gorm:"type:varchar(16);not null;default:'manual'"`
-	RealNameVerificationId *int                 `json:"realname_verification_id" gorm:"index"`
-	Title                  string               `json:"title" gorm:"type:varchar(255);not null"`
-	TaxNo                  string               `json:"tax_no" gorm:"type:varchar(64);not null;default:'';index"`
-	Email                  string               `json:"email" gorm:"type:varchar(255);not null;default:''"`
-	Phone                  string               `json:"phone" gorm:"type:varchar(64);not null;default:''"`
-	Amount                 float64              `json:"amount" gorm:"type:decimal(10,2);not null;default:0"`
-	Currency               string               `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
-	Status                 string               `json:"status" gorm:"type:varchar(16);not null;index"`
-	Remark                 string               `json:"remark" gorm:"type:text;not null"`
-	RejectReason           string               `json:"reject_reason" gorm:"type:text;not null"`
-	InvoiceNo              string               `json:"invoice_no" gorm:"type:varchar(128);not null;default:''"`
-	InvoiceUrl             string               `json:"invoice_url" gorm:"type:text;not null"`
-	IssueNote              string               `json:"issue_note" gorm:"type:text;not null"`
-	IssuedAt               int64                `json:"issued_at" gorm:"bigint;not null;default:0"`
-	ReviewedBy             int                  `json:"reviewed_by" gorm:"index;not null;default:0"`
-	ReviewedAt             int64                `json:"reviewed_at" gorm:"bigint;not null;default:0"`
-	CreatedAt              int64                `json:"created_at" gorm:"bigint;index"`
-	UpdatedAt              int64                `json:"updated_at" gorm:"bigint"`
-	Items                  []InvoiceRequestItem `json:"items,omitempty" gorm:"foreignKey:InvoiceRequestId"`
+	Id                     int                              `json:"id"`
+	UserId                 int                              `json:"user_id" gorm:"index;not null"`
+	Username               string                           `json:"username" gorm:"type:varchar(128);not null;default:'';index"`
+	InvoiceType            string                           `json:"invoice_type" gorm:"type:varchar(16);not null;index"`
+	ProfileSource          string                           `json:"profile_source" gorm:"type:varchar(16);not null;default:'manual'"`
+	RealNameVerificationId *int                             `json:"realname_verification_id" gorm:"index"`
+	Title                  string                           `json:"title" gorm:"type:varchar(255);not null"`
+	TaxNo                  string                           `json:"tax_no" gorm:"type:varchar(64);not null;default:'';index"`
+	Email                  string                           `json:"email" gorm:"type:varchar(255);not null;default:''"`
+	Phone                  string                           `json:"phone" gorm:"type:varchar(64);not null;default:''"`
+	Amount                 float64                          `json:"amount" gorm:"type:decimal(10,2);not null;default:0"`
+	Currency               string                           `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
+	Status                 string                           `json:"status" gorm:"type:varchar(16);not null;index"`
+	Remark                 string                           `json:"remark" gorm:"type:text;not null"`
+	RejectReason           string                           `json:"reject_reason" gorm:"type:text;not null"`
+	InvoiceNo              string                           `json:"invoice_no" gorm:"type:varchar(128);not null;default:''"`
+	InvoiceUrl             string                           `json:"invoice_url" gorm:"type:text;not null"`
+	IssueNote              string                           `json:"issue_note" gorm:"type:text;not null"`
+	IssuedAt               int64                            `json:"issued_at" gorm:"bigint;not null;default:0"`
+	ReviewedBy             int                              `json:"reviewed_by" gorm:"index;not null;default:0"`
+	ReviewedAt             int64                            `json:"reviewed_at" gorm:"bigint;not null;default:0"`
+	CreatedAt              int64                            `json:"created_at" gorm:"bigint;index"`
+	UpdatedAt              int64                            `json:"updated_at" gorm:"bigint"`
+	Items                  []InvoiceRequestItem             `json:"items,omitempty" gorm:"foreignKey:InvoiceRequestId"`
+	SubscriptionItems      []InvoiceRequestSubscriptionItem `json:"subscription_items,omitempty" gorm:"foreignKey:InvoiceRequestId"`
 }
 
 func (r *InvoiceRequest) BeforeCreate(tx *gorm.DB) error {
@@ -111,6 +122,24 @@ type InvoiceRequestItem struct {
 }
 
 func (i *InvoiceRequestItem) BeforeCreate(tx *gorm.DB) error {
+	i.CreatedAt = common.GetTimestamp()
+	return nil
+}
+
+type InvoiceRequestSubscriptionItem struct {
+	Id                       int     `json:"id"`
+	InvoiceRequestId         int     `json:"invoice_request_id" gorm:"index;not null"`
+	SubscriptionOrderId      int     `json:"subscription_order_id" gorm:"uniqueIndex;not null"`
+	TradeNo                  string  `json:"trade_no" gorm:"type:varchar(255);not null;index"`
+	Money                    float64 `json:"money" gorm:"type:decimal(10,2);not null;default:0"`
+	PaymentProvider          string  `json:"payment_provider" gorm:"type:varchar(50);not null;default:''"`
+	PaymentMethod            string  `json:"payment_method" gorm:"type:varchar(50);not null;default:''"`
+	SubscriptionCreateTime   int64   `json:"subscription_create_time" gorm:"bigint;not null;default:0"`
+	SubscriptionCompleteTime int64   `json:"subscription_complete_time" gorm:"bigint;not null;default:0"`
+	CreatedAt                int64   `json:"created_at" gorm:"bigint"`
+}
+
+func (i *InvoiceRequestSubscriptionItem) BeforeCreate(tx *gorm.DB) error {
 	i.CreatedAt = common.GetTimestamp()
 	return nil
 }
@@ -154,12 +183,34 @@ type InvoiceCreateInput struct {
 	UserId      int
 	Username    string
 	TopUpIds    []int
+	Items       []InvoiceCreateItem
 	InvoiceType string
 	Title       string
 	TaxNo       string
 	Email       string
 	Phone       string
 	Remark      string
+}
+
+type InvoiceCreateItem struct {
+	SourceType string `json:"source_type"`
+	SourceId   int    `json:"source_id"`
+}
+
+type InvoiceEligibleRecord struct {
+	Id              int     `json:"id"`
+	SourceType      string  `json:"source_type"`
+	SourceId        int     `json:"source_id"`
+	UserId          int     `json:"user_id"`
+	Amount          int64   `json:"amount"`
+	Money           float64 `json:"money"`
+	TradeNo         string  `json:"trade_no"`
+	PaymentMethod   string  `json:"payment_method"`
+	PaymentProvider string  `json:"payment_provider"`
+	CreateTime      int64   `json:"create_time"`
+	CompleteTime    int64   `json:"complete_time"`
+	Status          string  `json:"status"`
+	PlanId          int     `json:"plan_id,omitempty"`
 }
 
 type InvoiceIssueInput struct {
@@ -178,12 +229,64 @@ func IsValidInvoiceType(value string) bool {
 	return value == InvoiceTypePersonal || value == InvoiceTypeCompany
 }
 
+func InvoiceSubscriptionRecordsEnabled() bool {
+	common.OptionMapRWMutex.RLock()
+	defer common.OptionMapRWMutex.RUnlock()
+	return common.OptionMap[InvoiceAllowSubscriptionRecordsOption] == "true"
+}
+
+func normalizeInvoiceCreateItems(input InvoiceCreateInput) ([]InvoiceCreateItem, error) {
+	items := make([]InvoiceCreateItem, 0, len(input.Items)+len(input.TopUpIds))
+	seen := make(map[string]struct{})
+	for _, id := range input.TopUpIds {
+		item := InvoiceCreateItem{SourceType: InvoiceSourceTypeTopUp, SourceId: id}
+		key := item.SourceType + ":" + common.Interface2String(item.SourceId)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		items = append(items, item)
+	}
+	for _, item := range input.Items {
+		item.SourceType = strings.ToLower(strings.TrimSpace(item.SourceType))
+		if item.SourceType == "" {
+			item.SourceType = InvoiceSourceTypeTopUp
+		}
+		if item.SourceId <= 0 {
+			return nil, ErrInvoiceSourceInvalid
+		}
+		switch item.SourceType {
+		case InvoiceSourceTypeTopUp, InvoiceSourceTypeSubscriptionOrder:
+		default:
+			return nil, ErrInvoiceSourceInvalid
+		}
+		key := item.SourceType + ":" + common.Interface2String(item.SourceId)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
 func validateInvoiceCreateInput(input InvoiceCreateInput) error {
-	if len(input.TopUpIds) == 0 {
+	items, err := normalizeInvoiceCreateItems(input)
+	if err != nil {
+		return err
+	}
+	if len(items) == 0 {
 		return ErrInvoiceTopUpRequired
 	}
-	if len(input.TopUpIds) > MaxInvoiceTopUpItemSize {
+	if len(items) > MaxInvoiceTopUpItemSize {
 		return ErrInvoiceTopUpLimitExceeded
+	}
+	if !InvoiceSubscriptionRecordsEnabled() {
+		for _, item := range items {
+			if item.SourceType == InvoiceSourceTypeSubscriptionOrder {
+				return ErrInvoiceSubscriptionRecordsDisabled
+			}
+		}
 	}
 	if !IsValidInvoiceType(input.InvoiceType) {
 		return ErrInvoiceTypeInvalid
@@ -217,6 +320,19 @@ func invoiceableTopUpQuery(tx *gorm.DB, userID int) *gorm.DB {
 		Where("id NOT IN (?)", usedSubQuery)
 }
 
+func invoiceableSubscriptionOrderBaseQuery(tx *gorm.DB, userID int) *gorm.DB {
+	return tx.Model(&SubscriptionOrder{}).
+		Where("user_id = ?", userID).
+		Where("status = ?", common.TopUpStatusSuccess).
+		Where("money > 0")
+}
+
+func invoiceableSubscriptionOrderQuery(tx *gorm.DB, userID int) *gorm.DB {
+	usedSubQuery := tx.Model(&InvoiceRequestSubscriptionItem{}).Select("subscription_order_id")
+	return invoiceableSubscriptionOrderBaseQuery(tx, userID).
+		Where("id NOT IN (?)", usedSubQuery)
+}
+
 func ListEligibleInvoiceTopUps(userID int, keyword string, offset int, limit int) ([]TopUp, int64, error) {
 	var total int64
 	query := invoiceableTopUpQuery(DB, userID)
@@ -232,6 +348,108 @@ func ListEligibleInvoiceTopUps(userID int, keyword string, offset int, limit int
 		return nil, 0, err
 	}
 	return items, total, nil
+}
+
+func ListEligibleInvoiceRecords(userID int, keyword string, offset int, limit int) ([]InvoiceEligibleRecord, int64, error) {
+	records := make([]InvoiceEligibleRecord, 0)
+	keyword = strings.TrimSpace(keyword)
+	topUpQuery := invoiceableTopUpQuery(DB, userID)
+	if keyword != "" {
+		like := "%" + keyword + "%"
+		topUpQuery = topUpQuery.Where("trade_no LIKE ? OR payment_provider LIKE ? OR payment_method LIKE ?", like, like, like)
+	}
+
+	var topUps []TopUp
+	if err := topUpQuery.Find(&topUps).Error; err != nil {
+		return nil, 0, err
+	}
+	for _, topUp := range topUps {
+		records = append(records, invoiceEligibleRecordFromTopUp(topUp))
+	}
+
+	if InvoiceSubscriptionRecordsEnabled() {
+		subscriptionQuery := invoiceableSubscriptionOrderQuery(DB, userID)
+		if keyword != "" {
+			like := "%" + keyword + "%"
+			subscriptionQuery = subscriptionQuery.Where("trade_no LIKE ? OR payment_provider LIKE ? OR payment_method LIKE ?", like, like, like)
+		}
+		var orders []SubscriptionOrder
+		if err := subscriptionQuery.Find(&orders).Error; err != nil {
+			return nil, 0, err
+		}
+		for _, order := range orders {
+			records = append(records, invoiceEligibleRecordFromSubscriptionOrder(order))
+		}
+	}
+
+	sort.SliceStable(records, func(i int, j int) bool {
+		if records[i].CompleteTime != records[j].CompleteTime {
+			return records[i].CompleteTime > records[j].CompleteTime
+		}
+		if records[i].CreateTime != records[j].CreateTime {
+			return records[i].CreateTime > records[j].CreateTime
+		}
+		return records[i].Id > records[j].Id
+	})
+
+	total := int64(len(records))
+	if offset < 0 {
+		offset = 0
+	}
+	if limit <= 0 {
+		return records, total, nil
+	}
+	if offset >= len(records) {
+		return []InvoiceEligibleRecord{}, total, nil
+	}
+	end := offset + limit
+	if end > len(records) {
+		end = len(records)
+	}
+	return records[offset:end], total, nil
+}
+
+func invoiceEligibleRecordFromTopUp(topUp TopUp) InvoiceEligibleRecord {
+	return InvoiceEligibleRecord{
+		Id:              topUp.Id,
+		SourceType:      InvoiceSourceTypeTopUp,
+		SourceId:        topUp.Id,
+		UserId:          topUp.UserId,
+		Amount:          topUp.Amount,
+		Money:           topUp.Money,
+		TradeNo:         topUp.TradeNo,
+		PaymentMethod:   topUp.PaymentMethod,
+		PaymentProvider: topUp.PaymentProvider,
+		CreateTime:      topUp.CreateTime,
+		CompleteTime:    topUp.CompleteTime,
+		Status:          topUp.Status,
+	}
+}
+
+func invoiceEligibleRecordFromSubscriptionOrder(order SubscriptionOrder) InvoiceEligibleRecord {
+	return InvoiceEligibleRecord{
+		Id:              order.Id,
+		SourceType:      InvoiceSourceTypeSubscriptionOrder,
+		SourceId:        order.Id,
+		UserId:          order.UserId,
+		Amount:          0,
+		Money:           order.Money,
+		TradeNo:         order.TradeNo,
+		PaymentMethod:   order.PaymentMethod,
+		PaymentProvider: normalizeInvoicePaymentProvider(order.PaymentProvider, order.PaymentMethod),
+		CreateTime:      order.CreateTime,
+		CompleteTime:    order.CompleteTime,
+		Status:          order.Status,
+		PlanId:          order.PlanId,
+	}
+}
+
+func normalizeInvoicePaymentProvider(paymentProvider string, paymentMethod string) string {
+	trimmed := strings.TrimSpace(paymentProvider)
+	if trimmed == "" || strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[") {
+		return strings.TrimSpace(paymentMethod)
+	}
+	return trimmed
 }
 
 func loadDefaultInvoiceProfile(tx *gorm.DB, userID int, invoiceType string) (*UserInvoiceProfile, error) {
@@ -257,23 +475,41 @@ func CreateInvoiceRequest(input InvoiceCreateInput) (*InvoiceRequest, error) {
 	if err := validateInvoiceCreateInput(input); err != nil {
 		return nil, err
 	}
+	items, err := normalizeInvoiceCreateItems(input)
+	if err != nil {
+		return nil, err
+	}
+	topUpIds, subscriptionOrderIds := splitInvoiceCreateItemIds(items)
 
 	var created InvoiceRequest
-	err := DB.Transaction(func(tx *gorm.DB) error {
-		var usedCount int64
-		if err := tx.Model(&InvoiceRequestItem{}).Where("topup_id IN ?", input.TopUpIds).Count(&usedCount).Error; err != nil {
-			return err
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		var usedTopUpCount int64
+		if len(topUpIds) > 0 {
+			if err := tx.Model(&InvoiceRequestItem{}).Where("topup_id IN ?", topUpIds).Count(&usedTopUpCount).Error; err != nil {
+				return err
+			}
 		}
-		if usedCount > 0 {
+		if usedTopUpCount > 0 {
 			return ErrInvoiceTopUpAlreadyUsed
 		}
 
-		var topUps []TopUp
-		if err := invoiceableTopUpBaseQuery(tx, input.UserId).Where("id IN ?", input.TopUpIds).Order("id asc").Find(&topUps).Error; err != nil {
+		var usedSubscriptionOrderCount int64
+		if len(subscriptionOrderIds) > 0 {
+			if err := tx.Model(&InvoiceRequestSubscriptionItem{}).Where("subscription_order_id IN ?", subscriptionOrderIds).Count(&usedSubscriptionOrderCount).Error; err != nil {
+				return err
+			}
+		}
+		if usedSubscriptionOrderCount > 0 {
+			return ErrInvoiceSubscriptionOrderAlreadyUsed
+		}
+
+		topUps, err := loadInvoiceableTopUpsByIds(tx, input.UserId, topUpIds)
+		if err != nil {
 			return err
 		}
-		if len(topUps) != len(input.TopUpIds) {
-			return ErrInvoiceTopUpNotInvoiceable
+		subscriptionOrders, err := loadInvoiceableSubscriptionOrdersByIds(tx, input.UserId, subscriptionOrderIds)
+		if err != nil {
+			return err
 		}
 
 		profile, err := loadDefaultInvoiceProfile(tx, input.UserId, input.InvoiceType)
@@ -291,6 +527,9 @@ func CreateInvoiceRequest(input InvoiceCreateInput) (*InvoiceRequest, error) {
 		total := 0.0
 		for _, topUp := range topUps {
 			total += topUp.Money
+		}
+		for _, order := range subscriptionOrders {
+			total += order.Money
 		}
 
 		created = InvoiceRequest{
@@ -330,6 +569,24 @@ func CreateInvoiceRequest(input InvoiceCreateInput) (*InvoiceRequest, error) {
 				return err
 			}
 		}
+		for _, order := range subscriptionOrders {
+			item := InvoiceRequestSubscriptionItem{
+				InvoiceRequestId:         created.Id,
+				SubscriptionOrderId:      order.Id,
+				TradeNo:                  order.TradeNo,
+				Money:                    order.Money,
+				PaymentProvider:          normalizeInvoicePaymentProvider(order.PaymentProvider, order.PaymentMethod),
+				PaymentMethod:            order.PaymentMethod,
+				SubscriptionCreateTime:   order.CreateTime,
+				SubscriptionCompleteTime: order.CompleteTime,
+			}
+			if err := tx.Create(&item).Error; err != nil {
+				if isInvoiceUniqueConflict(err) {
+					return ErrInvoiceSubscriptionOrderAlreadyUsed
+				}
+				return err
+			}
+		}
 		return nil
 	})
 	if err != nil {
@@ -337,6 +594,75 @@ func CreateInvoiceRequest(input InvoiceCreateInput) (*InvoiceRequest, error) {
 	}
 
 	return &created, nil
+}
+
+func splitInvoiceCreateItemIds(items []InvoiceCreateItem) ([]int, []int) {
+	topUpIds := make([]int, 0, len(items))
+	subscriptionOrderIds := make([]int, 0, len(items))
+	for _, item := range items {
+		switch item.SourceType {
+		case InvoiceSourceTypeTopUp:
+			topUpIds = append(topUpIds, item.SourceId)
+		case InvoiceSourceTypeSubscriptionOrder:
+			subscriptionOrderIds = append(subscriptionOrderIds, item.SourceId)
+		}
+	}
+	return topUpIds, subscriptionOrderIds
+}
+
+func loadInvoiceableTopUpsByIds(tx *gorm.DB, userID int, ids []int) ([]TopUp, error) {
+	if len(ids) == 0 {
+		return []TopUp{}, nil
+	}
+	var topUps []TopUp
+	if err := invoiceableTopUpBaseQuery(tx, userID).Where("id IN ?", ids).Find(&topUps).Error; err != nil {
+		return nil, err
+	}
+	if len(topUps) != len(ids) {
+		return nil, ErrInvoiceTopUpNotInvoiceable
+	}
+	topUpById := make(map[int]TopUp, len(topUps))
+	for _, topUp := range topUps {
+		topUpById[topUp.Id] = topUp
+	}
+	ordered := make([]TopUp, 0, len(ids))
+	for _, id := range ids {
+		topUp, ok := topUpById[id]
+		if !ok {
+			return nil, ErrInvoiceTopUpNotInvoiceable
+		}
+		ordered = append(ordered, topUp)
+	}
+	return ordered, nil
+}
+
+func loadInvoiceableSubscriptionOrdersByIds(tx *gorm.DB, userID int, ids []int) ([]SubscriptionOrder, error) {
+	if len(ids) == 0 {
+		return []SubscriptionOrder{}, nil
+	}
+	if !InvoiceSubscriptionRecordsEnabled() {
+		return nil, ErrInvoiceSubscriptionRecordsDisabled
+	}
+	var orders []SubscriptionOrder
+	if err := invoiceableSubscriptionOrderBaseQuery(tx, userID).Where("id IN ?", ids).Find(&orders).Error; err != nil {
+		return nil, err
+	}
+	if len(orders) != len(ids) {
+		return nil, ErrInvoiceSubscriptionOrderNotInvoiceable
+	}
+	orderById := make(map[int]SubscriptionOrder, len(orders))
+	for _, order := range orders {
+		orderById[order.Id] = order
+	}
+	ordered := make([]SubscriptionOrder, 0, len(ids))
+	for _, id := range ids {
+		order, ok := orderById[id]
+		if !ok {
+			return nil, ErrInvoiceSubscriptionOrderNotInvoiceable
+		}
+		ordered = append(ordered, order)
+	}
+	return ordered, nil
 }
 
 func isInvoiceUniqueConflict(err error) bool {
@@ -354,7 +680,7 @@ func ListUserInvoiceRequests(userID int, status string, offset int, limit int) (
 		return nil, 0, err
 	}
 	var items []InvoiceRequest
-	if err := query.Order("id desc").Limit(limit).Offset(offset).Preload("Items").Find(&items).Error; err != nil {
+	if err := query.Order("id desc").Limit(limit).Offset(offset).Preload("Items").Preload("SubscriptionItems").Find(&items).Error; err != nil {
 		return nil, 0, err
 	}
 	return items, total, nil
@@ -368,14 +694,15 @@ func ListAdminInvoiceRequests(status string, keyword string, offset int, limit i
 	if strings.TrimSpace(keyword) != "" {
 		like := "%" + strings.TrimSpace(keyword) + "%"
 		itemSubQuery := DB.Model(&InvoiceRequestItem{}).Select("invoice_request_id").Where("trade_no LIKE ?", like)
-		query = query.Where("username LIKE ? OR title LIKE ? OR tax_no LIKE ? OR id IN (?)", like, like, like, itemSubQuery)
+		subscriptionItemSubQuery := DB.Model(&InvoiceRequestSubscriptionItem{}).Select("invoice_request_id").Where("trade_no LIKE ?", like)
+		query = query.Where("username LIKE ? OR title LIKE ? OR tax_no LIKE ? OR id IN (?) OR id IN (?)", like, like, like, itemSubQuery, subscriptionItemSubQuery)
 	}
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	var items []InvoiceRequest
-	if err := query.Order("id desc").Limit(limit).Offset(offset).Preload("Items").Find(&items).Error; err != nil {
+	if err := query.Order("id desc").Limit(limit).Offset(offset).Preload("Items").Preload("SubscriptionItems").Find(&items).Error; err != nil {
 		return nil, 0, err
 	}
 	return items, total, nil
@@ -383,7 +710,7 @@ func ListAdminInvoiceRequests(status string, keyword string, offset int, limit i
 
 func GetInvoiceRequestWithItems(id int, userID int, admin bool) (*InvoiceRequest, error) {
 	var request InvoiceRequest
-	query := DB.Preload("Items").Where("id = ?", id)
+	query := DB.Preload("Items").Preload("SubscriptionItems").Where("id = ?", id)
 	if !admin {
 		query = query.Where("user_id = ?", userID)
 	}

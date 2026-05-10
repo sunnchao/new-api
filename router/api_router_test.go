@@ -162,6 +162,7 @@ func TestInvoiceAndRealNameAuthBoundaries(t *testing.T) {
 
 	cases := []string{
 		"/api/invoice/eligible-topups",
+		"/api/invoice/eligible-records",
 		"/api/invoice/self",
 		"/api/invoice/profile",
 		"/api/realname/status",

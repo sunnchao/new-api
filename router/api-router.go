@@ -208,6 +208,7 @@ func SetApiRouter(router *gin.Engine) {
 		invoiceRoute.Use(middleware.UserAuth())
 		{
 			invoiceRoute.GET("/eligible-topups", controller.GetEligibleInvoiceTopUps)
+			invoiceRoute.GET("/eligible-records", controller.GetEligibleInvoiceRecords)
 			invoiceRoute.GET("/self", controller.ListSelfInvoices)
 			invoiceRoute.GET("/profile", controller.GetInvoiceProfiles)
 			invoiceRoute.PUT("/profile", controller.UpdateInvoiceProfile)

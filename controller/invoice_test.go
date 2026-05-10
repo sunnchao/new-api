@@ -39,8 +39,10 @@ func setupInvoiceControllerTestDB(t *testing.T) *gorm.DB {
 	require.NoError(t, db.AutoMigrate(
 		&model.User{},
 		&model.TopUp{},
+		&model.SubscriptionOrder{},
 		&model.InvoiceRequest{},
 		&model.InvoiceRequestItem{},
+		&model.InvoiceRequestSubscriptionItem{},
 		&model.UserInvoiceProfile{},
 		&model.UserRealNameVerification{},
 	))
@@ -102,6 +104,37 @@ func seedControllerTopUp(t *testing.T, userID int, tradeNo string) model.TopUp {
 	return topUp
 }
 
+func seedControllerSubscriptionOrder(t *testing.T, userID int, tradeNo string) model.SubscriptionOrder {
+	t.Helper()
+	order := model.SubscriptionOrder{
+		UserId:          userID,
+		PlanId:          10,
+		Money:           30,
+		TradeNo:         tradeNo,
+		PaymentMethod:   model.PaymentProviderStripe,
+		PaymentProvider: model.PaymentProviderStripe,
+		CreateTime:      1200,
+		CompleteTime:    1300,
+		Status:          common.TopUpStatusSuccess,
+	}
+	require.NoError(t, model.DB.Create(&order).Error)
+	return order
+}
+
+func setControllerInvoiceSubscriptionRecordsEnabled(t *testing.T, enabled bool) {
+	t.Helper()
+	common.OptionMapRWMutex.Lock()
+	if common.OptionMap == nil {
+		common.OptionMap = make(map[string]string)
+	}
+	if enabled {
+		common.OptionMap[model.InvoiceAllowSubscriptionRecordsOption] = "true"
+	} else {
+		common.OptionMap[model.InvoiceAllowSubscriptionRecordsOption] = "false"
+	}
+	common.OptionMapRWMutex.Unlock()
+}
+
 func TestGetEligibleInvoiceTopUps(t *testing.T) {
 	setupInvoiceControllerTestDB(t)
 	valid := seedControllerTopUp(t, 7, "valid")
@@ -123,6 +156,34 @@ func TestGetEligibleInvoiceTopUps(t *testing.T) {
 	require.Equal(t, valid.Id, items[0].Id)
 }
 
+func TestGetEligibleInvoiceRecordsIncludesSubscriptionOrdersWhenEnabled(t *testing.T) {
+	setupInvoiceControllerTestDB(t)
+	setControllerInvoiceSubscriptionRecordsEnabled(t, true)
+	topUp := seedControllerTopUp(t, 7, "valid-topup")
+	subscription := seedControllerSubscriptionOrder(t, 7, "valid-subscription")
+
+	ctx, recorder := newInvoiceContext(t, http.MethodGet, "/api/invoice/eligible-records?p=1&page_size=20", nil, 7, "alice", common.RoleCommonUser)
+	GetEligibleInvoiceRecords(ctx)
+
+	var page common.PageInfo
+	response := decodeInvoiceAPIResponse(t, recorder, &page)
+	require.True(t, response.Success)
+	require.Equal(t, 2, page.Total)
+
+	payload, err := common.Marshal(page.Items)
+	require.NoError(t, err)
+	var items []model.InvoiceEligibleRecord
+	require.NoError(t, common.Unmarshal(payload, &items))
+	require.Len(t, items, 2)
+
+	sources := map[string]int{}
+	for _, item := range items {
+		sources[item.SourceType] = item.SourceId
+	}
+	require.Equal(t, topUp.Id, sources[model.InvoiceSourceTypeTopUp])
+	require.Equal(t, subscription.Id, sources[model.InvoiceSourceTypeSubscriptionOrder])
+}
+
 func TestCreateInvoiceEndpoint(t *testing.T) {
 	setupInvoiceControllerTestDB(t)
 	topUp := seedControllerTopUp(t, 7, "invoice-create")
@@ -140,6 +201,29 @@ func TestCreateInvoiceEndpoint(t *testing.T) {
 	require.True(t, response.Success)
 	require.Equal(t, "Alice", request.Title)
 	require.Equal(t, 100.0, request.Amount)
+}
+
+func TestCreateInvoiceEndpointAcceptsInvoiceItems(t *testing.T) {
+	setupInvoiceControllerTestDB(t)
+	setControllerInvoiceSubscriptionRecordsEnabled(t, true)
+	subscription := seedControllerSubscriptionOrder(t, 7, "invoice-create-subscription")
+
+	ctx, recorder := newInvoiceContext(t, http.MethodPost, "/api/invoice", gin.H{
+		"items": []gin.H{{
+			"source_type": model.InvoiceSourceTypeSubscriptionOrder,
+			"source_id":   subscription.Id,
+		}},
+		"invoice_type": model.InvoiceTypePersonal,
+		"title":        "Alice",
+		"email":        "alice@example.com",
+	}, 7, "alice", common.RoleCommonUser)
+	CreateInvoice(ctx)
+
+	var request model.InvoiceRequest
+	response := decodeInvoiceAPIResponse(t, recorder, &request)
+	require.True(t, response.Success)
+	require.Equal(t, "Alice", request.Title)
+	require.Equal(t, 30.0, request.Amount)
 }
 
 func TestInvoiceDetailRequiresOwnership(t *testing.T) {
