@@ -99,6 +99,38 @@ test('keeps the invoice entry visible for legacy admin sidebar configs', () => {
   ])
 })
 
+test('keeps the admin token management entry visible for legacy admin sidebar configs', () => {
+  sidebarModulesAdmin = JSON.stringify({
+    admin: {
+      enabled: true,
+      channel: true,
+      models: true,
+      redemption: true,
+      user: true,
+      setting: true,
+      subscription: true,
+    },
+  })
+
+  const filtered = renderFilteredNavGroups([
+    {
+      id: 'admin',
+      title: 'Admin',
+      items: [
+        { title: 'Channels', url: '/channels' },
+        { title: 'Token Management', url: '/admin-tokens' },
+        { title: 'Users', url: '/users' },
+      ],
+    },
+  ])
+
+  expect(filtered[0].items.map((item) => item.title)).toEqual([
+    'Channels',
+    'Token Management',
+    'Users',
+  ])
+})
+
 test('hides the invoice entry when admin disables it explicitly', () => {
   sidebarModulesAdmin = JSON.stringify({
     personal: {

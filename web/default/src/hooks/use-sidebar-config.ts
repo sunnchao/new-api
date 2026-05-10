@@ -59,6 +59,7 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
   admin: {
     enabled: true,
     channel: true,
+    admin_token: true,
     models: true,
     redemption: true,
     user: true,
