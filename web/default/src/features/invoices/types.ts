@@ -124,7 +124,13 @@ export interface RealNameVerification {
   updated_at: number
 }
 
-export type RealNameStatusMap = Record<InvoiceType, RealNameVerification | null>
+export type RealNameStatusMap = Record<
+  InvoiceType,
+  RealNameVerification | null
+> & {
+  realname_provider?: string
+  realname_providers?: string[]
+}
 
 export interface RealNameSession {
   provider: string

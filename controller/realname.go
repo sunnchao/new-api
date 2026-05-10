@@ -3,6 +3,7 @@ package controller
 import (
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -41,22 +42,65 @@ func GetRealNameStatus(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	common.ApiSuccess(c, status)
+	providers := getAvailableRealNameProviderNames()
+	data := map[string]interface{}{
+		model.VerifyTypePersonal: status[model.VerifyTypePersonal],
+		model.VerifyTypeCompany:  status[model.VerifyTypeCompany],
+		"realname_providers":     providers,
+	}
+	if len(providers) > 0 {
+		data["realname_provider"] = providers[0]
+	}
+	common.ApiSuccess(c, data)
 }
 
 func isMockRealNameProviderAllowed() bool {
 	return gin.Mode() == gin.TestMode || common.DebugEnabled || common.GetEnvOrDefaultBool("REALNAME_MOCK_PROVIDER_ENABLED", false)
 }
 
+func isRealNameProviderAllowed(name string) bool {
+	name = strings.ToLower(strings.TrimSpace(name))
+	if name == "" {
+		return false
+	}
+	if name == "mock" {
+		return isMockRealNameProviderAllowed()
+	}
+	return true
+}
+
+func getAvailableRealNameProviderNames() []string {
+	names := realnamesvc.ListProviderNames()
+	available := make([]string, 0, len(names))
+	for _, name := range names {
+		if isRealNameProviderAllowed(name) {
+			available = append(available, name)
+		}
+	}
+	slices.Sort(available)
+	return available
+}
+
 func resolveRealNameProvider(name string) (realnamesvc.Provider, bool) {
-	name = strings.TrimSpace(name)
+	name = strings.ToLower(strings.TrimSpace(name))
 	if name == "" {
 		return nil, false
 	}
-	if name == "mock" && !isMockRealNameProviderAllowed() {
+	if !isRealNameProviderAllowed(name) {
 		return nil, false
 	}
 	return realnamesvc.GetProvider(name)
+}
+
+func resolveCreateSessionRealNameProvider(name string) (realnamesvc.Provider, bool) {
+	if provider, ok := resolveRealNameProvider(name); ok {
+		return provider, true
+	}
+	available := getAvailableRealNameProviderNames()
+	if len(available) != 1 {
+		return nil, false
+	}
+	return realnamesvc.GetProvider(available[0])
 }
 
 func CreateRealNameSession(c *gin.Context) {
@@ -65,7 +109,7 @@ func CreateRealNameSession(c *gin.Context) {
 		common.ApiErrorMsg(c, "参数错误")
 		return
 	}
-	provider, ok := resolveRealNameProvider(req.Provider)
+	provider, ok := resolveCreateSessionRealNameProvider(req.Provider)
 	if !ok {
 		common.ApiError(c, realnamesvc.ErrUnsupportedProvider)
 		return

@@ -27,6 +27,12 @@ func TestProviderRegistry(t *testing.T) {
 	require.Equal(t, "mock", provider.ProviderName())
 }
 
+func TestListProviderNames(t *testing.T) {
+	RegisterProvider(MockProvider{})
+	names := ListProviderNames()
+	require.Contains(t, names, "mock")
+}
+
 func TestMockProviderRejectsInvalidSignature(t *testing.T) {
 	provider := MockProvider{}
 	_, err := provider.VerifyCallback(context.Background(), CallbackRequest{

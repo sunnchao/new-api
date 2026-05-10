@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 
@@ -91,6 +92,17 @@ func GetProvider(name string) (Provider, bool) {
 	defer providersMu.RUnlock()
 	provider, ok := providers[strings.TrimSpace(name)]
 	return provider, ok
+}
+
+func ListProviderNames() []string {
+	providersMu.RLock()
+	defer providersMu.RUnlock()
+	names := make([]string, 0, len(providers))
+	for name := range providers {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
 }
 
 type MockProvider struct{}

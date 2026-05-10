@@ -70,33 +70,64 @@ function readStringOption(record: Record<string, unknown>, keys: string[]) {
   return ''
 }
 
-function getConfiguredRealNameProvider(status: Record<string, unknown> | null) {
+function readStringListOption(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key]
+    if (!Array.isArray(value)) continue
+    const list = value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean)
+    if (list.length > 0) return list
+  }
+  return []
+}
+
+function normalizeProviderName(value: string) {
+  return value.trim().toLowerCase()
+}
+
+function getConfiguredRealNameProvider(
+  status: Record<string, unknown> | null,
+  realNameStatus: Record<string, unknown> | null
+) {
   const env = import.meta.env as unknown as Record<string, unknown>
   const envProvider =
     typeof env.VITE_REALNAME_PROVIDER === 'string'
-      ? env.VITE_REALNAME_PROVIDER.trim()
+      ? normalizeProviderName(env.VITE_REALNAME_PROVIDER)
       : ''
-  const devProvider = import.meta.env.DEV ? 'mock' : ''
 
-  if (!status) return envProvider || devProvider
-
-  const directProvider = readStringOption(status, [
+  const providerKeys = [
     'realname_provider',
     'real_name_provider',
     'RealNameProvider',
     'REALNAME_PROVIDER',
-  ])
-  const nested =
-    status.data && typeof status.data === 'object'
-      ? readStringOption(status.data as Record<string, unknown>, [
-          'realname_provider',
-          'real_name_provider',
-          'RealNameProvider',
-          'REALNAME_PROVIDER',
-        ])
-      : ''
+  ]
+  const providersKeys = [
+    'realname_providers',
+    'real_name_providers',
+    'RealNameProviders',
+    'REALNAME_PROVIDERS',
+  ]
 
-  return directProvider || nested || envProvider || devProvider
+  const preferredProvider = normalizeProviderName(
+    readStringOption(realNameStatus ?? {}, providerKeys) ||
+      readStringOption(status ?? {}, providerKeys) ||
+      envProvider
+  )
+  const realNameProviders = readStringListOption(
+    realNameStatus ?? {},
+    providersKeys
+  )
+  const statusProviders = readStringListOption(status ?? {}, providersKeys)
+  const availableProviders = (
+    realNameProviders.length > 0 ? realNameProviders : statusProviders
+  ).map(normalizeProviderName)
+
+  if (availableProviders.length === 0) return ''
+  if (!preferredProvider) return availableProviders[0]
+  if (availableProviders.includes(preferredProvider)) return preferredProvider
+  return availableProviders[0]
 }
 
 export function Invoices() {
@@ -105,9 +136,6 @@ export function Invoices() {
   const user = useAuthStore((state) => state.auth.user)
   const isAdmin = Boolean(user?.role && user.role >= ROLE.ADMIN)
   const { status } = useStatus()
-  const realNameProvider = getConfiguredRealNameProvider(
-    status as Record<string, unknown> | null
-  )
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [activeTab, setActiveTab] = useState('apply')
   const [adminDialog, setAdminDialog] = useState<AdminInvoiceDialog>(null)
@@ -135,6 +163,10 @@ export function Invoices() {
       return response.success ? response.data : undefined
     },
   })
+  const realNameProvider = getConfiguredRealNameProvider(
+    status as Record<string, unknown> | null,
+    (realNameQuery.data as Record<string, unknown> | null) ?? null
+  )
   const selfInvoicesQuery = useQuery({
     queryKey: ['invoice', 'self'],
     queryFn: async () =>

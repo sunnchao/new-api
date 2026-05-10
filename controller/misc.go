@@ -158,6 +158,12 @@ func GetStatus(c *gin.Context) {
 		data["custom_oauth_providers"] = providersInfo
 	}
 
+	realNameProviders := getAvailableRealNameProviderNames()
+	data["realname_providers"] = realNameProviders
+	if len(realNameProviders) > 0 {
+		data["realname_provider"] = realNameProviders[0]
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
