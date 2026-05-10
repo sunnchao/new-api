@@ -14,7 +14,7 @@ import {
   createInvoice,
   createRealNameSession,
   getAdminInvoices,
-  getEligibleTopUps,
+  getEligibleRecords,
   getInvoiceProfiles,
   getRealNameStatus,
   getSelfInvoices,
@@ -26,7 +26,7 @@ import { AdminInvoiceTable } from './components/admin-invoice-table'
 import {
   type AdminInvoiceDialog,
 } from './components/admin-invoice-dialogs'
-import { EligibleTopUpsTable } from './components/eligible-topups-table'
+import { EligibleRecordsTable } from './components/eligible-records-table'
 import { InvoiceProfilePanel } from './components/invoice-profile-panel'
 import { InvoiceRecordsTable } from './components/invoice-records-table'
 import { InvoiceRequestForm } from './components/invoice-request-form'
@@ -34,19 +34,21 @@ import { VerificationStatusPanel } from './components/verification-status-panel'
 import type {
   AdminIssueInvoicePayload,
   ApiResponse,
+  InvoiceableRecord,
   InvoiceProfile,
   InvoiceRequestRecord,
   InvoiceType,
-  InvoiceableTopUp,
   PageResponse,
 } from './types'
 
-const emptyTopUpsPage: PageResponse<InvoiceableTopUp> = {
+const emptyRecordsPage: PageResponse<InvoiceableRecord> = {
   page: 1,
   page_size: 50,
   total: 0,
   items: [],
 }
+
+const emptyEligibleItems: InvoiceableRecord[] = []
 
 const emptyInvoicesPage: PageResponse<InvoiceRequestRecord> = {
   page: 1,
@@ -136,17 +138,17 @@ export function Invoices() {
   const user = useAuthStore((state) => state.auth.user)
   const isAdmin = Boolean(user?.role && user.role >= ROLE.ADMIN)
   const { status } = useStatus()
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([])
   const [activeTab, setActiveTab] = useState('apply')
   const [adminDialog, setAdminDialog] = useState<AdminInvoiceDialog>(null)
   const [cancellingId, setCancellingId] = useState<number | null>(null)
 
   const eligibleQuery = useQuery({
-    queryKey: ['invoice', 'eligible-topups'],
+    queryKey: ['invoice', 'eligible-records'],
     queryFn: async () =>
       pageOrFallback(
-        await getEligibleTopUps({ p: 1, page_size: 50 }),
-        emptyTopUpsPage
+        await getEligibleRecords({ p: 1, page_size: 50 }),
+        emptyRecordsPage
       ),
   })
   const profilesQuery = useQuery({
@@ -185,16 +187,21 @@ export function Invoices() {
     enabled: isAdmin,
   })
 
-  const eligibleItems = eligibleQuery.data?.items ?? []
-  const selectedTopUps = useMemo(
-    () => eligibleItems.filter((item) => selectedIds.includes(item.id)),
-    [eligibleItems, selectedIds]
+  const eligibleItems = eligibleQuery.data?.items ?? emptyEligibleItems
+  const selectedRecords = useMemo(
+    () =>
+      eligibleItems.filter((item) =>
+        selectedKeys.includes(`${item.source_type}:${item.source_id}`)
+      ),
+    [eligibleItems, selectedKeys]
   )
   const profiles = profilesQuery.data
 
   const invalidateUserInvoiceData = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['invoice', 'eligible-topups'] }),
+      queryClient.invalidateQueries({
+        queryKey: ['invoice', 'eligible-records'],
+      }),
       queryClient.invalidateQueries({ queryKey: ['invoice', 'self'] }),
       queryClient.invalidateQueries({ queryKey: ['invoice', 'profiles'] }),
     ])
@@ -214,7 +221,7 @@ export function Invoices() {
     onSuccess: async (res) => {
       if (!res.success) return
       toast.success(t('Invoice request submitted'))
-      setSelectedIds([])
+      setSelectedKeys([])
       setActiveTab('history')
       await invalidateUserInvoiceData()
     },
@@ -304,19 +311,19 @@ export function Invoices() {
             <TabsContent value='apply' className='mt-4 space-y-4'>
               <Card className='rounded-lg'>
                 <CardHeader>
-                  <CardTitle>{t('Invoiceable top-ups')}</CardTitle>
+                  <CardTitle>{t('Invoiceable records')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <EligibleTopUpsTable
+                  <EligibleRecordsTable
                     items={eligibleItems}
-                    selectedIds={selectedIds}
-                    onSelectedIdsChange={setSelectedIds}
+                    selectedKeys={selectedKeys}
+                    onSelectedKeysChange={setSelectedKeys}
                     loading={eligibleQuery.isLoading}
                   />
                 </CardContent>
               </Card>
               <InvoiceRequestForm
-                selectedTopUps={selectedTopUps}
+                selectedRecords={selectedRecords}
                 personalProfile={profiles?.personal}
                 companyProfile={profiles?.company}
                 isLoading={createInvoiceMutation.isPending}

@@ -25,6 +25,7 @@ export type RealNameStatus =
   | 'verified'
   | 'failed'
   | 'expired'
+export type InvoiceSourceType = 'topup' | 'subscription_order'
 
 export interface InvoiceableTopUp {
   id: number
@@ -39,6 +40,12 @@ export interface InvoiceableTopUp {
   status: string
 }
 
+export interface InvoiceableRecord extends InvoiceableTopUp {
+  source_type: InvoiceSourceType
+  source_id: number
+  plan_id?: number
+}
+
 export interface InvoiceRequestItem {
   id: number
   invoice_request_id: number
@@ -49,6 +56,19 @@ export interface InvoiceRequestItem {
   payment_method: string
   topup_create_time: number
   topup_complete_time: number
+  created_at: number
+}
+
+export interface InvoiceRequestSubscriptionItem {
+  id: number
+  invoice_request_id: number
+  subscription_order_id: number
+  trade_no: string
+  money: number
+  payment_provider: string
+  payment_method: string
+  subscription_create_time: number
+  subscription_complete_time: number
   created_at: number
 }
 
@@ -77,6 +97,7 @@ export interface InvoiceRequestRecord {
   created_at: number
   updated_at: number
   items?: InvoiceRequestItem[]
+  subscription_items?: InvoiceRequestSubscriptionItem[]
 }
 
 export interface InvoiceProfile {
@@ -141,7 +162,11 @@ export interface RealNameSession {
 }
 
 export interface CreateInvoicePayload {
-  topup_ids: number[]
+  topup_ids?: number[]
+  items?: Array<{
+    source_type: InvoiceSourceType
+    source_id: number
+  }>
   invoice_type: InvoiceType
   title: string
   tax_no?: string
@@ -150,7 +175,7 @@ export interface CreateInvoicePayload {
   remark?: string
 }
 
-export interface UpdateInvoiceProfilePayload extends InvoiceProfile {}
+export type UpdateInvoiceProfilePayload = InvoiceProfile
 
 export interface CreateRealNameSessionPayload {
   verify_type: InvoiceType

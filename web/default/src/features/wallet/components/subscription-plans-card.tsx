@@ -45,6 +45,7 @@ import {
   StatusBadge,
   dotColorMap,
   textColorMap,
+  type StatusVariant,
 } from '@/components/status-badge'
 import {
   getPublicPlans,
@@ -56,9 +57,13 @@ import {
   formatDuration,
   formatResetPeriod,
   formatBillingMode,
+  formatSubscriptionAmountValue,
+  formatTimestamp,
+  getSubscriptionQuotaLimitItems,
 } from '@/features/subscriptions/lib'
 import type {
   PlanRecord,
+  UserSubscription,
   UserSubscriptionRecord,
 } from '@/features/subscriptions/types'
 import type { PaymentMethod, TopupInfo } from '../types'
@@ -90,6 +95,86 @@ function getBillingPreferenceLabel(
     default:
       return preference
   }
+}
+
+const limitVariantMap: Record<string, StatusVariant> = {
+  hourly: 'orange',
+  daily: 'blue',
+  weekly: 'green',
+  monthly: 'purple',
+}
+
+interface UserSubscriptionQuotaLimitsProps {
+  subscription: UserSubscription
+  isActive: boolean
+}
+
+function UserSubscriptionQuotaLimits(
+  props: UserSubscriptionQuotaLimitsProps
+) {
+  const { t } = useTranslation()
+  const items = useMemo(
+    () => getSubscriptionQuotaLimitItems(props.subscription, t),
+    [props.subscription, t]
+  )
+
+  if (items.length === 0) return null
+
+  return (
+    <div className='mt-2 rounded-md border bg-muted/30 p-2'>
+      <div className='text-muted-foreground mb-1.5 text-xs font-medium'>
+        {t('Quota Limits')}
+      </div>
+      <div className='grid gap-2 md:grid-cols-2'>
+        {items.map((item) => {
+          const percent =
+            item.amount > 0
+              ? Math.min(100, Math.round((item.used / item.amount) * 100))
+              : 0
+          const usedText = formatSubscriptionAmountValue(
+            item.used,
+            item,
+            t,
+            formatQuota
+          )
+          const limitText = formatSubscriptionAmountValue(
+            item.amount,
+            item,
+            t,
+            formatQuota,
+            {
+              approximateTimes: item.approximateTimes,
+            }
+          )
+
+          return (
+            <div key={item.key} className='min-w-0'>
+              <div className='flex min-w-0 items-center justify-between gap-2'>
+                <StatusBadge
+                  variant={limitVariantMap[item.key] || 'neutral'}
+                  copyable={false}
+                  className='max-w-[45%]'
+                >
+                  <span className='truncate'>{item.label}</span>
+                </StatusBadge>
+                <span className='truncate text-xs font-medium'>
+                  {usedText} / {limitText}
+                </span>
+              </div>
+              {props.isActive && item.amount > 0 && (
+                <Progress value={percent} className='mt-1.5 h-1' />
+              )}
+              {props.isActive && item.nextResetTime > 0 && (
+                <div className='text-muted-foreground mt-1 truncate text-[11px]'>
+                  {t('Next reset')}: {formatTimestamp(item.nextResetTime)}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export function SubscriptionPlansCard({
@@ -430,10 +515,6 @@ export function SubscriptionPlansCard({
                   const isCancelled = subscription?.status === 'cancelled'
                   const isActive =
                     subscription?.status === 'active' && !isExpired
-                    const allowedGroups = subscription?.allowed_groups
-                        ?.split(',')
-                        .map((g) => g.trim())
-                        .filter(Boolean)
 
                   return (
                     <div
@@ -540,6 +621,10 @@ export function SubscriptionPlansCard({
                       {totalAmount > 0 && isActive && (
                         <Progress value={usagePercent} className='mt-2 h-1.5' />
                       )}
+                      <UserSubscriptionQuotaLimits
+                        subscription={subscription}
+                        isActive={isActive}
+                      />
                     </div>
                   )
                 })}
@@ -561,7 +646,6 @@ export function SubscriptionPlansCard({
               const plan = p?.plan
               if (!plan) return null
               const totalAmount = Number(plan.total_amount || 0)
-              const price = Number(plan.price_amount || 0).toFixed(2)
               const isPopular = index === 0 && plans.length > 1
               const limit = Number(plan.max_purchase_per_user || 0)
               const count = planPurchaseCountMap.get(plan.id) || 0

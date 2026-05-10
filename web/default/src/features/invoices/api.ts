@@ -5,6 +5,7 @@ import type {
   CreateInvoicePayload,
   CreateRealNameSessionPayload,
   CreateRealNameSessionResponse,
+  InvoiceableRecord,
   InvoiceProfile,
   InvoiceProfiles,
   InvoiceRequestRecord,
@@ -20,6 +21,15 @@ export async function getEligibleTopUps(params: {
   keyword?: string
 }): Promise<ApiResponse<PageResponse<InvoiceableTopUp>>> {
   const res = await api.get('/api/invoice/eligible-topups', { params })
+  return res.data
+}
+
+export async function getEligibleRecords(params: {
+  p: number
+  page_size: number
+  keyword?: string
+}): Promise<ApiResponse<PageResponse<InvoiceableRecord>>> {
+  const res = await api.get('/api/invoice/eligible-records', { params })
   return res.data
 }
 

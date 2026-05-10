@@ -74,6 +74,42 @@ test('builds full quota limit summaries from active plan limit windows', () => {
   )
 })
 
+test('builds quota limit items from user subscription usage snapshots', () => {
+  const subscription = {
+    billing_mode: 'quota',
+    hourly_limit_amount: 1000,
+    hourly_limit_hours: 2,
+    hourly_reset_mode: 'anchor',
+    hourly_amount_used: 250,
+    hourly_next_reset_time: 1710000000,
+    daily_limit_amount: 5000,
+    daily_reset_mode: 'natural',
+    daily_amount_used: 1250,
+    daily_next_reset_time: 1710050000,
+  } as SubscriptionPlan
+
+  const items = getSubscriptionQuotaLimitItems(subscription, t)
+
+  expect(items).toMatchObject([
+    {
+      key: 'hourly',
+      label: 'Every 2 hours',
+      amount: 1000,
+      used: 250,
+      mode: 'anchor',
+      nextResetTime: 1710000000,
+    },
+    {
+      key: 'daily',
+      label: 'Daily',
+      amount: 5000,
+      used: 1250,
+      mode: 'natural',
+      nextResetTime: 1710050000,
+    },
+  ])
+})
+
 test('omits approximate text for request-based quota limits', () => {
   const plan = {
     billing_mode: 'request',

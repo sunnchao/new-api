@@ -53,6 +53,30 @@ export interface SubscriptionQuotaLimitSummaryOptions {
   includeMode?: boolean
 }
 
+type SubscriptionQuotaLimitSource = SubscriptionBillingModeSource & {
+  hourly_limit_amount?: number
+  hourly_limit_hours?: number
+  hourly_reset_mode?: string
+  hourly_amount_used?: number
+  hourly_next_reset_time?: number
+  hourly_approximate_times?: number
+  daily_limit_amount?: number
+  daily_reset_mode?: string
+  daily_amount_used?: number
+  daily_next_reset_time?: number
+  daily_approximate_times?: number
+  weekly_limit_amount?: number
+  weekly_reset_mode?: string
+  weekly_amount_used?: number
+  weekly_next_reset_time?: number
+  weekly_approximate_times?: number
+  monthly_limit_amount?: number
+  monthly_reset_mode?: string
+  monthly_amount_used?: number
+  monthly_next_reset_time?: number
+  monthly_approximate_times?: number
+}
+
 export function formatDuration(
   plan: Partial<SubscriptionPlan>,
   t: TFunction
@@ -169,7 +193,7 @@ function formatHourlyLimitLabel(hours: number, t: TFunction): string {
 }
 
 export function getSubscriptionQuotaLimitItems(
-  source: Partial<SubscriptionPlan> | undefined,
+  source: SubscriptionQuotaLimitSource | undefined,
   t: TFunction
 ): SubscriptionQuotaLimitItem[] {
   if (!source) return []
@@ -187,9 +211,9 @@ export function getSubscriptionQuotaLimitItems(
       key: 'hourly',
       label: formatHourlyLimitLabel(hours, t),
       amount: hourlyAmount,
-      used: 0,
+      used: Number(source.hourly_amount_used || 0),
       mode: source.hourly_reset_mode,
-      nextResetTime: 0,
+      nextResetTime: Number(source.hourly_next_reset_time || 0),
       billing_mode: billingMode,
       approximateTimes: Number(source.hourly_approximate_times || 0),
     })
@@ -200,9 +224,9 @@ export function getSubscriptionQuotaLimitItems(
       key: 'daily',
       label: t('Daily'),
       amount: dailyAmount,
-      used: 0,
+      used: Number(source.daily_amount_used || 0),
       mode: source.daily_reset_mode,
-      nextResetTime: 0,
+      nextResetTime: Number(source.daily_next_reset_time || 0),
       billing_mode: billingMode,
       approximateTimes: Number(source.daily_approximate_times || 0),
     })
@@ -213,9 +237,9 @@ export function getSubscriptionQuotaLimitItems(
       key: 'weekly',
       label: t('Weekly'),
       amount: weeklyAmount,
-      used: 0,
+      used: Number(source.weekly_amount_used || 0),
       mode: source.weekly_reset_mode,
-      nextResetTime: 0,
+      nextResetTime: Number(source.weekly_next_reset_time || 0),
       billing_mode: billingMode,
       approximateTimes: Number(source.weekly_approximate_times || 0),
     })
@@ -226,9 +250,9 @@ export function getSubscriptionQuotaLimitItems(
       key: 'monthly',
       label: t('Monthly'),
       amount: monthlyAmount,
-      used: 0,
+      used: Number(source.monthly_amount_used || 0),
       mode: source.monthly_reset_mode,
-      nextResetTime: 0,
+      nextResetTime: Number(source.monthly_next_reset_time || 0),
       billing_mode: billingMode,
       approximateTimes: Number(source.monthly_approximate_times || 0),
     })
@@ -261,7 +285,7 @@ export function formatSubscriptionQuotaLimitItemText(
 }
 
 export function formatSubscriptionQuotaLimitSummary(
-  source: Partial<SubscriptionPlan> | undefined,
+  source: SubscriptionQuotaLimitSource | undefined,
   t: TFunction,
   renderQuota: (value: number) => string,
   options: SubscriptionQuotaLimitSummaryOptions = {}

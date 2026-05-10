@@ -103,6 +103,7 @@ const paymentSchema = z.object({
       })
     }
   }),
+  InvoiceAllowSubscriptionRecordsEnabled: z.boolean(),
   StripeApiSecret: z.string(),
   StripeWebhookSecret: z.string(),
   StripePriceId: z.string(),
@@ -184,6 +185,8 @@ export function PaymentSettingsSection({
       PayMethods: values.PayMethods.trim(),
       AmountOptions: values.AmountOptions.trim(),
       AmountDiscount: values.AmountDiscount.trim(),
+      InvoiceAllowSubscriptionRecordsEnabled:
+        values.InvoiceAllowSubscriptionRecordsEnabled as boolean,
     }
 
     const initial = {
@@ -192,9 +195,11 @@ export function PaymentSettingsSection({
       PayMethods: initialRef.current.PayMethods.trim(),
       AmountOptions: initialRef.current.AmountOptions.trim(),
       AmountDiscount: initialRef.current.AmountDiscount.trim(),
+      InvoiceAllowSubscriptionRecordsEnabled:
+        initialRef.current.InvoiceAllowSubscriptionRecordsEnabled,
     }
 
-    const updates: Array<{ key: string; value: string | number }> = []
+    const updates: Array<{ key: string; value: string | number | boolean }> = []
 
     if (sanitized.Price !== initial.Price) {
       updates.push({ key: 'Price', value: sanitized.Price })
@@ -228,6 +233,16 @@ export function PaymentSettingsSection({
       updates.push({
         key: 'payment_setting.amount_discount',
         value: sanitized.AmountDiscount,
+      })
+    }
+
+    if (
+      sanitized.InvoiceAllowSubscriptionRecordsEnabled !==
+      initial.InvoiceAllowSubscriptionRecordsEnabled
+    ) {
+      updates.push({
+        key: 'InvoiceAllowSubscriptionRecordsEnabled',
+        value: sanitized.InvoiceAllowSubscriptionRecordsEnabled,
       })
     }
 
@@ -426,6 +441,8 @@ export function PaymentSettingsSection({
       PayMethods: values.PayMethods.trim(),
       AmountOptions: values.AmountOptions.trim(),
       AmountDiscount: values.AmountDiscount.trim(),
+      InvoiceAllowSubscriptionRecordsEnabled:
+        values.InvoiceAllowSubscriptionRecordsEnabled,
       StripeApiSecret: values.StripeApiSecret.trim(),
       StripeWebhookSecret: values.StripeWebhookSecret.trim(),
       StripePriceId: values.StripePriceId.trim(),
@@ -446,6 +463,8 @@ export function PaymentSettingsSection({
       PayMethods: initialRef.current.PayMethods.trim(),
       AmountOptions: initialRef.current.AmountOptions.trim(),
       AmountDiscount: initialRef.current.AmountDiscount.trim(),
+      InvoiceAllowSubscriptionRecordsEnabled:
+        initialRef.current.InvoiceAllowSubscriptionRecordsEnabled,
       StripeApiSecret: initialRef.current.StripeApiSecret.trim(),
       StripeWebhookSecret: initialRef.current.StripeWebhookSecret.trim(),
       StripePriceId: initialRef.current.StripePriceId.trim(),
@@ -508,6 +527,16 @@ export function PaymentSettingsSection({
       updates.push({
         key: 'payment_setting.amount_discount',
         value: sanitized.AmountDiscount,
+      })
+    }
+
+    if (
+      sanitized.InvoiceAllowSubscriptionRecordsEnabled !==
+      initial.InvoiceAllowSubscriptionRecordsEnabled
+    ) {
+      updates.push({
+        key: 'InvoiceAllowSubscriptionRecordsEnabled',
+        value: sanitized.InvoiceAllowSubscriptionRecordsEnabled,
       })
     }
 
@@ -796,6 +825,31 @@ export function PaymentSettingsSection({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name='InvoiceAllowSubscriptionRecordsEnabled'
+              render={({ field }) => (
+                <FormItem className='flex items-center justify-between gap-4 rounded-lg border p-4'>
+                  <div className='space-y-1'>
+                    <FormLabel>
+                      {t('Allow subscription purchases for invoices')}
+                    </FormLabel>
+                    <FormDescription>
+                      {t(
+                        'When enabled, paid subscription orders can be selected in invoice requests.'
+                      )}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
             <Button
               type='button'

@@ -45,7 +45,7 @@ export function InvoiceSubmitConfirmDialog({
       desc={
         <div className='space-y-2 text-sm'>
           <div>
-            {t('Selected orders')}: {selectedCount}
+            {t('Selected records')}: {selectedCount}
           </div>
           <div className='break-all'>
             {t('Order numbers')}: {tradeNos.slice(0, 5).join(', ')}

@@ -1,4 +1,4 @@
-import type { ApiKey } from '@/features/keys/types'
+import type { ApiKey, ApiKeyFormData } from '@/features/keys/types'
 
 export type AdminToken = ApiKey & {
   user_id: number
@@ -35,3 +35,20 @@ export interface SearchAdminTokensParams {
   p?: number
   page_size?: number
 }
+
+export type AdminTokenFormData = ApiKeyFormData & {
+  user_id: number
+  mj_model: string
+}
+
+export type AdminTokenCreatePayload = AdminTokenFormData
+
+export type AdminTokenUpdatePayload = AdminTokenFormData & {
+  id: number
+}
+
+export type AdminTokensDialogType =
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'batch-delete'

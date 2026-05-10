@@ -1,4 +1,9 @@
-import type { InvoiceStatus, InvoiceType, RealNameStatus } from '../types'
+import type {
+  InvoiceSourceType,
+  InvoiceStatus,
+  InvoiceType,
+  RealNameStatus,
+} from '../types'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
 
 export function formatInvoiceMoney(amount: number, currency = 'USD') {
@@ -54,6 +59,12 @@ export function getInvoiceStatusVariant(status: InvoiceStatus) {
   return variants[status] ?? 'neutral'
 }
 
+export function getInvoiceSourceTypeLabelKey(sourceType?: InvoiceSourceType) {
+  return sourceType === 'subscription_order'
+    ? 'Subscription purchase'
+    : 'Online top-up'
+}
+
 export function getRealNameStatusLabelKey(status?: RealNameStatus) {
   if (!status) return 'Unverified'
   const labels: Record<RealNameStatus, string> = {
@@ -78,8 +89,12 @@ export function getRealNameStatusVariant(status?: RealNameStatus) {
   return variants[status] ?? 'neutral'
 }
 
-export function sumSelectedTopUps<T extends { money: number }>(items: T[]) {
+export function sumSelectedInvoiceRecords<T extends { money: number }>(
+  items: T[]
+) {
   return items.reduce((sum, item) => sum + item.money, 0)
 }
+
+export const sumSelectedTopUps = sumSelectedInvoiceRecords
 
 export const INVOICE_CONFIRM_PHRASE = '确认开具发票'

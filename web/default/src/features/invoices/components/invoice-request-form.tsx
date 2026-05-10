@@ -13,17 +13,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { formatInvoiceMoney, sumSelectedTopUps } from '../lib/format'
+import { formatInvoiceMoney, sumSelectedInvoiceRecords } from '../lib/format'
 import { InvoiceSubmitConfirmDialog } from './invoice-submit-confirm-dialog'
 import type {
   CreateInvoicePayload,
+  InvoiceableRecord,
   InvoiceProfile,
   InvoiceType,
-  InvoiceableTopUp,
 } from '../types'
 
 type Props = {
-  selectedTopUps: InvoiceableTopUp[]
+  selectedRecords: InvoiceableRecord[]
   personalProfile?: InvoiceProfile | null
   companyProfile?: InvoiceProfile | null
   isLoading?: boolean
@@ -51,7 +51,7 @@ function profileValues(type: InvoiceType, profile?: InvoiceProfile | null) {
 }
 
 export function InvoiceRequestForm({
-  selectedTopUps,
+  selectedRecords,
   personalProfile,
   companyProfile,
   isLoading,
@@ -65,8 +65,8 @@ export function InvoiceRequestForm({
   const invoiceType = form.watch('invoice_type')
   const values = form.watch()
   const amount = useMemo(
-    () => sumSelectedTopUps(selectedTopUps),
-    [selectedTopUps]
+    () => sumSelectedInvoiceRecords(selectedRecords),
+    [selectedRecords]
   )
 
   useEffect(() => {
@@ -84,13 +84,16 @@ export function InvoiceRequestForm({
   }
 
   const disabled =
-    selectedTopUps.length === 0 ||
+    selectedRecords.length === 0 ||
     !values.title.trim() ||
     (invoiceType === 'company' && !values.tax_no.trim())
 
   const submitPayload = async () => {
     await onSubmit({
-      topup_ids: selectedTopUps.map((item) => item.id),
+      items: selectedRecords.map((item) => ({
+        source_type: item.source_type,
+        source_id: item.source_id,
+      })),
       invoice_type: values.invoice_type,
       title: values.title,
       tax_no: values.tax_no,
@@ -117,7 +120,7 @@ export function InvoiceRequestForm({
             </div>
           </div>
           <div className='text-muted-foreground text-sm'>
-            {t('Selected orders')}: {selectedTopUps.length}
+            {t('Selected records')}: {selectedRecords.length}
           </div>
         </div>
         <form
@@ -175,8 +178,8 @@ export function InvoiceRequestForm({
         <InvoiceSubmitConfirmDialog
           open={confirmOpen}
           onOpenChange={setConfirmOpen}
-          selectedCount={selectedTopUps.length}
-          tradeNos={selectedTopUps.map((item) => item.trade_no)}
+          selectedCount={selectedRecords.length}
+          tradeNos={selectedRecords.map((item) => item.trade_no)}
           amount={amount}
           invoiceType={values.invoice_type}
           title={values.title}

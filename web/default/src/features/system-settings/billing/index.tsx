@@ -66,6 +66,7 @@ const defaultBillingSettings: BillingSettings = {
   PayMethods: '',
   'payment_setting.amount_options': '',
   'payment_setting.amount_discount': '',
+  InvoiceAllowSubscriptionRecordsEnabled: false,
   StripeApiSecret: '',
   StripeWebhookSecret: '',
   StripePriceId: '',

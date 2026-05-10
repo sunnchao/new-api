@@ -5,7 +5,6 @@ import {
   type ColumnDef,
   type SortingState,
   type VisibilityState,
-  flexRender,
   getCoreRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
@@ -14,44 +13,37 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { useMediaQuery } from '@/hooks'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { formatQuota, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
+  DISABLED_ROW_DESKTOP,
+  DISABLED_ROW_MOBILE,
+  DataTablePage,
   DataTableColumnHeader,
-  DataTablePagination,
-  DataTableToolbar,
-  MobileCardList,
-  TableEmpty,
-  TableSkeleton,
 } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
-import { PageFooterPortal } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
 import {
+  API_KEY_STATUS,
   API_KEY_STATUSES,
   API_KEY_STATUS_OPTIONS,
   ERROR_MESSAGES,
 } from '@/features/keys/constants'
 import { getAdminTokens, searchAdminTokens } from '../api'
 import type { AdminToken } from '../types'
+import { AdminTokenBulkActions } from './admin-token-bulk-actions'
+import { AdminTokenRowActions } from './admin-token-row-actions'
+import { useAdminTokens } from './admin-tokens-provider'
 
 const route = getRouteApi('/_authenticated/admin-tokens/')
 
@@ -76,11 +68,40 @@ function AdminTokenKeyCell({ token }: { token: AdminToken }) {
   )
 }
 
+function isDisabledAdminTokenRow(token: AdminToken) {
+  return token.status !== API_KEY_STATUS.ENABLED
+}
+
 function useAdminTokenColumns(): ColumnDef<AdminToken>[] {
   const { t } = useTranslation()
 
   return useMemo(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            indeterminate={table.getIsSomePageRowsSelected()}
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
+            aria-label='Select all'
+            className='translate-y-[2px]'
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label='Select row'
+            className='translate-y-[2px]'
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        meta: { label: t('Select') },
+      },
       {
         accessorKey: 'name',
         header: ({ column }) => (
@@ -167,21 +188,19 @@ function useAdminTokenColumns(): ColumnDef<AdminToken>[] {
 
           return (
             <Tooltip>
-              <TooltipTrigger asChild>
-                <div className='w-[150px] space-y-1'>
-                  <div className='flex justify-between text-xs'>
-                    <span className='font-medium tabular-nums'>
-                      {formatQuota(remaining)}
-                    </span>
-                    <span className='text-muted-foreground tabular-nums'>
-                      {formatQuota(total)}
-                    </span>
-                  </div>
-                  <Progress
-                    value={percentage}
-                    className={cn('h-1.5', getQuotaProgressColor(percentage))}
-                  />
+              <TooltipTrigger render={<div className='w-[150px] space-y-1' />}>
+                <div className='flex justify-between text-xs'>
+                  <span className='font-medium tabular-nums'>
+                    {formatQuota(remaining)}
+                  </span>
+                  <span className='text-muted-foreground tabular-nums'>
+                    {formatQuota(total)}
+                  </span>
                 </div>
+                <Progress
+                  value={percentage}
+                  className={cn('h-1.5', getQuotaProgressColor(percentage))}
+                />
               </TooltipTrigger>
               <TooltipContent>
                 <div className='space-y-1 text-xs'>
@@ -257,6 +276,42 @@ function useAdminTokenColumns(): ColumnDef<AdminToken>[] {
         },
         meta: { label: t('Last Used'), mobileHidden: true },
       },
+      {
+        accessorKey: 'expired_time',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('Expires')} />
+        ),
+        cell: ({ row }) => {
+          const expiredTime = row.getValue('expired_time') as number
+          if (expiredTime === -1) {
+            return (
+              <StatusBadge
+                label={t('Never')}
+                variant='neutral'
+                copyable={false}
+              />
+            )
+          }
+          const isExpired = expiredTime * 1000 < Date.now()
+          return (
+            <span
+              className={cn(
+                'font-mono text-xs tabular-nums',
+                isExpired ? 'text-destructive' : 'text-muted-foreground'
+              )}
+            >
+              {formatTimestampToDate(expiredTime)}
+            </span>
+          )
+        },
+        meta: { label: t('Expires'), mobileHidden: true },
+      },
+      {
+        id: 'actions',
+        cell: ({ row }) => <AdminTokenRowActions row={row} />,
+        meta: { label: t('Actions') },
+        size: 88,
+      },
     ],
     [t]
   )
@@ -264,8 +319,9 @@ function useAdminTokenColumns(): ColumnDef<AdminToken>[] {
 
 export function AdminTokensTable() {
   const { t } = useTranslation()
+  const { refreshTrigger } = useAdminTokens()
   const columns = useAdminTokenColumns()
-  const isMobile = useMediaQuery('(max-width: 640px)')
+  const [rowSelection, setRowSelection] = useState({})
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
 
@@ -292,6 +348,7 @@ export function AdminTokensTable() {
       pagination.pageIndex + 1,
       pagination.pageSize,
       globalFilter,
+      refreshTrigger,
     ],
     queryFn: async () => {
       const keyword = globalFilter?.trim() ?? ''
@@ -334,10 +391,13 @@ export function AdminTokensTable() {
     state: {
       sorting,
       columnVisibility,
+      rowSelection,
       columnFilters,
       globalFilter,
       pagination,
     },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange,
@@ -370,95 +430,34 @@ export function AdminTokensTable() {
   }, [pageCount, ensurePageInRange])
 
   return (
-    <>
-      <div className='space-y-4'>
-        <div className='flex justify-end'>
-          <DataTableToolbar
-            table={table}
-            searchPlaceholder={t('Filter by token name')}
-            filters={[
-              {
-                columnId: 'status',
-                title: t('Status'),
-                options: API_KEY_STATUS_OPTIONS,
-              },
-            ]}
-          />
-        </div>
-        {isMobile ? (
-          <MobileCardList
-            table={table}
-            isLoading={isLoading}
-            emptyTitle={t('No API Keys Found')}
-            emptyDescription={t(
-              'No API keys available. Create your first API key to get started.'
-            )}
-          />
-        ) : (
-          <div
-            className={cn(
-              'overflow-hidden rounded-md border transition-opacity duration-150',
-              isFetching && !isLoading && 'pointer-events-none opacity-50'
-            )}
-          >
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id} colSpan={header.colSpan}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableSkeleton
-                    table={table}
-                    keyPrefix='admin-tokens-skeleton'
-                  />
-                ) : table.getRowModel().rows.length === 0 ? (
-                  <TableEmpty
-                    colSpan={columns.length}
-                    title={t('No API Keys Found')}
-                    description={t(
-                      'No API keys available. Create your first API key to get started.'
-                    )}
-                  />
-                ) : (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      className={
-                        row.original.status !== 1 ? 'opacity-60' : undefined
-                      }
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-      <PageFooterPortal>
-        <DataTablePagination table={table} />
-      </PageFooterPortal>
-    </>
+    <DataTablePage
+      table={table}
+      columns={columns}
+      isLoading={isLoading}
+      isFetching={isFetching}
+      emptyTitle={t('No API Keys Found')}
+      emptyDescription={t(
+        'No API keys available. Create your first API key to get started.'
+      )}
+      skeletonKeyPrefix='admin-tokens-skeleton'
+      toolbarProps={{
+        searchPlaceholder: t('Filter by token name'),
+        filters: [
+          {
+            columnId: 'status',
+            title: t('Status'),
+            options: API_KEY_STATUS_OPTIONS,
+          },
+        ],
+      }}
+      getRowClassName={(row, ctx) =>
+        isDisabledAdminTokenRow(row.original)
+          ? ctx.isMobile
+            ? DISABLED_ROW_MOBILE
+            : DISABLED_ROW_DESKTOP
+          : undefined
+      }
+      bulkActions={<AdminTokenBulkActions table={table} />}
+    />
   )
 }
