@@ -86,7 +86,7 @@ export function SubscriptionPurchaseDialog(props: Props) {
   const hasStripe = props.enableStripe && !!plan.stripe_price_id
   const hasCreem = props.enableCreem && !!plan.creem_product_id
   const hasEpay =
-    props.enableOnlineTopUp && (props.epayMethods || []).length > 0
+    false // props.enableOnlineTopUp && (props.epayMethods || []).length > 0
   const hasBalance = props.enableBalancePay !== false
   const hasAnyPayment = hasStripe || hasCreem || hasEpay || hasBalance
   const selectedEpayMethodLabel =
@@ -295,7 +295,6 @@ export function SubscriptionPurchaseDialog(props: Props) {
                 <div className='grid grid-cols-2 gap-2 sm:flex sm:flex-wrap'>
                   {hasBalance && (
                     <Button
-                      variant='outline'
                       className='flex-1'
                       onClick={handlePayBalance}
                       disabled={paying || limitReached}
