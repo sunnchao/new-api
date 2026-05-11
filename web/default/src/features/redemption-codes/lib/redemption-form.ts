@@ -23,7 +23,11 @@ import {
   REDEMPTION_VALIDATION,
   getRedemptionFormErrorMessages,
 } from '../constants'
-import { type RedemptionFormData, type Redemption } from '../types'
+import {
+  type RedemptionFormData,
+  type Redemption,
+  REDEMPTION_TYPES,
+} from '../types'
 
 // ============================================================================
 // Form Schema (use getRedemptionFormSchema(t) in components for i18n messages)
@@ -31,24 +35,51 @@ import { type RedemptionFormData, type Redemption } from '../types'
 
 export function getRedemptionFormSchema(t: TFunction) {
   const msg = getRedemptionFormErrorMessages(t)
-  return z.object({
-    name: z
-      .string()
-      .min(REDEMPTION_VALIDATION.NAME_MIN_LENGTH, msg.NAME_LENGTH_INVALID)
-      .max(REDEMPTION_VALIDATION.NAME_MAX_LENGTH, msg.NAME_LENGTH_INVALID),
-    quota_dollars: z.number().min(0, t('Quota must be a positive number')),
-    expired_time: z.date().optional(),
-    count: z
-      .number()
-      .min(REDEMPTION_VALIDATION.COUNT_MIN, msg.COUNT_INVALID)
-      .max(REDEMPTION_VALIDATION.COUNT_MAX, msg.COUNT_INVALID)
-      .optional(),
-  })
+  return z
+    .object({
+      name: z
+        .string()
+        .min(REDEMPTION_VALIDATION.NAME_MIN_LENGTH, msg.NAME_LENGTH_INVALID)
+        .max(REDEMPTION_VALIDATION.NAME_MAX_LENGTH, msg.NAME_LENGTH_INVALID),
+      quota_dollars: z.number().optional(),
+      type: z.enum([REDEMPTION_TYPES.QUOTA, REDEMPTION_TYPES.SUBSCRIPTION]),
+      subscription_plan_id: z.number().optional(),
+      expired_time: z.date().optional(),
+      count: z
+        .number()
+        .min(REDEMPTION_VALIDATION.COUNT_MIN, msg.COUNT_INVALID)
+        .max(REDEMPTION_VALIDATION.COUNT_MAX, msg.COUNT_INVALID)
+        .optional(),
+    })
+    .superRefine((values, ctx) => {
+      if (
+        values.type === REDEMPTION_TYPES.QUOTA &&
+        (values.quota_dollars === undefined || values.quota_dollars < 0)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['quota_dollars'],
+          message: t('Quota must be a positive number'),
+        })
+      }
+      if (
+        values.type === REDEMPTION_TYPES.SUBSCRIPTION &&
+        !values.subscription_plan_id
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['subscription_plan_id'],
+          message: t('Please select a subscription plan'),
+        })
+      }
+    })
 }
 
 export type RedemptionFormValues = {
   name: string
-  quota_dollars: number
+  quota_dollars?: number
+  type: (typeof REDEMPTION_TYPES)[keyof typeof REDEMPTION_TYPES]
+  subscription_plan_id?: number
   expired_time?: Date
   count?: number
 }
@@ -60,6 +91,8 @@ export type RedemptionFormValues = {
 export const REDEMPTION_FORM_DEFAULT_VALUES: RedemptionFormValues = {
   name: '',
   quota_dollars: 10,
+  type: REDEMPTION_TYPES.QUOTA,
+  subscription_plan_id: undefined,
   expired_time: undefined,
   count: 1,
 }
@@ -74,9 +107,12 @@ export const REDEMPTION_FORM_DEFAULT_VALUES: RedemptionFormValues = {
 export function transformFormDataToPayload(
   data: RedemptionFormValues
 ): RedemptionFormData {
+  const isSubscription = data.type === REDEMPTION_TYPES.SUBSCRIPTION
   return {
     name: data.name,
-    quota: parseQuotaFromDollars(data.quota_dollars),
+    quota: isSubscription ? 0 : parseQuotaFromDollars(data.quota_dollars ?? 0),
+    type: data.type,
+    subscription_plan_id: isSubscription ? data.subscription_plan_id || 0 : 0,
     expired_time: data.expired_time
       ? Math.floor(data.expired_time.getTime() / 1000)
       : 0,
@@ -90,8 +126,14 @@ export function transformFormDataToPayload(
 export function transformRedemptionToFormDefaults(
   redemption: Redemption
 ): RedemptionFormValues {
+  const type =
+    redemption.type === REDEMPTION_TYPES.SUBSCRIPTION
+      ? REDEMPTION_TYPES.SUBSCRIPTION
+      : REDEMPTION_TYPES.QUOTA
   return {
     name: redemption.name,
+    type,
+    subscription_plan_id: redemption.subscription_plan_id || undefined,
     quota_dollars: quotaUnitsToDollars(redemption.quota),
     expired_time:
       redemption.expired_time > 0

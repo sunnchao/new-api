@@ -30,7 +30,7 @@ import { MaskedValueDisplay } from '@/components/masked-value-display'
 import { StatusBadge } from '@/components/status-badge'
 import { REDEMPTION_FILTER_EXPIRED, REDEMPTION_STATUSES } from '../constants'
 import { isRedemptionExpired, isTimestampExpired } from '../lib'
-import { type Redemption } from '../types'
+import { type Redemption, REDEMPTION_TYPES } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
 
 export function useRedemptionsColumns(): ColumnDef<Redemption>[] {
@@ -161,11 +161,23 @@ export function useRedemptionsColumns(): ColumnDef<Redemption>[] {
     },
     {
       accessorKey: 'quota',
-      meta: { label: t('Quota') },
+      meta: { label: t('Content') },
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Quota')} />
+        <DataTableColumnHeader column={column} title={t('Content')} />
       ),
       cell: ({ row }) => {
+        const redemption = row.original
+        if (redemption.type === REDEMPTION_TYPES.SUBSCRIPTION) {
+          return (
+            <StatusBadge
+              label={t('Subscription plan #{{id}}', {
+                id: redemption.subscription_plan_id || '-',
+              })}
+              variant='info'
+              copyable={false}
+            />
+          )
+        }
         const quota = row.getValue('quota') as number
         return (
           <StatusBadge

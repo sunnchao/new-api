@@ -22,6 +22,7 @@ import { RedemptionsDialogs } from './components/redemptions-dialogs'
 import { RedemptionsPrimaryButtons } from './components/redemptions-primary-buttons'
 import { RedemptionsProvider } from './components/redemptions-provider'
 import { RedemptionsTable } from './components/redemptions-table'
+import './i18n'
 
 export function Redemptions() {
   const { t } = useTranslation()

@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/QuantumNous/new-api/common"
@@ -81,16 +82,22 @@ func AddRedemption(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": msg})
 		return
 	}
+	redemption.Type = normalizeRedemptionTypeForController(redemption.Type)
+	if !validateRedemptionPayload(c, &redemption) {
+		return
+	}
 	var keys []string
 	for i := 0; i < redemption.Count; i++ {
 		key := common.GetUUID()
 		cleanRedemption := model.Redemption{
-			UserId:      c.GetInt("id"),
-			Name:        redemption.Name,
-			Key:         key,
-			CreatedTime: common.GetTimestamp(),
-			Quota:       redemption.Quota,
-			ExpiredTime: redemption.ExpiredTime,
+			UserId:             c.GetInt("id"),
+			Name:               redemption.Name,
+			Key:                key,
+			CreatedTime:        common.GetTimestamp(),
+			Quota:              redemption.Quota,
+			Type:               redemption.Type,
+			SubscriptionPlanId: redemption.SubscriptionPlanId,
+			ExpiredTime:        redemption.ExpiredTime,
 		}
 		err = cleanRedemption.Insert()
 		if err != nil {
@@ -147,7 +154,12 @@ func UpdateRedemption(c *gin.Context) {
 		// If you add more fields, please also update redemption.Update()
 		cleanRedemption.Name = redemption.Name
 		cleanRedemption.Quota = redemption.Quota
+		cleanRedemption.Type = normalizeRedemptionTypeForController(redemption.Type)
+		cleanRedemption.SubscriptionPlanId = redemption.SubscriptionPlanId
 		cleanRedemption.ExpiredTime = redemption.ExpiredTime
+		if !validateRedemptionPayload(c, cleanRedemption) {
+			return
+		}
 	}
 	if statusOnly != "" {
 		cleanRedemption.Status = redemption.Status
@@ -184,4 +196,32 @@ func validateExpiredTime(c *gin.Context, expired int64) (bool, string) {
 		return false, i18n.T(c, i18n.MsgRedemptionExpireTimeInvalid)
 	}
 	return true, ""
+}
+
+func normalizeRedemptionTypeForController(redemptionType string) string {
+	switch strings.TrimSpace(redemptionType) {
+	case model.RedemptionTypeSubscription:
+		return model.RedemptionTypeSubscription
+	default:
+		return model.RedemptionTypeQuota
+	}
+}
+
+func validateRedemptionPayload(c *gin.Context, redemption *model.Redemption) bool {
+	switch normalizeRedemptionTypeForController(redemption.Type) {
+	case model.RedemptionTypeSubscription:
+		if redemption.SubscriptionPlanId <= 0 {
+			common.ApiErrorMsg(c, "请选择订阅套餐")
+			return false
+		}
+		if _, err := model.GetSubscriptionPlanById(redemption.SubscriptionPlanId); err != nil {
+			common.ApiErrorMsg(c, "订阅套餐不存在")
+			return false
+		}
+		redemption.Quota = 0
+	default:
+		redemption.Type = model.RedemptionTypeQuota
+		redemption.SubscriptionPlanId = 0
+	}
+	return true
 }

@@ -22,6 +22,7 @@ import { toast } from 'sonner'
 import { getSelf } from '@/lib/api'
 import { formatQuota } from '@/lib/format'
 import { redeemTopupCode } from '../api'
+import '../i18n'
 
 // ============================================================================
 // Redemption Hook
@@ -41,7 +42,21 @@ export function useRedemption() {
       const response = await redeemTopupCode({ key: code })
 
       if (response.success && response.data) {
-        const quotaAdded = response.data
+        if (
+          typeof response.data === 'object' &&
+          response.data.type === 'subscription'
+        ) {
+          toast.success(
+            i18next.t('Successfully redeemed subscription: {{plan}}', {
+              plan:
+                response.data.plan?.title ||
+                `#${response.data.subscription?.plan_id || ''}`,
+            })
+          )
+          await getSelf()
+          return true
+        }
+        const quotaAdded = Number(response.data)
         toast.success(
           i18next.t('Redemption successful! Added: {{quota}}', {
             quota: formatQuota(quotaAdded),

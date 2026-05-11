@@ -157,13 +157,23 @@ const TopUp = () => {
       });
       const { success, message, data } = res.data;
       if (success) {
-        showSuccess(t('兑换成功！'));
-        Modal.success({
-          title: t('兑换成功！'),
-          content: t('成功兑换额度：') + renderQuota(data),
-          centered: true,
-        });
-        if (userState.user) {
+        if (data && typeof data === 'object' && data.type === 'subscription') {
+          const planTitle = data.plan?.title || `#${data.subscription?.plan_id || ''}`;
+          showSuccess(t('兑换成功！'));
+          Modal.success({
+            title: t('兑换成功！'),
+            content: t('成功兑换订阅：') + planTitle,
+            centered: true,
+          });
+        } else {
+          showSuccess(t('兑换成功！'));
+          Modal.success({
+            title: t('兑换成功！'),
+            content: t('成功兑换额度：') + renderQuota(data),
+            centered: true,
+          });
+        }
+        if (userState.user && typeof data === 'number') {
           const updatedUser = {
             ...userState.user,
             quota: userState.user.quota + data,
