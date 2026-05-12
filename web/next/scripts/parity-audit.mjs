@@ -84,6 +84,9 @@ const missingEndpoints = [...defaultEndpoints.keys()]
 
 const report = {
   defaultFeatureCount: defaultFeatures.length,
+  defaultFeatures,
+  nextFeatureCount: nextFeatures.length,
+  nextFeatures,
   missingFeatureModules,
   defaultEndpointCount: defaultEndpoints.size,
   nextEndpointCount: nextEndpoints.size,
