@@ -1,0 +1,28 @@
+export const featureDomains = [
+  "about",
+  "admin-tokens",
+  "auth",
+  "channels",
+  "chat",
+  "dashboard",
+  "errors",
+  "home",
+  "invoices",
+  "keys",
+  "legal",
+  "models",
+  "performance-metrics",
+  "playground",
+  "pricing",
+  "profile",
+  "rankings",
+  "redemption-codes",
+  "setup",
+  "subscriptions",
+  "system-settings",
+  "usage-logs",
+  "users",
+  "wallet",
+] as const;
+
+export type FeatureDomain = (typeof featureDomains)[number];
