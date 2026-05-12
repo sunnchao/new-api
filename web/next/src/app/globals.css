@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* ========================================
+   Dark Minimal Design System
+   New API — web/next
+   ======================================== */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* ─── Surface / Background ─── */
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0b;
+  --surface: #f4f4f5;
+  --surface-hover: #e4e4e7;
+  --surface-active: #d4d4d8;
+  --border: #e4e4e7;
+  --border-hover: #d4d4d8;
+  --muted: #71717a;
+  --muted-foreground: #a1a1aa;
+
+  /* Accent — blue-violet */
+  --accent: oklch(0.55 0.25 270);
+  --accent-hover: oklch(0.50 0.25 270);
+  --accent-foreground: #ffffff;
+  --accent-muted: oklch(0.55 0.15 270);
+
+  /* Status */
+  --success: oklch(0.65 0.19 155);
+  --success-foreground: #ffffff;
+  --warning: oklch(0.75 0.18 75);
+  --warning-foreground: #0a0a0b;
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: #ffffff;
+
+  /* Sidebar */
+  --sidebar-bg: #fafafa;
+  --sidebar-border: #e4e4e7;
+  --sidebar-accent: oklch(0.96 0.01 270);
+  --sidebar-foreground: #0a0a0b;
+  --sidebar-muted: #71717a;
+
+  /* Radius */
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.06);
+
+  /* Overlay */
+  --overlay: rgba(0, 0, 0, 0.5);
+}
+
+.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --surface: #18181b;
+  --surface-hover: #27272a;
+  --surface-active: #3f3f46;
+  --border: #27272a;
+  --border-hover: #3f3f46;
+  --muted: #71717a;
+  --muted-foreground: #a1a1aa;
+
+  --accent: oklch(0.65 0.22 270);
+  --accent-hover: oklch(0.70 0.22 270);
+  --accent-foreground: #09090b;
+  --accent-muted: oklch(0.65 0.12 270);
+
+  --success: oklch(0.70 0.17 155);
+  --warning: oklch(0.80 0.16 75);
+  --destructive: oklch(0.60 0.20 25);
+
+  --sidebar-bg: #0c0c0e;
+  --sidebar-border: #1e1e22;
+  --sidebar-accent: oklch(0.18 0.01 270);
+  --sidebar-foreground: #fafafa;
+  --sidebar-muted: #71717a;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+
+  --overlay: rgba(0, 0, 0, 0.7);
+}
+
+/* ─── Base ─── */
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* ─── Focus ring ─── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ─── Selection ─── */
+::selection {
+  background: oklch(0.55 0.25 270 / 0.3);
+}
+
+/* ─── Text wrapping ─── */
+.text-pretty {
+  text-wrap: pretty;
+}
+
+@import "../styles/theme-presets.css";

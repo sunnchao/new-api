@@ -52,7 +52,7 @@ export function useNavItems(): NavItem[] {
     { title: t("nav.redemptionCodes"), href: "/redemption-codes", icon: CreditCard, adminOnly: true },
     { title: t("nav.subscriptions"), href: "/subscriptions", icon: Crown, adminOnly: true },
     { title: t("nav.adminTokens"), href: "/admin-tokens", icon: ShieldCheck, adminOnly: true },
-    { title: "Performance", href: "/performance-metrics", icon: Gauge, adminOnly: true },
+    { title: t("nav.performance"), href: "/performance-metrics", icon: Gauge, adminOnly: true },
     { title: t("nav.systemSettings"), href: "/system-settings", icon: Settings, adminOnly: true },
   ];
 
