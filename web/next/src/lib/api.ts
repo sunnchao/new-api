@@ -169,6 +169,31 @@ export async function getNotice(): Promise<ApiResponse<string>> {
   return res.data;
 }
 
+export async function get2FAStatus(): Promise<ApiResponse<{ enabled?: boolean }>> {
+  const res = await api.get<ApiResponse<{ enabled?: boolean }>>("/api/user/2fa/status");
+  return res.data;
+}
+
+export async function setup2FA(): Promise<ApiResponse> {
+  const res = await api.post<ApiResponse>("/api/user/2fa/setup");
+  return res.data;
+}
+
+export async function enable2FA(code: string): Promise<ApiResponse> {
+  const res = await api.post<ApiResponse>("/api/user/2fa/enable", { code });
+  return res.data;
+}
+
+export async function disable2FA(code: string): Promise<ApiResponse> {
+  const res = await api.post<ApiResponse>("/api/user/2fa/disable", { code });
+  return res.data;
+}
+
+export async function regenerate2FABackupCodes(code: string): Promise<ApiResponse> {
+  const res = await api.post<ApiResponse>("/api/user/2fa/backup_codes", { code });
+  return res.data;
+}
+
 export async function getSetupStatus(): Promise<ApiResponse<{ required?: boolean }>> {
   const res = await api.get<ApiResponse<{ required?: boolean }>>("/api/setup");
   return res.data;
@@ -182,7 +207,13 @@ export async function checkSetupRequired(): Promise<boolean> {
     }
 
     const res = await getSetupStatus();
-    const required = res.data?.required ?? false;
+    const data = res.data as { required?: boolean; status?: boolean } | undefined;
+    const required =
+      typeof data?.required === "boolean"
+        ? data.required
+        : typeof data?.status === "boolean"
+          ? !data.status
+          : false;
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem("setup_required", String(required));

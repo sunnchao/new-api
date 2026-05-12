@@ -4,7 +4,7 @@ import "@/i18n/config";
 import { ThemeProvider } from "@/context/theme-provider";
 import { ThemeCustomizationProvider } from "@/context/theme-customization-provider";
 import { QueryProvider } from "@/context/query-provider";
-import { getStatus } from "@/lib/api";
+import { checkSetupRequired, getStatus } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useSystemConfigStore, type QuotaDisplayType } from "@/stores/system-config-store";
 import { useEffect, type ReactNode } from "react";
@@ -131,6 +131,26 @@ function SystemConfigProvider({ children }: { children: ReactNode }) {
   return children;
 }
 
+function SetupGuardProvider({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const pathname = window.location.pathname;
+    if (pathname === "/setup" || pathname.startsWith("/setup/")) return;
+
+    let cancelled = false;
+    checkSetupRequired().then((required) => {
+      if (!cancelled && required) {
+        window.location.replace("/setup");
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return children;
+}
+
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider
@@ -142,10 +162,12 @@ export function Providers({ children }: { children: ReactNode }) {
       <ThemeCustomizationProvider>
         <QueryProvider>
           <AuthHydrationProvider>
-            <SystemConfigProvider>
-              {children}
-              <Toaster richColors position="top-right" />
-            </SystemConfigProvider>
+            <SetupGuardProvider>
+              <SystemConfigProvider>
+                {children}
+                <Toaster richColors position="top-right" />
+              </SystemConfigProvider>
+            </SetupGuardProvider>
           </AuthHydrationProvider>
         </QueryProvider>
       </ThemeCustomizationProvider>

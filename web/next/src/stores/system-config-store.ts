@@ -24,9 +24,11 @@ export interface SystemConfig {
 interface SystemConfigState {
   config: SystemConfig;
   loadedLogoUrl: string;
+  loading: boolean;
   setConfig: (config: Partial<SystemConfig>) => void;
   setCurrency: (currency: Partial<CurrencyConfig>) => void;
   setLoadedLogoUrl: (url: string) => void;
+  setLoading: (loading: boolean) => void;
   getSystemName: () => string;
   getLogo: () => string;
   getFooterHtml: () => string;
@@ -53,6 +55,7 @@ export const useSystemConfigStore = create<SystemConfigState>()(
     (set, get) => ({
       config: defaultConfig,
       loadedLogoUrl: "",
+      loading: false,
       setConfig: (partial) =>
         set((s) => ({ config: { ...s.config, ...partial } })),
       setCurrency: (partial) =>
@@ -63,6 +66,7 @@ export const useSystemConfigStore = create<SystemConfigState>()(
           },
         })),
       setLoadedLogoUrl: (url) => set({ loadedLogoUrl: url }),
+      setLoading: (loading) => set({ loading }),
       getSystemName: () => get().config.systemName || "New API",
       getLogo: () => get().config.logo || get().loadedLogoUrl,
       getFooterHtml: () => get().config.footerHtml,
