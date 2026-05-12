@@ -6,13 +6,19 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "../../..");
 const defaultRoot = path.join(repoRoot, "web/default/src");
 const nextRoot = path.join(repoRoot, "web/next/src");
+const warnings = [];
 
 function walk(dir) {
   const output = [];
   let entries;
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
+  } catch (error) {
+    warnings.push({
+      type: "read-directory",
+      path: dir,
+      message: error.message,
+    });
     return output;
   }
   for (const entry of entries) {
@@ -29,7 +35,12 @@ function featureStats(root) {
   let entries;
   try {
     entries = fs.readdirSync(features, { withFileTypes: true });
-  } catch {
+  } catch (error) {
+    warnings.push({
+      type: "read-features-directory",
+      path: features,
+      message: error.message,
+    });
     return rows;
   }
   for (const entry of entries) {
@@ -52,7 +63,12 @@ function endpoints(root) {
     let text;
     try {
       text = fs.readFileSync(file, "utf8");
-    } catch {
+    } catch (error) {
+      warnings.push({
+        type: "read-file",
+        path: file,
+        message: error.message,
+      });
       continue;
     }
     let match;
@@ -92,12 +108,17 @@ const report = {
   nextEndpointCount: nextEndpoints.size,
   missingEndpointCount: missingEndpoints.length,
   missingEndpoints,
+  warnings,
 };
 
 console.log(JSON.stringify(report, null, 2));
 
 if (process.argv.includes("--fail-on-gap")) {
-  if (missingFeatureModules.length > 0 || missingEndpoints.length > 0) {
+  if (
+    missingFeatureModules.length > 0 ||
+    missingEndpoints.length > 0 ||
+    warnings.length > 0
+  ) {
     process.exitCode = 1;
   }
 }
