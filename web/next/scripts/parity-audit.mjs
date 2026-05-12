@@ -1,13 +1,21 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(process.cwd(), "../..");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, "../../..");
 const defaultRoot = path.join(repoRoot, "web/default/src");
 const nextRoot = path.join(repoRoot, "web/next/src");
 
 function walk(dir) {
   const output = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return output;
+  }
+  for (const entry of entries) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) output.push(...walk(full));
     else output.push(full);
@@ -18,7 +26,13 @@ function walk(dir) {
 function featureStats(root) {
   const features = path.join(root, "features");
   const rows = [];
-  for (const entry of fs.readdirSync(features, { withFileTypes: true })) {
+  let entries;
+  try {
+    entries = fs.readdirSync(features, { withFileTypes: true });
+  } catch {
+    return rows;
+  }
+  for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     const files = walk(path.join(features, entry.name));
     rows.push({
@@ -35,7 +49,12 @@ function endpoints(root) {
   const regex = /(?:api|axios)\.(get|post|put|patch|delete)\(\s*([`'"])([^`'"]+)/g;
   const map = new Map();
   for (const file of walk(root).filter((item) => /\.(ts|tsx)$/.test(item))) {
-    const text = fs.readFileSync(file, "utf8");
+    let text;
+    try {
+      text = fs.readFileSync(file, "utf8");
+    } catch {
+      continue;
+    }
     let match;
     while ((match = regex.exec(text))) {
       const endpoint = match[3];
