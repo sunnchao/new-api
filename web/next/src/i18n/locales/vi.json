@@ -191,7 +191,13 @@
     "perMillionTokens": "mỗi 1 triệu token",
     "group": "Nhóm",
     "selectAll": "Chọn tất cả",
-    "deselectAll": "Bỏ chọn tất cả"
+    "deselectAll": "Bỏ chọn tất cả",
+    "allModelsDescription": "Tất cả mô hình hiện có và tỷ lệ giá",
+    "modelNotFound": "Không tìm thấy mô hình",
+    "specifications": "Thông số",
+    "contextLength": "Độ dài ngữ cảnh",
+    "maxOutput": "Đầu ra tối đa",
+    "capabilities": "Khả năng"
   },
   "rankings": {
     "title": "Xếp hạng",
@@ -202,6 +208,25 @@
     "model": "Mô hình",
     "requests": "Yêu cầu",
     "tokens": "Token",
-    "marketShare": "Thị phần"
+    "marketShare": "Thị phần",
+    "description": "Các mô hình AI phổ biến nhất theo mức sử dụng",
+    "period": {
+      "today": "Hôm nay",
+      "week": "Tuần",
+      "month": "Tháng",
+      "year": "Năm",
+      "all": "Toàn thời gian"
+    }
+  },
+  "home": {
+    "customHomePage": "Trang chủ tùy chỉnh",
+    "loadContentFailed": "Không thể tải nội dung trang chủ"
+  },
+  "legal": {
+    "userAgreement": "Thỏa thuận người dùng",
+    "externalDocument": "Người quản trị đã cấu hình một liên kết ngoài cho tài liệu này.",
+    "viewDocument": "Xem tài liệu",
+    "privacyPolicyEmpty": "Quản trị viên chưa cấu hình chính sách bảo mật.",
+    "userAgreementEmpty": "Quản trị viên chưa cấu hình thỏa thuận người dùng."
   }
 }

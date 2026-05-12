@@ -191,7 +191,13 @@
     "perMillionTokens": "per 1M tokens",
     "group": "Group",
     "selectAll": "Select All",
-    "deselectAll": "Deselect All"
+    "deselectAll": "Deselect All",
+    "allModelsDescription": "All available models and their pricing ratios",
+    "modelNotFound": "Model not found",
+    "specifications": "Specifications",
+    "contextLength": "Context Length",
+    "maxOutput": "Max Output",
+    "capabilities": "Capabilities"
   },
   "rankings": {
     "title": "Rankings",
@@ -202,6 +208,25 @@
     "model": "Model",
     "requests": "Requests",
     "tokens": "Tokens",
-    "marketShare": "Market Share"
+    "marketShare": "Market Share",
+    "description": "Most popular AI models by usage",
+    "period": {
+      "today": "Today",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year",
+      "all": "All time"
+    }
+  },
+  "home": {
+    "customHomePage": "Custom Home Page",
+    "loadContentFailed": "Failed to load home page content"
+  },
+  "legal": {
+    "userAgreement": "User Agreement",
+    "externalDocument": "The administrator configured an external link for this document.",
+    "viewDocument": "View document",
+    "privacyPolicyEmpty": "The administrator has not configured a privacy policy yet.",
+    "userAgreementEmpty": "The administrator has not configured a user agreement yet."
   }
 }

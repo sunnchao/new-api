@@ -191,7 +191,13 @@
     "perMillionTokens": "pour 1M de jetons",
     "group": "Groupe",
     "selectAll": "Tout sélectionner",
-    "deselectAll": "Tout désélectionner"
+    "deselectAll": "Tout désélectionner",
+    "allModelsDescription": "Tous les modèles disponibles et leurs ratios tarifaires",
+    "modelNotFound": "Modèle introuvable",
+    "specifications": "Spécifications",
+    "contextLength": "Longueur du contexte",
+    "maxOutput": "Sortie maximale",
+    "capabilities": "Capacités"
   },
   "rankings": {
     "title": "Classements",
@@ -202,6 +208,25 @@
     "model": "Modèle",
     "requests": "Requêtes",
     "tokens": "Jetons",
-    "marketShare": "Part de marché"
+    "marketShare": "Part de marché",
+    "description": "Modèles IA les plus populaires par utilisation",
+    "period": {
+      "today": "Aujourd'hui",
+      "week": "Semaine",
+      "month": "Mois",
+      "year": "Année",
+      "all": "Tout le temps"
+    }
+  },
+  "home": {
+    "customHomePage": "Page d'accueil personnalisée",
+    "loadContentFailed": "Échec du chargement du contenu de la page d'accueil"
+  },
+  "legal": {
+    "userAgreement": "Accord utilisateur",
+    "externalDocument": "L'administrateur a configuré un lien externe pour ce document.",
+    "viewDocument": "Afficher le document",
+    "privacyPolicyEmpty": "L'administrateur n'a pas encore configuré de politique de confidentialité.",
+    "userAgreementEmpty": "L'administrateur n'a pas encore configuré d'accord utilisateur."
   }
 }

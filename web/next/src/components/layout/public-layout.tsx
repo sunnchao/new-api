@@ -1,12 +1,25 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { PublicHeader } from "./public-header";
 import { useSystemConfigStore } from "@/stores/system-config-store";
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
-  const footerHtml = useSystemConfigStore((s) => s.getFooterHtml());
-  const systemName = useSystemConfigStore((s) => s.getSystemName());
+  const persistedFooterHtml = useSystemConfigStore((s) => s.getFooterHtml());
+  const persistedSystemName = useSystemConfigStore((s) => s.getSystemName());
+  const [mounted, setMounted] = useState(false);
   const currentYear = new Date().getFullYear();
+  const footerHtml = mounted ? persistedFooterHtml : "";
+  const systemName = mounted ? persistedSystemName : "New API";
+  const safeFooterHtml = useMemo(
+    () => footerHtml.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, ""),
+    [footerHtml],
+  );
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const attribution = (
     <a
       href="https://github.com/QuantumNous/new-api"
@@ -24,7 +37,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1">{children}</main>
       {footerHtml ? (
         <footer className="border-t border-[var(--border)] px-4 py-6 text-center text-sm text-[var(--muted)]">
-          <div dangerouslySetInnerHTML={{ __html: footerHtml }} />
+          <div dangerouslySetInnerHTML={{ __html: safeFooterHtml }} />
           <div className="mt-2 text-xs">&copy; {currentYear} {attribution}</div>
         </footer>
       ) : (

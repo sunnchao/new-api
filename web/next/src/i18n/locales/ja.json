@@ -191,7 +191,13 @@
     "perMillionTokens": "100万トークンあたり",
     "group": "グループ",
     "selectAll": "すべて選択",
-    "deselectAll": "すべて解除"
+    "deselectAll": "すべて解除",
+    "allModelsDescription": "利用可能なすべてのモデルと価格比率",
+    "modelNotFound": "モデルが見つかりません",
+    "specifications": "仕様",
+    "contextLength": "コンテキスト長",
+    "maxOutput": "最大出力",
+    "capabilities": "機能"
   },
   "rankings": {
     "title": "ランキング",
@@ -202,6 +208,25 @@
     "model": "モデル",
     "requests": "リクエスト",
     "tokens": "トークン",
-    "marketShare": "市場シェア"
+    "marketShare": "市場シェア",
+    "description": "利用量で見た人気の AI モデル",
+    "period": {
+      "today": "今日",
+      "week": "週",
+      "month": "月",
+      "year": "年",
+      "all": "全期間"
+    }
+  },
+  "home": {
+    "customHomePage": "カスタムホームページ",
+    "loadContentFailed": "ホームページの内容の読み込みに失敗しました"
+  },
+  "legal": {
+    "userAgreement": "ユーザー利用規約",
+    "externalDocument": "管理者がこのドキュメントの外部リンクを設定しました。",
+    "viewDocument": "ドキュメントを表示",
+    "privacyPolicyEmpty": "管理者がまだプライバシーポリシーを設定していません。",
+    "userAgreementEmpty": "管理者がまだ利用規約を設定していません。"
   }
 }

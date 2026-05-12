@@ -191,7 +191,13 @@
     "perMillionTokens": "每百万 token",
     "group": "分组",
     "selectAll": "全选",
-    "deselectAll": "取消全选"
+    "deselectAll": "取消全选",
+    "allModelsDescription": "所有可用模型及其计费倍率",
+    "modelNotFound": "未找到模型",
+    "specifications": "规格",
+    "contextLength": "上下文长度",
+    "maxOutput": "最大输出",
+    "capabilities": "能力"
   },
   "rankings": {
     "title": "排行榜",
@@ -202,6 +208,25 @@
     "model": "模型",
     "requests": "请求数",
     "tokens": "Token 数",
-    "marketShare": "市场份额"
+    "marketShare": "市场份额",
+    "description": "按用量统计的热门 AI 模型",
+    "period": {
+      "today": "今日",
+      "week": "本周",
+      "month": "本月",
+      "year": "今年",
+      "all": "全部时间"
+    }
+  },
+  "home": {
+    "customHomePage": "自定义主页",
+    "loadContentFailed": "加载首页内容失败"
+  },
+  "legal": {
+    "userAgreement": "用户协议",
+    "externalDocument": "管理员为此文档配置了外部链接。",
+    "viewDocument": "查看文档",
+    "privacyPolicyEmpty": "管理员尚未配置隐私政策。",
+    "userAgreementEmpty": "管理员尚未配置用户协议。"
   }
 }
