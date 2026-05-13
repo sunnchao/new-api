@@ -17,7 +17,6 @@ import (
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
-	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/bytedance/gopkg/util/gopool"
@@ -486,7 +485,7 @@ func checkAndSendQuotaNotify(relayInfo *relaycommon.RelayInfo, quota int, preCon
 		}
 		if quotaTooLow {
 			prompt := "您的额度即将用尽"
-			topUpLink := fmt.Sprintf("%s/console/topup", system_setting.ServerAddress)
+			topUpLink := PaymentReturnURL("/console/topup")
 
 			// 根据通知方式生成不同的内容格式
 			var content string
@@ -548,7 +547,7 @@ func checkAndSendSubscriptionQuotaNotify(relayInfo *relaycommon.RelayInfo) {
 			remainingText = fmt.Sprintf("%d 次", remaining)
 			remainingLabel = "剩余次数"
 		}
-		topUpLink := fmt.Sprintf("%s/console/topup", system_setting.ServerAddress)
+		topUpLink := PaymentReturnURL("/console/topup")
 
 		var content string
 		var values []interface{}

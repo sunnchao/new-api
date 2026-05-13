@@ -45,6 +45,7 @@ export const usageLogSchema = z.object({
   request_ip: z.string().default(''),
   other: z.string().default(''),
   request_id: z.string().default(''),
+  upstream_request_id: z.string().default(''),
 })
 
 export type UsageLog = z.infer<typeof usageLogSchema>
