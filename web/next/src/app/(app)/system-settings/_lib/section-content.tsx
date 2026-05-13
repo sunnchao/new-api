@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { findSection, type OptionField, type SectionDef, type CategoryDef } from "./config";
+import { cn } from "@/lib/utils";
 
 type OptionsMap = Record<string, string>;
 
@@ -135,8 +136,9 @@ export function SectionContent({
 
   return (
     <div className="space-y-4">
-      <Card className="bg-[var(--surface)]/40">
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
+      <Card className="relative overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--accent)] to-[var(--accent)]/50" />
+        <CardHeader className="flex flex-row items-start justify-between gap-4 pt-8">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <CardTitle>{section.title}</CardTitle>
@@ -156,11 +158,11 @@ export function SectionContent({
           ) : null}
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-5">
           {section.note ? (
-            <p className="rounded-md border border-dashed border-[var(--border)] bg-[var(--background)] p-3 text-xs text-[var(--muted)]">
+            <div className="rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-600 dark:text-amber-400">
               {section.note}
-            </p>
+            </div>
           ) : null}
 
           {!loaded && section.fields.length > 0 ? (
@@ -222,15 +224,15 @@ function FieldRow({
   const label = field.label ?? field.key;
 
   return (
-    <div className="space-y-2">
+    <div className="rounded-lg border border-[var(--border)] p-4 space-y-3 transition-colors hover:border-[var(--accent-muted)]/30">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <Label htmlFor={field.key} className="text-sm font-medium">
             {label}
           </Label>
-          <p className="truncate text-xs text-[var(--muted)] font-mono">{field.key}</p>
+          <p className="truncate text-xs text-[var(--muted)] font-mono mt-0.5">{field.key}</p>
         </div>
-        <Button variant="ghost" size="sm" onClick={onSave} disabled={saving}>
+        <Button variant="outline" size="sm" onClick={onSave} disabled={saving} className="shrink-0">
           <Save className="mr-1 h-3 w-3" />
           {saving ? savingLabel : saveLabel}
         </Button>
@@ -303,19 +305,19 @@ export function SubsectionTabs({
   activeSectionId: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-1 rounded-md border border-[var(--border)] bg-[var(--background)] p-1">
+    <div className="flex flex-wrap gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)]/30 p-1.5">
       {category.sections.map((s) => {
         const active = s.id === activeSectionId;
         return (
           <a
             key={s.id}
             href={`/system-settings/${category.id}/${s.id}`}
-            className={
-              "rounded px-3 py-1.5 text-xs font-medium transition-colors " +
-              (active
-                ? "bg-[var(--surface)] text-[var(--foreground)] shadow-sm"
-                : "text-[var(--muted)] hover:bg-[var(--surface)]/60 hover:text-[var(--foreground)]")
-            }
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-medium transition-all",
+              active
+                ? "bg-[var(--background)] text-[var(--foreground)] shadow-sm"
+                : "text-[var(--muted)] hover:bg-[var(--background)]/60 hover:text-[var(--foreground)]"
+            )}
           >
             {s.title}
           </a>

@@ -33,12 +33,19 @@ export function PublicHeader() {
   const languages = [
     { code: "en", label: "English" },
     { code: "zh", label: "中文" },
+    { code: "fr", label: "Français" },
+    { code: "ru", label: "Русский" },
+    { code: "ja", label: "日本語" },
+    { code: "vi", label: "Tiếng Việt" },
   ];
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-sm px-4 lg:px-8">
       <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
-        {displaySystemName}
+        <div className="h-7 w-7 rounded-md bg-[var(--accent)] flex items-center justify-center shrink-0">
+          <span className="text-[var(--accent-foreground)] text-sm font-bold">N</span>
+        </div>
+        <span className="hidden sm:inline">{displaySystemName}</span>
       </Link>
 
       <nav className="hidden md:flex items-center gap-6 text-sm">

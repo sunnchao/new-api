@@ -4,11 +4,12 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -414,30 +415,34 @@ export default function ChannelsPage() {
     [channels.length, selectedIds.size],
   );
 
-  const statusColors: Record<number, "success" | "destructive" | "secondary"> = {
-    1: "success",
+  const statusColors: Record<number, "default" | "destructive" | "secondary"> = {
+    1: "default",
     2: "destructive",
     3: "secondary",
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("nav.channels")}</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold tracking-tight">{t("nav.channels")}</h1>
+          <p className="text-sm text-[var(--muted)]">
+            {t("channels.description", { defaultValue: "Manage upstream AI provider connections and routing." })}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
           {selectedIds.size > 0 && (
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
-              className="text-[var(--destructive)] border-[var(--destructive)]/40"
               onClick={handleBatchDelete}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete Selected ({selectedIds.size})
+              Delete ({selectedIds.size})
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={fetchChannels}>
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
             {t("common.refresh")}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setTagOpsOpen(true)}>
@@ -567,7 +572,12 @@ export default function ChannelsPage() {
                         <Badge variant="secondary">{channelTypeLabel(ch.type)}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusColors[ch.status] || "secondary"}>
+                        <Badge
+                          variant={statusColors[ch.status] || "secondary"}
+                          className={cn(
+                            ch.status === 1 && "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                          )}
+                        >
                           {ch.status === 1
                             ? t("common.enabled")
                             : ch.status === 2
@@ -578,8 +588,10 @@ export default function ChannelsPage() {
                       <TableCell className="font-mono text-xs">
                         ${(ch.balance ?? 0).toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-xs text-[var(--muted)]">
-                        {modelsCount} models
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {modelsCount}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">

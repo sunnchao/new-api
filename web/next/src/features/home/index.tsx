@@ -20,8 +20,8 @@ import {
   GitBranch,
   Clock,
   Sparkles,
-  Terminal,
 } from "lucide-react";
+import { CopyButton } from "@/components/copy-button";
 
 export function HomePage() {
   const { t } = useTranslation();
@@ -64,36 +64,42 @@ export function HomePage() {
       title: "40+ AI Providers",
       description:
         "OpenAI, Anthropic, Google, Azure, AWS Bedrock, and more unified behind one API endpoint.",
+      gradient: "from-amber-500/20 to-orange-500/20",
     },
     {
       icon: Shield,
       title: "Enterprise Ready",
       description:
         "Rate limiting, key management, usage tracking, billing, and multi-tenant support.",
+      gradient: "from-emerald-500/20 to-teal-500/20",
     },
     {
       icon: GitBranch,
       title: "Smart Routing",
       description:
         "Channel affinity, automatic failover, and intelligent load balancing across providers.",
+      gradient: "from-blue-500/20 to-cyan-500/20",
     },
     {
       icon: BarChart3,
       title: "Deep Analytics",
       description:
         "Real-time dashboards, per-model usage stats, cost tracking, and performance metrics.",
+      gradient: "from-violet-500/20 to-purple-500/20",
     },
     {
       icon: Key,
       title: "Key Management",
       description:
         "Generate, rotate, revoke keys. Set quotas, rate limits, and model restrictions per key.",
+      gradient: "from-rose-500/20 to-pink-500/20",
     },
     {
       icon: Clock,
       title: "Streaming & Low Latency",
       description:
         "SSE streaming, chunked responses, and edge-optimized routing for minimal overhead.",
+      gradient: "from-sky-500/20 to-indigo-500/20",
     },
   ];
 
@@ -176,20 +182,20 @@ export function HomePage() {
             </p>
           </div>
 
-          <Card className="overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/50 px-4 py-2">
+          <Card className="overflow-hidden border-[var(--border)] bg-[var(--surface)]/30">
+            <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/50 px-4 py-2.5">
               <div className="flex items-center gap-2">
-                <Terminal className="h-4 w-4 text-[var(--muted)]" />
-                <span className="text-xs font-mono text-[var(--muted)]">terminal</span>
+                <div className="flex gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-red-500/70" />
+                  <div className="h-3 w-3 rounded-full bg-amber-500/70" />
+                  <div className="h-3 w-3 rounded-full bg-emerald-500/70" />
+                </div>
+                <span className="ml-2 text-xs font-mono text-[var(--muted)]">terminal</span>
               </div>
-              <div className="flex gap-1">
-                <div className="h-2.5 w-2.5 rounded-full bg-[var(--destructive)]/60" />
-                <div className="h-2.5 w-2.5 rounded-full bg-[var(--warning)]/60" />
-                <div className="h-2.5 w-2.5 rounded-full bg-[var(--success)]/60" />
-              </div>
+              <CopyButton value={codeSample} variant="ghost" size="sm" />
             </div>
             <CardContent className="p-0">
-              <pre className="p-5 font-mono text-xs md:text-sm overflow-x-auto text-[var(--foreground)]">
+              <pre className="p-5 font-mono text-xs md:text-sm overflow-x-auto text-[var(--foreground)] leading-relaxed">
                 <code>{codeSample}</code>
               </pre>
             </CardContent>
@@ -210,10 +216,10 @@ export function HomePage() {
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className="group rounded-lg border border-[var(--border)] bg-[var(--surface)]/20 p-6 transition-all duration-200 hover:border-[var(--accent-muted)] hover:bg-[var(--surface)]/40"
+                className="group relative rounded-xl border border-[var(--border)] bg-[var(--surface)]/20 p-6 transition-all duration-300 hover:border-[var(--accent-muted)] hover:bg-[var(--surface)]/40 hover:-translate-y-0.5 hover:shadow-lg"
               >
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-[var(--accent)]/10 mb-4 transition-transform group-hover:scale-110">
-                  <feature.icon className="h-5 w-5 text-[var(--accent)]" />
+                <div className={`inline-flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br ${feature.gradient} mb-4 transition-transform duration-300 group-hover:scale-110`}>
+                  <feature.icon className="h-5 w-5 text-[var(--foreground)]" />
                 </div>
                 <h3 className="text-base font-semibold mb-2">{feature.title}</h3>
                 <p className="text-sm text-[var(--muted)] text-pretty leading-relaxed">
@@ -237,25 +243,28 @@ export function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
-              { label: "Self-hosted", price: "Free", desc: "MIT licensed, deploy anywhere" },
-              { label: "Pay-as-you-go", price: "Pass-through", desc: "Provider pricing + 0% markup" },
-              { label: "Enterprise", price: "Custom", desc: "SLA, volume discounts, support" },
-            ].map((tier, idx) => (
-              <Card key={tier.label} className={idx === 1 ? "border-[var(--accent-muted)]" : ""}>
+              { label: "Self-hosted", price: "Free", desc: "MIT licensed, deploy anywhere", accent: false },
+              { label: "Pay-as-you-go", price: "Pass-through", desc: "Provider pricing + 0% markup", accent: true },
+              { label: "Enterprise", price: "Custom", desc: "SLA, volume discounts, support", accent: false },
+            ].map((tier) => (
+              <Card key={tier.label} className={tier.accent ? "border-[var(--accent)] shadow-md relative overflow-hidden" : ""}>
+                {tier.accent && (
+                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--accent)] via-[var(--accent-hover)] to-[var(--accent)]" />
+                )}
                 <CardContent className="p-6">
-                  {idx === 1 && (
-                    <Badge className="mb-3">Popular</Badge>
+                  {tier.accent && (
+                    <Badge className="mb-3 bg-[var(--accent)]">Popular</Badge>
                   )}
                   <div className="text-sm text-[var(--muted)] mb-1">{tier.label}</div>
                   <div className="text-2xl font-bold mb-2">{tier.price}</div>
                   <p className="text-xs text-[var(--muted)] mb-6">{tier.desc}</p>
                   <Button
-                    variant={idx === 1 ? "default" : "outline"}
+                    variant={tier.accent ? "default" : "outline"}
                     size="sm"
                     className="w-full"
-                    onClick={() => router.push(idx === 2 ? "/about" : "/sign-up")}
+                    onClick={() => router.push(tier.label === "Enterprise" ? "/about" : "/sign-up")}
                   >
-                    {idx === 2 ? "Contact us" : "Start free"}
+                    {tier.label === "Enterprise" ? "Contact us" : "Start free"}
                   </Button>
                 </CardContent>
               </Card>

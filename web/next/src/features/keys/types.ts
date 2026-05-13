@@ -69,4 +69,4 @@ export interface ApiKeyFormData {
   backup_group: string;
 }
 
-export type ApiKeysDialogType = "create" | "update" | "delete" | "batch-delete";
+export type ApiKeysDialogType = "create" | "update" | "delete" | "batch-delete" | "cc-switch";

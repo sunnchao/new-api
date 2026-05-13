@@ -19,7 +19,7 @@ import * as SliderPrimitive from "@radix-ui/react-slider";
 import { toast } from "sonner";
 import {
   Send, Trash2, Settings, ChevronDown, Copy, RefreshCw, ThumbsUp, ThumbsDown,
-  Sparkles, Brain, Square, Key,
+  Sparkles, Brain, Square,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -28,10 +28,9 @@ import { cn } from "@/lib/utils";
 import {
   getPlaygroundGroups,
   getPlaygroundModels,
-  getPlaygroundTokens,
 } from "./api";
-import { PLAYGROUND_STORAGE_KEY } from "./constants";
-import type { ChatMessage, PlaygroundSettings, PlaygroundTokenOption } from "./types";
+import { PLAYGROUND_API_ENDPOINTS, PLAYGROUND_STORAGE_KEY } from "./constants";
+import type { ChatMessage, PlaygroundSettings } from "./types";
 
 const defaultSettings: PlaygroundSettings = {
   model: "",
@@ -40,7 +39,6 @@ const defaultSettings: PlaygroundSettings = {
   temperature: 0.7,
   maxTokens: 2048,
   topP: 1,
-  tokenId: "",
 };
 
 const starterPrompts = [
@@ -56,7 +54,6 @@ export default function PlaygroundPage() {
   const [settings, setSettings] = useState<PlaygroundSettings>(defaultSettings);
   const [models, setModels] = useState<string[]>([]);
   const [groups, setGroups] = useState<string[]>([]);
-  const [tokens, setTokens] = useState<PlaygroundTokenOption[]>([]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -84,11 +81,10 @@ export default function PlaygroundPage() {
     localStorage.setItem(PLAYGROUND_STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
 
-  // Load models, groups, tokens
+  // Load models and groups
   useEffect(() => {
     getPlaygroundModels().then(setModels).catch(() => {});
     getPlaygroundGroups().then(setGroups).catch(() => {});
-    getPlaygroundTokens().then(setTokens).catch(() => {});
   }, []);
 
   const scrollToBottom = useCallback(() => {
@@ -124,19 +120,14 @@ export default function PlaygroundPage() {
       max_tokens: settings.maxTokens,
     };
 
-    // Build auth headers — prefer user token (sk-) if selected
     const headers: Record<string, string> = {
       ...getCommonHeaders(),
       "Content-Type": "application/json",
     };
-    if (settings.group) headers["New-Api-User-Group"] = settings.group;
-
-    const selectedToken = tokens.find((tk) => String(tk.id) === settings.tokenId);
-    if (selectedToken?.key) headers["Authorization"] = `Bearer sk-${selectedToken.key}`;
 
     try {
       abortRef.current = new AbortController();
-      const res = await fetch("/v1/chat/completions", {
+      const res = await fetch(PLAYGROUND_API_ENDPOINTS.CHAT_COMPLETIONS, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
@@ -266,7 +257,7 @@ export default function PlaygroundPage() {
         <CollapsibleContent className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden">
           <Card className="mb-4">
             <CardContent className="py-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>{t("playground.model")}</Label>
                   <Select value={settings.model} onValueChange={(v) => setSettings({ ...settings, model: v })}>
@@ -282,27 +273,6 @@ export default function PlaygroundPage() {
                     <SelectTrigger><SelectValue placeholder="Default" /></SelectTrigger>
                     <SelectContent>
                       {groups.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1">
-                    <Key className="h-3.5 w-3.5" />
-                    {t("playground.token") || "API key"}
-                  </Label>
-                  <Select
-                    value={settings.tokenId}
-                    onValueChange={(v) => setSettings({ ...settings, tokenId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("playground.sessionAuth") || "Session auth"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tokens.map((tk) => (
-                        <SelectItem key={tk.id} value={String(tk.id)}>
-                          {tk.name || `Key #${tk.id}`}
-                        </SelectItem>
-                      ))}
                     </SelectContent>
                   </Select>
                 </div>

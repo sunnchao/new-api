@@ -1,5 +1,3 @@
-"use client";
-
 import { api } from "@/lib/api";
 import type { ApiResponse, BillingHistoryResponse, PaymentPayload } from "./types";
 

@@ -11,11 +11,4 @@ export interface PlaygroundSettings {
   temperature: number;
   maxTokens: number;
   topP: number;
-  tokenId: string;
-}
-
-export interface PlaygroundTokenOption {
-  id: number;
-  name: string;
-  key: string;
 }

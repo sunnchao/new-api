@@ -1,5 +1,3 @@
-"use client";
-
 import { useSystemConfigStore } from "@/stores/system-config-store";
 
 function finiteNumber(value: number | null | undefined, fallback = 0): number {

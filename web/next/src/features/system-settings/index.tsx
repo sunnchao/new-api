@@ -102,6 +102,9 @@ import type {
   PerformanceLogsInfo,
   PerformanceStats,
 } from "./types";
+import { ModelRatioEditor } from "./components/model-ratio-editor";
+import { GroupRatioEditor } from "./components/group-ratio-editor";
+import { SiteBrandingEditor } from "./components/site-branding-editor";
 
 export function SystemSettingsEnhancements({
   categoryId,
@@ -121,6 +124,18 @@ export function SystemSettingsEnhancements({
   }
   if (categoryId === "site" && sectionId === "notice") {
     return <StatusNoticePanel />;
+  }
+  if (categoryId === "site" && sectionId === "branding") {
+    return <SiteBrandingPanel />;
+  }
+  if (
+    (categoryId === "billing" || categoryId === "models") &&
+    sectionId === "model-pricing"
+  ) {
+    return <ModelPricingPanel />;
+  }
+  if (categoryId === "billing" && sectionId === "group-pricing") {
+    return <GroupPricingPanel />;
   }
   return null;
 }
@@ -1060,4 +1075,116 @@ function PanelSkeleton() {
       ))}
     </div>
   );
+}
+
+// ─── Shared hook to load all system options ───────────────────────────────
+function useSystemOptions() {
+  const [options, setOptions] = React.useState<Record<string, string>>({});
+  const [loading, setLoading] = React.useState(true);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const { default: apiClient } = await import("@/lib/api");
+      const res = await apiClient.get("/api/option/");
+      const list = res.data?.data as Array<{ key: string; value: string }> | undefined;
+      if (list) {
+        const map: Record<string, string> = {};
+        for (const { key, value } of list) map[key] = String(value ?? "");
+        setOptions(map);
+      }
+    } catch { /* ignore */ } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { void load(); }, [load]);
+  return { options, loading, reload: load };
+}
+
+async function saveOption(key: string, value: string) {
+  const { default: apiClient } = await import("@/lib/api");
+  await apiClient.put("/api/option/", { key, value });
+}
+
+// ─── Model Pricing Panel ──────────────────────────────────────────────────
+function ModelPricingPanel() {
+  const { options, loading, reload } = useSystemOptions();
+  const [saving, setSaving] = React.useState(false);
+
+  if (loading) return <PanelSkeleton />;
+
+  const handleSave = async (modelRatio: string, completionRatio: string) => {
+    setSaving(true);
+    try {
+      await Promise.all([
+        saveOption("ModelRatio", modelRatio),
+        saveOption("CompletionRatio", completionRatio),
+      ]);
+      toast.success("Saved");
+      await reload();
+    } catch {
+      toast.error("Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <ModelRatioEditor
+      modelRatioRaw={options.ModelRatio ?? "{}"}
+      completionRatioRaw={options.CompletionRatio ?? "{}"}
+      onSave={handleSave}
+      saving={saving}
+    />
+  );
+}
+
+// ─── Group Pricing Panel ──────────────────────────────────────────────────
+function GroupPricingPanel() {
+  const { options, loading, reload } = useSystemOptions();
+  const [saving, setSaving] = React.useState<string | null>(null);
+
+  if (loading) return <PanelSkeleton />;
+
+  const makeSaver = (key: string) => async (value: string) => {
+    setSaving(key);
+    try {
+      await saveOption(key, value);
+      toast.success("Saved");
+      await reload();
+    } catch {
+      toast.error("Save failed");
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <GroupRatioEditor
+        title="Group Ratio"
+        description="Price multiplier per group (1.0 = standard price)"
+        raw={options.GroupRatio ?? "{}"}
+        onSave={makeSaver("GroupRatio")}
+        saving={saving === "GroupRatio"}
+        isMultiplier
+      />
+      <GroupRatioEditor
+        title="Top-up Group Ratio"
+        description="Quota multiplier applied on top-up per group"
+        raw={options.TopupGroupRatio ?? "{}"}
+        onSave={makeSaver("TopupGroupRatio")}
+        saving={saving === "TopupGroupRatio"}
+        isMultiplier
+      />
+    </div>
+  );
+}
+
+// ─── Site Branding Panel ──────────────────────────────────────────────────
+function SiteBrandingPanel() {
+  const { options, loading, reload } = useSystemOptions();
+  if (loading) return <PanelSkeleton />;
+  return <SiteBrandingEditor options={options} onSaved={reload} />;
 }

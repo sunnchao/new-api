@@ -55,8 +55,10 @@ export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
     ? user.display_name.slice(0, 2).toUpperCase()
     : user?.username?.slice(0, 2).toUpperCase() ?? "??";
 
+  const walletBalance = user ? ((user.quota - user.used_quota) / 500000).toFixed(2) : null;
+
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-sm px-4 lg:px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md px-4 lg:px-6">
       {/* Mobile sidebar toggle */}
       <Button
         variant="ghost"
@@ -69,20 +71,31 @@ export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
 
       {/* Logo / brand */}
       <Link href="/" className="flex items-center gap-2 font-semibold">
+        <div className="h-6 w-6 rounded-md bg-[var(--accent)] flex items-center justify-center shrink-0 lg:hidden">
+          <span className="text-[var(--accent-foreground)] text-xs font-bold">N</span>
+        </div>
         <span className="text-base hidden sm:inline-block">{systemName}</span>
       </Link>
 
       <div className="flex-1" />
 
-      {/* Search placeholder */}
-      <Button variant="ghost" size="icon" className="text-[var(--muted)]">
-        <Search className="h-4 w-4" />
-      </Button>
+      {/* Wallet balance pill */}
+      {walletBalance !== null && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="hidden sm:flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1 h-8 text-xs font-mono text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent-muted)]"
+          onClick={() => router.push("/wallet")}
+        >
+          <Wallet className="h-3.5 w-3.5" />
+          <span>${walletBalance}</span>
+        </Button>
+      )}
 
       {/* Theme toggle */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="text-[var(--muted)]">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-[var(--muted)]">
             <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
@@ -107,10 +120,10 @@ export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
       {user ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full ring-2 ring-transparent hover:ring-[var(--accent)]/30 transition-all">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user.avatar_url} alt={user.username} />
-                <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                <AvatarFallback className="text-xs bg-[var(--accent)]/10 text-[var(--accent)]">{initials}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
@@ -135,7 +148,7 @@ export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
               {t("nav.wallet")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-[var(--destructive)]">
+            <DropdownMenuItem onClick={handleLogout} className="text-[var(--destructive)] focus:text-[var(--destructive)]">
               <LogOut className="mr-2 h-4 w-4" />
               {t("common.logout")}
             </DropdownMenuItem>
