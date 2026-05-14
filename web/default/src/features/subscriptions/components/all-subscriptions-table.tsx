@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   type ColumnDef,
   flexRender,
@@ -7,10 +7,19 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table'
+import { MoreHorizontal, Ban, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -34,7 +43,12 @@ import {
 } from '@/components/data-table'
 import { PageFooterPortal } from '@/components/layout'
 import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
-import { getAllUserSubscriptions, getAdminPlans } from '../api'
+import {
+  getAllUserSubscriptions,
+  getAdminPlans,
+  invalidateUserSubscription,
+  deleteUserSubscription,
+} from '../api'
 import { formatBillingMode, formatTimestamp } from '../lib'
 import type { AdminUserSubscriptionOverview } from '../types'
 
@@ -47,7 +61,14 @@ const STATUS_CONFIG: Record<string, { variant: StatusBadgeProps['variant'] }> =
     exhausted: { variant: 'danger' },
   }
 
-function useAllSubscriptionsColumns() {
+type ConfirmAction = {
+  type: 'invalidate' | 'delete'
+  row: AdminUserSubscriptionOverview
+}
+
+function useAllSubscriptionsColumns(
+  onAction: (action: ConfirmAction) => void
+) {
   const { t } = useTranslation()
 
   return useMemo(
@@ -355,14 +376,54 @@ function useAllSubscriptionsColumns() {
         ),
         size: 150,
       },
+      {
+        id: 'actions',
+        header: t('Actions'),
+        cell: ({ row }) => {
+          const isActive = row.original.status === 'active'
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<Button variant='ghost' className='h-8 w-8 p-0' />}
+              >
+                <MoreHorizontal className='h-4 w-4' />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end'>
+                <DropdownMenuItem
+                  disabled={!isActive}
+                  onClick={() =>
+                    onAction({ type: 'invalidate', row: row.original })
+                  }
+                >
+                  <Ban className='mr-2 h-4 w-4' />
+                  {t('Invalidate')}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='text-destructive focus:text-destructive'
+                  onClick={() =>
+                    onAction({ type: 'delete', row: row.original })
+                  }
+                >
+                  <Trash2 className='mr-2 h-4 w-4' />
+                  {t('Delete')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        },
+        size: 60,
+      },
     ],
-    [t]
+    [t, onAction]
   )
 }
 
 export function AllSubscriptionsTable() {
   const { t } = useTranslation()
-  const columns = useAllSubscriptionsColumns()
+  const queryClient = useQueryClient()
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
+  const columns = useAllSubscriptionsColumns(setConfirmAction)
 
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -476,6 +537,36 @@ export function AllSubscriptionsTable() {
     setGroupFilter('')
   }
 
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return
+    setActionLoading(true)
+    try {
+      if (confirmAction.type === 'invalidate') {
+        const res = await invalidateUserSubscription(confirmAction.row.id)
+        if (res.success) {
+          toast.success(res.data?.message || t('Has been invalidated'))
+          queryClient.invalidateQueries({ queryKey: ['admin-all-subscriptions'] })
+          setConfirmAction(null)
+        } else {
+          toast.error(res.message || t('Operation failed'))
+        }
+      } else {
+        const res = await deleteUserSubscription(confirmAction.row.id)
+        if (res.success) {
+          toast.success(t('Deleted'))
+          queryClient.invalidateQueries({ queryKey: ['admin-all-subscriptions'] })
+          setConfirmAction(null)
+        } else {
+          toast.error(res.message || t('Operation failed'))
+        }
+      }
+    } catch {
+      toast.error(t('Operation failed'))
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   return (
     <div className='space-y-4'>
       {/* Filters */}
@@ -575,6 +666,30 @@ export function AllSubscriptionsTable() {
       <PageFooterPortal>
         <DataTablePagination table={table} />
       </PageFooterPortal>
+
+      {confirmAction && (
+        <ConfirmDialog
+          open
+          onOpenChange={(v) => !v && setConfirmAction(null)}
+          title={
+            confirmAction.type === 'invalidate'
+              ? t('Confirm invalidate')
+              : t('Confirm delete')
+          }
+          desc={
+            confirmAction.type === 'invalidate'
+              ? t(
+                  'After invalidating, this subscription will be immediately deactivated. Historical records are not affected. Continue?'
+                )
+              : t(
+                  'Deleting will permanently remove this subscription record (including benefit details). Continue?'
+                )
+          }
+          handleConfirm={handleConfirmAction}
+          isLoading={actionLoading}
+          destructive={confirmAction.type === 'delete'}
+        />
+      )}
     </div>
   )
 }
