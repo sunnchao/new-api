@@ -42,6 +42,11 @@ export function formatQuota(quota: number | null | undefined): string {
   return `$${trimZeros(amountUSD.toFixed(2))}`;
 }
 
+export function formatTimestamp(timestamp: number | null | undefined): string {
+  if (!timestamp || timestamp <= 0) return "-";
+  return new Date(timestamp * 1000).toLocaleString();
+}
+
 export function formatTimestampToDate(timestamp: number | null | undefined): string {
   if (!timestamp || timestamp <= 0) return "-";
   return new Date(timestamp * 1000).toLocaleString();

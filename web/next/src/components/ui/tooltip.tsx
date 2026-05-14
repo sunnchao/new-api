@@ -6,7 +6,27 @@ import { cn } from "@/lib/utils";
 
 const TooltipProvider = TooltipPrimitive.Provider;
 const Tooltip = TooltipPrimitive.Root;
-const TooltipTrigger = TooltipPrimitive.Trigger;
+
+const TooltipTrigger = React.forwardRef<
+  React.ComponentRef<typeof TooltipPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger> & {
+    render?: React.ReactElement;
+  }
+>(({ render, children, ...props }, ref) => {
+  if (render) {
+    return (
+      <TooltipPrimitive.Trigger ref={ref} asChild {...props}>
+        {React.cloneElement(render, undefined, children)}
+      </TooltipPrimitive.Trigger>
+    );
+  }
+  return (
+    <TooltipPrimitive.Trigger ref={ref} {...props}>
+      {children}
+    </TooltipPrimitive.Trigger>
+  );
+});
+TooltipTrigger.displayName = "TooltipTrigger";
 
 const TooltipContent = React.forwardRef<
   React.ComponentRef<typeof TooltipPrimitive.Content>,

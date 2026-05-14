@@ -1,15 +1,18 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type QuotaDisplayType = "USD" | "CNY" | "TOKENS" | "CUSTOM";
+export type CurrencyDisplayType = "USD" | "CNY" | "TOKENS" | "CUSTOM";
+
+/** @deprecated Use CurrencyDisplayType instead */
+export type QuotaDisplayType = CurrencyDisplayType;
 
 export interface CurrencyConfig {
   displayInCurrency: boolean;
-  quotaDisplayType: QuotaDisplayType;
+  quotaDisplayType: CurrencyDisplayType;
   quotaPerUnit: number;
   usdExchangeRate: number;
-  customCurrencySymbol?: string;
-  customCurrencyExchangeRate?: number;
+  customCurrencySymbol: string;
+  customCurrencyExchangeRate: number;
 }
 
 export interface SystemConfig {
@@ -34,11 +37,13 @@ interface SystemConfigState {
   getFooterHtml: () => string;
 }
 
-const defaultCurrency: CurrencyConfig = {
+export const DEFAULT_CURRENCY_CONFIG: CurrencyConfig = {
   displayInCurrency: true,
   quotaDisplayType: "USD",
   quotaPerUnit: 500000,
   usdExchangeRate: 1,
+  customCurrencySymbol: "¤",
+  customCurrencyExchangeRate: 1,
 };
 
 const defaultConfig: SystemConfig = {
@@ -47,7 +52,7 @@ const defaultConfig: SystemConfig = {
   footerHtml: "",
   demoSiteEnabled: false,
   displayTokenStatEnabled: false,
-  currency: defaultCurrency,
+  currency: { ...DEFAULT_CURRENCY_CONFIG },
 };
 
 export const useSystemConfigStore = create<SystemConfigState>()(

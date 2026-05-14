@@ -1,0 +1,1 @@
+export const DEFAULT_DISCOUNT_RATE = 1.0

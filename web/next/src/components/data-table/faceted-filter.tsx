@@ -25,6 +25,7 @@ export interface FacetedFilterOption {
   label: string;
   value: string;
   icon?: React.ComponentType<{ className?: string }>;
+  count?: number;
 }
 
 export interface DataTableFacetedFilterProps<TData, TValue> {

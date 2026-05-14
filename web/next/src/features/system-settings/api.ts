@@ -5,10 +5,17 @@ import type {
   ApiResponse,
   CacheStats,
   CustomOAuthProvider,
+  DeleteLogsResponse,
   DiscoveryResponse,
+  FetchUpstreamRatiosRequest,
   LogCleanupResult,
   PerformanceLogsInfo,
   PerformanceStats,
+  SystemOptionsResponse,
+  UpdateOptionRequest,
+  UpdateOptionResponse,
+  UpstreamChannelsResponse,
+  UpstreamRatiosResponse,
 } from "./types";
 
 export async function getSystemStatus(): Promise<Record<string, unknown>> {
@@ -18,6 +25,18 @@ export async function getSystemStatus(): Promise<Record<string, unknown>> {
 
 export async function getSystemNotice(): Promise<ApiResponse<string>> {
   const res = await api.get("/api/notice");
+  return res.data;
+}
+
+export async function getSystemOptions(): Promise<SystemOptionsResponse> {
+  const res = await api.get("/api/option/");
+  return res.data;
+}
+
+export async function updateSystemOption(
+  request: UpdateOptionRequest,
+): Promise<UpdateOptionResponse> {
+  const res = await api.put("/api/option/", request);
   return res.data;
 }
 
@@ -130,5 +149,31 @@ export async function cleanupPerformanceLogs(
   const res = await api.delete(
     `/api/performance/logs?mode=${logCleanupMode}&value=${logCleanupValue}`,
   );
+  return res.data;
+}
+
+export async function deleteLogsBefore(
+  targetTimestamp: number,
+): Promise<DeleteLogsResponse> {
+  const res = await api.delete("/api/log/", {
+    params: { target_timestamp: targetTimestamp },
+  });
+  return res.data;
+}
+
+export async function getUpstreamChannels(): Promise<UpstreamChannelsResponse> {
+  const res = await api.get("/api/ratio_sync/channels");
+  return res.data;
+}
+
+export async function fetchUpstreamRatios(
+  request: FetchUpstreamRatiosRequest,
+): Promise<UpstreamRatiosResponse> {
+  const res = await api.post("/api/ratio_sync/fetch", request);
+  return res.data;
+}
+
+export async function resetModelRatios(): Promise<UpdateOptionResponse> {
+  const res = await api.post("/api/option/rest_model_ratio");
   return res.data;
 }

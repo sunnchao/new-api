@@ -109,6 +109,8 @@ export interface StatusBadgeProps {
   showDot?: boolean;
   variant?: StatusVariant | null;
   copyable?: boolean;
+  size?: 'sm' | 'md' | 'lg' | string;
+  autoColor?: string;
 }
 
 export function StatusBadge({

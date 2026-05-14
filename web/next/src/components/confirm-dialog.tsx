@@ -15,11 +15,22 @@ export interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
+  /** Description text. Aliases: `desc` */
   description?: string;
+  desc?: string;
   confirmText?: string;
   cancelText?: string;
+  cancelBtnText?: string;
+  /** Visual variant. Use `variant="destructive"` or the shorthand `destructive` boolean. */
   variant?: "default" | "destructive";
-  onConfirm: () => void | Promise<void>;
+  /** Shorthand for `variant="destructive"` */
+  destructive?: boolean;
+  /** Confirm handler. Either `onConfirm` or `handleConfirm` must be provided. */
+  onConfirm?: () => void | Promise<void>;
+  /** Alias for `onConfirm` */
+  handleConfirm?: () => void | Promise<void>;
+  /** External loading state override */
+  isLoading?: boolean;
 }
 
 export function ConfirmDialog({
@@ -27,20 +38,32 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
+  desc,
   confirmText = "Confirm",
-  cancelText = "Cancel",
-  variant = "default",
+  cancelText,
+  cancelBtnText,
+  variant,
+  destructive,
   onConfirm,
+  handleConfirm,
+  isLoading: externalLoading,
 }: ConfirmDialogProps) {
-  const [loading, setLoading] = React.useState(false);
+  const [internalLoading, setInternalLoading] = React.useState(false);
+  const loading = externalLoading ?? internalLoading;
+  const resolvedDescription = description ?? desc;
+  const resolvedVariant =
+    variant ?? (destructive ? "destructive" : "default");
+  const resolvedCancelText = cancelText ?? cancelBtnText ?? "Cancel";
+  const resolvedOnConfirm = handleConfirm ?? onConfirm;
 
-  const handleConfirm = async () => {
+  const handleConfirmClick = async () => {
+    if (!resolvedOnConfirm) return;
     try {
-      setLoading(true);
-      await onConfirm();
+      setInternalLoading(true);
+      await resolvedOnConfirm();
       onOpenChange(false);
     } finally {
-      setLoading(false);
+      setInternalLoading(false);
     }
   };
 
@@ -49,8 +72,8 @@ export function ConfirmDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          {description ? (
-            <DialogDescription>{description}</DialogDescription>
+          {resolvedDescription ? (
+            <DialogDescription>{resolvedDescription}</DialogDescription>
           ) : null}
         </DialogHeader>
         <DialogFooter className="gap-2 sm:gap-2">
@@ -60,13 +83,13 @@ export function ConfirmDialog({
             disabled={loading}
             onClick={() => onOpenChange(false)}
           >
-            {cancelText}
+            {resolvedCancelText}
           </Button>
           <Button
             type="button"
-            variant={variant === "destructive" ? "destructive" : "default"}
+            variant={resolvedVariant === "destructive" ? "destructive" : "default"}
             disabled={loading}
-            onClick={handleConfirm}
+            onClick={handleConfirmClick}
           >
             {confirmText}
           </Button>

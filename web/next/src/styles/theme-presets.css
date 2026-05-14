@@ -1,0 +1,121 @@
+/* ========================================
+   Theme Presets — accent, radius, scale overrides
+   ======================================== */
+
+/* ─── Color Presets ─── */
+html[data-theme-preset="default"] {
+  --accent: oklch(0.55 0.25 270);
+  --accent-hover: oklch(0.50 0.25 270);
+  --accent-muted: oklch(0.55 0.15 270);
+}
+html[data-theme-preset="default"].dark {
+  --accent: oklch(0.65 0.22 270);
+  --accent-hover: oklch(0.70 0.22 270);
+  --accent-muted: oklch(0.65 0.12 270);
+}
+
+html[data-theme-preset="blue"] {
+  --accent: oklch(0.55 0.22 240);
+  --accent-hover: oklch(0.50 0.22 240);
+  --accent-muted: oklch(0.55 0.12 240);
+}
+html[data-theme-preset="blue"].dark {
+  --accent: oklch(0.65 0.20 240);
+  --accent-hover: oklch(0.70 0.20 240);
+  --accent-muted: oklch(0.65 0.10 240);
+}
+
+html[data-theme-preset="violet"] {
+  --accent: oklch(0.55 0.25 290);
+  --accent-hover: oklch(0.50 0.25 290);
+  --accent-muted: oklch(0.55 0.15 290);
+}
+html[data-theme-preset="violet"].dark {
+  --accent: oklch(0.65 0.22 290);
+  --accent-hover: oklch(0.70 0.22 290);
+  --accent-muted: oklch(0.65 0.12 290);
+}
+
+html[data-theme-preset="teal"] {
+  --accent: oklch(0.55 0.15 190);
+  --accent-hover: oklch(0.50 0.15 190);
+  --accent-muted: oklch(0.55 0.08 190);
+}
+html[data-theme-preset="teal"].dark {
+  --accent: oklch(0.68 0.14 190);
+  --accent-hover: oklch(0.72 0.14 190);
+  --accent-muted: oklch(0.68 0.07 190);
+}
+
+html[data-theme-preset="rose"] {
+  --accent: oklch(0.60 0.24 10);
+  --accent-hover: oklch(0.55 0.24 10);
+  --accent-muted: oklch(0.60 0.14 10);
+}
+html[data-theme-preset="rose"].dark {
+  --accent: oklch(0.68 0.22 10);
+  --accent-hover: oklch(0.72 0.22 10);
+  --accent-muted: oklch(0.68 0.12 10);
+}
+
+html[data-theme-preset="amber"] {
+  --accent: oklch(0.70 0.20 70);
+  --accent-hover: oklch(0.65 0.20 70);
+  --accent-foreground: #1a1a1a;
+  --accent-muted: oklch(0.70 0.12 70);
+}
+html[data-theme-preset="amber"].dark {
+  --accent: oklch(0.78 0.18 70);
+  --accent-hover: oklch(0.82 0.18 70);
+  --accent-foreground: #1a1a1a;
+  --accent-muted: oklch(0.78 0.10 70);
+}
+
+/* ─── Radius ─── */
+html[data-theme-radius="sharp"] {
+  --radius: 0px;
+  --radius-sm: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+}
+
+html[data-theme-radius="small"] {
+  --radius: 4px;
+  --radius-sm: 2px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+}
+
+html[data-theme-radius="medium"] {
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+html[data-theme-radius="large"] {
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+}
+
+/* ─── Scale ─── */
+html[data-theme-scale="compact"] {
+  font-size: 14px;
+}
+
+html[data-theme-scale="default"] {
+  font-size: 16px;
+}
+
+html[data-theme-scale="comfortable"] {
+  font-size: 17px;
+}
+
+/* ─── Content Layout ─── */
+html[data-theme-content-layout="centered"] [data-content-container] {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}

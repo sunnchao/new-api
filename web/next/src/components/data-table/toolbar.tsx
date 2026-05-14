@@ -13,7 +13,8 @@ import {
 import { DataTableViewOptions } from "./view-options";
 
 export interface DataTableToolbarFilterDef {
-  column: string;
+  column?: string;
+  columnId?: string;
   title: string;
   options: FacetedFilterOption[];
 }
@@ -25,6 +26,7 @@ export interface DataTableToolbarProps<TData>
   searchPlaceholder?: string;
   filters?: DataTableToolbarFilterDef[];
   rightActions?: React.ReactNode;
+  preActions?: React.ReactNode;
   showViewOptions?: boolean;
 }
 
@@ -34,6 +36,7 @@ export function DataTableToolbar<TData>({
   searchPlaceholder = "Search...",
   filters,
   rightActions,
+  preActions,
   showViewOptions = true,
   className,
   ...props
@@ -66,11 +69,11 @@ export function DataTableToolbar<TData>({
         )}
 
         {filters?.map((filter) => {
-          const col = table.getColumn(filter.column);
+          const col = table.getColumn(filter.columnId ?? filter.column ?? '');
           if (!col) return null;
           return (
             <DataTableFacetedFilter
-              key={filter.column}
+              key={filter.columnId ?? filter.column}
               column={col}
               title={filter.title}
               options={filter.options}
@@ -92,6 +95,7 @@ export function DataTableToolbar<TData>({
       </div>
 
       <div className="flex items-center gap-2">
+        {preActions}
         {rightActions}
         {showViewOptions && <DataTableViewOptions table={table} />}
       </div>

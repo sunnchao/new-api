@@ -6,7 +6,28 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
 const AlertDialog = AlertDialogPrimitive.Root;
-const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
+
+const AlertDialogTrigger = React.forwardRef<
+  React.ComponentRef<typeof AlertDialogPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Trigger> & {
+    render?: React.ReactElement;
+  }
+>(({ render, children, ...props }, ref) => {
+  if (render) {
+    return (
+      <AlertDialogPrimitive.Trigger ref={ref} asChild {...props}>
+        {React.cloneElement(render, undefined, children)}
+      </AlertDialogPrimitive.Trigger>
+    );
+  }
+  return (
+    <AlertDialogPrimitive.Trigger ref={ref} {...props}>
+      {children}
+    </AlertDialogPrimitive.Trigger>
+  );
+});
+AlertDialogTrigger.displayName = "AlertDialogTrigger";
+
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
 const AlertDialogOverlay = React.forwardRef<

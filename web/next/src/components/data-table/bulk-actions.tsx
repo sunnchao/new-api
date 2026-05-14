@@ -6,11 +6,13 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export interface BulkActionsProps extends React.HTMLAttributes<HTMLDivElement> {
-  selectedCount: number;
+  selectedCount?: number;
   onDelete?: () => void;
   onExport?: () => void;
-  onClearSelection: () => void;
+  onClearSelection?: () => void;
   children?: React.ReactNode;
+  table?: unknown;
+  entityName?: string;
 }
 
 export const BulkActions = React.forwardRef<HTMLDivElement, BulkActionsProps>(
@@ -26,7 +28,7 @@ export const BulkActions = React.forwardRef<HTMLDivElement, BulkActionsProps>(
     },
     ref
   ) => {
-    if (selectedCount <= 0) return null;
+    if (!selectedCount || selectedCount <= 0) return null;
 
     return (
       <div
