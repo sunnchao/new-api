@@ -138,6 +138,16 @@ function describeCondition(
     }
     return `${src} = ${cond.value}`
   }
+  if (cond.source === 'tokens') {
+    const opMap: Record<string, string> = {
+      eq: '=',
+      gt: '>',
+      gte: '≥',
+      lt: '<',
+      lte: '≤',
+    }
+    return `${t('Tokens')} ${cond.path} ${opMap[cond.mode] || '='} ${cond.value}`
+  }
   const src = cond.source === 'header' ? t('Header') : t('Body param')
   const path = cond.path || ''
   if (cond.mode === MATCH_EXISTS) return `${src} ${path} ${t('Exists')}`

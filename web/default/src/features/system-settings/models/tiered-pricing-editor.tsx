@@ -70,6 +70,7 @@ import {
   SOURCE_PARAM,
   SOURCE_TIME,
   SOURCE_TOKEN_GROUP,
+  SOURCE_TOKENS,
   TIME_FUNCS,
   buildRequestRuleExpr,
   combineBillingExpr,
@@ -121,6 +122,14 @@ const CONDITION_INPUT_OPTIONS: {
   { value: 'c', labelKey: 'Billable output tokens' },
 ]
 const OPS: TierConditionInput['op'][] = ['<', '<=', '>', '>=']
+
+// Token path options for SOURCE_TOKENS request rule conditions.
+// Reuses CONDITION_INPUT_OPTIONS labels for len/p/c, and BILLING_EXTRA_VARS
+// shortLabels for the remaining sub-category variables.
+const TOKEN_PATH_OPTIONS: { value: string; labelKey: string }[] = [
+  ...CONDITION_INPUT_OPTIONS,
+  ...BILLING_EXTRA_VARS.map((v) => ({ value: v.key, labelKey: v.shortLabel })),
+]
 
 type Preset = {
   key: string
@@ -977,7 +986,11 @@ function RuleConditionRow({
       ? t('Body param')
       : condition.source === SOURCE_HEADER
         ? t('Header')
-        : t('Time')
+        : condition.source === SOURCE_TOKEN_GROUP
+          ? t('Token group')
+          : condition.source === SOURCE_TOKENS
+            ? t('Tokens')
+            : t('Time')
 
   const handleSourceChange = (source: string) => {
     if (source === SOURCE_TIME) {
@@ -985,12 +998,13 @@ function RuleConditionRow({
     } else if (
       source === SOURCE_HEADER ||
       source === SOURCE_PARAM ||
-      source === SOURCE_TOKEN_GROUP
+      source === SOURCE_TOKEN_GROUP ||
+      source === SOURCE_TOKENS
     ) {
       onChange({
         ...createEmptyCondition(),
-        source: source as 'param' | 'header' | 'token_group',
-        path: '',
+        source: source as 'param' | 'header' | 'token_group' | 'Tokens',
+        path: source === SOURCE_TOKENS ? 'len' : '',
       })
     }
   }
@@ -1124,6 +1138,27 @@ function RuleConditionRow({
           <div className='text-muted-foreground min-w-44 flex-1 text-xs'>
             {t('Matches the final token group used by the request')}
           </div>
+        ) : phCond.source === SOURCE_TOKENS ? (
+          <Select
+            value={phCond.path || 'len'}
+            onValueChange={(v) => v !== null && onChange({ ...phCond, path: v })}
+          >
+            <SelectTrigger className='w-40' size='sm'>
+              <SelectValue>
+                {t(TOKEN_PATH_OPTIONS.find((o) => o.value === (phCond.path || 'len'))?.labelKey ?? phCond.path)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {TOKEN_PATH_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    <span className='text-muted-foreground mr-1 font-mono text-xs'>{o.value}</span>
+                    {t(o.labelKey)}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         ) : (
           <Input
             value={phCond.path}
@@ -1176,6 +1211,14 @@ function RuleConditionRow({
               ))}
             </SelectContent>
           </Select>
+        ) : phCond.source === SOURCE_TOKENS ? (
+          <DraftNumberInput
+            min={0}
+            value={phCond.value}
+            onValueChange={(value) => onChange({ ...phCond, value: String(value) })}
+            placeholder='200000'
+            className='w-32'
+          />
         ) : (
           phCond.mode !== MATCH_EXISTS && (
             <Input
@@ -1200,6 +1243,7 @@ function RuleConditionRow({
           { value: SOURCE_HEADER, label: t('Header') },
           { value: SOURCE_TIME, label: t('Time') },
           { value: SOURCE_TOKEN_GROUP, label: t('Token group') },
+          { value: SOURCE_TOKENS, label: t('tokens') },
         ]}
         value={condition.source}
         onValueChange={(v) => v !== null && handleSourceChange(v)}
@@ -1212,7 +1256,8 @@ function RuleConditionRow({
             <SelectItem value={SOURCE_PARAM}>{t('Body param')}</SelectItem>
             <SelectItem value={SOURCE_HEADER}>{t('Header')}</SelectItem>
             <SelectItem value={SOURCE_TIME}>{t('Time')}</SelectItem>
-              <SelectItem value={SOURCE_TOKEN_GROUP}>{t('Token group')}</SelectItem>
+            <SelectItem value={SOURCE_TOKEN_GROUP}>{t('Token group')}</SelectItem>
+            <SelectItem value={SOURCE_TOKENS}>{t('Tokens')}</SelectItem>
           </SelectGroup>
         </SelectContent>
       </Select>

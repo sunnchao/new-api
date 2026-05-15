@@ -75,7 +75,7 @@ func runProgram(prog *vm.Program, params TokenParams, request RequestInput) (flo
 			if helperErr != nil {
 				return 0
 			}
-			value, err := ApplyRequestPricingRules(base, payload, request, &trace)
+			value, err := ApplyRequestPricingRules(base, payload, request, params, &trace)
 			if err != nil {
 				helperErr = err
 				return 0

@@ -56,7 +56,7 @@ type requestRuleCondition struct {
 // billing expression result. Fixed-price rules replace the base cost with
 // $/request pricing (converted to the expression's $/1M-token unit), while
 // multiplier rules continue to scale the chosen base cost.
-func ApplyRequestPricingRules(baseCost float64, payload string, request RequestInput, trace *TraceResult) (float64, error) {
+func ApplyRequestPricingRules(baseCost float64, payload string, request RequestInput, params TokenParams, trace *TraceResult) (float64, error) {
 	if strings.TrimSpace(payload) == "" {
 		return baseCost, nil
 	}
@@ -83,7 +83,7 @@ func ApplyRequestPricingRules(baseCost float64, payload string, request RequestI
 		if len(group.Conditions) == 0 {
 			continue
 		}
-		matched, err := requestRuleGroupMatches(group, request, headers)
+		matched, err := requestRuleGroupMatches(group, request, headers, params)
 		if err != nil {
 			return 0, err
 		}
@@ -130,9 +130,9 @@ func ApplyRequestPricingRules(baseCost float64, payload string, request RequestI
 	return finalCost, nil
 }
 
-func requestRuleGroupMatches(group requestRuleGroup, request RequestInput, headers map[string]string) (bool, error) {
+func requestRuleGroupMatches(group requestRuleGroup, request RequestInput, headers map[string]string, params TokenParams) (bool, error) {
 	for _, cond := range group.Conditions {
-		matched, err := requestRuleConditionMatches(cond, request, headers)
+		matched, err := requestRuleConditionMatches(cond, request, headers, params)
 		if err != nil {
 			return false, err
 		}
@@ -143,7 +143,7 @@ func requestRuleGroupMatches(group requestRuleGroup, request RequestInput, heade
 	return true, nil
 }
 
-func requestRuleConditionMatches(cond requestRuleCondition, request RequestInput, headers map[string]string) (bool, error) {
+func requestRuleConditionMatches(cond requestRuleCondition, request RequestInput, headers map[string]string, params TokenParams) (bool, error) {
 	switch strings.TrimSpace(cond.Source) {
 	case requestRuleSourceTime:
 		return matchTimeCondition(cond)
@@ -151,6 +151,8 @@ func requestRuleConditionMatches(cond requestRuleCondition, request RequestInput
 		return matchStringCondition(headers[strings.ToLower(strings.TrimSpace(cond.Path))], cond, true)
 	case requestRuleSourceTokenGroup:
 		return matchStringCondition(strings.TrimSpace(request.UsingGroup), cond, true)
+	case requestRuleSourceTokens:
+		return matchTokenCondition(cond, params)
 	case requestRuleSourceParam, "":
 		return matchParamCondition(request.Body, cond)
 	default:

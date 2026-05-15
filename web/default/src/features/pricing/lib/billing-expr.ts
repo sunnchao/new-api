@@ -173,6 +173,7 @@ export const SOURCE_PARAM = 'param'
 export const SOURCE_HEADER = 'header'
 export const SOURCE_TIME = 'time'
 export const SOURCE_TOKEN_GROUP = 'token_group'
+export const SOURCE_TOKENS = 'tokens'
 
 export const MATCH_EQ = 'eq'
 export const MATCH_CONTAINS = 'contains'
@@ -210,7 +211,7 @@ const NUMERIC_LITERAL_REGEX = /^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/
 const REQUEST_RULE_WRAPPER = 'apply_request_rules'
 
 export type ParamHeaderCondition = {
-  source: 'param' | 'header' | 'token_group'
+  source: 'param' | 'header' | 'token_group' | 'tokens'
   path: string
   mode: string
   value: string
@@ -812,6 +813,15 @@ export function getRequestRuleMatchOptions(source: string): MatchOption[] {
     { value: MATCH_EXISTS, labelKey: 'Exists' },
   ]
   if (source === SOURCE_HEADER || source === SOURCE_TOKEN_GROUP) return base
+  if (source === SOURCE_TOKENS) {
+    return [
+      { value: MATCH_GT, labelKey: 'Greater than' },
+      { value: MATCH_GTE, labelKey: 'Greater than or equal' },
+      { value: MATCH_LT, labelKey: 'Less than' },
+      { value: MATCH_LTE, labelKey: 'Less than or equal' },
+      { value: MATCH_EQ, labelKey: 'Equals' },
+    ]
+  }
   return [
     ...base,
     { value: MATCH_GT, labelKey: 'Greater than' },
@@ -839,7 +849,9 @@ export function normalizeCondition(
         ? 'header'
         : cond?.source === SOURCE_TOKEN_GROUP
           ? SOURCE_TOKEN_GROUP
-          : 'param'
+          : cond?.source === SOURCE_TOKENS
+            ? SOURCE_TOKENS
+            : 'param'
 
   if (source === 'time') {
     const timeCond = cond as Partial<TimeCondition> | null | undefined

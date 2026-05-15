@@ -39,7 +39,13 @@ export type GroupPriceDisplay = {
 
 type ResolveTieredDisplayPricingResult = {
   effectiveQuotaType: typeof QUOTA_TYPE_VALUES.REQUEST
-  modelPrice: number
+  // Each entry represents one possible fixed-price rule that may apply.
+  // matched=true means it will definitely apply; matched=false means it
+  // depends on runtime token values (unknown conditions like `tokens`).
+  prices: { modelPrice: number; certain: boolean }[]
+} | {
+  effectiveQuotaType: 'multiplier_only'
+  multiplier: number
 }
 
 type GroupPriceDisplayInput = {
@@ -254,50 +260,59 @@ export function resolveTieredDisplayPricing(
   const ruleGroups = tryParseRequestRuleExpr(requestRuleExpr)
   if (!Array.isArray(ruleGroups) || ruleGroups.length === 0) return null
 
-  let fixedPrice: number | null = null
-  let multiplier = 1
-  let blockedByUnknownFixed = false
+  // Collect all fixed-price rules that are matched or partially matched
+  // (token_group condition matched but other conditions are unknown).
+  // Also track the confirmed multiplier from fully-matched multiplier rules.
+  const candidatePrices: { modelPrice: number; certain: boolean }[] = []
+  let confirmedMultiplier = 1
   let hasUnknownMultiplier = false
+  // Track whether a certain fixed price has been found (first one wins at runtime).
+  let certainFixedFound = false
 
   for (const group of ruleGroups) {
     const actionType = group.actionType || REQUEST_RULE_ACTION_MULTIPLIER
     const matchState = resolveRuleGroupState(group, usingGroup, now)
 
     if (actionType === REQUEST_RULE_ACTION_FIXED) {
-      if (fixedPrice !== null) continue
+      // Once a certain fixed price is found, subsequent certain fixed rules are
+      // skipped at runtime (first-match semantics). But unknown rules (partially
+      // matched, e.g. token_group matched but tokens condition unknown) should
+      // still be collected for display purposes.
+      if (certainFixedFound && matchState !== 'unknown') continue
       if (matchState === 'unmatched') continue
-      if (matchState === 'unknown') {
-        blockedByUnknownFixed = true
-        continue
-      }
-      if (blockedByUnknownFixed) return null
 
       const parsedPrice = Number.parseFloat(`${group.fixedPrice || ''}`.trim())
-      if (!Number.isFinite(parsedPrice)) return null
-      fixedPrice = parsedPrice
+      if (!Number.isFinite(parsedPrice)) continue
+
+      if (matchState === 'matched') {
+        candidatePrices.push({ modelPrice: parsedPrice, certain: true })
+        certainFixedFound = true
+      } else {
+        // unknown — some conditions (e.g. tokens) are unknown at display time
+        candidatePrices.push({ modelPrice: parsedPrice, certain: false })
+      }
       continue
     }
 
+    // Multiplier rules
     if (matchState === 'unmatched') continue
     if (matchState === 'unknown') {
       hasUnknownMultiplier = true
       continue
     }
-
-    const parsedMultiplier = Number.parseFloat(
-      `${group.multiplier || ''}`.trim()
-    )
+    const parsedMultiplier = Number.parseFloat(`${group.multiplier || ''}`.trim())
     if (!Number.isFinite(parsedMultiplier)) return null
-    multiplier *= parsedMultiplier
+    confirmedMultiplier *= parsedMultiplier
   }
 
-  if (fixedPrice === null || blockedByUnknownFixed || hasUnknownMultiplier) {
-    return null
-  }
+  if (candidatePrices.length === 0 || hasUnknownMultiplier) return null
 
   return {
     effectiveQuotaType: QUOTA_TYPE_VALUES.REQUEST,
-    modelPrice: fixedPrice * multiplier,
+    prices: candidatePrices.map((p) => ({
+      modelPrice: p.modelPrice * confirmedMultiplier,
+      certain: p.certain,
+    })),
   }
 }
 
@@ -366,22 +381,36 @@ export function getGroupPriceDisplay({
     const effectiveModel: PricingModel = {
       ...model,
       quota_type: resolvedPricing.effectiveQuotaType,
-      model_price: resolvedPricing.modelPrice,
+      model_price: resolvedPricing.prices[0].modelPrice,
     }
+
+    const items: GroupPriceItem[] = resolvedPricing.prices.map((p, i) => {
+      const effectiveModelForPrice: PricingModel = {
+        ...model,
+        quota_type: resolvedPricing.effectiveQuotaType,
+        model_price: p.modelPrice,
+      }
+      return {
+        key: `fixed-${i}`,
+        labelKey: 'Model Price',
+        value: formatFixedPrice(
+          effectiveModelForPrice,
+          group,
+          showWithRecharge,
+          priceRate,
+          usdExchangeRate,
+          { [group]: ratio }
+        ),
+        suffixKey: p.certain ? 'per request' : 'per request (if extra conditions met)',
+      }
+    })
 
     return {
       group,
       ratio,
       billingType: 'request',
       effectiveQuotaType: resolvedPricing.effectiveQuotaType,
-      items: buildRequestItems(
-        effectiveModel,
-        group,
-        groupRatio,
-        showWithRecharge,
-        priceRate,
-        usdExchangeRate
-      ),
+      items,
     }
   }
 
