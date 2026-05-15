@@ -272,6 +272,30 @@ func (channel *Channel) GetGroups() []string {
 	return groups
 }
 
+func (channel *Channel) ContainsGroup(group string) bool {
+	for _, g := range channel.GetGroups() {
+		if g == group {
+			return true
+		}
+	}
+	return false
+}
+
+// ApplyGroupFilter adds a group filter to the given GORM query.
+// It matches channels whose comma-separated group column contains the specified group.
+func ApplyGroupFilter(query *gorm.DB, group string) *gorm.DB {
+	if group == "" {
+		return query
+	}
+	var groupCondition string
+	if common.UsingMySQL {
+		groupCondition = "CONCAT(',', " + commonGroupCol + ", ',') LIKE ?"
+	} else {
+		groupCondition = "(',' || " + commonGroupCol + " || ',') LIKE ?"
+	}
+	return query.Where(groupCondition, "%,"+group+",%")
+}
+
 func (channel *Channel) GetOtherInfo() map[string]interface{} {
 	otherInfo := make(map[string]interface{})
 	if channel.OtherInfo != "" {

@@ -85,6 +85,8 @@ func GetAllChannels(c *gin.Context) {
 			typeFilter = t
 		}
 	}
+	// group filter
+	groupParam := c.Query("group")
 
 	var total int64
 
@@ -114,6 +116,9 @@ func GetAllChannels(c *gin.Context) {
 				if typeFilter >= 0 && ch.Type != typeFilter {
 					continue
 				}
+				if groupParam != "" && !ch.ContainsGroup(groupParam) {
+					continue
+				}
 				filtered = append(filtered, ch)
 			}
 			channelData = append(channelData, filtered...)
@@ -129,6 +134,7 @@ func GetAllChannels(c *gin.Context) {
 		} else if statusFilter == 0 {
 			baseQuery = baseQuery.Where("status != ?", common.ChannelStatusEnabled)
 		}
+		baseQuery = model.ApplyGroupFilter(baseQuery, groupParam)
 
 		baseQuery.Count(&total)
 
@@ -150,6 +156,7 @@ func GetAllChannels(c *gin.Context) {
 	} else if statusFilter == 0 {
 		countQuery = countQuery.Where("status != ?", common.ChannelStatusEnabled)
 	}
+	countQuery = model.ApplyGroupFilter(countQuery, groupParam)
 	var results []struct {
 		Type  int64
 		Count int64
