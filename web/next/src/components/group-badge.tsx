@@ -3,8 +3,10 @@ import { cn } from "@/lib/utils";
 
 export interface GroupBadgeProps {
   group: string;
-  ratio?: number | string;
+  ratio?: number | string | null;
   className?: string;
+  size?: "sm" | "md" | "lg" | null;
+  onClick?: React.MouseEventHandler<HTMLSpanElement>;
 }
 
 const PALETTE: Array<{ bg: string; fg: string; border: string }> = [
@@ -18,6 +20,12 @@ const PALETTE: Array<{ bg: string; fg: string; border: string }> = [
   { bg: "oklch(0.50 0.20 350 / 0.18)", fg: "oklch(0.75 0.18 350)", border: "oklch(0.55 0.20 350 / 0.35)" },
 ];
 
+const sizeClassMap: Record<string, string> = {
+  sm: "text-xs px-2 py-0.5",
+  md: "text-xs px-2.5 py-0.5",
+  lg: "text-sm px-3 py-1",
+};
+
 function hashString(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) {
@@ -27,12 +35,14 @@ function hashString(s: string): number {
   return Math.abs(h);
 }
 
-export function GroupBadge({ group, ratio, className }: GroupBadgeProps) {
+export function GroupBadge({ group, ratio, className, size, onClick }: GroupBadgeProps) {
   const color = PALETTE[hashString(group || "") % PALETTE.length];
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-full border font-medium",
+        sizeClassMap[size ?? "sm"],
+        onClick && "cursor-pointer",
         className
       )}
       style={{
@@ -40,6 +50,7 @@ export function GroupBadge({ group, ratio, className }: GroupBadgeProps) {
         color: color.fg,
         borderColor: color.border,
       }}
+      onClick={onClick}
     >
       <span className="truncate">{group || "-"}</span>
       {ratio !== undefined && ratio !== null && ratio !== "" ? (

@@ -1,20 +1,12 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 
 export type StatusKind =
   | "active"
   | "disabled"
   | "pending"
   | "error"
-  | "success"
-  | "warning";
-
-type BadgeVariant =
-  | "default"
-  | "secondary"
-  | "destructive"
-  | "outline"
   | "success"
   | "warning";
 
@@ -41,67 +33,75 @@ export type StatusVariant =
   | "violet"
   | "yellow";
 
-const MAP: Record<
-  StatusKind,
-  { variant: BadgeVariant; label: string; dot: string }
-> = {
-  active: {
-    variant: "success",
-    label: "Active",
-    dot: "bg-[var(--success)]",
-  },
-  disabled: {
-    variant: "secondary",
-    label: "Disabled",
-    dot: "bg-[var(--muted)]",
-  },
-  pending: {
-    variant: "warning",
-    label: "Pending",
-    dot: "bg-[var(--warning)]",
-  },
-  error: {
-    variant: "destructive",
-    label: "Error",
-    dot: "bg-[var(--destructive)]",
-  },
-  success: {
-    variant: "success",
-    label: "Success",
-    dot: "bg-[var(--success)]",
-  },
-  warning: {
-    variant: "warning",
-    label: "Warning",
-    dot: "bg-[var(--warning)]",
-  },
+export const dotColorMap: Record<StatusVariant, string> = {
+  success: "bg-[var(--success)]",
+  warning: "bg-[var(--warning)]",
+  danger: "bg-[var(--destructive)]",
+  info: "bg-sky-500",
+  neutral: "bg-[var(--muted)]",
+  purple: "bg-violet-500",
+  amber: "bg-amber-500",
+  blue: "bg-blue-500",
+  cyan: "bg-cyan-500",
+  green: "bg-green-500",
+  grey: "bg-gray-500",
+  indigo: "bg-indigo-500",
+  "light-blue": "bg-sky-400",
+  "light-green": "bg-emerald-400",
+  lime: "bg-lime-500",
+  orange: "bg-orange-500",
+  pink: "bg-pink-500",
+  red: "bg-red-500",
+  teal: "bg-teal-500",
+  violet: "bg-violet-500",
+  yellow: "bg-yellow-500",
 };
 
-const STATUS_VARIANT_MAP: Record<StatusVariant, { badge: BadgeVariant; dot: string }> = {
-  success: { badge: "success", dot: "bg-[var(--success)]" },
-  warning: { badge: "warning", dot: "bg-[var(--warning)]" },
-  danger: { badge: "destructive", dot: "bg-[var(--destructive)]" },
-  info: { badge: "outline", dot: "bg-sky-500" },
-  neutral: { badge: "secondary", dot: "bg-[var(--muted)]" },
-  purple: { badge: "outline", dot: "bg-violet-500" },
-  amber: { badge: "warning", dot: "bg-amber-500" },
-  blue: { badge: "outline", dot: "bg-blue-500" },
-  cyan: { badge: "outline", dot: "bg-cyan-500" },
-  green: { badge: "success", dot: "bg-green-500" },
-  grey: { badge: "secondary", dot: "bg-gray-500" },
-  indigo: { badge: "outline", dot: "bg-indigo-500" },
-  "light-blue": { badge: "outline", dot: "bg-sky-400" },
-  "light-green": { badge: "success", dot: "bg-emerald-400" },
-  lime: { badge: "outline", dot: "bg-lime-500" },
-  orange: { badge: "warning", dot: "bg-orange-500" },
-  pink: { badge: "outline", dot: "bg-pink-500" },
-  red: { badge: "destructive", dot: "bg-red-500" },
-  teal: { badge: "outline", dot: "bg-teal-500" },
-  violet: { badge: "outline", dot: "bg-violet-500" },
-  yellow: { badge: "warning", dot: "bg-yellow-500" },
+export const textColorMap: Record<StatusVariant, string> = {
+  success: "text-green-600 dark:text-green-400",
+  warning: "text-amber-600 dark:text-amber-400",
+  danger: "text-red-600 dark:text-red-400",
+  info: "text-sky-600 dark:text-sky-400",
+  neutral: "text-[var(--muted-foreground)]",
+  purple: "text-violet-600 dark:text-violet-400",
+  amber: "text-amber-600 dark:text-amber-400",
+  blue: "text-blue-600 dark:text-blue-400",
+  cyan: "text-cyan-600 dark:text-cyan-400",
+  green: "text-green-600 dark:text-green-400",
+  grey: "text-gray-600 dark:text-gray-400",
+  indigo: "text-indigo-600 dark:text-indigo-400",
+  "light-blue": "text-sky-600 dark:text-sky-400",
+  "light-green": "text-emerald-600 dark:text-emerald-400",
+  lime: "text-lime-600 dark:text-lime-400",
+  orange: "text-orange-600 dark:text-orange-400",
+  pink: "text-pink-600 dark:text-pink-400",
+  red: "text-red-600 dark:text-red-400",
+  teal: "text-teal-600 dark:text-teal-400",
+  violet: "text-violet-600 dark:text-violet-400",
+  yellow: "text-yellow-600 dark:text-yellow-400",
 };
 
-export interface StatusBadgeProps {
+const sizeMap = {
+  sm: "text-xs gap-1.5",
+  md: "text-xs gap-1.5",
+  lg: "text-sm gap-2",
+} as const;
+
+/**
+ * Deterministically map a string to a StatusVariant.
+ * Used by the autoColor prop.
+ */
+function stringToVariant(str: string): StatusVariant {
+  const keys = Object.keys(dotColorMap) as StatusVariant[];
+  let sum = 0;
+  for (let i = 0; i < str.length; i++) {
+    sum += str.charCodeAt(i);
+  }
+  return keys[sum % keys.length];
+}
+
+export interface StatusBadgeProps
+  extends Omit<React.HTMLAttributes<HTMLSpanElement>, "children"> {
   status?: StatusKind;
   label?: string;
   children?: React.ReactNode;
@@ -109,7 +109,8 @@ export interface StatusBadgeProps {
   showDot?: boolean;
   variant?: StatusVariant | null;
   copyable?: boolean;
-  size?: 'sm' | 'md' | 'lg' | string;
+  copyText?: string;
+  size?: "sm" | "md" | "lg" | null;
   autoColor?: string;
 }
 
@@ -120,18 +121,100 @@ export function StatusBadge({
   className,
   showDot = true,
   variant,
+  copyable = true,
+  copyText,
+  size = "sm",
+  autoColor,
+  onClick,
+  ...props
 }: StatusBadgeProps) {
-  const cfg = status ? MAP[status] : undefined;
-  const variantCfg = variant ? STATUS_VARIANT_MAP[variant] : undefined;
-  const badgeVariant = variantCfg?.badge ?? cfg?.variant ?? "secondary";
-  const dot = variantCfg?.dot ?? cfg?.dot ?? "bg-[var(--muted)]";
+  const { copyToClipboard } = useCopyToClipboard();
+
+  // Status preset map (kept for backward compat)
+  const STATUS_MAP: Record<
+    StatusKind,
+    { variant: StatusVariant; label: string }
+  > = {
+    active: { variant: "success", label: "Active" },
+    disabled: { variant: "neutral", label: "Disabled" },
+    pending: { variant: "warning", label: "Pending" },
+    error: { variant: "danger", label: "Error" },
+    success: { variant: "success", label: "Success" },
+    warning: { variant: "warning", label: "Warning" },
+  };
+
+  const cfg = status ? STATUS_MAP[status] : undefined;
+  const computedVariant: StatusVariant = autoColor
+    ? stringToVariant(autoColor)
+    : (variant ?? cfg?.variant ?? "neutral");
+
+  const dot = dotColorMap[computedVariant];
+  const textClass = textColorMap[computedVariant];
+
+  const handleClick = (e: React.MouseEvent<HTMLSpanElement>) => {
+    if (copyable) {
+      e.stopPropagation();
+      copyToClipboard(copyText || label || "");
+    }
+    onClick?.(e);
+  };
+
+  const content =
+    children ?? (label ? <span className="truncate">{label}</span> : cfg?.label);
 
   return (
-    <Badge variant={badgeVariant} className={cn("gap-1.5", className)}>
-      {showDot ? (
-        <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
-      ) : null}
-      {children ?? label ?? cfg?.label}
-    </Badge>
+    <span
+      className={cn(
+        "inline-flex w-fit shrink-0 items-center font-medium whitespace-nowrap",
+        sizeMap[size ?? "sm"],
+        textClass,
+        copyable &&
+          "cursor-pointer transition-opacity hover:opacity-70 active:scale-95",
+        className
+      )}
+      onClick={handleClick}
+      title={
+        copyable ? `Click to copy: ${copyText || label || ""}` : undefined
+      }
+      {...props}
+    >
+      {showDot && (
+        <span
+          className={cn("inline-block size-1.5 shrink-0 rounded-full", dot)}
+          aria-hidden="true"
+        />
+      )}
+      {content}
+    </span>
   );
 }
+
+export const statusPresets = {
+  active: {
+    variant: "success" as const,
+    label: "Active",
+    showDot: true,
+  },
+  inactive: {
+    variant: "neutral" as const,
+    label: "Inactive",
+    showDot: true,
+  },
+  invited: {
+    variant: "info" as const,
+    label: "Invited",
+    showDot: true,
+  },
+  suspended: {
+    variant: "danger" as const,
+    label: "Suspended",
+    showDot: true,
+  },
+  pending: {
+    variant: "warning" as const,
+    label: "Pending",
+    showDot: true,
+  },
+} as const;
+
+export type StatusPreset = keyof typeof statusPresets;

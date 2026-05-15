@@ -8,7 +8,26 @@ import { cn } from "@/lib/utils";
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;
-const DialogClose = DialogPrimitive.Close;
+const DialogClose = React.forwardRef<
+  React.ComponentRef<typeof DialogPrimitive.Close>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Close> & {
+    render?: React.ReactElement;
+  }
+>(({ render, children, ...props }, ref) => {
+  if (render) {
+    return (
+      <DialogPrimitive.Close ref={ref} asChild {...props}>
+        {React.cloneElement(render, undefined, children)}
+      </DialogPrimitive.Close>
+    );
+  }
+  return (
+    <DialogPrimitive.Close ref={ref} {...props}>
+      {children}
+    </DialogPrimitive.Close>
+  );
+});
+DialogClose.displayName = "DialogClose";
 
 const DialogOverlay = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Overlay>,

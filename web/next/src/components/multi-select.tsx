@@ -25,7 +25,11 @@ export interface MultiSelectOption {
 
 export interface MultiSelectProps {
   options: MultiSelectOption[];
-  value: string[];
+  /** Currently selected values. Alias: `selected` */
+  value?: string[];
+  /** Alias for `value` — same as `value` but matches default theme API */
+  selected?: string[];
+  /** Callback when selection changes */
   onChange: (value: string[]) => void;
   placeholder?: string;
   searchable?: boolean;
@@ -37,6 +41,7 @@ export interface MultiSelectProps {
 export function MultiSelect({
   options,
   value,
+  selected,
   onChange,
   placeholder = "Select...",
   searchable = true,
@@ -44,17 +49,18 @@ export function MultiSelect({
   disabled,
   maxDisplay = 3,
 }: MultiSelectProps) {
+  const currentValue = selected ?? value ?? [];
   const [open, setOpen] = React.useState(false);
 
   const toggle = (v: string) => {
-    if (value.includes(v)) {
-      onChange(value.filter((x) => x !== v));
+    if (currentValue.includes(v)) {
+      onChange(currentValue.filter((x) => x !== v));
     } else {
-      onChange([...value, v]);
+      onChange([...currentValue, v]);
     }
   };
 
-  const selectedOptions = options.filter((o) => value.includes(o.value));
+  const selectedOptions = options.filter((o) => currentValue.includes(o.value));
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -66,14 +72,14 @@ export function MultiSelect({
           disabled={disabled}
           className={cn(
             "w-full justify-between font-normal",
-            value.length === 0 && "text-[var(--muted)]",
+            currentValue.length === 0 && "text-[var(--muted)]",
             className
           )}
         >
           <span className="flex flex-1 flex-wrap items-center gap-1 overflow-hidden">
-            {value.length === 0 ? (
+            {currentValue.length === 0 ? (
               placeholder
-            ) : value.length <= maxDisplay ? (
+            ) : currentValue.length <= maxDisplay ? (
               selectedOptions.map((o) => (
                 <span
                   key={o.value}
@@ -97,7 +103,7 @@ export function MultiSelect({
               ))
             ) : (
               <span className="text-sm">
-                {value.length} selected
+                {currentValue.length} selected
               </span>
             )}
           </span>
@@ -111,7 +117,7 @@ export function MultiSelect({
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
               {options.map((opt) => {
-                const selected = value.includes(opt.value);
+                const isSelected = currentValue.includes(opt.value);
                 return (
                   <CommandItem
                     key={opt.value}
@@ -121,12 +127,12 @@ export function MultiSelect({
                     <div
                       className={cn(
                         "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
-                        selected
+                        isSelected
                           ? "bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-foreground)]"
                           : "border-[var(--border)] opacity-70"
                       )}
                     >
-                      {selected ? <Check className="h-3 w-3" /> : null}
+                      {isSelected ? <Check className="h-3 w-3" /> : null}
                     </div>
                     <span>{opt.label}</span>
                   </CommandItem>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import type { Table as TanstackTable } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -17,6 +18,11 @@ export interface TableSkeletonProps
   rows?: number;
   columns?: number;
   showHeader?: boolean;
+  /** TanStack Table instance — used to derive column count if `columns` not provided */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  table?: TanstackTable<any>;
+  /** Key prefix for stable React keys */
+  keyPrefix?: string;
 }
 
 export const TableSkeleton = React.forwardRef<
@@ -24,9 +30,11 @@ export const TableSkeleton = React.forwardRef<
   TableSkeletonProps
 >(
   (
-    { rows = 5, columns = 4, showHeader = true, className, ...props },
+    { rows = 5, columns: columnsProp, showHeader = true, table, keyPrefix, className, ...props },
     ref
   ) => {
+    const columns = columnsProp ?? (table ? table.getState().columnOrder?.length || table.getHeaderGroups().reduce((acc, hg) => acc + hg.headers.length, 0) : 4);
+    const prefix = keyPrefix ?? 'skel';
     return (
       <div
         ref={ref}
@@ -42,7 +50,7 @@ export const TableSkeleton = React.forwardRef<
               <TableRow className="border-[var(--border)] hover:bg-transparent">
                 {Array.from({ length: columns }).map((_, i) => (
                   <TableHead
-                    key={`th-${i}`}
+                    key={`${prefix}-th-${i}`}
                     className="h-11 px-3 text-xs uppercase tracking-wide"
                   >
                     <Skeleton className="h-3 w-20" />
@@ -54,11 +62,11 @@ export const TableSkeleton = React.forwardRef<
           <TableBody>
             {Array.from({ length: rows }).map((_, r) => (
               <TableRow
-                key={`row-${r}`}
+                key={`${prefix}-row-${r}`}
                 className="border-[var(--border)] hover:bg-transparent"
               >
                 {Array.from({ length: columns }).map((__, c) => (
-                  <TableCell key={`cell-${r}-${c}`} className="px-3 py-3">
+                  <TableCell key={`${prefix}-cell-${r}-${c}`} className="px-3 py-3">
                     <Skeleton
                       className={cn(
                         "h-4",

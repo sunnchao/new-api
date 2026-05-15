@@ -13,6 +13,8 @@ export { TableSkeleton } from "./table-skeleton";
 export { DataTableToolbar } from "./toolbar";
 export type { DataTableToolbarFilterDef, DataTableToolbarProps } from "./toolbar";
 export { DataTableViewOptions } from "./view-options";
+export { DataTablePage } from "./data-table-page";
+export type { DataTablePageProps, DataTablePageToolbarProps } from "./data-table-page";
 
 export const DISABLED_ROW_DESKTOP =
   "bg-[var(--surface)]/65 opacity-75 [&>td:first-child]:border-l-4 [&>td:first-child]:border-l-[var(--muted)]";

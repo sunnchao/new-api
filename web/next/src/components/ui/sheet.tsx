@@ -8,7 +8,26 @@ import { cn } from "@/lib/utils";
 
 const Sheet = SheetPrimitive.Root;
 const SheetTrigger = SheetPrimitive.Trigger;
-const SheetClose = SheetPrimitive.Close;
+const SheetClose = React.forwardRef<
+  React.ComponentRef<typeof SheetPrimitive.Close>,
+  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Close> & {
+    render?: React.ReactElement;
+  }
+>(({ render, children, ...props }, ref) => {
+  if (render) {
+    return (
+      <SheetPrimitive.Close ref={ref} asChild {...props}>
+        {React.cloneElement(render, undefined, children)}
+      </SheetPrimitive.Close>
+    );
+  }
+  return (
+    <SheetPrimitive.Close ref={ref} {...props}>
+      {children}
+    </SheetPrimitive.Close>
+  );
+});
+SheetClose.displayName = "SheetClose";
 const SheetPortal = SheetPrimitive.Portal;
 
 const SheetOverlay = React.forwardRef<

@@ -17,6 +17,8 @@ export interface DataTableToolbarFilterDef {
   columnId?: string;
   title: string;
   options: FacetedFilterOption[];
+  /** When true, only one option can be selected at a time */
+  singleSelect?: boolean;
 }
 
 export interface DataTableToolbarProps<TData>
@@ -28,6 +30,8 @@ export interface DataTableToolbarProps<TData>
   rightActions?: React.ReactNode;
   preActions?: React.ReactNode;
   showViewOptions?: boolean;
+  /** Additional search input rendered next to the main search */
+  additionalSearch?: React.ReactNode;
 }
 
 export function DataTableToolbar<TData>({
@@ -38,6 +42,7 @@ export function DataTableToolbar<TData>({
   rightActions,
   preActions,
   showViewOptions = true,
+  additionalSearch,
   className,
   ...props
 }: DataTableToolbarProps<TData>) {
@@ -67,6 +72,7 @@ export function DataTableToolbar<TData>({
             />
           </div>
         )}
+        {additionalSearch}
 
         {filters?.map((filter) => {
           const col = table.getColumn(filter.columnId ?? filter.column ?? '');

@@ -20,12 +20,14 @@ import { completeCodexOAuth, getCodexUsage, startCodexOAuth } from "./api";
 type Phase = "idle" | "started" | "complete" | "error";
 
 interface CodexOAuthDialogProps {
-  channelId: number | null;
+  channelId?: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Callback when a key/credential is generated from the OAuth flow */
+  onKeyGenerated?: (key: any) => void;
 }
 
-export function CodexOAuthDialog({ channelId, open, onOpenChange }: CodexOAuthDialogProps) {
+export function CodexOAuthDialog({ channelId, open, onOpenChange, onKeyGenerated }: CodexOAuthDialogProps) {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>("idle");
   const [authUrl, setAuthUrl] = useState("");

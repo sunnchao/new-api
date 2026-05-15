@@ -4,7 +4,26 @@ import * as React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { cn } from "@/lib/utils";
 
-const TooltipProvider = TooltipPrimitive.Provider;
+interface TooltipProviderProps
+  extends Omit<
+    React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Provider>,
+    "delayDuration"
+  > {
+  /** Delay in ms before the tooltip opens. Maps to Radix's `delayDuration`. */
+  delay?: number;
+  /** Radix native prop name — also accepted for backward compat. */
+  delayDuration?: number;
+}
+
+function TooltipProvider({ delay, delayDuration, ...props }: TooltipProviderProps) {
+  return (
+    <TooltipPrimitive.Provider
+      delayDuration={delay ?? delayDuration}
+      {...props}
+    />
+  );
+}
+
 const Tooltip = TooltipPrimitive.Root;
 
 const TooltipTrigger = React.forwardRef<

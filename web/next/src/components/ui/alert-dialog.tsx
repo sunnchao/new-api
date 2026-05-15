@@ -98,14 +98,27 @@ AlertDialogTitle.displayName = "AlertDialogTitle";
 
 const AlertDialogDescription = React.forwardRef<
   React.ComponentRef<typeof AlertDialogPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Description
-    ref={ref}
-    className={cn("text-sm text-[var(--muted)]", className)}
-    {...props}
-  />
-));
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description> & {
+    render?: React.ReactElement;
+  }
+>(({ render, children, className, ...props }, ref) => {
+  if (render) {
+    return (
+      <AlertDialogPrimitive.Description ref={ref} asChild className={cn("text-sm text-[var(--muted)]", className)} {...props}>
+        {React.cloneElement(render, undefined, children)}
+      </AlertDialogPrimitive.Description>
+    );
+  }
+  return (
+    <AlertDialogPrimitive.Description
+      ref={ref}
+      className={cn("text-sm text-[var(--muted)]", className)}
+      {...props}
+    >
+      {children}
+    </AlertDialogPrimitive.Description>
+  );
+});
 AlertDialogDescription.displayName = "AlertDialogDescription";
 
 const AlertDialogAction = React.forwardRef<

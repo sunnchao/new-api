@@ -9,6 +9,10 @@ export interface TableEmptyProps extends React.HTMLAttributes<HTMLDivElement> {
   description?: string;
   icon?: React.ReactNode;
   action?: React.ReactNode;
+  /** Column span for table row usage */
+  colSpan?: number;
+  /** Children rendered as action area (alias for `action`) */
+  children?: React.ReactNode;
 }
 
 export const TableEmpty = React.forwardRef<HTMLDivElement, TableEmptyProps>(
@@ -18,6 +22,8 @@ export const TableEmpty = React.forwardRef<HTMLDivElement, TableEmptyProps>(
       description = "Try adjusting your search or filters to find what you are looking for.",
       icon,
       action,
+      colSpan,
+      children,
       className,
       ...props
     },
@@ -45,7 +51,7 @@ export const TableEmpty = React.forwardRef<HTMLDivElement, TableEmptyProps>(
             </p>
           )}
         </div>
-        {action && <div className="pt-1">{action}</div>}
+        {(action ?? children) && <div className="pt-1">{action ?? children}</div>}
       </div>
     );
   }
