@@ -218,9 +218,10 @@ export function Pricing(_props: PricingProps) {
                   >
                     <Link
                       to={isAuthenticated ? '/my-subscriptions' : '/sign-up'}
+                      className='inline-flex items-center'
                     >
                       {isAuthenticated ? t('Subscribe Now') : t('Get Started')}
-                      <ArrowRight className='ml-1 size-3.5' />
+                      <ArrowRight className='ml-1 size-3.5 shrink-0' />
                     </Link>
                   </Button>
                 </div>
