@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react'
 import {
   AlertCircle,
@@ -104,7 +105,7 @@ export function DeploymentAccessGuard({
   const router = useRouter()
 
   const handleGoToSettings = () => {
-    navigate({
+    router.push({
       to: '/system-settings/models/$section',
       params: { section: 'model-deployment' },
     })

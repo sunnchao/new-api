@@ -96,3 +96,7 @@ export function formatCurrencyUSD(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value as number)) return "-";
   return `$${value.toFixed(2)}`;
 }
+
+export function formatLogQuota(quota: number | null | undefined): string {
+  return formatQuota(quota);
+}

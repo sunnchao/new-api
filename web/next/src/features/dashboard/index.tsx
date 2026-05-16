@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useRouter } from 'next/navigation';
 import { useState, useCallback, useMemo, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
@@ -44,7 +45,6 @@ import {
   type QuotaDataItem,
 } from './types'
 
-const route = getRouteApi('/_authenticated/dashboard/$section')
 
 const LazyLogStatCards = lazy(() =>
   import('./components/models/log-stat-cards').then((m) => ({
@@ -199,7 +199,7 @@ export function Dashboard() {
   )
   const handleSectionChange = useCallback(
     (section: string) => {
-      void navigate({
+      void router.push({
         to: '/dashboard/$section',
         params: { section: section as DashboardSectionId },
       })

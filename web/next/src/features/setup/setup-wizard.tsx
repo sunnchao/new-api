@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -158,7 +159,7 @@ export function SetupWizard() {
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusResponse, navigate, form])
+  }, [statusResponse, router.push, form])
 
   useEffect(() => {
     if (!setupStatus) return

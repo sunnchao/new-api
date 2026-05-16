@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import useDialogState from '@/hooks/use-dialog'
+import { useDialogState } from '@/hooks/use-dialog'
 import type { AdminToken, AdminTokensDialogType } from '../types'
 
 type AdminTokensContextType = {

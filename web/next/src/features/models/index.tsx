@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
@@ -39,7 +40,6 @@ import {
   MODELS_SECTION_IDS,
 } from './section-registry'
 
-const route = getRouteApi('/_authenticated/models/$section')
 
 const SECTION_META: Record<
   ModelsSectionId,
@@ -111,7 +111,7 @@ function ModelsContent() {
 
   const handleSectionChange = useCallback(
     (section: string) => {
-      void navigate({
+      void router.push({
         to: '/models/$section',
         params: { section: section as ModelsSectionId },
       })

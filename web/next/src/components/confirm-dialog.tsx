@@ -14,11 +14,11 @@ import { Button } from "@/components/ui/button";
 export interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
+  title: React.ReactNode;
   /** Description text. Aliases: `desc` */
-  description?: string;
-  desc?: string;
-  confirmText?: string;
+  description?: React.ReactNode;
+  desc?: React.ReactNode;
+  confirmText?: React.ReactNode;
   cancelText?: string;
   cancelBtnText?: string;
   /** Visual variant. Use `variant="destructive"` or the shorthand `destructive` boolean. */
@@ -31,6 +31,7 @@ export interface ConfirmDialogProps {
   handleConfirm?: () => void | Promise<void>;
   /** External loading state override */
   isLoading?: boolean;
+  children?: React.ReactNode;
 }
 
 export function ConfirmDialog({

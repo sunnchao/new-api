@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useRouter } from 'next/navigation';
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Code2, HeartPulse, Info, Timer } from 'lucide-react'
@@ -1135,7 +1136,7 @@ export function ModelDetails() {
   }, [models, modelId])
 
   const handleBack = () => {
-    navigate({ to: '/pricing', search })
+    router.push({ to: '/pricing', search })
   }
 
   if (isLoading) {

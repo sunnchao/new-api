@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSidebarConfig } from '@/hooks/use-sidebar-config'
@@ -35,7 +36,6 @@ import {
   type UsageLogsSectionId,
 } from './section-registry'
 
-const route = getRouteApi('/_authenticated/usage-logs/$section')
 const TASK_LOG_SECTIONS = ['drawing', 'task'] as const
 
 const SECTION_META: Record<
@@ -100,7 +100,7 @@ function UsageLogsContent() {
 
   const handleSectionChange = useCallback(
     (section: string) => {
-      void navigate({
+      void router.push({
         to: '/usage-logs/$section',
         params: { section: section as UsageLogsSectionId },
       })

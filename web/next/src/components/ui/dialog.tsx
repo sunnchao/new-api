@@ -6,8 +6,28 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Dialog = DialogPrimitive.Root;
-const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;
+
+const DialogTrigger = React.forwardRef<
+  React.ComponentRef<typeof DialogPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Trigger> & {
+    render?: React.ReactElement;
+  }
+>(({ render, children, ...props }, ref) => {
+  if (render) {
+    return (
+      <DialogPrimitive.Trigger ref={ref} asChild {...props}>
+        {React.cloneElement(render, undefined, children)}
+      </DialogPrimitive.Trigger>
+    );
+  }
+  return (
+    <DialogPrimitive.Trigger ref={ref} {...props}>
+      {children}
+    </DialogPrimitive.Trigger>
+  );
+});
+DialogTrigger.displayName = "DialogTrigger";
 const DialogClose = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Close>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Close> & {
