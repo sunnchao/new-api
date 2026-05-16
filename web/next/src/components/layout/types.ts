@@ -36,15 +36,15 @@ type BaseNavItem = {
   title: string
   badge?: string
   icon?: React.ElementType
-  activeUrls?: (LinkProps['to'] | (string & {}))[]
-  configUrls?: (LinkProps['to'] | (string & {}))[]
+  activeUrls?: string[]
+  configUrls?: string[]
 }
 
 /**
  * Navigation link type - single link item
  */
 export type NavLink = BaseNavItem & {
-  url: LinkProps['to'] | (string & {})
+  url: string
   items?: never
   type?: never
 }
@@ -53,7 +53,7 @@ export type NavLink = BaseNavItem & {
  * Navigation collapsible type - collapsible navigation with sub-items
  */
 export type NavCollapsible = BaseNavItem & {
-  items: (BaseNavItem & { url: LinkProps['to'] | (string & {}) })[]
+  items: (BaseNavItem & { url: string })[]
   url?: never
   type?: never
 }

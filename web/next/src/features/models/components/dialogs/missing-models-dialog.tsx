@@ -118,7 +118,7 @@ export function MissingModelsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className='flex max-h-[85vh] max-w-2xl flex-col gap-3 p-4'
-        initialFocus={!isMobile}
+        onOpenAutoFocus={!isMobile}
       >
         <DialogHeader className='flex-shrink-0 text-start'>
           <DialogTitle>{t('Missing Models')}</DialogTitle>

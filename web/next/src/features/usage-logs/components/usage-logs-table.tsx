@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useRouter } from 'next/navigation';
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -60,7 +59,6 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
   const { t } = useTranslation()
   const isAdmin = useIsAdmin()
   const isMobile = useMediaQuery('(max-width: 640px)')
-  const searchParams = route.useSearch()
 
   const {
     columnFilters,

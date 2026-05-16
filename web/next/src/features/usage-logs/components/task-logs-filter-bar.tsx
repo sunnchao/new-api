@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react'
 import { useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { type Table } from '@tanstack/react-table'
@@ -63,7 +63,7 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
   const { t } = useTranslation()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const searchParams = route.useSearch()
+  const searchParams = useSearchParams()
   const isAdmin = useIsAdmin()
   const fetchingLogs = useIsFetching({ queryKey: ['logs'] })
 
@@ -75,32 +75,32 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
   useEffect(() => {
     const { start, end } = getDefaultTimeRange()
     const baseFilters = {
-      startTime: searchParams.startTime
-        ? new Date(searchParams.startTime)
+      startTime: searchParams.get('startTime')
+        ? new Date(searchParams.get('startTime'))
         : start,
-      endTime: searchParams.endTime ? new Date(searchParams.endTime) : end,
-      ...(searchParams.channel
-        ? { channel: String(searchParams.channel) }
+      endTime: searchParams.get('endTime') ? new Date(searchParams.get('endTime')) : end,
+      ...(searchParams.get('channel')
+        ? { channel: String(searchParams.get('channel')) }
         : {}),
     }
     const next: TaskLogsFilters =
       props.logCategory === 'drawing'
         ? {
             ...baseFilters,
-            ...(searchParams.filter ? { mjId: searchParams.filter } : {}),
+            ...(searchParams.get('filter') ? { mjId: searchParams.get('filter') } : {}),
           }
         : {
             ...baseFilters,
-            ...(searchParams.filter ? { taskId: searchParams.filter } : {}),
+            ...(searchParams.get('filter') ? { taskId: searchParams.get('filter') } : {}),
           }
 
     setFilters(next)
   }, [
     props.logCategory,
-    searchParams.startTime,
-    searchParams.endTime,
-    searchParams.channel,
-    searchParams.filter,
+    searchParams.get('startTime'),
+    searchParams.get('endTime'),
+    searchParams.get('channel'),
+    searchParams.get('filter'),
   ])
 
   const handleChange = useCallback(

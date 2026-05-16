@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react'
 import { useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { type Table } from '@tanstack/react-table'
@@ -65,7 +65,7 @@ export function CommonLogsFilterBar<TData>(
   const { t } = useTranslation()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const searchParams = route.useSearch()
+  const searchParams = useSearchParams()
   const isAdmin = useIsAdmin()
   const { sensitiveVisible, setSensitiveVisible } = useUsageLogsContext()
   const fetchingLogs = useIsFetching({ queryKey: ['logs'] })
@@ -78,37 +78,37 @@ export function CommonLogsFilterBar<TData>(
 
   useEffect(() => {
     const next: Partial<CommonLogFilters> = {}
-    if (searchParams.startTime)
-      next.startTime = new Date(searchParams.startTime)
-    if (searchParams.endTime) next.endTime = new Date(searchParams.endTime)
-    if (searchParams.channel) next.channel = String(searchParams.channel)
-    if (searchParams.model) next.model = searchParams.model
-    if (searchParams.token) next.token = searchParams.token
-    if (searchParams.group) next.group = searchParams.group
-    if (searchParams.username) next.username = searchParams.username
-    if (searchParams.requestId) next.requestId = searchParams.requestId
-    if (searchParams.upstreamRequestId)
-      next.upstreamRequestId = searchParams.upstreamRequestId
+    if (searchParams.get('startTime'))
+      next.startTime = new Date(searchParams.get('startTime'))
+    if (searchParams.get('endTime')) next.endTime = new Date(searchParams.get('endTime'))
+    if (searchParams.get('channel')) next.channel = String(searchParams.get('channel'))
+    if (searchParams.get('model')) next.model = searchParams.get('model')
+    if (searchParams.get('token')) next.token = searchParams.get('token')
+    if (searchParams.get('group')) next.group = searchParams.get('group')
+    if (searchParams.get('username')) next.username = searchParams.get('username')
+    if (searchParams.get('requestId')) next.requestId = searchParams.get('requestId')
+    if (searchParams.get('upstreamRequestId'))
+      next.upstreamRequestId = searchParams.get('upstreamRequestId')
 
     if (Object.keys(next).length > 0) {
       setFilters((prev) => ({ ...prev, ...next }))
     }
 
-    const typeArr = searchParams.type
-    if (Array.isArray(typeArr) && typeArr.length === 1) {
-      setLogType(typeArr[0])
+    const typeStr = searchParams.get('type')
+    if (typeStr && typeStr.length === 1) {
+      setLogType(typeStr[0])
     }
   }, [
-    searchParams.startTime,
-    searchParams.endTime,
-    searchParams.channel,
-    searchParams.model,
-    searchParams.token,
-    searchParams.group,
-    searchParams.username,
-    searchParams.requestId,
-    searchParams.upstreamRequestId,
-    searchParams.type,
+    searchParams.get('startTime'),
+    searchParams.get('endTime'),
+    searchParams.get('channel'),
+    searchParams.get('model'),
+    searchParams.get('token'),
+    searchParams.get('group'),
+    searchParams.get('username'),
+    searchParams.get('requestId'),
+    searchParams.get('upstreamRequestId'),
+    searchParams.get('type'),
   ])
 
   const handleChange = useCallback(

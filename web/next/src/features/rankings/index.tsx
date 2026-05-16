@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PublicLayout } from '@/components/layout'
@@ -34,7 +34,7 @@ const VALID_PERIODS: RankingPeriod[] = ['today', 'week', 'month', 'year', 'all']
 
 export function Rankings() {
   const { t } = useTranslation()
-  const search = useSearch({ from: '/rankings/' })
+  const search = useSearchParams()
   const router = useRouter()
 
   const period: RankingPeriod = VALID_PERIODS.includes(

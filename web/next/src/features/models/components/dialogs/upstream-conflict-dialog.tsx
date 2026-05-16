@@ -456,7 +456,7 @@ export function UpstreamConflictDialog({
     >
       <DialogContent
         className='flex max-h-[90vh] w-full flex-col gap-4 p-4 sm:max-w-5xl sm:p-6'
-        initialFocus={!isMobile}
+        onOpenAutoFocus={!isMobile}
       >
         <div className='flex min-h-0 flex-1 flex-col gap-4 overflow-hidden'>
           <DialogHeader className='flex-shrink-0 text-start'>

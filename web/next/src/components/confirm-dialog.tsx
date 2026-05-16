@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,7 @@ export interface ConfirmDialogProps {
   /** External loading state override */
   isLoading?: boolean;
   children?: React.ReactNode;
+  className?: string;
 }
 
 export function ConfirmDialog({
@@ -48,6 +50,7 @@ export function ConfirmDialog({
   onConfirm,
   handleConfirm,
   isLoading: externalLoading,
+  className,
 }: ConfirmDialogProps) {
   const [internalLoading, setInternalLoading] = React.useState(false);
   const loading = externalLoading ?? internalLoading;
@@ -70,7 +73,7 @@ export function ConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !loading && onOpenChange(next)}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className={cn("sm:max-w-md", className)}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {resolvedDescription ? (

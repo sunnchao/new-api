@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useState, useCallback, useMemo, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
@@ -150,7 +151,7 @@ const SECTION_META: Record<
 export function Dashboard() {
   const { t } = useTranslation()
   const router = useRouter()
-  const params = route.useParams()
+  const params = useParams()
   const userRole = useAuthStore((state) => state.auth.user?.role)
   const activeSection = (params.section ??
     DASHBOARD_DEFAULT_SECTION) as DashboardSectionId

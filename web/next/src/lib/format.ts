@@ -100,3 +100,17 @@ export function formatCurrencyUSD(value: number | null | undefined): string {
 export function formatLogQuota(quota: number | null | undefined): string {
   return formatQuota(quota);
 }
+
+export function formatUseTime(seconds: number | null | undefined): string {
+  if (seconds == null || Number.isNaN(seconds)) return "-";
+  if (seconds < 1) return `${(seconds * 1000).toFixed(0)}ms`;
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  return `${Math.floor(seconds / 60)}m ${(seconds % 60).toFixed(0)}s`;
+}
+
+export function formatTokens(tokens: number | null | undefined): string {
+  if (tokens == null || Number.isNaN(tokens)) return "-";
+  if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
+  if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}K`;
+  return `${tokens}`;
+}

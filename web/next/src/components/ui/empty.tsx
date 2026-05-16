@@ -75,4 +75,8 @@ const EmptyContent = React.forwardRef<
 ));
 EmptyContent.displayName = "EmptyContent";
 
+// Aliases for compatibility with default frontend
+export const EmptyMedia = EmptyIcon;
+export const EmptyHeader = EmptyTitle;
+
 export { Empty, EmptyIcon, EmptyTitle, EmptyDescription, EmptyContent };

@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSidebarConfig } from '@/hooks/use-sidebar-config'
@@ -59,7 +60,7 @@ const SECTION_META: Record<
 function UsageLogsContent() {
   const { t } = useTranslation()
   const router = useRouter()
-  const params = route.useParams()
+  const params = useParams()
   const activeCategory: UsageLogsSectionId =
     params.section && isUsageLogsSectionId(params.section)
       ? params.section

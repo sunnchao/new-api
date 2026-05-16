@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Code2, HeartPulse, Info, Timer } from 'lucide-react'
@@ -1113,7 +1113,7 @@ export function ModelDetailsDrawer(props: ModelDetailsDrawerProps) {
 export function ModelDetails() {
   const { t } = useTranslation()
   const { modelId } = useParams({ from: '/pricing/$modelId/' })
-  const search = useSearch({ from: '/pricing/$modelId/' })
+  const search = useSearchParams()
   const router = useRouter()
 
   const {
