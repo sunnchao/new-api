@@ -1,5 +1,5 @@
-import SubscriptionsAdminPage from "@/features/subscriptions";
+"use client";
 
-export default function Page() {
-  return <SubscriptionsAdminPage />;
-}
+import { Subscriptions } from "@/features/subscriptions";
+
+export default Subscriptions;

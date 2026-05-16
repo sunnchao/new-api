@@ -1,5 +1,5 @@
-import TopupPage from "@/features/wallet/topup-page";
+"use client";
 
-export default function Page() {
-  return <TopupPage />;
-}
+import WalletTopupPage from "@/features/wallet/topup-page";
+
+export default WalletTopupPage;

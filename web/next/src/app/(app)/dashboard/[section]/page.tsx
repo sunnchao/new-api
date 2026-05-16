@@ -1,10 +1,11 @@
-import DashboardSectionPage from "@/features/dashboard/section-page";
+"use client";
 
-export default async function Page({
+import { Dashboard } from "@/features/dashboard";
+
+export default function DashboardSectionPage({
   params,
 }: {
-  params: Promise<{ section: string }>;
+  params: { section: string };
 }) {
-  const { section } = await params;
-  return <DashboardSectionPage section={section} />;
+  return <Dashboard section={params.section} />;
 }

@@ -1,229 +1,313 @@
-"use client";
+/*
+Copyright (C) 2023-2026 QuantumNous
 
-import { useTranslation } from "react-i18next";
-import { useEffect, useState } from "react";
-import { useAuthStore } from "@/stores/auth-store";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import { formatQuota } from "@/lib/format";
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import { useState, useCallback, useMemo, lazy, Suspense } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/auth-store'
+import { ROLE } from '@/lib/roles'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { SectionPageLayout } from '@/components/layout'
+import { FadeIn } from '@/components/page-transition'
+import { ModelsChartPreferences } from './components/models/models-chart-preferences'
+import { ModelsFilter } from './components/models/models-filter-dialog'
+import { OverviewDashboard } from './components/overview/overview-dashboard'
+import { DEFAULT_TIME_GRANULARITY } from './constants'
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
+  buildDefaultDashboardFilters,
+  getSavedChartPreferences,
+  saveChartPreferences,
+} from './lib'
 import {
-  Activity, Coins, Cpu, TrendingUp, BarChart3,
-  ArrowUpRight, ArrowDownRight,
-} from "lucide-react";
-import { getUserQuotaDates } from "./api";
+  type DashboardSectionId,
+  DASHBOARD_DEFAULT_SECTION,
+  DASHBOARD_SECTION_IDS,
+} from './section-registry'
+import {
+  type DashboardChartPreferences,
+  type DashboardFilters,
+  type QuotaDataItem,
+} from './types'
 
-interface DashboardData {
-  total_quota?: number;
-  used_quota?: number;
-  request_count?: number;
-  data?: Array<{ timestamp: number; prompt_tokens: number; completion_tokens: number; request_count: number }>;
-}
+const route = getRouteApi('/_authenticated/dashboard/$section')
 
-export default function DashboardPage() {
-  const { t } = useTranslation();
-  const user = useAuthStore((s) => s.auth.user);
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+const LazyLogStatCards = lazy(() =>
+  import('./components/models/log-stat-cards').then((m) => ({
+    default: m.LogStatCards,
+  }))
+)
 
-  useEffect(() => {
-    getUserQuotaDates().then((res) => {
-      if (res.data) setData(res.data as DashboardData);
-    }).finally(() => setLoading(false));
-  }, []);
+const LazyModelCharts = lazy(() =>
+  import('./components/models/model-charts').then((m) => ({
+    default: m.ModelCharts,
+  }))
+)
 
-  const quotaUsed = user ? (user.used_quota / Math.max(user.quota, 1)) * 100 : 0;
+const LazyConsumptionDistributionChart = lazy(() =>
+  import('./components/models/consumption-distribution-chart').then((m) => ({
+    default: m.ConsumptionDistributionChart,
+  }))
+)
 
-  const chartData = (data?.data || []).map((d) => ({
-    date: new Date(d.timestamp * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    prompt: d.prompt_tokens,
-    completion: d.completion_tokens,
-    requests: d.request_count,
-  }));
+const LazyPerformanceOverview = lazy(() =>
+  import('./components/models/performance-overview').then((m) => ({
+    default: m.PerformanceOverview,
+  }))
+)
 
-  const statCards = [
-    {
-      label: t("dashboard.totalQuota"),
-      value: user?.quota ? (user.quota / 500000).toFixed(2) : "0",
-      icon: Coins,
-      suffix: "$",
-    },
-    {
-      label: t("dashboard.usedQuota"),
-      value: user?.used_quota ? (user.used_quota / 500000).toFixed(2) : "0",
-      icon: TrendingUp,
-      suffix: "$",
-    },
-    {
-      label: t("dashboard.requestCount"),
-      value: user?.request_count?.toLocaleString() ?? "0",
-      icon: Activity,
-    },
-    {
-      label: t("dashboard.remainingQuota"),
-      value: user ? ((user.quota - user.used_quota) / 500000).toFixed(2) : "0",
-      icon: Cpu,
-      suffix: "$",
-    },
-  ];
+const LazyUserCharts = lazy(() =>
+  import('./components/users/user-charts').then((m) => ({
+    default: m.UserCharts,
+  }))
+)
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight">{t("dashboard.overview")}</h1>
-          <p className="text-sm text-[var(--muted)]">
-            {t("dashboard.overviewDescription", { defaultValue: "Monitor your API usage, costs, and performance in real time." })}
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-[108px] rounded-lg" />
-          ))}
-        </div>
-        <Skeleton className="h-[360px] rounded-lg" />
-      </div>
-    );
-  }
-
+function LogStatCardsFallback() {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">{t("dashboard.overview")}</h1>
-        <p className="text-sm text-[var(--muted)]">
-          {t("dashboard.overviewDescription", { defaultValue: "Monitor your API usage, costs, and performance in real time." })}
-        </p>
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat) => (
-          <Card key={stat.label} className="relative overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium uppercase tracking-wider text-[var(--muted)]">
-                {stat.label}
-              </CardTitle>
-              <div className="rounded-md bg-[var(--accent)]/10 p-1.5">
-                <stat.icon className="h-4 w-4 text-[var(--accent)]" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-baseline gap-1">
-                {stat.suffix && <span className="text-sm font-medium text-[var(--muted)]">{stat.suffix}</span>}
-                <span className="text-2xl font-bold tracking-tight font-mono">{stat.value}</span>
-              </div>
-            </CardContent>
-          </Card>
+    <div className='overflow-hidden rounded-lg border'>
+      <div className='divide-border/60 grid grid-cols-2 divide-x sm:grid-cols-3 lg:grid-cols-5'>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className='px-4 py-3.5 sm:px-5 sm:py-4'>
+            <Skeleton className='h-3.5 w-16' />
+            <Skeleton className='mt-2 h-7 w-20' />
+            <Skeleton className='mt-1.5 h-3.5 w-28' />
+          </div>
         ))}
       </div>
-
-      {/* Quota bar */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">{t("dashboard.usedQuota")}</span>
-            <span className="text-sm font-mono text-[var(--muted)]">{quotaUsed.toFixed(1)}%</span>
-          </div>
-          <div className="h-2.5 w-full rounded-full bg-[var(--surface)] overflow-hidden">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all duration-700 ease-out",
-                quotaUsed > 90
-                  ? "bg-red-500"
-                  : quotaUsed > 70
-                    ? "bg-amber-500"
-                    : "bg-[var(--accent)]"
-              )}
-              style={{ width: `${Math.min(quotaUsed, 100)}%` }}
-            />
-          </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-[var(--muted)]">
-            <span>{formatQuota(user?.used_quota ?? 0)} {t("common.used")}</span>
-            <span>{formatQuota((user?.quota ?? 0) - (user?.used_quota ?? 0))} {t("common.remaining", { defaultValue: "remaining" })}</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Token usage chart */}
-      {chartData.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-[var(--accent)]" />
-              <CardTitle className="text-base">{t("dashboard.usageTrend")}</CardTitle>
-            </div>
-            <Badge variant="outline" className="font-normal">
-              {chartData.length} {t("common.days", { defaultValue: "days" })}
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={320}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="promptGradMain" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="completionGradMain" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.5} />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11, fill: "var(--muted)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "var(--muted)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--background)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                    fontSize: 12,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                  }}
-                  labelStyle={{ fontWeight: 600, marginBottom: 4 }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="prompt"
-                  stackId="1"
-                  stroke="var(--accent)"
-                  fill="url(#promptGradMain)"
-                  strokeWidth={2}
-                  name="Prompt"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="completion"
-                  stackId="1"
-                  stroke="#10b981"
-                  fill="url(#completionGradMain)"
-                  strokeWidth={2}
-                  name="Completion"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
     </div>
-  );
+  )
+}
+
+function ModelChartsFallback() {
+  return (
+    <div className='overflow-hidden rounded-lg border'>
+      <div className='flex items-center justify-between border-b px-4 py-3 sm:px-5'>
+        <Skeleton className='h-5 w-32' />
+        <Skeleton className='h-8 w-72' />
+      </div>
+      <div className='h-96 p-2'>
+        <Skeleton className='h-full w-full' />
+      </div>
+    </div>
+  )
+}
+
+function PerformanceOverviewFallback() {
+  return (
+    <div className='overflow-hidden rounded-lg border'>
+      <div className='flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-5'>
+        <div className='flex items-center gap-2'>
+          <Skeleton className='h-4 w-24' />
+        </div>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className='flex items-center gap-1.5'>
+            <Skeleton className='h-3 w-14' />
+            <Skeleton className='h-4 w-16' />
+          </div>
+        ))}
+        <div className='ml-auto flex items-center gap-2'>
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Skeleton key={i} className='h-5 w-28 rounded-full' />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const SECTION_META: Record<
+  DashboardSectionId,
+  { titleKey: string; descriptionKey: string }
+> = {
+  overview: {
+    titleKey: 'Overview',
+    descriptionKey: 'View dashboard overview and statistics',
+  },
+  models: {
+    titleKey: 'Model Call Analytics',
+    descriptionKey: 'View model call count analytics and charts',
+  },
+  users: {
+    titleKey: 'User Analytics',
+    descriptionKey: 'View user consumption statistics and charts',
+  },
+}
+
+export function Dashboard() {
+  const { t } = useTranslation()
+  const router = useRouter()
+  const params = route.useParams()
+  const userRole = useAuthStore((state) => state.auth.user?.role)
+  const activeSection = (params.section ??
+    DASHBOARD_DEFAULT_SECTION) as DashboardSectionId
+
+  const [modelData, setModelData] = useState<QuotaDataItem[]>([])
+  const [dataLoading, setDataLoading] = useState(false)
+  const [chartPreferences, setChartPreferences] =
+    useState<DashboardChartPreferences>(() => getSavedChartPreferences())
+  const [modelFilters, setModelFilters] = useState<DashboardFilters>(() =>
+    buildDefaultDashboardFilters(getSavedChartPreferences())
+  )
+
+  const handleFilterChange = useCallback((filters: DashboardFilters) => {
+    setModelFilters(filters)
+  }, [])
+
+  const handleResetFilters = useCallback(() => {
+    setModelFilters(buildDefaultDashboardFilters(chartPreferences))
+  }, [chartPreferences])
+
+  const handleDataUpdate = useCallback(
+    (data: QuotaDataItem[], loading: boolean) => {
+      setModelData(data)
+      setDataLoading(loading)
+    },
+    []
+  )
+
+  const handleChartPreferencesChange = useCallback(
+    (preferences: DashboardChartPreferences) => {
+      setChartPreferences(preferences)
+      setModelFilters(buildDefaultDashboardFilters(preferences))
+      saveChartPreferences(preferences)
+    },
+    []
+  )
+
+  const meta = SECTION_META[activeSection] ?? SECTION_META.overview
+  const isAdmin = Boolean(userRole && userRole >= ROLE.ADMIN)
+  const visibleSections = useMemo(
+    () =>
+      DASHBOARD_SECTION_IDS.filter(
+        (section) => section !== 'overview' && (section !== 'users' || isAdmin)
+      ),
+    [isAdmin]
+  )
+  const handleSectionChange = useCallback(
+    (section: string) => {
+      void navigate({
+        to: '/dashboard/$section',
+        params: { section: section as DashboardSectionId },
+      })
+    },
+    [router]
+  )
+  const showSectionTabs =
+    activeSection !== 'overview' && visibleSections.length > 1
+  const modelActions =
+    activeSection === 'models' ? (
+      <>
+        <ModelsChartPreferences
+          preferences={chartPreferences}
+          onPreferencesChange={handleChartPreferencesChange}
+        />
+        <ModelsFilter
+          preferences={chartPreferences}
+          onFilterChange={handleFilterChange}
+          onReset={handleResetFilters}
+        />
+      </>
+    ) : null
+
+  return (
+    <SectionPageLayout>
+      <SectionPageLayout.Title>{t(meta.titleKey)}</SectionPageLayout.Title>
+      <SectionPageLayout.Description>
+        {t(meta.descriptionKey)}
+      </SectionPageLayout.Description>
+      <SectionPageLayout.Content>
+        <div className='space-y-3 sm:space-y-4'>
+          {activeSection !== 'overview' && (
+            <div className='flex flex-wrap items-center justify-between gap-1.5 sm:gap-2'>
+              {showSectionTabs ? (
+                <Tabs value={activeSection} onValueChange={handleSectionChange}>
+                  <TabsList className='h-auto max-w-full flex-wrap justify-start'>
+                    {visibleSections.map((section) => (
+                      <TabsTrigger key={section} value={section}>
+                        {t(SECTION_META[section].titleKey)}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              ) : (
+                <div />
+              )}
+              {modelActions != null && (
+                <div className='flex shrink-0 flex-wrap items-center gap-1.5 sm:gap-2'>
+                  {modelActions}
+                </div>
+              )}
+            </div>
+          )}
+          {activeSection === 'overview' && <OverviewDashboard />}
+          {activeSection === 'models' && (
+            <>
+              <FadeIn>
+                <Suspense fallback={<LogStatCardsFallback />}>
+                  <LazyLogStatCards
+                    filters={modelFilters}
+                    onDataUpdate={handleDataUpdate}
+                  />
+                </Suspense>
+              </FadeIn>
+              {isAdmin && (
+                <FadeIn delay={0.05}>
+                  <Suspense fallback={<PerformanceOverviewFallback />}>
+                    <LazyPerformanceOverview />
+                  </Suspense>
+                </FadeIn>
+              )}
+              <FadeIn delay={0.1}>
+                <Suspense fallback={<ModelChartsFallback />}>
+                  <LazyConsumptionDistributionChart
+                    data={modelData}
+                    loading={dataLoading}
+                    defaultChartType={
+                      chartPreferences.consumptionDistributionChart
+                    }
+                    timeGranularity={
+                      modelFilters.time_granularity || DEFAULT_TIME_GRANULARITY
+                    }
+                  />
+                </Suspense>
+              </FadeIn>
+              <FadeIn delay={0.15}>
+                <Suspense fallback={<ModelChartsFallback />}>
+                  <LazyModelCharts
+                    data={modelData}
+                    loading={dataLoading}
+                    defaultChartTab={chartPreferences.modelAnalyticsChart}
+                    timeGranularity={
+                      modelFilters.time_granularity || DEFAULT_TIME_GRANULARITY
+                    }
+                  />
+                </Suspense>
+              </FadeIn>
+            </>
+          )}
+          {activeSection === 'users' && (
+            <FadeIn>
+              <Suspense fallback={<ModelChartsFallback />}>
+                <LazyUserCharts />
+              </Suspense>
+            </FadeIn>
+          )}
+        </div>
+      </SectionPageLayout.Content>
+    </SectionPageLayout>
+  )
 }

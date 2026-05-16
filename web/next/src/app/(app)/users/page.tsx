@@ -1,3 +1,5 @@
-import UsersPage from "@/features/users";
+"use client";
 
-export default UsersPage;
+import { Users } from "@/features/users";
+
+export default Users;

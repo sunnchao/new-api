@@ -1,5 +1,5 @@
-import DashboardPage from "@/features/dashboard";
+"use client";
 
-export default function Page() {
-  return <DashboardPage />;
-}
+import { Dashboard } from "@/features/dashboard";
+
+export default Dashboard;

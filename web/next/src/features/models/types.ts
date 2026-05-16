@@ -36,23 +36,11 @@ export interface BoundChannel {
 export interface Model {
   id: number
   model_name: string
-  display_name?: string
   description?: string
   icon?: string
   tags?: string
   vendor_id?: number
-  vendor?: string
   endpoints?: string
-  model_type?: string
-  prompt_ratio?: number
-  completion_ratio?: number
-  cache_ratio?: number
-  image_ratio?: number
-  audio_ratio?: number
-  context_length?: number
-  max_tokens?: number
-  capabilities?: string[] | string
-  group?: string[] | string
   status: number
   sync_official: number
   created_time: number

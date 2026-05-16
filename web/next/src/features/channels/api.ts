@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import type { AxiosRequestConfig } from 'axios'
 import { api } from '@/lib/api'
+import { getGroups as getUserGroups } from '@/features/users/api'
 import type {
   AddChannelRequest,
   BatchDeleteParams,
@@ -82,58 +83,6 @@ export type CodexCredentialRefreshResponse = {
     channel_id?: number
     channel_type?: number
     channel_name?: string
-  }
-}
-
-export type ChannelUpstreamApplyResponse = {
-  success: boolean
-  message?: string
-  data?: {
-    id?: number
-    added_models?: string[]
-    removed_models?: string[]
-    ignored_models?: string[]
-    remaining_models?: string[]
-    remaining_remove_models?: string[]
-    models?: string
-    settings?: unknown
-  }
-}
-
-export type ChannelUpstreamDetectResponse = {
-  success: boolean
-  message?: string
-  data?: {
-    channel_id?: number
-    channel_name?: string
-    add_models?: string[]
-    remove_models?: string[]
-    last_check_time?: number
-    auto_added_models?: number
-  }
-}
-
-export type ChannelUpstreamApplyAllResponse = {
-  success: boolean
-  message?: string
-  data?: {
-    processed_channels?: number
-    added_models?: number
-    removed_models?: number
-    failed_channel_ids?: number[]
-    results?: unknown[]
-  }
-}
-
-export type ChannelUpstreamDetectAllResponse = {
-  success: boolean
-  message?: string
-  data?: {
-    processed_channels?: number
-    failed_channel_ids?: number[]
-    detected_add_models?: number
-    detected_remove_models?: number
-    channel_detected_results?: unknown[]
   }
 }
 
@@ -590,51 +539,13 @@ export async function getOllamaVersion(
 }
 
 // ============================================================================
-// Upstream Model Update Detection / Apply
-// ============================================================================
-
-export async function detectChannelUpstreamUpdates(
-  id: number
-): Promise<ChannelUpstreamDetectResponse> {
-  const res = await api.post('/api/channel/upstream_updates/detect', { id })
-  return res.data
-}
-
-export async function detectAllChannelUpstreamUpdates(): Promise<ChannelUpstreamDetectAllResponse> {
-  const res = await api.post('/api/channel/upstream_updates/detect_all', {})
-  return res.data
-}
-
-export async function applyChannelUpstreamUpdates(params: {
-  id: number
-  add_models?: string[]
-  remove_models?: string[]
-  ignore_models?: string[]
-}): Promise<ChannelUpstreamApplyResponse> {
-  const res = await api.post('/api/channel/upstream_updates/apply', params)
-  return res.data
-}
-
-export async function applyAllChannelUpstreamUpdates(): Promise<ChannelUpstreamApplyAllResponse> {
-  const res = await api.post('/api/channel/upstream_updates/apply_all', {})
-  return res.data
-}
-
-// ============================================================================
 // Group Management
 // ============================================================================
 
 /**
  * Get all available groups (re-exported from users API for convenience)
  */
-export async function getGroups(): Promise<{
-  success: boolean
-  message?: string
-  data?: string[]
-}> {
-  const res = await api.get('/api/group/')
-  return res.data
-}
+export const getGroups = getUserGroups
 
 // ============================================================================
 // Prefill Groups (Model Groups)

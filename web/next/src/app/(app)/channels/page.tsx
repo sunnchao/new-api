@@ -1,5 +1,5 @@
 "use client";
 
-import ChannelsPage from "@/features/channels";
+import { Channels } from "@/features/channels";
 
-export default ChannelsPage;
+export default Channels;

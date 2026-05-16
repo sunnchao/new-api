@@ -1,5 +1,5 @@
 "use client";
 
-import ModelsPage from "@/features/models";
+import { Models } from "@/features/models";
 
-export default ModelsPage;
+export default Models;

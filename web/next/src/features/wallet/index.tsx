@@ -1,205 +1,355 @@
-"use client";
+/*
+Copyright (C) 2023-2026 QuantumNous
 
-import { useTranslation } from "react-i18next";
-import { useEffect, useState } from "react";
-import api from "@/lib/api";
-import { useAuthStore } from "@/stores/auth-store";
-import { useSystemConfigStore } from "@/stores/system-config-store";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { Wallet as WalletIcon, Gift, CreditCard, ArrowDownUp, Receipt, DollarSign } from "lucide-react";
-import { useRouter } from "next/navigation";
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
 
-export default function WalletPage() {
-  const { t } = useTranslation();
-  const user = useAuthStore((s) => s.auth.user);
-  const setUser = useAuthStore((s) => s.setUser);
-  const currency = useSystemConfigStore((s) => s.config.currency);
-  const router = useRouter();
-  const [topupCode, setTopupCode] = useState("");
-  const [topupLoading, setTopupLoading] = useState(false);
-  const [affCode, setAffCode] = useState("");
-  const [affLoading, setAffLoading] = useState(false);
-  const [history, setHistory] = useState<any[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(true);
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
 
-  const formatQuota = (quota: number) => {
-    if (currency.quotaDisplayType === "TOKENS") return `${(quota / 1).toLocaleString()} tokens`;
-    const val = quota / currency.quotaPerUnit * (currency.usdExchangeRate || 1);
-    if (currency.quotaDisplayType === "CNY") return `¥${val.toFixed(2)}`;
-    if (currency.quotaDisplayType === "CUSTOM") return `${currency.customCurrencySymbol || ""}${val.toFixed(2)}`;
-    return `$${val.toFixed(2)}`;
-  };
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { getSelf } from '@/lib/api'
+import { useStatus } from '@/hooks/use-status'
+import { useSystemConfig } from '@/hooks/use-system-config'
+import { SectionPageLayout } from '@/components/layout'
+import { AffiliateRewardsCard } from './components/affiliate-rewards-card'
+import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
+import { CreemConfirmDialog } from './components/dialogs/creem-confirm-dialog'
+import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialog'
+import { TransferDialog } from './components/dialogs/transfer-dialog'
+import { RechargeFormCard } from './components/recharge-form-card'
+import { WalletStatsCard } from './components/wallet-stats-card'
+import { DEFAULT_DISCOUNT_RATE } from './constants'
+import {
+  useTopupInfo,
+  usePayment,
+  useAffiliate,
+  useRedemption,
+  useCreemPayment,
+  useWaffoPayment,
+  useWaffoPancakePayment,
+} from './hooks'
+import {
+  getDefaultPaymentType,
+  getMinTopupAmount,
+  isWaffoPancakePayment,
+} from './lib'
+import type {
+  UserWalletData,
+  PaymentMethod,
+  PresetAmount,
+  CreemProduct,
+} from './types'
+
+interface WalletProps {
+  initialShowHistory?: boolean
+}
+
+export function Wallet(props: WalletProps) {
+  const { t } = useTranslation()
+  const [user, setUser] = useState<UserWalletData | null>(null)
+  const [userLoading, setUserLoading] = useState(true)
+  const [topupAmount, setTopupAmount] = useState(0)
+  const [selectedPreset, setSelectedPreset] = useState<number | null>(null)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<PaymentMethod>()
+  const [paymentLoading, setPaymentLoading] = useState<string | null>(null)
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false)
+  const [billingDialogOpen, setBillingDialogOpen] = useState(false)
+  const [redemptionCode, setRedemptionCode] = useState('')
+  const [creemDialogOpen, setCreemDialogOpen] = useState(false)
+  const [selectedCreemProduct, setSelectedCreemProduct] =
+    useState<CreemProduct | null>(null)
+  const showSubscriptionPanel = false
+
+  const { status } = useStatus()
+  const { currency } = useSystemConfig()
+  const { topupInfo, presetAmounts, loading: topupLoading } = useTopupInfo()
+
+  // Calculate effective exchange rate - when display type is USD, use rate of 1
+  const effectiveUsdExchangeRate = useMemo(() => {
+    return currency?.quotaDisplayType === 'USD'
+      ? 1
+      : currency?.usdExchangeRate || 1
+  }, [currency?.quotaDisplayType, currency?.usdExchangeRate])
+  const {
+    amount: paymentAmount,
+    calculating,
+    processing,
+    calculatePaymentAmount,
+    processPayment,
+  } = usePayment()
+  const {
+    affiliateLink,
+    loading: affiliateLoading,
+    transferQuota,
+    transferring,
+  } = useAffiliate()
+  const { redeeming, redeemCode } = useRedemption()
+  const { processing: creemProcessing, processCreemPayment } = useCreemPayment()
+  const { processWaffoPayment } = useWaffoPayment()
+  const { processing: pancakeProcessing, processWaffoPancakePayment } =
+    useWaffoPancakePayment()
+
+  // Fetch and refresh user data
+  const fetchUser = useCallback(async () => {
+    try {
+      setUserLoading(true)
+      const response = await getSelf()
+      if (response.success && response.data) {
+        setUser(response.data as UserWalletData)
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch user data:', error)
+    } finally {
+      setUserLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    api.get("/api/user/topup/self").then((res) => {
-      if (res.data?.data) setHistory(res.data.data);
-    }).finally(() => setHistoryLoading(false));
-  }, []);
+    fetchUser()
+  }, [fetchUser])
 
-  const handleTopup = async () => {
-    if (!topupCode.trim()) return;
-    setTopupLoading(true);
-    try {
-      const res = await api.post("/api/user/topup", { key: topupCode.trim() });
-      if (res.data?.success) {
-        toast.success(t("common.success"));
-        setTopupCode("");
-        // Refresh user
-        const selfRes = await api.get("/api/user/self");
-        if (selfRes.data?.data) setUser(selfRes.data.data);
-      } else {
-        toast.error(res.data?.message || t("common.error"));
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || t("common.error"));
-    } finally {
-      setTopupLoading(false);
+  useEffect(() => {
+    if (props.initialShowHistory) {
+      setBillingDialogOpen(true)
+      window.history.replaceState({}, '', window.location.pathname)
     }
-  };
+  }, [props.initialShowHistory])
 
-  const handleAffTransfer = async () => {
-    if (!affCode.trim()) return;
-    setAffLoading(true);
-    try {
-      const res = await api.post("/api/user/aff_transfer", { aff_code: affCode.trim() });
-      if (res.data?.success) {
-        toast.success(t("common.success"));
-        setAffCode("");
-      } else {
-        toast.error(res.data?.message || t("common.error"));
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || t("common.error"));
-    } finally {
-      setAffLoading(false);
+  // Initialize topup amount when topup info is loaded
+  useEffect(() => {
+    if (topupInfo && topupAmount === 0) {
+      const minTopup = getMinTopupAmount(topupInfo)
+      setTopupAmount(minTopup)
+
+      // Calculate initial payment amount with default payment type
+      const defaultPaymentType = getDefaultPaymentType(topupInfo)
+      calculatePaymentAmount(minTopup, defaultPaymentType)
     }
-  };
+  }, [topupInfo, topupAmount, calculatePaymentAmount])
+
+  // Get current payment type (selected or default)
+  const getCurrentPaymentType = useCallback(() => {
+    return selectedPaymentMethod?.type || getDefaultPaymentType(topupInfo)
+  }, [selectedPaymentMethod, topupInfo])
+
+  // Handle preset selection
+  const handleSelectPreset = (preset: PresetAmount) => {
+    setTopupAmount(preset.value)
+    setSelectedPreset(preset.value)
+    calculatePaymentAmount(preset.value, getCurrentPaymentType())
+  }
+
+  // Handle topup amount change
+  const handleTopupAmountChange = (amount: number) => {
+    setTopupAmount(amount)
+    setSelectedPreset(null)
+    calculatePaymentAmount(amount, getCurrentPaymentType())
+  }
+
+  // Handle payment method selection
+  const handlePaymentMethodSelect = async (method: PaymentMethod) => {
+    setSelectedPaymentMethod(method)
+    setPaymentLoading(method.type)
+
+    try {
+      // Validate minimum topup
+      const minTopup = getMinTopupAmount(topupInfo)
+      if (topupAmount < minTopup) {
+        return
+      }
+
+      // Calculate payment amount and show confirmation dialog
+      await calculatePaymentAmount(topupAmount, method.type)
+      setConfirmDialogOpen(true)
+    } finally {
+      setPaymentLoading(null)
+    }
+  }
+
+  // Handle payment confirmation
+  const handlePaymentConfirm = async () => {
+    if (!selectedPaymentMethod) return
+
+    const isPancake = isWaffoPancakePayment(selectedPaymentMethod.type)
+    const success = isPancake
+      ? await processWaffoPancakePayment(topupAmount)
+      : await processPayment(topupAmount, selectedPaymentMethod.type)
+
+    if (success) {
+      setConfirmDialogOpen(false)
+      await fetchUser()
+    }
+  }
+
+  // Handle redemption
+  const handleRedeem = async () => {
+    if (!redemptionCode) return
+
+    const success = await redeemCode(redemptionCode)
+    if (success) {
+      setRedemptionCode('')
+      await fetchUser()
+    }
+  }
+
+  // Handle transfer
+  const handleTransfer = async (amount: number) => {
+    const success = await transferQuota(amount)
+    if (success) {
+      await fetchUser()
+    }
+    return success
+  }
+
+  // Handle Creem product selection
+  const handleCreemProductSelect = (product: CreemProduct) => {
+    setSelectedCreemProduct(product)
+    setCreemDialogOpen(true)
+  }
+
+  // Handle Creem payment confirmation
+  const handleCreemConfirm = async () => {
+    if (!selectedCreemProduct) return
+
+    const success = await processCreemPayment(selectedCreemProduct.productId)
+    if (success) {
+      setCreemDialogOpen(false)
+      setSelectedCreemProduct(null)
+      await fetchUser()
+    }
+  }
+
+  const handleWaffoMethodSelect = async (_method: unknown, index: number) => {
+    const loadingKey = `waffo-${index}`
+    setPaymentLoading(loadingKey)
+
+    try {
+      await processWaffoPayment(topupAmount, index)
+    } finally {
+      setPaymentLoading(null)
+    }
+  }
+
+  // Get discount rate for current topup amount
+  const getDiscountRate = useCallback(() => {
+    return topupInfo?.discount?.[topupAmount] || DEFAULT_DISCOUNT_RATE
+  }, [topupInfo, topupAmount])
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t("nav.wallet")}</h1>
+    <>
+      <SectionPageLayout>
+        <SectionPageLayout.Title>{t('Wallet')}</SectionPageLayout.Title>
+        <SectionPageLayout.Description>
+          {t('Manage your balance and payment methods')}
+        </SectionPageLayout.Description>
+        <SectionPageLayout.Content>
+          <div className='mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-5'>
+            <WalletStatsCard user={user} loading={userLoading} />
 
-      {/* Balance card */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-medium text-[var(--muted)]">{t("common.balance")}</CardTitle>
-          <WalletIcon className="h-5 w-5 text-[var(--accent)]" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold font-mono">
-            {user ? formatQuota(user.quota - user.used_quota) : "—"}
-          </div>
-          <div className="flex gap-4 mt-3 text-sm text-[var(--muted)]">
-            <span>{t("dashboard.totalQuota")}: {user ? formatQuota(user.quota) : "—"}</span>
-            <span>{t("dashboard.usedQuota")}: {user ? formatQuota(user.used_quota) : "—"}</span>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <Button size="sm" onClick={() => router.push("/wallet/topup")}>
-              <DollarSign className="h-4 w-4 mr-2" />
-              Top Up
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => router.push("/subscriptions")}>
-              <CreditCard className="h-4 w-4 mr-2" />
-              Subscribe
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => router.push("/invoices")}>
-              <Receipt className="h-4 w-4 mr-2" />
-              Invoices
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Top up */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Gift className="h-4 w-4 text-[var(--accent)]" />
-              Redeem Code
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Input
-                value={topupCode}
-                onChange={(e) => setTopupCode(e.target.value)}
-                placeholder="Enter redemption code"
-              />
-              <Button onClick={handleTopup} disabled={topupLoading}>
-                {topupLoading ? t("common.loading") : "Redeem"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Affiliate transfer */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <ArrowDownUp className="h-4 w-4 text-[var(--accent)]" />
-              Affiliate Code
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {user?.aff_code && (
-              <div className="mb-3">
-                <Label className="text-xs text-[var(--muted)]">Your Code</Label>
-                <div className="font-mono text-sm">{user.aff_code}</div>
+            <div
+              className={
+                showSubscriptionPanel
+                  ? 'grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:items-start'
+                  : 'grid gap-4'
+              }
+            >
+              <div id='wallet-add-funds' className='scroll-mt-4'>
+                <RechargeFormCard
+                  topupInfo={topupInfo}
+                  presetAmounts={presetAmounts}
+                  selectedPreset={selectedPreset}
+                  onSelectPreset={handleSelectPreset}
+                  topupAmount={topupAmount}
+                  onTopupAmountChange={handleTopupAmountChange}
+                  paymentAmount={paymentAmount}
+                  calculating={calculating}
+                  onPaymentMethodSelect={handlePaymentMethodSelect}
+                  paymentLoading={paymentLoading}
+                  redemptionCode={redemptionCode}
+                  onRedemptionCodeChange={setRedemptionCode}
+                  onRedeem={handleRedeem}
+                  redeeming={redeeming}
+                  topupLink={topupInfo?.topup_link}
+                  loading={topupLoading}
+                  priceRatio={(status?.price as number) || 1}
+                  usdExchangeRate={effectiveUsdExchangeRate}
+                  onOpenBilling={() => setBillingDialogOpen(true)}
+                  creemProducts={topupInfo?.creem_products}
+                  enableCreemTopup={topupInfo?.enable_creem_topup}
+                  onCreemProductSelect={handleCreemProductSelect}
+                  enableWaffoTopup={topupInfo?.enable_waffo_topup}
+                  waffoPayMethods={topupInfo?.waffo_pay_methods}
+                  waffoMinTopup={topupInfo?.waffo_min_topup}
+                  onWaffoMethodSelect={handleWaffoMethodSelect}
+                  enableWaffoPancakeTopup={
+                    topupInfo?.enable_waffo_pancake_topup
+                  }
+                />
               </div>
-            )}
-            <div className="flex gap-2">
-              <Input
-                value={affCode}
-                onChange={(e) => setAffCode(e.target.value)}
-                placeholder="Enter affiliate code"
-              />
-              <Button onClick={handleAffTransfer} disabled={affLoading} variant="outline">
-                Apply
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Billing history */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Billing History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {historyLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-10 bg-[var(--surface)] rounded animate-pulse" />
-              ))}
+              {/*<SubscriptionPlansCard*/}
+              {/*  topupInfo={topupInfo}*/}
+              {/*  onAvailabilityChange={handleSubscriptionAvailabilityChange}*/}
+              {/*/>*/}
             </div>
-          ) : history.length === 0 ? (
-            <p className="text-sm text-[var(--muted)] text-center py-8">{t("common.noData")}</p>
-          ) : (
-            <div className="space-y-2">
-              {history.slice(0, 20).map((item: any, i: number) => (
-                <div key={i} className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0">
-                  <div>
-                    <span className="text-sm">{item.type === 1 ? "Top-up" : item.type === 2 ? "Subscription" : "System"}</span>
-                    <span className="text-xs text-[var(--muted)] ml-2">
-                      {item.created_time ? new Date(item.created_time * 1000).toLocaleDateString() : ""}
-                    </span>
-                  </div>
-                  <span className={`font-mono text-sm ${item.amount >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}>
-                    {item.amount >= 0 ? "+" : ""}{formatQuota(Math.abs(item.amount))}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+
+            <AffiliateRewardsCard
+              user={user}
+              affiliateLink={affiliateLink}
+              onTransfer={() => setTransferDialogOpen(true)}
+              loading={affiliateLoading}
+            />
+          </div>
+        </SectionPageLayout.Content>
+      </SectionPageLayout>
+
+      <PaymentConfirmDialog
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        onConfirm={handlePaymentConfirm}
+        topupAmount={topupAmount}
+        paymentAmount={paymentAmount}
+        paymentMethod={selectedPaymentMethod}
+        calculating={calculating}
+        processing={processing || pancakeProcessing}
+        discountRate={getDiscountRate()}
+        usdExchangeRate={effectiveUsdExchangeRate}
+      />
+
+      <TransferDialog
+        open={transferDialogOpen}
+        onOpenChange={setTransferDialogOpen}
+        onConfirm={handleTransfer}
+        availableQuota={user?.aff_quota ?? 0}
+        transferring={transferring}
+      />
+
+      <BillingHistoryDialog
+        open={billingDialogOpen}
+        onOpenChange={setBillingDialogOpen}
+      />
+
+      <CreemConfirmDialog
+        open={creemDialogOpen}
+        onOpenChange={setCreemDialogOpen}
+        onConfirm={handleCreemConfirm}
+        product={selectedCreemProduct}
+        processing={creemProcessing}
+      />
+    </>
+  )
 }

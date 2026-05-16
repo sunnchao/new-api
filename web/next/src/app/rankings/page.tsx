@@ -1,10 +1,5 @@
-import { Suspense } from "react";
-import { RankingsPage } from "@/features/rankings";
+"use client";
 
-export default function Page() {
-  return (
-    <Suspense>
-      <RankingsPage />
-    </Suspense>
-  );
-}
+import { Rankings } from "@/features/rankings";
+
+export default Rankings;

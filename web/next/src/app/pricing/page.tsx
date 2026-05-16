@@ -1,5 +1,5 @@
-import { PricingPage } from "@/features/pricing";
+"use client";
 
-export default function Page() {
-  return <PricingPage />;
-}
+import { Pricing } from "@/features/pricing";
+
+export default Pricing;

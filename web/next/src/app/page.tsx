@@ -1,5 +1,5 @@
-import { HomePage } from "@/features/home";
+"use client";
 
-export default function Page() {
-  return <HomePage />;
-}
+import { Home } from "@/features/home";
+
+export default Home;

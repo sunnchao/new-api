@@ -1,5 +1,11 @@
 "use client";
 
-import ModelsSectionPage from "@/features/models/section-page";
+import { Models } from "@/features/models";
 
-export default ModelsSectionPage;
+export default function ModelsSectionPage({
+  params,
+}: {
+  params: { section: string };
+}) {
+  return <Models section={params.section} />;
+}

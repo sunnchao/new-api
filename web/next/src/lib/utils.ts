@@ -12,3 +12,16 @@ export function truncateText(text: string, maxLength: number): string {
   if (!text || text.length <= maxLength) return text
   return text.slice(0, maxLength) + '...'
 }
+
+/**
+ * Try to format JSON string with indentation
+ */
+export function tryPrettyJson(text: string): string {
+  const raw = (text ?? '').toString().trim()
+  if (!raw) return ''
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2)
+  } catch {
+    return raw
+  }
+}

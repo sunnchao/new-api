@@ -1,5 +1,5 @@
-import { KeysPage } from "@/features/keys";
+"use client";
 
-export default function Page() {
-  return <KeysPage />;
-}
+import { ApiKeys } from "@/features/keys";
+
+export default ApiKeys;

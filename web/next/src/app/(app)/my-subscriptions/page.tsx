@@ -1,5 +1,5 @@
-import MySubscriptionsPage from "@/features/subscriptions/user-index";
+"use client";
 
-export default function Page() {
-  return <MySubscriptionsPage />;
-}
+import { UserSubscriptions } from "@/features/subscriptions/user-index";
+
+export default UserSubscriptions;

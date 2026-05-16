@@ -1,5 +1,5 @@
-import { AdminTokensPage } from "@/features/admin-tokens";
+"use client";
 
-export default function Page() {
-  return <AdminTokensPage />;
-}
+import AdminTokens from "@/features/admin-tokens";
+
+export default AdminTokens;

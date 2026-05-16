@@ -249,14 +249,16 @@ export async function handleCopyChannel(
   id: number,
   params: CopyChannelParams,
   queryClient?: QueryClient,
-  onSuccess?: (newId: number) => void
+  onSuccess?: (newId?: number) => void
 ): Promise<void> {
   try {
     const response = await copyChannel(id, params)
-    if (response.success && response.data?.id) {
+    if (response.success) {
       toast.success(i18next.t(SUCCESS_MESSAGES.COPIED))
       queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
-      onSuccess?.(response.data.id)
+      onSuccess?.(response.data?.id)
+    } else {
+      toast.error(response.message || i18next.t('Failed to copy channel'))
     }
   } catch (_error) {
     toast.error(i18next.t('Failed to copy channel'))

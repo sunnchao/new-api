@@ -1,5 +1,5 @@
-import { RedemptionCodesPage } from "@/features/redemption-codes";
+"use client";
 
-export default function Page() {
-  return <RedemptionCodesPage />;
-}
+import { RedemptionCodes } from "@/features/redemption-codes";
+
+export default RedemptionCodes;

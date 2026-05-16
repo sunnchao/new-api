@@ -1,5 +1,5 @@
-import InvoicesPage from "@/features/invoices";
+"use client";
 
-export default function Page() {
-  return <InvoicesPage />;
-}
+import { Invoices } from "@/features/invoices";
+
+export default Invoices;

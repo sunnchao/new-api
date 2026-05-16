@@ -1,5 +1,5 @@
-import ProfilePage from "@/features/profile";
+"use client";
 
-export default function Page() {
-  return <ProfilePage />;
-}
+import { Profile } from "@/features/profile";
+
+export default Profile;

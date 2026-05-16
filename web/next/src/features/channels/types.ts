@@ -52,7 +52,6 @@ export const channelSchema = z.object({
   balance_updated_time: z.number(),
   models: z.string().default(''),
   group: z.string().default('default'),
-  groups: z.array(z.string()).optional(),
   used_quota: z.number().default(0),
   model_mapping: z.string().nullish(),
   status_code_mapping: z.string().nullish(),
@@ -65,7 +64,6 @@ export const channelSchema = z.object({
   header_override: z.string().nullish(),
   remark: z.string().default(''),
   max_input_tokens: z.number().default(0),
-  key_mode: z.enum(['append', 'replace']).optional(),
   channel_info: channelInfoSchema.default({
     is_multi_key: false,
     multi_key_size: 0,
@@ -240,7 +238,6 @@ export interface SearchChannelsParams {
   keyword?: string
   group?: string
   model?: string
-  tag?: string
   status?: string
   type?: number
   id_sort?: boolean
@@ -292,7 +289,7 @@ export interface TagOperationParams {
   weight?: number
   model_mapping?: string
   models?: string
-  groups?: string | string[]
+  groups?: string
 }
 
 // ============================================================================
@@ -321,7 +318,6 @@ export interface ChannelFormData {
   header_override?: string
   settings?: string
   other?: string
-  key_mode?: 'append' | 'replace'
   // Multi-key specific
   multi_key_mode?: 'single' | 'batch' | 'multi_to_single'
   multi_key_type?: 'random' | 'polling'

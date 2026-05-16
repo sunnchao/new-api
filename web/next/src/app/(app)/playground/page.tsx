@@ -1,5 +1,5 @@
-import PlaygroundPage from "@/features/playground";
+"use client";
 
-export default function Page() {
-  return <PlaygroundPage />;
-}
+import { Playground } from "@/features/playground";
+
+export default Playground;

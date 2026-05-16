@@ -1,5 +1,3 @@
-"use client"
-
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -20,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import {
   getCoreRowModel,
   useReactTable,
@@ -78,6 +76,8 @@ export function ChannelsTable() {
   const { t } = useTranslation()
   const { enableTagMode, idSort } = useChannels()
   const isMobile = useMediaQuery('(max-width: 640px)')
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
   // Table state
   const [sorting, setSorting] = useState<SortingState>([])
@@ -98,8 +98,8 @@ export function ChannelsTable() {
     onPaginationChange,
     ensurePageInRange,
   } = useNextTableUrlState({
-    searchParams: useSearchParams(),
-    router: useRouter(),
+    searchParams,
+    router,
     pagination: {
       defaultPage: 1,
       defaultPageSize: isMobile ? 10 : DEFAULT_PAGE_SIZE,

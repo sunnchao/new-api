@@ -1,15 +1,45 @@
-"use client";
+/*
+Copyright (C) 2023-2026 QuantumNous
 
-import { REDEMPTION_STATUS } from "../constants";
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
 
-export function isTimestampExpired(timestamp: number | null | undefined): boolean {
-  if (!timestamp || timestamp <= 0) return false;
-  return timestamp < Math.floor(Date.now() / 1000);
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+/**
+ * Utility functions for redemption codes
+ */
+
+/**
+ * Check if a Unix timestamp (in seconds) is expired
+ * @param timestamp - Unix timestamp in seconds (0 means never expires)
+ * @returns true if the timestamp is in the past
+ */
+export function isTimestampExpired(timestamp: number): boolean {
+  if (timestamp === 0) return false
+  return timestamp < Date.now() / 1000
 }
 
+/**
+ * Check if redemption code is expired based on business logic
+ * Only enabled redemption codes (status === 1) can be considered expired
+ * @param expired_time - Unix timestamp in seconds (0 means never expires)
+ * @param status - Redemption status (1: enabled, 2: disabled, 3: used)
+ * @returns true if the code is expired
+ */
 export function isRedemptionExpired(
-  expiredTime: number | null | undefined,
-  status: number,
+  expired_time: number,
+  status: number
 ): boolean {
-  return status === REDEMPTION_STATUS.ENABLED && isTimestampExpired(expiredTime);
+  return status === 1 && isTimestampExpired(expired_time)
 }

@@ -1,5 +1,5 @@
-import { SetupPage } from "@/features/setup";
+"use client";
 
-export default function Page() {
-  return <SetupPage />;
-}
+import { Setup } from "@/features/setup";
+
+export default Setup;

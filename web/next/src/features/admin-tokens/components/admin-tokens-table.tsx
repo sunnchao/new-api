@@ -1,418 +1,461 @@
-"use client";
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useSearchParams, useRouter } from 'next/navigation'
+import {
+  type ColumnDef,
+  type SortingState,
+  type VisibilityState,
+  getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { formatQuota, formatTimestampToDate } from '@/lib/format'
+import { cn } from '@/lib/utils'
+import { useNextTableUrlState } from '@/hooks/use-table-url-state'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Progress } from '@/components/ui/progress'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  DISABLED_ROW_DESKTOP,
+  DISABLED_ROW_MOBILE,
+  DataTablePage,
+  DataTableColumnHeader,
+} from '@/components/data-table'
+import { GroupBadge } from '@/components/group-badge'
+import { StatusBadge } from '@/components/status-badge'
+import {
+  API_KEY_STATUS,
+  API_KEY_STATUSES,
+  API_KEY_STATUS_OPTIONS,
+  ERROR_MESSAGES,
+} from '@/features/keys/constants'
+import { getAdminTokens, searchAdminTokens } from '../api'
+import type { AdminToken } from '../types'
+import { AdminTokenBulkActions } from './admin-token-bulk-actions'
+import { AdminTokenRowActions } from './admin-token-row-actions'
+import { useAdminTokens } from './admin-tokens-provider'
 
-import * as React from "react";
-import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import {
-  Edit,
-  Loader2,
-  MoreHorizontal,
-  Power,
-  PowerOff,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  Trash2,
-} from "lucide-react";
-import { formatQuota, formatTimestampToDateOnly } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ConfirmDialog } from "@/components/confirm-dialog";
-import { BulkActions, TableSkeleton } from "@/components/data-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { GroupBadge } from "@/components/group-badge";
-import { StatusBadge } from "@/components/status-badge";
-import { API_KEY_STATUS, API_KEY_STATUSES, ERROR_MESSAGES, SUCCESS_MESSAGES } from "@/features/keys/constants";
-import {
-  batchDeleteAdminTokens,
-  getAdminTokens,
-  searchAdminTokens,
-  updateAdminTokenStatus,
-} from "../api";
-import type { AdminToken, GetAdminTokensResponse } from "../types";
-import { useAdminTokens } from "./admin-tokens-provider";
-
-const PAGE_SIZE = 20;
-
-function normalizeList(result: GetAdminTokensResponse | { data?: AdminToken[] }) {
-  if (Array.isArray(result.data)) {
-    return { items: result.data, total: result.data.length };
-  }
-  return {
-    items: result.data?.items ?? [],
-    total: result.data?.total ?? result.data?.items?.length ?? 0,
-  };
+function getQuotaProgressColor(percentage: number): string {
+  if (percentage <= 10) return '[&_[data-slot=progress-indicator]]:bg-rose-500'
+  if (percentage <= 30) return '[&_[data-slot=progress-indicator]]:bg-amber-500'
+  return '[&_[data-slot=progress-indicator]]:bg-emerald-500'
 }
 
-function maskKey(key: string): string {
-  const value = key.startsWith("sk-") ? key : `sk-${key}`;
-  if (value.length <= 16) return value;
-  return `${value.slice(0, 10)}...${value.slice(-4)}`;
+function parseGroupList(value?: string | null): string[] {
+  return (value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
-function AdminTokenStatusBadge({ token }: { token: AdminToken }) {
-  const { t } = useTranslation();
-  const statusConfig = API_KEY_STATUSES[token.status];
-  return statusConfig ? (
-    <StatusBadge
-      label={t(statusConfig.label)}
-      variant={statusConfig.variant}
-      showDot={statusConfig.showDot}
-      copyable={false}
-    />
-  ) : (
-    <StatusBadge label={String(token.status)} variant="neutral" copyable={false} />
-  );
-}
-
-function AdminTokenRowActions({ token }: { token: AdminToken }) {
-  const { t } = useTranslation();
-  const { setOpen, setCurrentRow, triggerRefresh } = useAdminTokens();
-  const [toggling, setToggling] = React.useState(false);
-  const enabled = token.status === API_KEY_STATUS.ENABLED;
-
-  const toggleStatus = async () => {
-    setToggling(true);
-    try {
-      const nextStatus = enabled ? API_KEY_STATUS.DISABLED : API_KEY_STATUS.ENABLED;
-      const result = await updateAdminTokenStatus(token.id, nextStatus);
-      if (result.success) {
-        toast.success(
-          t(enabled ? SUCCESS_MESSAGES.API_KEY_DISABLED : SUCCESS_MESSAGES.API_KEY_ENABLED),
-        );
-        triggerRefresh();
-      } else {
-        toast.error(result.message || t(ERROR_MESSAGES.STATUS_UPDATE_FAILED));
-      }
-    } catch {
-      toast.error(t(ERROR_MESSAGES.UNEXPECTED));
-    } finally {
-      setToggling(false);
-    }
-  };
+function AdminTokenKeyCell({ token }: { token: AdminToken }) {
+  const maskedKey = token.key.startsWith('sk-') ? token.key : `sk-${token.key}`
 
   return (
-    <div className="flex items-center justify-end gap-1">
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn("h-8 w-8", enabled ? "text-[var(--destructive)]" : "text-[var(--success)]")}
-        onClick={toggleStatus}
-        disabled={toggling}
-        aria-label={enabled ? t("Disable") : t("Enable")}
-      >
-        {toggling ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : enabled ? (
-          <PowerOff className="h-4 w-4" />
-        ) : (
-          <Power className="h-4 w-4" />
-        )}
-      </Button>
+    <span className='text-muted-foreground font-mono text-xs'>{maskedKey}</span>
+  )
+}
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <MoreHorizontal className="h-4 w-4" />
-            <span className="sr-only">{t("Open menu")}</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44">
-          <DropdownMenuItem
-            onClick={() => {
-              setCurrentRow(token);
-              setOpen("update");
-            }}
-          >
-            {t("Edit")}
-            <DropdownMenuShortcut>
-              <Edit className="h-4 w-4" />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-[var(--destructive)] focus:text-[var(--destructive)]"
-            onClick={() => {
-              setCurrentRow(token);
-              setOpen("delete");
-            }}
-          >
-            {t("Delete")}
-            <DropdownMenuShortcut>
-              <Trash2 className="h-4 w-4" />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
+function isDisabledAdminTokenRow(token: AdminToken) {
+  return token.status !== API_KEY_STATUS.ENABLED
+}
+
+function useAdminTokenColumns(): ColumnDef<AdminToken>[] {
+  const { t } = useTranslation()
+
+  return useMemo(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            indeterminate={table.getIsSomePageRowsSelected()}
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
+            aria-label='Select all'
+            className='translate-y-[2px]'
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label='Select row'
+            className='translate-y-[2px]'
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        meta: { label: t('Select') },
+      },
+      {
+        accessorKey: 'name',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('Token Name')} />
+        ),
+        cell: ({ row }) => (
+          <div className='max-w-[200px] truncate font-medium'>
+            {row.getValue('name')}
+          </div>
+        ),
+        meta: { label: t('Token Name'), mobileTitle: true },
+      },
+      {
+        accessorKey: 'user_name',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('User')} />
+        ),
+        cell: ({ row }) => {
+          const token = row.original
+          return (
+            <div className='max-w-[180px] leading-tight'>
+              <div className='truncate font-medium'>
+                {token.user_name || t('Unknown')}
+              </div>
+              <div className='text-muted-foreground font-mono text-xs'>
+                #{token.user_id}
+              </div>
+            </div>
+          )
+        },
+        meta: { label: t('User'), mobileBadge: true },
+      },
+      {
+        accessorKey: 'status',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('Status')} />
+        ),
+        cell: ({ row }) => {
+          const statusConfig =
+            API_KEY_STATUSES[row.getValue('status') as number]
+          if (!statusConfig) return null
+          return (
+            <StatusBadge
+              label={t(statusConfig.label)}
+              variant={statusConfig.variant}
+              showDot={statusConfig.showDot}
+              copyable={false}
+            />
+          )
+        },
+        filterFn: (row, id, value) => value.includes(String(row.getValue(id))),
+        meta: { label: t('Status'), mobileBadge: true },
+      },
+      {
+        id: 'key',
+        accessorKey: 'key',
+        header: t('API Key'),
+        cell: ({ row }) => <AdminTokenKeyCell token={row.original} />,
+        enableSorting: false,
+        meta: { label: t('API Key') },
+      },
+      {
+        id: 'quota',
+        accessorKey: 'remain_quota',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('Quota')} />
+        ),
+        cell: ({ row }) => {
+          const token = row.original
+          if (token.unlimited_quota) {
+            return (
+              <StatusBadge
+                label={t('Unlimited')}
+                variant='neutral'
+                copyable={false}
+              />
+            )
+          }
+
+          const used = token.used_quota
+          const remaining = token.remain_quota
+          const total = used + remaining
+          const percentage = total > 0 ? (remaining / total) * 100 : 0
+
+          return (
+            <Tooltip>
+              <TooltipTrigger render={<div className='w-[150px] space-y-1' />}>
+                <div className='flex justify-between text-xs'>
+                  <span className='font-medium tabular-nums'>
+                    {formatQuota(remaining)}
+                  </span>
+                  <span className='text-muted-foreground tabular-nums'>
+                    {formatQuota(total)}
+                  </span>
+                </div>
+                <Progress
+                  value={percentage}
+                  className={cn('h-1.5', getQuotaProgressColor(percentage))}
+                />
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className='space-y-1 text-xs'>
+                  <div>
+                    {t('Used:')} {formatQuota(used)}
+                  </div>
+                  <div>
+                    {t('Remaining:')} {formatQuota(remaining)} (
+                    {percentage.toFixed(1)}%)
+                  </div>
+                  <div>
+                    {t('Total:')} {formatQuota(total)}
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          )
+        },
+        meta: { label: t('Quota') },
+      },
+      {
+        accessorKey: 'group',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('Group')} />
+        ),
+        cell: ({ row }) => {
+          const token = row.original
+          const group = row.getValue('group') as string
+          const backupGroups = parseGroupList(token.backup_group)
+
+          return (
+            <span className='inline-flex max-w-[240px] flex-wrap items-center gap-1.5'>
+              <GroupBadge group={group} />
+              {backupGroups.map((backupGroup) => (
+                <GroupBadge
+                  key={backupGroup}
+                  group={backupGroup}
+                  className='opacity-70'
+                />
+              ))}
+            </span>
+          )
+        },
+        meta: { label: t('Group'), mobileHidden: true },
+      },
+      {
+        accessorKey: 'created_time',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('Created')} />
+        ),
+        cell: ({ row }) => (
+          <span className='text-muted-foreground font-mono text-xs tabular-nums'>
+            {formatTimestampToDate(row.getValue('created_time'))}
+          </span>
+        ),
+        meta: { label: t('Created'), mobileHidden: true },
+      },
+      {
+        accessorKey: 'accessed_time',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('Last Used')} />
+        ),
+        cell: ({ row }) => {
+          const accessedTime = row.getValue('accessed_time') as number
+          if (!accessedTime) {
+            return <span className='text-muted-foreground text-xs'>-</span>
+          }
+          return (
+            <span className='text-muted-foreground font-mono text-xs tabular-nums'>
+              {formatTimestampToDate(accessedTime)}
+            </span>
+          )
+        },
+        meta: { label: t('Last Used'), mobileHidden: true },
+      },
+      {
+        accessorKey: 'expired_time',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('Expires')} />
+        ),
+        cell: ({ row }) => {
+          const expiredTime = row.getValue('expired_time') as number
+          if (expiredTime === -1) {
+            return (
+              <StatusBadge
+                label={t('Never')}
+                variant='neutral'
+                copyable={false}
+              />
+            )
+          }
+          const isExpired = expiredTime * 1000 < Date.now()
+          return (
+            <span
+              className={cn(
+                'font-mono text-xs tabular-nums',
+                isExpired ? 'text-destructive' : 'text-muted-foreground'
+              )}
+            >
+              {formatTimestampToDate(expiredTime)}
+            </span>
+          )
+        },
+        meta: { label: t('Expires'), mobileHidden: true },
+      },
+      {
+        id: 'actions',
+        cell: ({ row }) => <AdminTokenRowActions row={row} />,
+        meta: { label: t('Actions') },
+        size: 88,
+      },
+    ],
+    [t]
+  )
 }
 
 export function AdminTokensTable() {
-  const { t } = useTranslation();
-  const { refreshTrigger, triggerRefresh, setOpen, setCurrentRow } = useAdminTokens();
-  const [items, setItems] = React.useState<AdminToken[]>([]);
-  const [total, setTotal] = React.useState(0);
-  const [loading, setLoading] = React.useState(true);
-  const [search, setSearch] = React.useState("");
-  const [page, setPage] = React.useState(1);
-  const [selected, setSelected] = React.useState<Set<number>>(new Set());
-  const [batchDeleteOpen, setBatchDeleteOpen] = React.useState(false);
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const allPageSelected = items.length > 0 && items.every((item) => selected.has(item.id));
-  const somePageSelected = !allPageSelected && items.some((item) => selected.has(item.id));
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const { t } = useTranslation()
+  const { refreshTrigger } = useAdminTokens()
+  const columns = useAdminTokenColumns()
+  const [rowSelection, setRowSelection] = useState({})
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
 
-  const load = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const keyword = search.trim();
+  const {
+    globalFilter,
+    onGlobalFilterChange,
+    columnFilters,
+    onColumnFiltersChange,
+    pagination,
+    onPaginationChange,
+    ensurePageInRange,
+  } = useNextTableUrlState({ searchParams, router,
+    pagination: { defaultPage: 1, defaultPageSize: 20 },
+    globalFilter: { enabled: true, key: 'filter' },
+    columnFilters: [{ columnId: 'status', searchKey: 'status', type: 'array' }],
+  })
+
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: [
+      'admin-tokens',
+      pagination.pageIndex + 1,
+      pagination.pageSize,
+      globalFilter,
+      refreshTrigger,
+    ],
+    queryFn: async () => {
+      const keyword = globalFilter?.trim() ?? ''
       const result = keyword
-        ? await searchAdminTokens({ keyword, p: page, page_size: PAGE_SIZE })
-        : await getAdminTokens({ p: page, page_size: PAGE_SIZE });
+        ? await searchAdminTokens({
+            keyword,
+            p: pagination.pageIndex + 1,
+            page_size: pagination.pageSize,
+          })
+        : await getAdminTokens({
+            p: pagination.pageIndex + 1,
+            page_size: pagination.pageSize,
+          })
+
       if (!result.success) {
-        toast.error(result.message || t(keyword ? ERROR_MESSAGES.SEARCH_FAILED : ERROR_MESSAGES.LOAD_FAILED));
-        setItems([]);
-        setTotal(0);
-        return;
+        toast.error(
+          result.message ||
+            t(
+              keyword
+                ? ERROR_MESSAGES.SEARCH_FAILED
+                : ERROR_MESSAGES.LOAD_FAILED
+            )
+        )
+        return { items: [], total: 0 }
       }
-      const normalized = normalizeList(result);
-      setItems(normalized.items);
-      setTotal(normalized.total);
-    } catch {
-      toast.error(t(ERROR_MESSAGES.LOAD_FAILED));
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search, t]);
 
-  React.useEffect(() => {
-    void load();
-  }, [load, refreshTrigger]);
-
-  React.useEffect(() => {
-    setSelected(new Set());
-  }, [items]);
-
-  const toggleSelected = (id: number) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const togglePageSelection = () => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (allPageSelected) {
-        for (const item of items) next.delete(item.id);
-      } else {
-        for (const item of items) next.add(item.id);
+      return {
+        items: result.data?.items || [],
+        total: result.data?.total || 0,
       }
-      return next;
-    });
-  };
+    },
+    placeholderData: (previousData) => previousData,
+  })
+
+  const tokens = data?.items || []
+
+  const table = useReactTable({
+    data: tokens,
+    columns,
+    state: {
+      sorting,
+      columnVisibility,
+      rowSelection,
+      columnFilters,
+      globalFilter,
+      pagination,
+    },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange,
+    onGlobalFilterChange,
+    onColumnFiltersChange,
+    globalFilterFn: (row, _columnId, filterValue) => {
+      const value = String(filterValue).toLowerCase()
+      const token = row.original
+
+      return (
+        token.name.toLowerCase().includes(value) ||
+        token.key.toLowerCase().includes(value) ||
+        String(token.user_id).includes(value) ||
+        (token.user_name || '').toLowerCase().includes(value)
+      )
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+    manualPagination: true,
+    pageCount: Math.ceil((data?.total || 0) / pagination.pageSize),
+  })
+
+  const pageCount = table.getPageCount()
+  useEffect(() => {
+    ensurePageInRange(pageCount)
+  }, [pageCount, ensurePageInRange])
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="relative max-w-md flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
-          <Input
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-            placeholder={t("Filter by name, user, or token...")}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-            {t("Refresh")}
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => {
-              setCurrentRow(null);
-              setOpen("create");
-            }}
-          >
-            <ShieldCheck className="h-4 w-4" />
-            {t("Create Admin Token")}
-          </Button>
-        </div>
-      </div>
-
-      {loading ? (
-        <TableSkeleton rows={8} columns={8} />
-      ) : (
-        <Card className="overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={allPageSelected ? true : somePageSelected ? "indeterminate" : false}
-                    onCheckedChange={togglePageSelection}
-                    aria-label={t("Select all")}
-                  />
-                </TableHead>
-                <TableHead>{t("Token Name")}</TableHead>
-                <TableHead>{t("User")}</TableHead>
-                <TableHead>{t("Status")}</TableHead>
-                <TableHead>{t("API Key")}</TableHead>
-                <TableHead>{t("Quota")}</TableHead>
-                <TableHead>{t("Group")}</TableHead>
-                <TableHead>{t("Created")}</TableHead>
-                <TableHead className="text-right">{t("Actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="h-28 text-center text-[var(--muted)]">
-                    {t("No Admin Tokens Found")}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                items.map((token) => (
-                  <TableRow key={token.id} className={token.status !== API_KEY_STATUS.ENABLED ? "opacity-75" : undefined}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selected.has(token.id)}
-                        onCheckedChange={() => toggleSelected(token.id)}
-                        aria-label={t("Select row")}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-[220px] truncate font-medium">{token.name || "-"}</div>
-                      <div className="font-mono text-xs text-[var(--muted)]">#{token.id}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-[180px] leading-tight">
-                        <div className="truncate font-medium">{token.user_name || t("Unknown")}</div>
-                        <div className="font-mono text-xs text-[var(--muted)]">#{token.user_id}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <AdminTokenStatusBadge token={token} />
-                    </TableCell>
-                    <TableCell>
-                      <code className="rounded-md border border-[var(--border)] bg-[var(--surface)]/60 px-2 py-1 font-mono text-xs">
-                        {maskKey(token.key)}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      {token.unlimited_quota ? (
-                        <StatusBadge label={t("Unlimited")} variant="neutral" copyable={false} />
-                      ) : (
-                        <div className="space-y-0.5 font-mono text-xs">
-                          <div>{formatQuota(token.remain_quota)}</div>
-                          <div className="text-[var(--muted)]">
-                            {t("Used")}: {formatQuota(token.used_quota)}
-                          </div>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex max-w-[220px] flex-wrap gap-1">
-                        <GroupBadge group={token.group || "default"} />
-                        {token.backup_group
-                          ? token.backup_group.split(",").filter(Boolean).map((group) => (
-                              <GroupBadge key={group} group={group} className="opacity-70" />
-                            ))
-                          : null}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs text-[var(--muted)]">
-                      {formatTimestampToDateOnly(token.created_time)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <AdminTokenRowActions token={token} />
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </Card>
+    <DataTablePage
+      table={table}
+      columns={columns}
+      isLoading={isLoading}
+      isFetching={isFetching}
+      emptyTitle={t('No API Keys Found')}
+      emptyDescription={t(
+        'No API keys available. Create your first API key to get started.'
       )}
-
-      <div className="flex flex-col gap-3 text-sm text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <span className="text-[var(--foreground)]">{total}</span> {t("items")}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1 || loading}
-            onClick={() => setPage((value) => Math.max(1, value - 1))}
-          >
-            {t("Previous")}
-          </Button>
-          <span className="min-w-24 text-center text-xs">
-            {t("Page")} <span className="text-[var(--foreground)]">{page}</span> {t("of")}{" "}
-            <span className="text-[var(--foreground)]">{totalPages}</span>
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages || loading}
-            onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-          >
-            {t("Next")}
-          </Button>
-        </div>
-      </div>
-
-      <BulkActions
-        selectedCount={selected.size}
-        onClearSelection={() => setSelected(new Set())}
-        onDelete={() => setBatchDeleteOpen(true)}
-      />
-
-      <ConfirmDialog
-        open={batchDeleteOpen}
-        onOpenChange={setBatchDeleteOpen}
-        title={t("Delete selected admin tokens?")}
-        description={t("This action cannot be undone.")}
-        confirmText={t("Delete")}
-        cancelText={t("Cancel")}
-        variant="destructive"
-        onConfirm={async () => {
-          const result = await batchDeleteAdminTokens(Array.from(selected));
-          if (result.success) {
-            toast.success(t("Deleted {{count}} API key(s)", { count: selected.size }));
-            setSelected(new Set());
-            triggerRefresh();
-          } else {
-            toast.error(result.message || t(ERROR_MESSAGES.BATCH_DELETE_FAILED));
-          }
-        }}
-      />
-    </div>
-  );
+      skeletonKeyPrefix='admin-tokens-skeleton'
+      toolbarProps={{
+        searchPlaceholder: t('Filter by token name'),
+        filters: [
+          {
+            columnId: 'status',
+            title: t('Status'),
+            options: API_KEY_STATUS_OPTIONS,
+          },
+        ],
+      }}
+      getRowClassName={(row, ctx) =>
+        isDisabledAdminTokenRow(row.original)
+          ? ctx.isMobile
+            ? DISABLED_ROW_MOBILE
+            : DISABLED_ROW_DESKTOP
+          : undefined
+      }
+      bulkActions={<AdminTokenBulkActions table={table} />}
+    />
+  )
 }

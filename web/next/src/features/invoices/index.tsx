@@ -1,550 +1,422 @@
-"use client";
-
-import { useTranslation } from "react-i18next";
-import { useEffect, useState, useCallback } from "react";
-import { useAuthStore, ROLE } from "@/stores/auth-store";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import {
-  FileText,
-  RefreshCw,
-  Send,
-  Building2,
-  Check,
-  X,
-  UserCheck,
-} from "lucide-react";
+import { useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { useStatus } from '@/hooks/use-status'
+import { useAuthStore } from '@/stores/auth-store'
+import { ROLE } from '@/lib/roles'
+import { SectionPageLayout } from '@/components/layout'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   approveInvoice,
   cancelInvoice,
   createInvoice,
+  createRealNameSession,
   getAdminInvoices,
   getEligibleRecords,
   getInvoiceProfiles,
+  getRealNameStatus,
   getSelfInvoices,
   issueInvoice,
   rejectInvoice,
   updateInvoiceProfile,
-} from "./api";
+} from './api'
+import { AdminInvoiceTable } from './components/admin-invoice-table'
+import {
+  type AdminInvoiceDialog,
+} from './components/admin-invoice-dialogs'
+import { EligibleRecordsTable } from './components/eligible-records-table'
+import { InvoiceProfilePanel } from './components/invoice-profile-panel'
+import { InvoiceRecordsTable } from './components/invoice-records-table'
+import { InvoiceRequestForm } from './components/invoice-request-form'
+import { VerificationStatusPanel } from './components/verification-status-panel'
 import type {
+  AdminIssueInvoicePayload,
+  ApiResponse,
   InvoiceableRecord,
   InvoiceProfile,
   InvoiceRequestRecord,
-  InvoiceStatus,
-} from "./types";
+  InvoiceType,
+  PageResponse,
+} from './types'
 
-const statusVariant: Record<InvoiceStatus, "default" | "success" | "destructive" | "warning" | "secondary"> = {
-  pending: "warning",
-  approved: "default",
-  rejected: "destructive",
-  issued: "success",
-  cancelled: "secondary",
-};
-
-function formatMoney(amount: number) {
-  return "¥" + (amount / 100).toFixed(2);
+const emptyRecordsPage: PageResponse<InvoiceableRecord> = {
+  page: 1,
+  page_size: 50,
+  total: 0,
+  items: [],
 }
 
-function formatDate(ts: number) {
-  if (!ts) return "—";
-  return new Date(ts * 1000).toLocaleDateString();
+const emptyEligibleItems: InvoiceableRecord[] = []
+
+const emptyInvoicesPage: PageResponse<InvoiceRequestRecord> = {
+  page: 1,
+  page_size: 20,
+  total: 0,
+  items: [],
 }
 
-export default function InvoicesPage() {
-  const { t } = useTranslation();
-  const user = useAuthStore((s) => s.auth.user);
-  const isAdmin = (user?.role ?? 0) >= ROLE.ADMIN;
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <FileText className="h-6 w-6 text-[var(--accent)]" />
-        <h1 className="text-2xl font-semibold tracking-tight">{t("Invoices")}</h1>
-      </div>
-
-      <Tabs defaultValue="self">
-        <TabsList>
-          <TabsTrigger value="self">{t("My Invoices")}</TabsTrigger>
-          <TabsTrigger value="new">{t("Request Invoice")}</TabsTrigger>
-          <TabsTrigger value="profile">{t("Profile")}</TabsTrigger>
-          {isAdmin && <TabsTrigger value="admin">{t("Admin")}</TabsTrigger>}
-        </TabsList>
-
-        <TabsContent value="self" className="mt-6">
-          <MyInvoices />
-        </TabsContent>
-        <TabsContent value="new" className="mt-6">
-          <NewInvoiceTab />
-        </TabsContent>
-        <TabsContent value="profile" className="mt-6">
-          <ProfileTab />
-        </TabsContent>
-        {isAdmin && (
-          <TabsContent value="admin" className="mt-6">
-            <AdminTab />
-          </TabsContent>
-        )}
-      </Tabs>
-    </div>
-  );
+function pageOrFallback<T>(
+  response: ApiResponse<PageResponse<T>>,
+  fallback: PageResponse<T>
+) {
+  return response.success && response.data ? response.data : fallback
 }
 
-function MyInvoices() {
-  const { t } = useTranslation();
-  const [invoices, setInvoices] = useState<InvoiceRequestRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+function readStringOption(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return ''
+}
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getSelfInvoices({ p: 1, page_size: 50 });
-      if (res.success && res.data) setInvoices(res.data.items);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+function readStringListOption(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key]
+    if (!Array.isArray(value)) continue
+    const list = value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean)
+    if (list.length > 0) return list
+  }
+  return []
+}
 
-  useEffect(() => { fetch(); }, [fetch]);
+function normalizeProviderName(value: string) {
+  return value.trim().toLowerCase()
+}
 
-  const handleCancel = async (id: number) => {
-    const res = await cancelInvoice(id);
-    if (res.success) {
-      toast.success(t("Invoice cancelled"));
-      fetch();
-    } else {
-      toast.error(res.message || t("Failed to cancel"));
-    }
-  };
+function getConfiguredRealNameProvider(
+  status: Record<string, unknown> | null,
+  realNameStatus: Record<string, unknown> | null
+) {
+  const env = import.meta.env as unknown as Record<string, unknown>
+  const envProvider =
+    typeof env.VITE_REALNAME_PROVIDER === 'string'
+      ? normalizeProviderName(env.VITE_REALNAME_PROVIDER)
+      : ''
 
-  if (loading) {
-    return <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 rounded" />)}</div>;
+  const providerKeys = [
+    'realname_provider',
+    'real_name_provider',
+    'RealNameProvider',
+    'REALNAME_PROVIDER',
+  ]
+  const providersKeys = [
+    'realname_providers',
+    'real_name_providers',
+    'RealNameProviders',
+    'REALNAME_PROVIDERS',
+  ]
+
+  const preferredProvider = normalizeProviderName(
+    readStringOption(realNameStatus ?? {}, providerKeys) ||
+      readStringOption(status ?? {}, providerKeys) ||
+      envProvider
+  )
+  const realNameProviders = readStringListOption(
+    realNameStatus ?? {},
+    providersKeys
+  )
+  const statusProviders = readStringListOption(status ?? {}, providersKeys)
+  const availableProviders = (
+    realNameProviders.length > 0 ? realNameProviders : statusProviders
+  ).map(normalizeProviderName)
+
+  if (availableProviders.length === 0) return ''
+  if (!preferredProvider) return availableProviders[0]
+  if (availableProviders.includes(preferredProvider)) return preferredProvider
+  return availableProviders[0]
+}
+
+export function Invoices() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const user = useAuthStore((state) => state.auth.user)
+  const isAdmin = Boolean(user?.role && user.role >= ROLE.ADMIN)
+  const { status } = useStatus()
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([])
+  const [activeTab, setActiveTab] = useState('apply')
+  const [adminDialog, setAdminDialog] = useState<AdminInvoiceDialog>(null)
+  const [cancellingId, setCancellingId] = useState<number | null>(null)
+
+  const eligibleQuery = useQuery({
+    queryKey: ['invoice', 'eligible-records'],
+    queryFn: async () =>
+      pageOrFallback(
+        await getEligibleRecords({ p: 1, page_size: 50 }),
+        emptyRecordsPage
+      ),
+  })
+  const profilesQuery = useQuery({
+    queryKey: ['invoice', 'profiles'],
+    queryFn: async () => {
+      const response = await getInvoiceProfiles()
+      return response.success ? response.data : undefined
+    },
+  })
+  const realNameQuery = useQuery({
+    queryKey: ['realname', 'status'],
+    queryFn: async () => {
+      const response = await getRealNameStatus()
+      return response.success ? response.data : undefined
+    },
+  })
+  const realNameProvider = getConfiguredRealNameProvider(
+    status as Record<string, unknown> | null,
+    (realNameQuery.data as Record<string, unknown> | null) ?? null
+  )
+  const selfInvoicesQuery = useQuery({
+    queryKey: ['invoice', 'self'],
+    queryFn: async () =>
+      pageOrFallback(
+        await getSelfInvoices({ p: 1, page_size: 20 }),
+        emptyInvoicesPage
+      ),
+  })
+  const adminInvoicesQuery = useQuery({
+    queryKey: ['invoice', 'admin'],
+    queryFn: async () =>
+      pageOrFallback(
+        await getAdminInvoices({ p: 1, page_size: 20 }),
+        emptyInvoicesPage
+      ),
+    enabled: isAdmin,
+  })
+
+  const eligibleItems = eligibleQuery.data?.items ?? emptyEligibleItems
+  const selectedRecords = useMemo(
+    () =>
+      eligibleItems.filter((item) =>
+        selectedKeys.includes(`${item.source_type}:${item.source_id}`)
+      ),
+    [eligibleItems, selectedKeys]
+  )
+  const profiles = profilesQuery.data
+
+  const invalidateUserInvoiceData = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ['invoice', 'eligible-records'],
+      }),
+      queryClient.invalidateQueries({ queryKey: ['invoice', 'self'] }),
+      queryClient.invalidateQueries({ queryKey: ['invoice', 'profiles'] }),
+    ])
   }
 
-  return (
-    <Card>
-      <div className="flex items-center justify-end p-4 pb-0">
-        <Button variant="outline" size="sm" onClick={fetch}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          {t("Refresh")}
-        </Button>
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>{t("Title")}</TableHead>
-            <TableHead>{t("Amount")}</TableHead>
-            <TableHead>{t("Status")}</TableHead>
-            <TableHead>{t("Date")}</TableHead>
-            <TableHead className="text-right">{t("Actions")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {invoices.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-12 text-[var(--muted)]">
-                <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                {t("No invoices yet")}
-              </TableCell>
-            </TableRow>
-          ) : (
-            invoices.map((inv) => (
-              <TableRow key={inv.id}>
-                <TableCell className="font-mono text-xs">{inv.id}</TableCell>
-                <TableCell>{inv.title}</TableCell>
-                <TableCell className="font-mono text-xs">{formatMoney(inv.amount)}</TableCell>
-                <TableCell>
-                  <Badge variant={statusVariant[inv.status] || "secondary"}>{inv.status}</Badge>
-                </TableCell>
-                <TableCell className="text-xs text-[var(--muted)]">{formatDate(inv.created_at)}</TableCell>
-                <TableCell className="text-right">
-                  {inv.status === "pending" && (
-                    <Button variant="ghost" size="sm" onClick={() => handleCancel(inv.id)}>
-                      <X className="h-3 w-3 mr-1" />{t("Cancel")}
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </Card>
-  );
-}
+  const saveProfileMutation = useMutation({
+    mutationFn: updateInvoiceProfile,
+    onSuccess: async (res) => {
+      if (!res.success) return
+      toast.success(t('Invoice profile saved'))
+      await queryClient.invalidateQueries({ queryKey: ['invoice', 'profiles'] })
+    },
+  })
 
-function NewInvoiceTab() {
-  const { t } = useTranslation();
-  const [records, setRecords] = useState<InvoiceableRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [title, setTitle] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const createInvoiceMutation = useMutation({
+    mutationFn: createInvoice,
+    onSuccess: async (res) => {
+      if (!res.success) return
+      toast.success(t('Invoice request submitted'))
+      setSelectedKeys([])
+      setActiveTab('history')
+      await invalidateUserInvoiceData()
+    },
+  })
 
-  useEffect(() => {
-    getEligibleRecords({ p: 1, page_size: 50 })
-      .then((res) => {
-        if (res.success && res.data) setRecords(res.data.items);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const startVerificationMutation = useMutation({
+    mutationFn: (type: InvoiceType) =>
+      createRealNameSession({
+        verify_type: type,
+        provider: realNameProvider,
+      }),
+    onSuccess: async (res) => {
+      if (!res.success) return
+      toast.success(t('Verification session created'))
+      const redirectUrl = res.data?.session.redirect_url
+      if (redirectUrl) window.open(redirectUrl, '_blank', 'noopener,noreferrer')
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['realname', 'status'] }),
+        queryClient.invalidateQueries({ queryKey: ['invoice', 'profiles'] }),
+      ])
+    },
+  })
 
-  const toggle = (record: InvoiceableRecord) => {
-    const key = `${record.source_type}:${record.source_id}`;
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
-  };
+  const cancelMutation = useMutation({
+    mutationFn: cancelInvoice,
+    onMutate: (id) => setCancellingId(id),
+    onSettled: () => setCancellingId(null),
+    onSuccess: async (res) => {
+      if (!res.success) return
+      toast.success(t('Invoice request cancelled'))
+      await invalidateUserInvoiceData()
+    },
+  })
 
-  const selectedRecords = records.filter(
-    (r) => selected.has(`${r.source_type}:${r.source_id}`),
-  );
-  const totalAmount = selectedRecords.reduce((sum, r) => sum + r.money, 0);
+  const approveMutation = useMutation({
+    mutationFn: approveInvoice,
+    onSuccess: async (res) => {
+      if (!res.success) return
+      toast.success(t('Invoice request approved'))
+      await queryClient.invalidateQueries({ queryKey: ['invoice', 'admin'] })
+    },
+  })
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      rejectInvoice(id, reason),
+    onSuccess: async (res) => {
+      if (!res.success) return
+      toast.success(t('Invoice request rejected'))
+      await queryClient.invalidateQueries({ queryKey: ['invoice', 'admin'] })
+    },
+  })
+  const issueMutation = useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number
+      payload: AdminIssueInvoicePayload
+    }) => issueInvoice(id, payload),
+    onSuccess: async (res) => {
+      if (!res.success) return
+      toast.success(t('Invoice marked as issued'))
+      await queryClient.invalidateQueries({ queryKey: ['invoice', 'admin'] })
+    },
+  })
 
-  const handleSubmit = async () => {
-    if (selected.size === 0) {
-      toast.error(t("Select at least one record"));
-      return;
-    }
-    if (!title.trim()) {
-      toast.error(t("Title is required"));
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await createInvoice({
-        items: selectedRecords.map((r) => ({
-          source_type: r.source_type,
-          source_id: r.source_id,
-        })),
-        invoice_type: "company",
-        title: title.trim(),
-      });
-      if (res.success) {
-        toast.success(t("Invoice requested"));
-        setSelected(new Set());
-        setTitle("");
-      } else {
-        toast.error(res.message || t("Failed to submit"));
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : t("Failed to submit");
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (loading) return <Skeleton className="h-80 rounded-lg" />;
+  const adminActionLoading =
+    approveMutation.isPending ||
+    rejectMutation.isPending ||
+    issueMutation.isPending
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{t("Request New Invoice")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {records.length === 0 ? (
-          <div className="text-center py-12 text-[var(--muted)]">
-            {t("No eligible records for invoice")}
-          </div>
-        ) : (
-          <>
-            <div className="space-y-2">
-              <Label>{t("Select records to include")}</Label>
-              <div className="rounded-md border border-[var(--border)] max-h-64 overflow-auto">
-                {records.map((r) => {
-                  const key = `${r.source_type}:${r.source_id}`;
-                  return (
-                    <label
-                      key={key}
-                      className="flex items-center gap-3 p-3 hover:bg-[var(--surface)]/50 cursor-pointer border-b border-[var(--border)] last:border-0"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected.has(key)}
-                        onChange={() => toggle(r)}
-                        className="h-4 w-4 rounded accent-[var(--accent)]"
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">{r.source_type}</div>
-                        <div className="text-xs text-[var(--muted)]">{formatDate(r.complete_time)}</div>
-                      </div>
-                      <span className="font-mono text-sm">{formatMoney(r.money)}</span>
-                    </label>
-                  );
-                })}
+    <SectionPageLayout>
+      <SectionPageLayout.Title>{t('Invoices')}</SectionPageLayout.Title>
+      <SectionPageLayout.Content>
+        <div className='mx-auto flex w-full max-w-7xl flex-col gap-4'>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className='h-auto max-w-full flex-wrap justify-start'>
+              <TabsTrigger value='apply'>{t('Apply')}</TabsTrigger>
+              <TabsTrigger value='profiles'>{t('Invoice profiles')}</TabsTrigger>
+              <TabsTrigger value='history'>{t('Invoice history')}</TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value='admin'>{t('Admin review')}</TabsTrigger>
+              )}
+            </TabsList>
+
+            <TabsContent value='apply' className='mt-4 space-y-4'>
+              <Card className='rounded-lg'>
+                <CardHeader>
+                  <CardTitle>{t('Invoiceable records')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <EligibleRecordsTable
+                    items={eligibleItems}
+                    selectedKeys={selectedKeys}
+                    onSelectedKeysChange={setSelectedKeys}
+                    loading={eligibleQuery.isLoading}
+                  />
+                </CardContent>
+              </Card>
+              <InvoiceRequestForm
+                selectedRecords={selectedRecords}
+                personalProfile={profiles?.personal}
+                companyProfile={profiles?.company}
+                isLoading={createInvoiceMutation.isPending}
+                onSubmit={(payload) =>
+                  createInvoiceMutation
+                    .mutateAsync(payload)
+                    .then(() => undefined)
+                }
+              />
+            </TabsContent>
+
+            <TabsContent value='profiles' className='mt-4 space-y-4'>
+              {!realNameProvider && (
+                <div className='text-muted-foreground rounded-lg border p-3 text-sm'>
+                  {t('Real-name provider not configured')}
+                </div>
+              )}
+              <div className='grid gap-4 xl:grid-cols-2'>
+                <div className='space-y-4'>
+                  <VerificationStatusPanel
+                    type='personal'
+                    verification={realNameQuery.data?.personal}
+                    providerConfigured={Boolean(realNameProvider)}
+                    isLoading={startVerificationMutation.isPending}
+                    onStart={(type) => startVerificationMutation.mutate(type)}
+                  />
+                  <InvoiceProfilePanel
+                    type='personal'
+                    profile={profiles?.personal}
+                    isLoading={saveProfileMutation.isPending}
+                    onSave={(profile: InvoiceProfile) =>
+                      saveProfileMutation
+                        .mutateAsync(profile)
+                        .then(() => undefined)
+                    }
+                  />
+                </div>
+                <div className='space-y-4'>
+                  <VerificationStatusPanel
+                    type='company'
+                    verification={realNameQuery.data?.company}
+                    providerConfigured={Boolean(realNameProvider)}
+                    isLoading={startVerificationMutation.isPending}
+                    onStart={(type) => startVerificationMutation.mutate(type)}
+                  />
+                  <InvoiceProfilePanel
+                    type='company'
+                    profile={profiles?.company}
+                    isLoading={saveProfileMutation.isPending}
+                    onSave={(profile: InvoiceProfile) =>
+                      saveProfileMutation
+                        .mutateAsync(profile)
+                        .then(() => undefined)
+                    }
+                  />
+                </div>
               </div>
-              <p className="text-sm text-[var(--muted)]">
-                {t("Total")}: <span className="font-mono font-medium text-[var(--foreground)]">
-                  {formatMoney(totalAmount)}
-                </span> ({selected.size} {t("selected")})
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label>{t("Invoice Title")}</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("Company Name Ltd.")} />
-            </div>
-            <Button onClick={handleSubmit} disabled={submitting || selected.size === 0}>
-              <Send className="h-4 w-4 mr-2" />
-              {submitting ? t("Submitting...") : t("Submit Request")}
-            </Button>
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+            </TabsContent>
 
-function ProfileTab() {
-  const { t } = useTranslation();
-  const [profile, setProfile] = useState<InvoiceProfile>({
-    invoice_type: "company",
-    title: "",
-    tax_no: "",
-    email: "",
-    phone: "",
-    bank_name: "",
-    bank_account: "",
-    registered_address: "",
-    registered_phone: "",
-  });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+            <TabsContent value='history' className='mt-4'>
+              <InvoiceRecordsTable
+                items={selfInvoicesQuery.data?.items ?? []}
+                onCancel={(invoiceId) => cancelMutation.mutate(invoiceId)}
+                cancellingId={cancellingId}
+              />
+            </TabsContent>
 
-  useEffect(() => {
-    getInvoiceProfiles()
-      .then((res) => {
-        if (res.success && res.data?.company) {
-          setProfile(res.data.company);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  const update = (key: keyof InvoiceProfile, value: string) =>
-    setProfile((p) => ({ ...p, [key]: value }));
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const res = await updateInvoiceProfile(profile);
-      if (res.success) toast.success(t("Profile saved"));
-      else toast.error(res.message || t("Failed to save"));
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : t("Failed to save");
-      toast.error(msg);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) return <Skeleton className="h-80 rounded-lg" />;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-[var(--accent)]" />
-          {t("Billing Profile")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>{t("Title")}</Label>
-            <Input value={profile.title} onChange={(e) => update("title", e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>{t("Tax Number")}</Label>
-            <Input value={profile.tax_no} onChange={(e) => update("tax_no", e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>{t("Email")}</Label>
-            <Input value={profile.email} onChange={(e) => update("email", e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>{t("Phone")}</Label>
-            <Input value={profile.phone} onChange={(e) => update("phone", e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>{t("Bank Name")}</Label>
-            <Input value={profile.bank_name} onChange={(e) => update("bank_name", e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>{t("Bank Account")}</Label>
-            <Input value={profile.bank_account} onChange={(e) => update("bank_account", e.target.value)} />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label>{t("Registered Address")}</Label>
-          <Textarea value={profile.registered_address} onChange={(e) => update("registered_address", e.target.value)} rows={2} />
-        </div>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? t("Saving...") : t("Save")}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function AdminTab() {
-  const { t } = useTranslation();
-  const [invoices, setInvoices] = useState<InvoiceRequestRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [rejectDialog, setRejectDialog] = useState<InvoiceRequestRecord | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [issueDialog, setIssueDialog] = useState<InvoiceRequestRecord | null>(null);
-  const [issueNo, setIssueNo] = useState("");
-  const [issueUrl, setIssueUrl] = useState("");
-
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getAdminInvoices({ p: 1, page_size: 50 });
-      if (res.success && res.data) setInvoices(res.data.items);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetch(); }, [fetch]);
-
-  const handleApprove = async (id: number) => {
-    const res = await approveInvoice(id);
-    if (res.success) { toast.success(t("Approved")); fetch(); }
-    else toast.error(res.message || t("Failed"));
-  };
-
-  const handleReject = async () => {
-    if (!rejectDialog) return;
-    const res = await rejectInvoice(rejectDialog.id, rejectReason);
-    if (res.success) { toast.success(t("Rejected")); setRejectDialog(null); setRejectReason(""); fetch(); }
-    else toast.error(res.message || t("Failed"));
-  };
-
-  const handleIssue = async () => {
-    if (!issueDialog || !issueNo.trim()) return;
-    const res = await issueInvoice(issueDialog.id, { invoice_no: issueNo.trim(), invoice_url: issueUrl.trim() || undefined });
-    if (res.success) { toast.success(t("Issued")); setIssueDialog(null); setIssueNo(""); setIssueUrl(""); fetch(); }
-    else toast.error(res.message || t("Failed"));
-  };
-
-  if (loading) return <Skeleton className="h-80 rounded-lg" />;
-
-  return (
-    <>
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>{t("User")}</TableHead>
-              <TableHead>{t("Title")}</TableHead>
-              <TableHead>{t("Amount")}</TableHead>
-              <TableHead>{t("Status")}</TableHead>
-              <TableHead className="text-right">{t("Actions")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {invoices.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-12 text-[var(--muted)]">{t("No invoices")}</TableCell></TableRow>
-            ) : (
-              invoices.map((inv) => (
-                <TableRow key={inv.id}>
-                  <TableCell className="font-mono text-xs">{inv.id}</TableCell>
-                  <TableCell className="text-sm">{inv.username}</TableCell>
-                  <TableCell>{inv.title}</TableCell>
-                  <TableCell className="font-mono text-xs">{formatMoney(inv.amount)}</TableCell>
-                  <TableCell><Badge variant={statusVariant[inv.status] || "secondary"}>{inv.status}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      {inv.status === "pending" && (
-                        <>
-                          <Button variant="ghost" size="sm" onClick={() => handleApprove(inv.id)}>
-                            <Check className="h-3 w-3 mr-1" />{t("Approve")}
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setRejectDialog(inv)}>
-                            <X className="h-3 w-3 mr-1" />{t("Reject")}
-                          </Button>
-                        </>
-                      )}
-                      {inv.status === "approved" && (
-                        <Button variant="ghost" size="sm" onClick={() => setIssueDialog(inv)}>
-                          <UserCheck className="h-3 w-3 mr-1" />{t("Issue")}
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+            {isAdmin && (
+              <TabsContent value='admin' className='mt-4'>
+                <AdminInvoiceTable
+                  items={adminInvoicesQuery.data?.items ?? []}
+                  dialog={adminDialog}
+                  onDialogChange={setAdminDialog}
+                  isLoading={adminActionLoading}
+                  onApprove={(invoiceId) =>
+                    approveMutation.mutateAsync(invoiceId).then(() => undefined)
+                  }
+                  onReject={(invoiceId, reason) =>
+                    rejectMutation
+                      .mutateAsync({ id: invoiceId, reason })
+                      .then(() => undefined)
+                  }
+                  onIssue={(invoiceId, payload) =>
+                    issueMutation
+                      .mutateAsync({ id: invoiceId, payload })
+                      .then(() => undefined)
+                  }
+                />
+              </TabsContent>
             )}
-          </TableBody>
-        </Table>
-      </Card>
-
-      <Dialog open={!!rejectDialog} onOpenChange={(o) => !o && setRejectDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("Reject Invoice")}</DialogTitle>
-            <DialogDescription>{t("Provide a reason for rejection")}</DialogDescription>
-          </DialogHeader>
-          <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={3} />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialog(null)}>{t("Cancel")}</Button>
-            <Button onClick={handleReject}>{t("Reject")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!issueDialog} onOpenChange={(o) => !o && setIssueDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("Issue Invoice")}</DialogTitle>
-            <DialogDescription>{t("Enter invoice number and optional URL")}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label>{t("Invoice Number")}</Label>
-              <Input value={issueNo} onChange={(e) => setIssueNo(e.target.value)} placeholder="INV-2024-001" />
-            </div>
-            <div className="space-y-2">
-              <Label>{t("Invoice URL (optional)")}</Label>
-              <Input value={issueUrl} onChange={(e) => setIssueUrl(e.target.value)} placeholder="https://..." />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIssueDialog(null)}>{t("Cancel")}</Button>
-            <Button onClick={handleIssue} disabled={!issueNo.trim()}>{t("Issue")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
+          </Tabs>
+        </div>
+      </SectionPageLayout.Content>
+    </SectionPageLayout>
+  )
 }

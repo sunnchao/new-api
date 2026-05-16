@@ -1,5 +1,3 @@
-"use client"
-
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -153,7 +151,7 @@ import {
 } from '../../lib/status-code-risk-guard'
 import type { Channel } from '../../types'
 import { useChannels } from '../channels-provider'
-import { CodexOAuthDialog } from '../../codex-oauth-dialog'
+import { CodexOAuthDialog } from '../dialogs/codex-oauth-dialog'
 import { FetchModelsDialog } from '../dialogs/fetch-models-dialog'
 import {
   MissingModelsConfirmationDialog,
@@ -2078,7 +2076,7 @@ export function ChannelMutateDrawer({
                 <CodexOAuthDialog
                   open={codexOAuthDialogOpen}
                   onOpenChange={setCodexOAuthDialogOpen}
-                  onKeyGenerated={(key: string) => {
+                  onKeyGenerated={(key) => {
                     form.setValue('key', key, { shouldDirty: true })
                   }}
                 />
