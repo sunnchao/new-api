@@ -25,15 +25,19 @@ import { SectionPageLayout } from '@/components/layout'
 import { AllSubscriptionsTable } from './components/all-subscriptions-table'
 import { SubscriptionsDialogs } from './components/subscriptions-dialogs'
 import { SubscriptionsPrimaryButtons } from './components/subscriptions-primary-buttons'
-import { SubscriptionsProvider } from './components/subscriptions-provider'
+import {
+  SubscriptionsProvider,
+  useSubscriptions,
+} from './components/subscriptions-provider'
 import { SubscriptionsTable } from './components/subscriptions-table'
 
-export function Subscriptions() {
+function SubscriptionsContent() {
   const { t } = useTranslation()
+  const { complianceConfirmed } = useSubscriptions()
   const [activeTab, setActiveTab] = useState('plans')
 
   return (
-    <SubscriptionsProvider>
+    <>
       <SectionPageLayout>
         <SectionPageLayout.Title>
           {t('Subscription Management')}
@@ -57,6 +61,15 @@ export function Subscriptions() {
           )}
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
+            {!complianceConfirmed ? (
+                <Alert variant='destructive' className='mb-4'>
+                    <AlertDescription>
+                        {t(
+                            'Subscription plan creation and changes are locked until the administrator confirms compliance terms in Payment Gateway settings.'
+                        )}
+                    </AlertDescription>
+                </Alert>
+            ) : null}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value='plans'>{t('Plans')}</TabsTrigger>
@@ -75,6 +88,14 @@ export function Subscriptions() {
       </SectionPageLayout>
 
       <SubscriptionsDialogs />
+    </>
+  )
+}
+
+export function Subscriptions() {
+  return (
+    <SubscriptionsProvider>
+      <SubscriptionsContent />
     </SubscriptionsProvider>
   )
 }

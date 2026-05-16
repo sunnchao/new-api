@@ -86,7 +86,7 @@ func GetAllChannels(c *gin.Context) {
 		}
 	}
 	// group filter
-	groupParam := c.Query("group")
+	groupFilter := c.Query("group")
 
 	var total int64
 
@@ -116,8 +116,10 @@ func GetAllChannels(c *gin.Context) {
 				if typeFilter >= 0 && ch.Type != typeFilter {
 					continue
 				}
-				if groupParam != "" && !ch.ContainsGroup(groupParam) {
-					continue
+				if groupFilter != "" && groupFilter != "null" {
+					if !strings.Contains(","+ch.Group+",", ","+groupFilter+",") {
+						continue
+					}
 				}
 				filtered = append(filtered, ch)
 			}
@@ -134,7 +136,14 @@ func GetAllChannels(c *gin.Context) {
 		} else if statusFilter == 0 {
 			baseQuery = baseQuery.Where("status != ?", common.ChannelStatusEnabled)
 		}
-		baseQuery = model.ApplyGroupFilter(baseQuery, groupParam)
+		if groupFilter != "" && groupFilter != "null" {
+			if common.UsingMySQL {
+				baseQuery = baseQuery.Where("CONCAT(',', `group`, ',') LIKE ?", "%,"+groupFilter+",%")
+			} else {
+				// SQLite, PostgreSQL
+				baseQuery = baseQuery.Where("(',' || \"group\" || ',') LIKE ?", "%,"+groupFilter+",%")
+			}
+		}
 
 		baseQuery.Count(&total)
 

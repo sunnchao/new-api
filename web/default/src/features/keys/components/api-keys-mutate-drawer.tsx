@@ -17,7 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useState, type ReactNode } from 'react'
-import { useForm, type FieldErrors } from 'react-hook-form'
+import { useForm, type SubmitErrorHandler } from 'react-hook-form'
+import { type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -67,7 +68,7 @@ import { MultiSelect } from '@/components/multi-select'
 import { createApiKey, updateApiKey, getApiKey } from '../api'
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
 import {
-  apiKeyFormSchema,
+  getApiKeyFormSchema,
   type ApiKeyFormValues,
   getApiKeyFormDefaultValues,
   normalizeBackupGroupDraft,
@@ -157,9 +158,10 @@ export function ApiKeysMutateDrawer({
     })
   )
   const backendHasAuto = groups.some((g) => g.value === 'auto')
+  const schema = getApiKeyFormSchema(t)
 
   const form = useForm<ApiKeyFormValues>({
-    resolver: zodResolver(apiKeyFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: getApiKeyFormDefaultValues(defaultUseAutoGroup),
   })
 
@@ -244,13 +246,8 @@ export function ApiKeysMutateDrawer({
     }
   }
 
-  const onInvalid = (errors: FieldErrors<ApiKeyFormValues>) => {
-    const firstError = Object.values(errors)[0]
-    const message =
-      typeof firstError?.message === 'string'
-        ? firstError.message
-        : ERROR_MESSAGES.UNEXPECTED
-    toast.error(t(message))
+  const onInvalid: SubmitErrorHandler<ApiKeyFormValues> = () => {
+    toast.error(t('Please fix the highlighted fields before saving'))
   }
 
   const handleSetExpiry = (months: number, days: number, hours: number) => {
