@@ -16,7 +16,27 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export {
-  PublicSubscriptionPlanCard as SubscriptionPlanCard,
-  type PublicSubscriptionPlanCardMode,
-} from '@/features/subscriptions/components/public-subscription-plan-card'
+export type PublicPlanCardMode = 'catalog' | 'home'
+
+type PublicPlanCardActionOptions = {
+  mode: PublicPlanCardMode
+  isAuthenticated: boolean
+}
+
+export function getPublicPlanCardAction({
+  mode,
+  isAuthenticated,
+}: PublicPlanCardActionOptions): {
+  labelKey: 'Subscribe Now' | 'Get Started' | 'Sign in to subscribe'
+  to: '/my-subscriptions' | '/sign-up' | '/sign-in'
+} {
+  if (isAuthenticated) {
+    return { labelKey: 'Subscribe Now', to: '/my-subscriptions' }
+  }
+
+  if (mode === 'home') {
+    return { labelKey: 'Get Started', to: '/sign-up' }
+  }
+
+  return { labelKey: 'Sign in to subscribe', to: '/sign-in' }
+}

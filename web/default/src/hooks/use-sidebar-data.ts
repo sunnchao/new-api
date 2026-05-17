@@ -22,7 +22,6 @@ import {
   Key,
   FileText,
   Wallet,
-  ReceiptText,
   CreditCard,
   Box,
   Users,
@@ -109,11 +108,6 @@ export function useSidebarData(): SidebarData {
             title: t('Wallet'),
             url: '/wallet',
             icon: Wallet,
-          },
-          {
-            title: t('Invoices'),
-            url: '/invoices',
-            icon: ReceiptText,
           },
           {
             title: t('My Subscriptions'),

@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
-import { invoicesI18nResources } from '../features/invoices/i18n'
 import { pricingI18nResources } from '../features/pricing/i18n'
 import { subscriptionsI18nResources } from '../features/subscriptions/i18n'
 import { usageLogsI18nResources } from '../features/usage-logs/i18n'
@@ -45,63 +44,45 @@ function mergeFeatureTranslations<
 export const resources = {
   en: mergeFeatureTranslations(
     mergeFeatureTranslations(
-      mergeFeatureTranslations(
-        mergeFeatureTranslations(en, pricingI18nResources.en),
-        subscriptionsI18nResources.en
-      ),
-      usageLogsI18nResources.en
+      mergeFeatureTranslations(en, pricingI18nResources.en),
+      subscriptionsI18nResources.en
     ),
-    invoicesI18nResources.en
+    usageLogsI18nResources.en
   ),
   zh: mergeFeatureTranslations(
     mergeFeatureTranslations(
-      mergeFeatureTranslations(
-        mergeFeatureTranslations(zh, pricingI18nResources.zh),
-        subscriptionsI18nResources.zh
-      ),
-      usageLogsI18nResources.zh
+      mergeFeatureTranslations(zh, pricingI18nResources.zh),
+      subscriptionsI18nResources.zh
     ),
-    invoicesI18nResources.zh
+    usageLogsI18nResources.zh
   ),
   fr: mergeFeatureTranslations(
     mergeFeatureTranslations(
-      mergeFeatureTranslations(
-        mergeFeatureTranslations(fr, pricingI18nResources.fr),
-        subscriptionsI18nResources.fr
-      ),
-      usageLogsI18nResources.fr
+      mergeFeatureTranslations(fr, pricingI18nResources.fr),
+      subscriptionsI18nResources.fr
     ),
-    invoicesI18nResources.fr
+    usageLogsI18nResources.fr
   ),
   ru: mergeFeatureTranslations(
     mergeFeatureTranslations(
-      mergeFeatureTranslations(
-        mergeFeatureTranslations(ru, pricingI18nResources.ru),
-        subscriptionsI18nResources.ru
-      ),
-      usageLogsI18nResources.ru
+      mergeFeatureTranslations(ru, pricingI18nResources.ru),
+      subscriptionsI18nResources.ru
     ),
-    invoicesI18nResources.ru
+    usageLogsI18nResources.ru
   ),
   ja: mergeFeatureTranslations(
     mergeFeatureTranslations(
-      mergeFeatureTranslations(
-        mergeFeatureTranslations(ja, pricingI18nResources.ja),
-        subscriptionsI18nResources.ja
-      ),
-      usageLogsI18nResources.ja
+      mergeFeatureTranslations(ja, pricingI18nResources.ja),
+      subscriptionsI18nResources.ja
     ),
-    invoicesI18nResources.ja
+    usageLogsI18nResources.ja
   ),
   vi: mergeFeatureTranslations(
     mergeFeatureTranslations(
-      mergeFeatureTranslations(
-        mergeFeatureTranslations(vi, pricingI18nResources.vi),
-        subscriptionsI18nResources.vi
-      ),
-      usageLogsI18nResources.vi
+      mergeFeatureTranslations(vi, pricingI18nResources.vi),
+      subscriptionsI18nResources.vi
     ),
-    invoicesI18nResources.vi
+    usageLogsI18nResources.vi
   ),
 } as const
 
