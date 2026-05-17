@@ -45,6 +45,8 @@ const headerNavSchema = z.object({
   console: z.boolean(),
   pricingEnabled: z.boolean(),
   pricingRequireAuth: z.boolean(),
+  subscriptionsEnabled: z.boolean(),
+  subscriptionsRequireAuth: z.boolean(),
   rankingsEnabled: z.boolean(),
   rankingsRequireAuth: z.boolean(),
   docs: z.boolean(),
@@ -73,6 +75,14 @@ const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
     config.pricing?.requireAuth === undefined
       ? HEADER_NAV_DEFAULT.pricing.requireAuth
       : Boolean(config.pricing.requireAuth),
+  subscriptionsEnabled:
+    config.subscriptions?.enabled === undefined
+      ? HEADER_NAV_DEFAULT.subscriptions.enabled
+      : Boolean(config.subscriptions.enabled),
+  subscriptionsRequireAuth:
+    config.subscriptions?.requireAuth === undefined
+      ? HEADER_NAV_DEFAULT.subscriptions.requireAuth
+      : Boolean(config.subscriptions.requireAuth),
   rankingsEnabled:
     config.rankings?.enabled === undefined
       ? HEADER_NAV_DEFAULT.rankings.enabled
@@ -117,6 +127,11 @@ export function HeaderNavigationSection({
         ...(config.pricing ?? HEADER_NAV_DEFAULT.pricing),
         enabled: values.pricingEnabled,
         requireAuth: values.pricingRequireAuth,
+      },
+      subscriptions: {
+        ...(config.subscriptions ?? HEADER_NAV_DEFAULT.subscriptions),
+        enabled: values.subscriptionsEnabled,
+        requireAuth: values.subscriptionsRequireAuth,
       },
       rankings: {
         ...(config.rankings ?? HEADER_NAV_DEFAULT.rankings),
@@ -170,7 +185,10 @@ export function HeaderNavigationSection({
   const accessModules: Array<{
     enabledKey: keyof HeaderNavFormValues
     requireAuthKey: keyof HeaderNavFormValues
-    requireAuthDependsOn: 'pricingEnabled' | 'rankingsEnabled'
+    requireAuthDependsOn:
+      | 'pricingEnabled'
+      | 'subscriptionsEnabled'
+      | 'rankingsEnabled'
     title: string
     description: string
     requireAuthTitle: string
@@ -185,6 +203,17 @@ export function HeaderNavigationSection({
       requireAuthTitle: t('Require login to view models'),
       requireAuthDescription: t(
         'Visitors must authenticate before accessing the pricing directory.'
+      ),
+    },
+    {
+      enabledKey: 'subscriptionsEnabled',
+      requireAuthKey: 'subscriptionsRequireAuth',
+      requireAuthDependsOn: 'subscriptionsEnabled',
+      title: t('Subscription Plans'),
+      description: t('Public subscription plan catalog.'),
+      requireAuthTitle: t('Require login to view subscription plans'),
+      requireAuthDescription: t(
+        'Visitors must authenticate before accessing subscription plans.'
       ),
     },
     {

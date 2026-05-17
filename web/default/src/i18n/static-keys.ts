@@ -23,6 +23,7 @@ export const STATIC_I18N_KEYS = [
   'Home',
   'Console',
   'Model Square',
+  'Subscription Plans',
   'Rankings',
   'Docs',
   'About',
@@ -286,6 +287,9 @@ export const STATIC_I18N_KEYS = [
   'Received',
   'Payment initiated',
   'Payment page opened',
+  'Public subscription plan catalog.',
+  'Require login to view subscription plans',
+  'Visitors must authenticate before accessing subscription plans.',
 
   // Upstream model updates
   'Upstream Model Updates',
