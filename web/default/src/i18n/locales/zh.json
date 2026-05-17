@@ -4462,6 +4462,18 @@
     "operation and charging behavior": "运营和收费行为产生的法律责任",
     "，": "，",
     "，and ": "，",
-    "、": "、"
+    "、": "、",
+    "Browse available subscription plans": "浏览可用订阅套餐",
+    "Browse available subscription plans and choose the access package that fits your usage.": "浏览可用订阅套餐，选择适合你使用量的访问方案。",
+    "No subscription plans available": "暂无可用订阅套餐",
+    "Public subscription plan catalog.": "公开订阅套餐目录。",
+    "Require login to view subscription plans": "要求登录才能查看订阅套餐",
+    "Visitors must authenticate before accessing subscription plans.": "访客必须登录后才能访问订阅套餐。",
+    "Sign in to subscribe": "登录后订阅",
+    "Subscription Catalog": "订阅目录",
+    "Unable to load subscription plans": "无法加载订阅套餐",
+    "Please refresh the page and try again.": "请刷新页面后重试。",
+    "There are no enabled subscription plans yet.": "目前还没有已启用的订阅套餐。",
+    "{{count}} plan(s) available": "共 {{count}} 个套餐可用"
   }
 }

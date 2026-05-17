@@ -4462,6 +4462,18 @@
     "operation and charging behavior": "operation and charging behavior",
     "，": ", ",
     "，and ": ", and ",
-    "、": ", "
+    "、": ", ",
+    "Browse available subscription plans": "Xem các gói đăng ký hiện có",
+    "Browse available subscription plans and choose the access package that fits your usage.": "Xem các gói đăng ký hiện có và chọn gói truy cập phù hợp với nhu cầu sử dụng của bạn.",
+    "No subscription plans available": "Không có gói đăng ký khả dụng",
+    "Public subscription plan catalog.": "Danh mục gói đăng ký công khai.",
+    "Require login to view subscription plans": "Yêu cầu đăng nhập để xem gói đăng ký",
+    "Visitors must authenticate before accessing subscription plans.": "Khách truy cập phải xác thực trước khi xem các gói đăng ký.",
+    "Sign in to subscribe": "Đăng nhập để đăng ký",
+    "Subscription Catalog": "Danh mục đăng ký",
+    "Unable to load subscription plans": "Không thể tải các gói đăng ký",
+    "Please refresh the page and try again.": "Vui lòng làm mới trang rồi thử lại.",
+    "There are no enabled subscription plans yet.": "Hiện chưa có gói đăng ký nào được bật.",
+    "{{count}} plan(s) available": "Có {{count}} gói khả dụng"
   }
 }

@@ -4462,6 +4462,18 @@
     "operation and charging behavior": "operation and charging behavior",
     "，": ", ",
     "，and ": ", and ",
-    "、": ", "
+    "、": ", ",
+    "Browse available subscription plans": "Просмотреть доступные подписки",
+    "Browse available subscription plans and choose the access package that fits your usage.": "Просмотрите доступные подписки и выберите пакет доступа под свой сценарий использования.",
+    "No subscription plans available": "Нет доступных подписок",
+    "Public subscription plan catalog.": "Публичный каталог подписок.",
+    "Require login to view subscription plans": "Требовать вход для просмотра подписок",
+    "Visitors must authenticate before accessing subscription plans.": "Посетители должны войти в систему перед доступом к подпискам.",
+    "Sign in to subscribe": "Войдите, чтобы оформить подписку",
+    "Subscription Catalog": "Каталог подписок",
+    "Unable to load subscription plans": "Не удалось загрузить подписки",
+    "Please refresh the page and try again.": "Обновите страницу и повторите попытку.",
+    "There are no enabled subscription plans yet.": "Пока нет включенных подписок.",
+    "{{count}} plan(s) available": "Доступно планов: {{count}}"
   }
 }

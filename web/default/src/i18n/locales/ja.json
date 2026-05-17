@@ -4462,6 +4462,18 @@
     "operation and charging behavior": "operation and charging behavior",
     "，": ", ",
     "，and ": ", and ",
-    "、": ", "
+    "、": ", ",
+    "Browse available subscription plans": "利用可能なサブスクリプションプランを表示",
+    "Browse available subscription plans and choose the access package that fits your usage.": "利用可能なサブスクリプションプランを確認し、利用量に合うアクセスパッケージを選択できます。",
+    "No subscription plans available": "利用可能なサブスクリプションプランはありません",
+    "Public subscription plan catalog.": "公開サブスクリプションプランカタログ。",
+    "Require login to view subscription plans": "サブスクリプションプランの表示にログインを要求する",
+    "Visitors must authenticate before accessing subscription plans.": "訪問者はサブスクリプションプランにアクセスする前に認証する必要があります。",
+    "Sign in to subscribe": "ログインして登録",
+    "Subscription Catalog": "サブスクリプションカタログ",
+    "Unable to load subscription plans": "サブスクリプションプランを読み込めません",
+    "Please refresh the page and try again.": "ページを更新してもう一度お試しください。",
+    "There are no enabled subscription plans yet.": "有効なサブスクリプションプランはまだありません。",
+    "{{count}} plan(s) available": "{{count}} 件のプランが利用可能"
   }
 }

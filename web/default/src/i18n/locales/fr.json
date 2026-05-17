@@ -4462,6 +4462,18 @@
     "operation and charging behavior": "operation and charging behavior",
     "，": ", ",
     "，and ": ", and ",
-    "、": ", "
+    "、": ", ",
+    "Browse available subscription plans": "Parcourir les abonnements disponibles",
+    "Browse available subscription plans and choose the access package that fits your usage.": "Parcourez les abonnements disponibles et choisissez l’offre adaptée à votre usage.",
+    "No subscription plans available": "Aucun abonnement disponible",
+    "Public subscription plan catalog.": "Catalogue public des abonnements.",
+    "Require login to view subscription plans": "Exiger la connexion pour voir les abonnements",
+    "Visitors must authenticate before accessing subscription plans.": "Les visiteurs doivent se connecter avant d’accéder aux abonnements.",
+    "Sign in to subscribe": "Se connecter pour s’abonner",
+    "Subscription Catalog": "Catalogue des abonnements",
+    "Unable to load subscription plans": "Impossible de charger les abonnements",
+    "Please refresh the page and try again.": "Veuillez actualiser la page puis réessayer.",
+    "There are no enabled subscription plans yet.": "Aucun abonnement activé n’est disponible pour le moment.",
+    "{{count}} plan(s) available": "{{count}} abonnement(s) disponible(s)"
   }
 }
