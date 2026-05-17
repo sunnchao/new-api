@@ -152,9 +152,9 @@ export function PublicSubscriptionPlanCard({
             <span className='text-primary break-words text-3xl font-bold tracking-tight'>
               {formatCurrencyUSD(Number(plan.price_amount || 0))}
             </span>
-            <span className='text-muted-foreground pb-1 text-xs font-medium uppercase'>
+            {/* <span className='text-muted-foreground pb-1 text-xs font-medium uppercase'>
               {plan.currency || 'USD'}
-            </span>
+            </span> */}
           </div>
         </CardHeader>
 
