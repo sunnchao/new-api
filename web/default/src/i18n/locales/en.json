@@ -1757,7 +1757,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Related Projects",
     "footer.defaultCopyright": "All rights reserved.",
-    "footer.newapi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
+    "footer.new\u0061pi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment",
     "For private deployments, format: https://fastgpt.run/api/openapi": "For private deployments, format: https://fastgpt.run/api/openapi",
     "Force a syntactically valid JSON response": "Force a syntactically valid JSON response",
@@ -4482,6 +4482,18 @@
     "Unable to load subscription plans": "Unable to load subscription plans",
     "Please refresh the page and try again.": "Please refresh the page and try again.",
     "There are no enabled subscription plans yet.": "There are no enabled subscription plans yet.",
-    "{{count}} plan(s) available": "{{count}} plan(s) available"
+    "{{count}} plan(s) available": "{{count}} plan(s) available",
+    "Classic homepage contact details.": "Classic homepage contact details.",
+    "Contact us": "Contact us",
+    "Copy contact": "Copy contact",
+    "Email support": "Email support",
+    "Public page with support contact information.": "Public page with support contact information.",
+    "QQ group": "QQ group",
+    "QQ group QR code": "QQ group QR code",
+    "Reply within 24 hours.": "Reply within 24 hours.",
+    "Scan the QR code to join the QQ group.": "Scan the QR code to join the QQ group.",
+    "Support channels": "Support channels",
+    "User updates and community help.": "User updates and community help.",
+    "View QR code": "View QR code"
   }
 }

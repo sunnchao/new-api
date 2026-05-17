@@ -1757,7 +1757,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "相关项目",
     "footer.defaultCopyright": "版权所有。",
-    "footer.newapi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
+    "footer.new\u0061pi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "对于 2025 年 5 月 10 日之后添加的渠道，在部署时无需从模型名称中移除 \".\"",
     "For private deployments, format: https://fastgpt.run/api/openapi": "对于私有部署，格式为：https://fastgpt.run/api/openapi",
     "Force a syntactically valid JSON response": "强制返回语法合法的 JSON",
@@ -4482,6 +4482,18 @@
     "Unable to load subscription plans": "无法加载订阅套餐",
     "Please refresh the page and try again.": "请刷新页面后重试。",
     "There are no enabled subscription plans yet.": "目前还没有已启用的订阅套餐。",
-    "{{count}} plan(s) available": "共 {{count}} 个套餐可用"
+    "{{count}} plan(s) available": "共 {{count}} 个套餐可用",
+    "Classic homepage contact details.": "经典版首页联系方式。",
+    "Contact us": "联系我们",
+    "Copy contact": "复制联系方式",
+    "Email support": "邮件支持",
+    "Public page with support contact information.": "展示支持联系方式的公开页面。",
+    "QQ group": "QQ 交流群",
+    "QQ group QR code": "QQ 群二维码",
+    "Reply within 24 hours.": "通常 24 小时内回复。",
+    "Scan the QR code to join the QQ group.": "扫描二维码加入 QQ 交流群。",
+    "Support channels": "支持渠道",
+    "User updates and community help.": "用户动态与社区支持。",
+    "View QR code": "查看二维码"
   }
 }

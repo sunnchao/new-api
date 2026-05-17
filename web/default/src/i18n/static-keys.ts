@@ -27,6 +27,7 @@ export const STATIC_I18N_KEYS = [
   'Rankings',
   'Docs',
   'About',
+  'Contact us',
 
   // Workspace
   'System Settings',

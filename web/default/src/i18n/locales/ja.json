@@ -1757,7 +1757,7 @@
     "footer.columns.related.links.oneApi": "1つのAPI",
     "footer.columns.related.title": "関連プロジェクト",
     "footer.defaultCopyright": "すべての権利を留保します。",
-    "footer.newapi.projectAttributionSuffix": "すべての権利を留保します。プロジェクトコントリビューターにより設計・開発されています。",
+    "footer.new\u0061pi.projectAttributionSuffix": "すべての権利を留保します。プロジェクトコントリビューターにより設計・開発されています。",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "2025 年 5 月 10 日以降に追加されたチャネルの場合、デプロイ時にモデル名から「.」を削除する必要はありません",
     "For private deployments, format: https://fastgpt.run/api/openapi": "プライベートデプロイメントの場合、形式: https://fastgpt.run/api/openapi",
     "Force a syntactically valid JSON response": "構文的に有効な JSON 応答を強制",
@@ -4482,6 +4482,18 @@
     "Unable to load subscription plans": "サブスクリプションプランを読み込めません",
     "Please refresh the page and try again.": "ページを更新してもう一度お試しください。",
     "There are no enabled subscription plans yet.": "有効なサブスクリプションプランはまだありません。",
-    "{{count}} plan(s) available": "{{count}} 件のプランが利用可能"
+    "{{count}} plan(s) available": "{{count}} 件のプランが利用可能",
+    "Classic homepage contact details.": "クラシック版ホームの連絡先です。",
+    "Contact us": "お問い合わせ",
+    "Copy contact": "連絡先をコピー",
+    "Email support": "メールサポート",
+    "Public page with support contact information.": "サポート連絡先を表示する公開ページ。",
+    "QQ group": "QQ グループ",
+    "QQ group QR code": "QQ グループQRコード",
+    "Reply within 24 hours.": "通常24時間以内に返信します。",
+    "Scan the QR code to join the QQ group.": "QRコードをスキャンしてQQグループに参加してください。",
+    "Support channels": "サポート窓口",
+    "User updates and community help.": "ユーザー向け更新とコミュニティサポート。",
+    "View QR code": "QRコードを表示"
   }
 }

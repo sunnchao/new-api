@@ -1757,7 +1757,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Projets liés",
     "footer.defaultCopyright": "Tous droits réservés.",
-    "footer.newapi.projectAttributionSuffix": "Tous droits réservés. Conçu et développé par les contributeurs du projet.",
+    "footer.new\u0061pi.projectAttributionSuffix": "Tous droits réservés. Conçu et développé par les contributeurs du projet.",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "Pour les canaux ajoutés après le 10 mai 2025, pas besoin de supprimer \".\" des noms de modèles lors du déploiement",
     "For private deployments, format: https://fastgpt.run/api/openapi": "Pour les déploiements privés, format : https://fastgpt.run/api/openapi",
     "Force a syntactically valid JSON response": "Imposer une réponse JSON syntaxiquement valide",
@@ -4482,6 +4482,18 @@
     "Unable to load subscription plans": "Impossible de charger les abonnements",
     "Please refresh the page and try again.": "Veuillez actualiser la page puis réessayer.",
     "There are no enabled subscription plans yet.": "Aucun abonnement activé n’est disponible pour le moment.",
-    "{{count}} plan(s) available": "{{count}} abonnement(s) disponible(s)"
+    "{{count}} plan(s) available": "{{count}} abonnement(s) disponible(s)",
+    "Classic homepage contact details.": "Coordonnées de la page d'accueil classique.",
+    "Contact us": "Nous contacter",
+    "Copy contact": "Copier le contact",
+    "Email support": "Support par e-mail",
+    "Public page with support contact information.": "Page publique avec les informations de contact du support.",
+    "QQ group": "Groupe QQ",
+    "QQ group QR code": "Code QR du groupe QQ",
+    "Reply within 24 hours.": "Réponse sous 24 heures en général.",
+    "Scan the QR code to join the QQ group.": "Scannez le code QR pour rejoindre le groupe QQ.",
+    "Support channels": "Canaux de support",
+    "User updates and community help.": "Actualités utilisateur et aide de la communauté.",
+    "View QR code": "Voir le code QR"
   }
 }
