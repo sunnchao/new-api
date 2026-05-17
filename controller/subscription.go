@@ -61,6 +61,27 @@ func GetHomeSubscriptionPlans(c *gin.Context) {
 	common.ApiSuccess(c, result)
 }
 
+// GetPublicSubscriptionPlans returns every enabled subscription plan for the public catalog.
+func GetPublicSubscriptionPlans(c *gin.Context) {
+	if !operation_setting.IsPaymentComplianceConfirmed() {
+		common.ApiSuccess(c, []SubscriptionPlanDTO{})
+		return
+	}
+
+	var plans []model.SubscriptionPlan
+	if err := model.DB.Where("enabled = ?", true).Order("sort_order desc, id desc").Find(&plans).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	result := make([]SubscriptionPlanDTO, 0, len(plans))
+	for _, p := range plans {
+		result = append(result, SubscriptionPlanDTO{
+			Plan: p,
+		})
+	}
+	common.ApiSuccess(c, result)
+}
+
 func GetSubscriptionSelf(c *gin.Context) {
 	userId := c.GetInt("id")
 	settingMap, _ := model.GetUserSetting(userId, false)

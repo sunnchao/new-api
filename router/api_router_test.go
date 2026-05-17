@@ -1,7 +1,6 @@
 package router
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
@@ -18,9 +18,17 @@ import (
 )
 
 type subscriptionPlansAPIResponse struct {
-	Success bool              `json:"success"`
-	Message string            `json:"message"`
-	Data    []json.RawMessage `json:"data"`
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Data    []struct {
+		Plan struct {
+			Id         int    `json:"id"`
+			Title      string `json:"title"`
+			Enabled    bool   `json:"enabled"`
+			ShowOnHome bool   `json:"show_on_home"`
+			SortOrder  int    `json:"sort_order"`
+		} `json:"plan"`
+	} `json:"data"`
 }
 
 type pricingOptionResponse struct {
@@ -41,6 +49,17 @@ func setupSubscriptionRouteTestDB(t *testing.T) *gorm.DB {
 	common.RedisEnabled = false
 	common.GlobalApiRateLimitEnable = false
 	common.CriticalRateLimitEnable = false
+	common.OptionMapRWMutex.Lock()
+	originalOptionMap := common.OptionMap
+	common.OptionMap = map[string]string{
+		"payment_setting.payment_compliance_confirmed":     "true",
+		"payment_setting.payment_compliance_terms_version": operation_setting.CurrentComplianceTermsVersion,
+	}
+	common.OptionMapRWMutex.Unlock()
+	previousPaymentSetting := *operation_setting.GetPaymentSetting()
+	paymentSetting := operation_setting.GetPaymentSetting()
+	paymentSetting.ComplianceConfirmed = true
+	paymentSetting.ComplianceTermsVersion = operation_setting.CurrentComplianceTermsVersion
 
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
@@ -55,15 +74,41 @@ func setupSubscriptionRouteTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("failed to migrate subscription plans table: %v", err)
 	}
 
-	if err := db.Create(&model.SubscriptionPlan{
-		Title:      "Home Plan",
-		Enabled:    true,
-		ShowOnHome: true,
-	}).Error; err != nil {
-		t.Fatalf("failed to seed subscription plan: %v", err)
+	plans := []model.SubscriptionPlan{
+		{
+			Title:      "Home Plan",
+			Enabled:    true,
+			ShowOnHome: true,
+			SortOrder:  30,
+		},
+		{
+			Title:      "Catalog Only Plan",
+			Enabled:    true,
+			ShowOnHome: false,
+			SortOrder:  20,
+		},
+		{
+			Title:      "Disabled Plan",
+			Enabled:    false,
+			ShowOnHome: true,
+			SortOrder:  10,
+		},
+	}
+	if err := db.Select("*").Create(&plans).Error; err != nil {
+		t.Fatalf("failed to seed subscription plans: %v", err)
+	}
+	if err := db.Model(&model.SubscriptionPlan{}).Where("title = ?", "Catalog Only Plan").Update("show_on_home", false).Error; err != nil {
+		t.Fatalf("failed to seed catalog-only subscription plan state: %v", err)
+	}
+	if err := db.Model(&model.SubscriptionPlan{}).Where("title = ?", "Disabled Plan").Update("enabled", false).Error; err != nil {
+		t.Fatalf("failed to seed disabled subscription plan state: %v", err)
 	}
 
 	t.Cleanup(func() {
+		*operation_setting.GetPaymentSetting() = previousPaymentSetting
+		common.OptionMapRWMutex.Lock()
+		common.OptionMap = originalOptionMap
+		common.OptionMapRWMutex.Unlock()
 		sqlDB, err := db.DB()
 		if err == nil {
 			_ = sqlDB.Close()
@@ -136,6 +181,74 @@ func TestSubscriptionHomePlansAllowsAnonymousAccess(t *testing.T) {
 	}
 	if len(response.Data) != 1 {
 		t.Fatalf("expected exactly one public plan, got %d", len(response.Data))
+	}
+}
+
+func TestSubscriptionPublicPlansAllowsAnonymousAccess(t *testing.T) {
+	setupSubscriptionRouteTestDB(t)
+	server := setupSubscriptionRouteTestServer()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/subscription/public/plans", nil)
+	recorder := httptest.NewRecorder()
+	server.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 for anonymous public plans request, got %d", recorder.Code)
+	}
+
+	var response subscriptionPlansAPIResponse
+	if err := common.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode public plans response: %v", err)
+	}
+	if !response.Success {
+		t.Fatalf("expected success response, got message: %s", response.Message)
+	}
+	if len(response.Data) != 2 {
+		t.Fatalf("expected two enabled plans, got %d", len(response.Data))
+	}
+	if response.Data[0].Plan.Title != "Home Plan" {
+		t.Fatalf("expected highest sort_order plan first, got %q", response.Data[0].Plan.Title)
+	}
+	if response.Data[1].Plan.Title != "Catalog Only Plan" {
+		t.Fatalf("expected show_on_home=false enabled plan to be included, got %q", response.Data[1].Plan.Title)
+	}
+	for _, item := range response.Data {
+		if !item.Plan.Enabled {
+			t.Fatalf("disabled plan %q must not be returned", item.Plan.Title)
+		}
+	}
+}
+
+func TestSubscriptionPublicPlansRespectPaymentCompliance(t *testing.T) {
+	setupSubscriptionRouteTestDB(t)
+	server := setupSubscriptionRouteTestServer()
+
+	previous := common.OptionMap["payment_setting.payment_compliance_confirmed"]
+	common.OptionMap["payment_setting.payment_compliance_confirmed"] = "false"
+	previousPaymentSetting := *operation_setting.GetPaymentSetting()
+	operation_setting.GetPaymentSetting().ComplianceConfirmed = false
+	t.Cleanup(func() {
+		common.OptionMap["payment_setting.payment_compliance_confirmed"] = previous
+		*operation_setting.GetPaymentSetting() = previousPaymentSetting
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/subscription/public/plans", nil)
+	recorder := httptest.NewRecorder()
+	server.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 when compliance is not confirmed, got %d", recorder.Code)
+	}
+
+	var response subscriptionPlansAPIResponse
+	if err := common.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode public plans response: %v", err)
+	}
+	if !response.Success {
+		t.Fatalf("expected success response, got message: %s", response.Message)
+	}
+	if len(response.Data) != 0 {
+		t.Fatalf("expected no plans when compliance is not confirmed, got %d", len(response.Data))
 	}
 }
 

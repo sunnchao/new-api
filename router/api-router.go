@@ -155,6 +155,7 @@ func SetApiRouter(router *gin.Engine) {
 		subscriptionPublicRoute := apiRouter.Group("/subscription")
 		{
 			subscriptionPublicRoute.GET("/home/plans", controller.GetHomeSubscriptionPlans)
+			subscriptionPublicRoute.GET("/public/plans", controller.GetPublicSubscriptionPlans)
 		}
 
 		// Subscription billing (plans, purchase, admin management)
