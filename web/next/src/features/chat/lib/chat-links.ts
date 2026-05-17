@@ -1,10 +1,11 @@
-import type { ChatSharePayload } from "../types";
-
-export function encodeChatLinkPayload(payload: ChatSharePayload): string {
-  return btoa(encodeURIComponent(JSON.stringify(payload))).slice(0, 32);
+export interface ChatPreset {
+  id: string;
+  name: string;
+  type: 'web' | 'api';
+  url: string;
+  icon?: string;
 }
 
-export function buildChatLink(id: string): string {
-  if (typeof window === "undefined") return `/chat/${id}`;
-  return `${window.location.origin}/chat/${id}`;
+export function resolveChatUrl(preset: ChatPreset, key: string): string {
+  return preset.url.replace(/\{\{key\}\}/g, key);
 }

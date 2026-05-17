@@ -53,6 +53,7 @@ import {
   updateBillingPreference,
 } from '@/features/subscriptions/api'
 import { SubscriptionPurchaseDialog } from '@/features/subscriptions/components/dialogs/subscription-purchase-dialog'
+import { SubscriptionRenewDialog } from '@/features/subscriptions/components/dialogs/subscription-renew-dialog'
 import {
   formatDuration,
   formatResetPeriod,
@@ -198,6 +199,10 @@ export function SubscriptionPlansCard({
   const [purchaseOpen, setPurchaseOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<PlanRecord | null>(null)
 
+  const [renewOpen, setRenewOpen] = useState(false)
+  const [selectedRenewSub, setSelectedRenewSub] =
+    useState<UserSubscriptionRecord | null>(null)
+
   const enableStripe = !!topupInfo?.enable_stripe_topup
   const enableCreem = !!topupInfo?.enable_creem_topup
   const enableOnlineTopUp = !!topupInfo?.enable_online_topup
@@ -298,6 +303,16 @@ export function SubscriptionPlansCard({
     for (const p of plans) {
       if (p?.plan?.id) {
         map.set(p.plan.id, p.plan.title || '')
+      }
+    }
+    return map
+  }, [plans])
+
+  const planRecordMap = useMemo(() => {
+    const map = new Map<number, PlanRecord>()
+    for (const p of plans) {
+      if (p?.plan?.id) {
+        map.set(p.plan.id, p)
       }
     }
     return map
@@ -574,6 +589,19 @@ export function SubscriptionPlansCard({
                             })}
                           </span>
                         )}
+                        {(isActive || isExpired) && (
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            className='h-6 px-2 text-xs'
+                            onClick={() => {
+                              setSelectedRenewSub(sub)
+                              setRenewOpen(true)
+                            }}
+                          >
+                            {t('Renew')}
+                          </Button>
+                        )}
                       </div>
                       <div className='text-muted-foreground mt-1.5'>
                         {isActive
@@ -822,6 +850,26 @@ export function SubscriptionPlansCard({
             ? planPurchaseCountMap.get(selectedPlan.plan.id)
             : undefined
         }
+      />
+
+      <SubscriptionRenewDialog
+        open={renewOpen}
+        onOpenChange={(open) => {
+          setRenewOpen(open)
+          if (!open) {
+            setSelectedRenewSub(null)
+            fetchSelfSubscription()
+          }
+        }}
+        onRenewSuccess={fetchSelfSubscription}
+        subscription={selectedRenewSub}
+        plan={
+          selectedRenewSub?.subscription?.plan_id
+            ? planRecordMap.get(selectedRenewSub.subscription.plan_id) || null
+            : null
+        }
+        enableStripe={enableStripe}
+        enableCreem={enableCreem}
       />
     </>
   )

@@ -1,5 +1,5 @@
 "use client";
 
-import { Setup } from "@/features/setup";
+import { SetupWizard } from "@/features/setup/setup-wizard";
 
-export default Setup;
+export default SetupWizard;

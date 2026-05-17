@@ -149,6 +149,35 @@ export async function paySubscriptionEpay(
 }
 
 // ============================================================================
+// Subscription Renewal Payment
+// ============================================================================
+
+export interface RenewPayRequest {
+  user_subscription_id: number
+}
+
+export async function payRenewStripe(
+  data: RenewPayRequest
+): Promise<SubscriptionPayResponse> {
+  const res = await api.post('/api/subscription/renew/stripe/pay', data)
+  return res.data
+}
+
+export async function payRenewCreem(
+  data: RenewPayRequest
+): Promise<SubscriptionPayResponse> {
+  const res = await api.post('/api/subscription/renew/creem/pay', data)
+  return res.data
+}
+
+export async function payRenewBalance(
+  data: RenewPayRequest
+): Promise<SubscriptionPayResponse & { data?: { order_id?: string } | string }> {
+  const res = await api.post('/api/subscription/renew/balance/pay', data)
+  return res.data
+}
+
+// ============================================================================
 // User Self Subscriptions
 // ============================================================================
 

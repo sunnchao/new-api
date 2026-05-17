@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ReactNode } from 'react'
-import { Outlet, useRouterState } from '@tanstack/react-router'
+import { usePathname } from 'next/navigation'
 import { motion, useReducedMotion, type Variants } from 'motion/react'
 import {
   CARD_ITEM_VARIANTS,
@@ -54,16 +54,14 @@ export function PageTransition(props: PageTransitionProps) {
   )
 }
 
-export function AnimatedOutlet() {
+export function AnimatedOutlet({ children }: { children: ReactNode }) {
   const shouldReduce = useReducedMotion()
-  const routeKey = useRouterState({
-    select: (s) => s.location.pathname,
-  })
+  const routeKey = usePathname()
 
   if (shouldReduce) {
     return (
       <div className='flex min-h-0 flex-1 flex-col'>
-        <Outlet />
+        {children}
       </div>
     )
   }
@@ -76,7 +74,7 @@ export function AnimatedOutlet() {
       transition={MOTION_TRANSITION.fast}
       className='flex min-h-0 flex-1 flex-col'
     >
-      <Outlet />
+      {children}
     </motion.div>
   )
 }

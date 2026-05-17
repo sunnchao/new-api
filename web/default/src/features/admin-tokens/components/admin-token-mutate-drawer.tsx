@@ -56,7 +56,7 @@ import { normalizeBackupGroupDraft } from '@/features/keys/lib/api-key-form'
 import { getSystemOptions } from '@/features/system-settings/api'
 import { createAdminToken, getAdminToken, updateAdminToken } from '../api'
 import {
-  adminTokenFormSchema,
+  getAdminTokenFormSchema,
   getAdminTokenFormDefaultValues,
   transformAdminTokenFormDataToPayload,
   transformAdminTokenToFormDefaults,
@@ -141,8 +141,10 @@ export function AdminTokenMutateDrawer({
     }
   })()
 
+  const schema = getAdminTokenFormSchema(t)
+
   const form = useForm<AdminTokenFormValues>({
-    resolver: zodResolver(adminTokenFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: getAdminTokenFormDefaultValues(defaultUseAutoGroup),
   })
 

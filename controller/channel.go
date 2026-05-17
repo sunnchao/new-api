@@ -165,7 +165,6 @@ func GetAllChannels(c *gin.Context) {
 	} else if statusFilter == 0 {
 		countQuery = countQuery.Where("status != ?", common.ChannelStatusEnabled)
 	}
-	countQuery = model.ApplyGroupFilter(countQuery, groupParam)
 	var results []struct {
 		Type  int64
 		Count int64

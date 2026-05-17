@@ -1,5 +1,17 @@
 import { cn } from "@/lib/utils";
 
+export function NativeSelectOption({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"option">) {
+  return (
+    <option className={cn("", className)} {...props}>
+      {children}
+    </option>
+  );
+}
+
 export function NativeSelect({
   className,
   ...props

@@ -26,36 +26,38 @@ import { type ApiKeyFormData, type ApiKey } from '../types'
 // Form Schema
 // ============================================================================
 
-export function getApiKeyFormSchema(t: TFunction) {
-  return z
-    .object({
-      name: z.string().min(1, t('Please enter a name')),
-      remain_quota_dollars: z.number().optional(),
-      expired_time: z.date().optional(),
-      unlimited_quota: z.boolean(),
-      model_limits: z.array(z.string()),
-      allow_ips: z.string().optional(),
-      group: z.string().optional(),
-      cross_group_retry: z.boolean().optional(),
-      backup_group: z.array(z.string()).optional(),
-      tokenCount: z.number().min(1).optional(),
-    })
-    .superRefine((data, ctx) => {
-      if (data.unlimited_quota) {
-        return
-      }
+export function getApiKeyFormBaseSchema(t: TFunction) {
+  return z.object({
+    name: z.string().min(1, t('Please enter a name')),
+    remain_quota_dollars: z.number().optional(),
+    expired_time: z.date().optional(),
+    unlimited_quota: z.boolean(),
+    model_limits: z.array(z.string()),
+    allow_ips: z.string().optional(),
+    group: z.string().optional(),
+    cross_group_retry: z.boolean().optional(),
+    backup_group: z.array(z.string()).optional(),
+    tokenCount: z.number().min(1).optional(),
+  })
+}
 
-      if (
-        data.remain_quota_dollars === undefined ||
-        data.remain_quota_dollars < 0
-      ) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['remain_quota_dollars'],
-          message: t('Quota must be zero or greater'),
-        })
-      }
-    })
+export function getApiKeyFormSchema(t: TFunction) {
+  return getApiKeyFormBaseSchema(t).superRefine((data, ctx) => {
+    if (data.unlimited_quota) {
+      return
+    }
+
+    if (
+      data.remain_quota_dollars === undefined ||
+      data.remain_quota_dollars < 0
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['remain_quota_dollars'],
+        message: t('Quota must be zero or greater'),
+      })
+    }
+  })
 }
 
 export type ApiKeyFormValues = z.infer<

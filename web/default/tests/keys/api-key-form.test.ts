@@ -1,11 +1,15 @@
 import { expect, test } from 'bun:test'
+import type { TFunction } from 'i18next'
 import {
   API_KEY_FORM_DEFAULT_VALUES,
-  apiKeyFormSchema,
+  getApiKeyFormSchema,
   normalizeBackupGroupDraft,
   normalizeBackupGroups,
   transformFormDataToPayload,
 } from '../../src/features/keys/lib/api-key-form'
+
+const t = ((key: string) => key) as TFunction
+const apiKeyFormSchema = getApiKeyFormSchema(t)
 
 test('normalizes backup groups while preserving fallback order', () => {
   expect(

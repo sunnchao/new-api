@@ -114,7 +114,7 @@ type InvoiceRequestItem struct {
 	TopUpId           int     `json:"topup_id" gorm:"column:topup_id;uniqueIndex;not null"`
 	TradeNo           string  `json:"trade_no" gorm:"type:varchar(255);not null;index"`
 	Money             float64 `json:"money" gorm:"type:decimal(10,2);not null;default:0"`
-	PaymentProvider   string  `json:"payment_provider" gorm:"type:varchar(50);not null;default:''"`
+	PaymentProvider   string  `json:"payment_provider" gorm:"type:varchar(150);not null;default:''"`
 	PaymentMethod     string  `json:"payment_method" gorm:"type:varchar(50);not null;default:''"`
 	TopUpCreateTime   int64   `json:"topup_create_time" gorm:"column:topup_create_time;bigint;not null;default:0"`
 	TopUpCompleteTime int64   `json:"topup_complete_time" gorm:"column:topup_complete_time;bigint;not null;default:0"`
@@ -132,7 +132,7 @@ type InvoiceRequestSubscriptionItem struct {
 	SubscriptionOrderId      int     `json:"subscription_order_id" gorm:"uniqueIndex;not null"`
 	TradeNo                  string  `json:"trade_no" gorm:"type:varchar(255);not null;index"`
 	Money                    float64 `json:"money" gorm:"type:decimal(10,2);not null;default:0"`
-	PaymentProvider          string  `json:"payment_provider" gorm:"type:varchar(50);not null;default:''"`
+	PaymentProvider          string  `json:"payment_provider" gorm:"type:varchar(150);not null;default:''"`
 	PaymentMethod            string  `json:"payment_method" gorm:"type:varchar(50);not null;default:''"`
 	SubscriptionCreateTime   int64   `json:"subscription_create_time" gorm:"bigint;not null;default:0"`
 	SubscriptionCompleteTime int64   `json:"subscription_complete_time" gorm:"bigint;not null;default:0"`

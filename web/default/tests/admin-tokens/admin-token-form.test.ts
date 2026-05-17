@@ -1,10 +1,14 @@
 import { expect, test } from 'bun:test'
+import type { TFunction } from 'i18next'
 import {
   ADMIN_TOKEN_FORM_DEFAULT_VALUES,
-  adminTokenFormSchema,
+  getAdminTokenFormSchema,
   transformAdminTokenFormDataToPayload,
   transformAdminTokenToFormDefaults,
 } from '../../src/features/admin-tokens/lib/admin-token-form'
+
+const t = ((key: string) => key) as TFunction
+const adminTokenFormSchema = getAdminTokenFormSchema(t)
 
 test('requires an explicit positive owner user id', () => {
   const result = adminTokenFormSchema.safeParse({

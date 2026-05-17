@@ -712,6 +712,20 @@ func CompleteSubscriptionOrder(tradeNo string, providerPayload string, expectedP
 	if tradeNo == "" {
 		return errors.New("tradeNo is empty")
 	}
+
+	// === Renewal branch: check if this is a renewal order before entering the main flow ===
+	quickOrder := GetSubscriptionOrderByTradeNo(tradeNo)
+	if quickOrder != nil {
+		var renewMeta struct {
+			Renew              bool `json:"renew"`
+			UserSubscriptionId int  `json:"user_subscription_id"`
+		}
+		if err := common.Unmarshal([]byte(quickOrder.ProviderPayload), &renewMeta); err == nil && renewMeta.Renew && renewMeta.UserSubscriptionId > 0 {
+			return CompleteRenewalOrder(tradeNo, providerPayload, expectedPaymentProvider, actualPaymentMethod, clientIP)
+		}
+	}
+	// === End renewal branch ===
+
 	refCol := "`trade_no`"
 	if common.UsingPostgreSQL {
 		refCol = `"trade_no"`

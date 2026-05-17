@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import type { TFunction } from 'i18next'
 import {
   API_KEY_FORM_DEFAULT_VALUES,
-  apiKeyFormSchema,
+  getApiKeyFormBaseSchema,
   getApiKeyFormDefaultValues,
   transformApiKeyToFormDefaults,
   transformFormDataToPayload,
@@ -18,10 +19,29 @@ export const ADMIN_TOKEN_MJ_MODEL_OPTIONS = [
 
 export type AdminTokenMjModel = (typeof ADMIN_TOKEN_MJ_MODEL_OPTIONS)[number]
 
-export const adminTokenFormSchema = apiKeyFormSchema.extend({
-  user_id: z.number().int().positive('Please enter a valid user ID'),
-  mj_model: z.enum(ADMIN_TOKEN_MJ_MODEL_OPTIONS),
-})
+export function getAdminTokenFormSchema(t: TFunction) {
+  return getApiKeyFormBaseSchema(t)
+    .extend({
+      user_id: z.number().int().positive('Please enter a valid user ID'),
+      mj_model: z.enum(ADMIN_TOKEN_MJ_MODEL_OPTIONS),
+    })
+    .superRefine((data, ctx) => {
+      if (data.unlimited_quota) {
+        return
+      }
+
+      if (
+        data.remain_quota_dollars === undefined ||
+        data.remain_quota_dollars < 0
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['remain_quota_dollars'],
+          message: t('Quota must be zero or greater'),
+        })
+      }
+    })
+}
 
 export type AdminTokenFormValues = ApiKeyFormValues & {
   user_id: number
