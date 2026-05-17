@@ -52,86 +52,68 @@ export function SubscriptionPlans() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <div className='relative'>
-        <div
-          aria-hidden
-          className='pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-20 dark:opacity-[0.10]'
-          style={{
-            background: [
-              'radial-gradient(ellipse 55% 45% at 18% 20%, oklch(0.70 0.16 150 / 70%) 0%, transparent 70%)',
-              'radial-gradient(ellipse 50% 40% at 78% 16%, oklch(0.68 0.14 220 / 60%) 0%, transparent 70%)',
-              'radial-gradient(ellipse 40% 35% at 52% 70%, oklch(0.72 0.12 95 / 40%) 0%, transparent 70%)',
-            ].join(', '),
-            maskImage:
-              'linear-gradient(to bottom, black 40%, transparent 100%)',
-            WebkitMaskImage:
-              'linear-gradient(to bottom, black 40%, transparent 100%)',
-          }}
-        />
+      <PageTransition className='mx-auto w-full max-w-[1280px] px-3 pt-16 pb-10 sm:px-6 sm:pt-20 sm:pb-12 xl:px-8'>
+        <header className='mx-auto mb-8 max-w-3xl pt-5 text-center sm:mb-12 sm:pt-10'>
+          <p className='mb-3 text-xs font-medium tracking-widest text-muted-foreground uppercase'>
+            {t('Subscription Catalog')}
+          </p>
+          <h1 className='text-[clamp(2rem,5.5vw,3.5rem)] leading-[1.15] font-bold tracking-tight'>
+            {t('Subscription Plans')}
+          </h1>
+          <p className='mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground/70 sm:mt-4 sm:text-base'>
+            {t(
+              'Browse available subscription plans and choose the access package that fits your usage.'
+            )}
+          </p>
+        </header>
 
-        <PageTransition className='relative mx-auto w-full max-w-[1280px] px-3 pt-16 pb-10 sm:px-6 sm:pt-20 sm:pb-12 xl:px-8'>
-          <header className='mx-auto mb-8 max-w-3xl pt-5 text-center sm:mb-12 sm:pt-10'>
-            <p className='mb-3 text-xs font-medium tracking-widest text-muted-foreground uppercase'>
-              {t('Subscription Catalog')}
-            </p>
-            <h1 className='text-[clamp(2rem,5.5vw,3.5rem)] leading-[1.15] font-bold tracking-tight'>
-              {t('Subscription Plans')}
-            </h1>
-            <p className='mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground/70 sm:mt-4 sm:text-base'>
-              {t(
-                'Browse available subscription plans and choose the access package that fits your usage.'
-              )}
-            </p>
-          </header>
-
-          {plansQuery.isLoading ? (
-            <SubscriptionPlansLoading />
-          ) : plansQuery.isError ? (
-            <EmptyState
-              icon={RefreshCw}
-              bordered
-              title={t('Unable to load subscription plans')}
-              description={t('Please refresh the page and try again.')}
-            />
-          ) : plans.length === 0 ? (
-            <EmptyState
-              icon={CreditCard}
-              bordered
-              title={t('No subscription plans available')}
-              description={t('There are no enabled subscription plans yet.')}
-            />
-          ) : (
-            <>
-              <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
-                <p className='text-sm text-muted-foreground'>
-                  {t('{{count}} plan(s) available', { count: plans.length })}
-                </p>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => plansQuery.refetch()}
-                  disabled={plansQuery.isFetching}
-                >
-                  <RefreshCw
-                    className={plansQuery.isFetching ? 'animate-spin' : ''}
-                  />
-                  {t('Refresh')}
-                </Button>
-              </div>
-              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
-                {plans.map((record, index) => (
-                  <SubscriptionPlanCard
-                    key={record.plan.id}
-                    record={record}
-                    isAuthenticated={isAuthenticated}
-                    featured={index === 0 && plans.length > 1}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </PageTransition>
-      </div>
+        {plansQuery.isLoading ? (
+          <SubscriptionPlansLoading />
+        ) : plansQuery.isError ? (
+          <EmptyState
+            icon={RefreshCw}
+            bordered
+            title={t('Unable to load subscription plans')}
+            description={t('Please refresh the page and try again.')}
+          />
+        ) : plans.length === 0 ? (
+          <EmptyState
+            icon={CreditCard}
+            bordered
+            title={t('No subscription plans available')}
+            description={t('There are no enabled subscription plans yet.')}
+          />
+        ) : (
+          <>
+            <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
+              <p className='text-sm text-muted-foreground'>
+                {t('{{count}} plan(s) available', { count: plans.length })}
+              </p>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => plansQuery.refetch()}
+                disabled={plansQuery.isFetching}
+              >
+                <RefreshCw
+                  className={plansQuery.isFetching ? 'animate-spin' : ''}
+                />
+                {t('Refresh')}
+              </Button>
+            </div>
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
+              {plans.map((record, index) => (
+                <SubscriptionPlanCard
+                  key={record.plan.id}
+                  record={record}
+                  isAuthenticated={isAuthenticated}
+                  featured={index === 0 && plans.length > 1}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </PageTransition>
     </PublicLayout>
   )
 }
