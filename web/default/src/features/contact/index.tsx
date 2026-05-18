@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useState, type ElementType } from 'react'
 import { Mail, MessageCircle, QrCode } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import './i18n'
 import qqGroupQrCode from '@/assets/qq-group-qrcode.jpg'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
