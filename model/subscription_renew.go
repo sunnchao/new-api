@@ -120,6 +120,75 @@ func CompleteRenewalOrder(tradeNo string, providerPayload string, expectedPaymen
 	return nil
 }
 
+type AdminRenewSubscriptionResult struct {
+	UserSubscriptionId int    `json:"user_subscription_id"`
+	UserId             int    `json:"user_id"`
+	PlanId             int    `json:"plan_id"`
+	PlanTitle          string `json:"plan_title"`
+	OldEndTime         int64  `json:"old_end_time"`
+	NewEndTime         int64  `json:"new_end_time"`
+}
+
+func AdminRenewUserSubscription(userSubscriptionId int, adminId int, callerIp string) (*AdminRenewSubscriptionResult, error) {
+	if userSubscriptionId <= 0 {
+		return nil, errors.New("invalid userSubscriptionId")
+	}
+
+	var result *AdminRenewSubscriptionResult
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var sub UserSubscription
+		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ?", userSubscriptionId).First(&sub).Error; err != nil {
+			return err
+		}
+
+		now := getDBTimestampTx(tx)
+		if !IsUserSubscriptionActive(&sub, now) {
+			return errors.New("subscription is not active")
+		}
+
+		plan, err := getLatestSubscriptionPlanForRenewalTx(tx, sub.PlanId)
+		if err != nil {
+			return err
+		}
+
+		oldEndTime := sub.EndTime
+		if err := renewUserSubscriptionTx(tx, &sub, plan, now); err != nil {
+			return err
+		}
+
+		result = &AdminRenewSubscriptionResult{
+			UserSubscriptionId: sub.Id,
+			UserId:             sub.UserId,
+			PlanId:             plan.Id,
+			PlanTitle:          plan.Title,
+			OldEndTime:         oldEndTime,
+			NewEndTime:         sub.EndTime,
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return nil, errors.New("subscription renewal failed")
+	}
+
+	adminInfo := map[string]interface{}{
+		"admin_id":             adminId,
+		"caller_ip":            callerIp,
+		"user_subscription_id": result.UserSubscriptionId,
+		"plan_id":              result.PlanId,
+		"old_end_time":         result.OldEndTime,
+		"new_end_time":         result.NewEndTime,
+	}
+	RecordLogWithAdminInfo(result.UserId, LogTypeManage,
+		fmt.Sprintf("管理员手动续费订阅，套餐: %s，订阅ID: %d，到期时间: %d -> %d",
+			result.PlanTitle, result.UserSubscriptionId, result.OldEndTime, result.NewEndTime),
+		adminInfo,
+	)
+	return result, nil
+}
+
 // renewUserSubscriptionTx extends a subscription's validity and accumulates quota.
 // Quota reset cycles are re-computed based on the new end time.
 func renewUserSubscriptionTx(tx *gorm.DB, sub *UserSubscription, plan *SubscriptionPlan, now int64) error {

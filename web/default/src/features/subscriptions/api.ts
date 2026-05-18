@@ -64,6 +64,11 @@ export async function patchPlanStatus(
   return res.data
 }
 
+export async function deletePlan(id: number): Promise<ApiResponse> {
+  const res = await api.delete(`/api/subscription/admin/plans/${id}`)
+  return res.data
+}
+
 // ============================================================================
 // Admin User Subscription Management
 // ============================================================================
@@ -106,6 +111,22 @@ export async function deleteUserSubscription(
   return res.data
 }
 
+export async function renewUserSubscription(subId: number): Promise<
+  ApiResponse<{
+    user_subscription_id: number
+    user_id: number
+    plan_id: number
+    plan_title: string
+    old_end_time: number
+    new_end_time: number
+  }>
+> {
+  const res = await api.post(
+    `/api/subscription/admin/user_subscriptions/${subId}/renew`
+  )
+  return res.data
+}
+
 export async function getAllUserSubscriptions(
   params: AdminAllSubscriptionsParams = {}
 ): Promise<ApiResponse<AdminAllSubscriptionsResponse>> {
@@ -133,7 +154,9 @@ export async function paySubscriptionCreem(
 
 export async function paySubscriptionBalance(
   data: SubscriptionPayRequest
-): Promise<SubscriptionPayResponse & { data?: { order_id?: string } | string }> {
+): Promise<
+  SubscriptionPayResponse & { data?: { order_id?: string } | string }
+> {
   const res = await api.post('/api/subscription/balance/pay', data)
   return res.data
 }
@@ -172,7 +195,9 @@ export async function payRenewCreem(
 
 export async function payRenewBalance(
   data: RenewPayRequest
-): Promise<SubscriptionPayResponse & { data?: { order_id?: string } | string }> {
+): Promise<
+  SubscriptionPayResponse & { data?: { order_id?: string } | string }
+> {
   const res = await api.post('/api/subscription/renew/balance/pay', data)
   return res.data
 }

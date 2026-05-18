@@ -460,6 +460,28 @@ func AdminUpdateSubscriptionPlanStatus(c *gin.Context) {
 	common.ApiSuccess(c, nil)
 }
 
+func AdminDeleteSubscriptionPlan(c *gin.Context) {
+	if !requirePaymentCompliance(c) {
+		return
+	}
+
+	id, _ := strconv.Atoi(c.Param("id"))
+	if id <= 0 {
+		common.ApiErrorMsg(c, "无效的ID")
+		return
+	}
+	if err := model.DeleteSubscriptionPlan(id); err != nil {
+		if strings.Contains(err.Error(), "subscription plan must be disabled before deletion") {
+			common.ApiErrorMsg(c, "请先禁用套餐后再删除")
+			return
+		}
+		common.ApiError(c, err)
+		return
+	}
+	model.InvalidateSubscriptionPlanCache(id)
+	common.ApiSuccess(c, nil)
+}
+
 type AdminBindSubscriptionRequest struct {
 	UserId int `json:"user_id"`
 	PlanId int `json:"plan_id"`
@@ -573,15 +595,34 @@ func AdminDeleteUserSubscription(c *gin.Context) {
 	common.ApiSuccess(c, nil)
 }
 
+// AdminRenewUserSubscription manually renews an active user subscription.
+func AdminRenewUserSubscription(c *gin.Context) {
+	subId, _ := strconv.Atoi(c.Param("id"))
+	if subId <= 0 {
+		common.ApiErrorMsg(c, "无效的订阅ID")
+		return
+	}
+	result, err := model.AdminRenewUserSubscription(subId, c.GetInt("id"), c.ClientIP())
+	if err != nil {
+		if strings.Contains(err.Error(), "subscription is not active") {
+			common.ApiErrorMsg(c, "仅生效中的订阅可以续费")
+			return
+		}
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, result)
+}
+
 // ---- Admin: all site subscriptions overview ----
 
 type AdminAllUserSubscriptionsRequest struct {
-	Page       int    `form:"page" binding:"omitempty,min=1"`
-	PageSize   int    `form:"page_size" binding:"omitempty,min=1,max=100"`
-	Username   string `form:"username" binding:"omitempty"`
-	PlanId     int    `form:"plan_id" binding:"omitempty,min=1"`
-	Status     string `form:"status" binding:"omitempty"`
-	UserGroup  string `form:"user_group" binding:"omitempty"`
+	Page      int    `form:"page" binding:"omitempty,min=1"`
+	PageSize  int    `form:"page_size" binding:"omitempty,min=1,max=100"`
+	Username  string `form:"username" binding:"omitempty"`
+	PlanId    int    `form:"plan_id" binding:"omitempty,min=1"`
+	Status    string `form:"status" binding:"omitempty"`
+	UserGroup string `form:"user_group" binding:"omitempty"`
 }
 
 // AdminListAllUserSubscriptions lists all user subscriptions across the site with pagination and filtering.
@@ -607,9 +648,9 @@ func AdminListAllUserSubscriptions(c *gin.Context) {
 	}
 
 	common.ApiSuccess(c, gin.H{
-		"data":  overviews,
-		"total": total,
-		"page":  req.Page,
+		"data":      overviews,
+		"total":     total,
+		"page":      req.Page,
 		"page_size": req.PageSize,
 	})
 }

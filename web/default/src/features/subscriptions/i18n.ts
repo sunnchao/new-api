@@ -37,6 +37,7 @@ export const subscriptionsI18nResources = {
       'Confirm disable': 'Confirm disable',
       'Confirm enable': 'Confirm enable',
       'Confirm invalidate': 'Confirm invalidate',
+      'Confirm manual renew': 'Confirm manual renew',
       'Create Plan': 'Create Plan',
       'Create new subscription plan': 'Create new subscription plan',
       'Create succeeded': 'Create succeeded',
@@ -49,6 +50,7 @@ export const subscriptionsI18nResources = {
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         'Deleting will permanently remove this subscription record (including benefit details). Continue?',
       Disable: 'Disable',
+      'Disable before deleting': 'Disable before deleting',
       'Duration Settings': 'Duration Settings',
       'Duration Unit': 'Duration Unit',
       'Duration Value': 'Duration Value',
@@ -80,6 +82,7 @@ export const subscriptionsI18nResources = {
       Invalidated: 'Invalidated',
       'Loading failed': 'Loading failed',
       'Loading...': 'Loading...',
+      'Manual Renew': 'Manual Renew',
       'Manage subscription plan creation, pricing and status':
         'Manage subscription plan creation, pricing and status',
       'Manage your subscriptions and billing preferences':
@@ -156,6 +159,10 @@ export const subscriptionsI18nResources = {
         'Stripe/Creem requires creating products on the third-party platform and entering the ID',
       'Subscription Management': 'Subscription Management',
       'Third-party Payment Config': 'Third-party Payment Config',
+      'This will extend the active subscription by one original plan period. Continue?':
+        'This will extend the active subscription by one original plan period. Continue?',
+      'This will permanently delete the disabled subscription plan. Continue?':
+        'This will permanently delete the disabled subscription plan. Continue?',
       'Total Quota': 'Total Quota',
       Unlimited: 'Unlimited',
       'Update plan info': 'Update plan info',
@@ -219,6 +226,7 @@ export const subscriptionsI18nResources = {
       'Confirm disable': '确认禁用',
       'Confirm enable': '确认启用',
       'Confirm invalidate': '确认作废',
+      'Confirm manual renew': '确认手动续费',
       'Create Plan': '创建套餐',
       'Create new subscription plan': '创建新订阅套餐',
       'Create succeeded': '创建成功',
@@ -231,6 +239,7 @@ export const subscriptionsI18nResources = {
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         '删除将永久移除该订阅记录（包含权益详情）。确认继续？',
       Disable: '禁用',
+      'Disable before deleting': '请先禁用再删除',
       'Duration Settings': '时长设置',
       'Duration Unit': '时长单位',
       'Duration Value': '时长数值',
@@ -262,6 +271,7 @@ export const subscriptionsI18nResources = {
       Invalidated: '已作废',
       'Loading failed': '加载失败',
       'Loading...': '加载中...',
+      'Manual Renew': '手动续费',
       'Manage subscription plan creation, pricing and status':
         '管理订阅套餐的创建、定价与状态',
       'Manage your subscriptions and billing preferences':
@@ -337,6 +347,10 @@ export const subscriptionsI18nResources = {
         'Stripe/Creem 需在第三方平台创建产品并填入 ID',
       'Subscription Management': '订阅管理',
       'Third-party Payment Config': '第三方支付配置',
+      'This will extend the active subscription by one original plan period. Continue?':
+        '这将按原套餐周期延长该生效中的订阅。是否继续？',
+      'This will permanently delete the disabled subscription plan. Continue?':
+        '这将删除已禁用的订阅套餐。是否继续？',
       'Total Quota': '总额度',
       Unlimited: '无限制',
       'Update plan info': '更新套餐信息',
@@ -375,9 +389,9 @@ export const subscriptionsI18nResources = {
       'After disabling, it will no longer be shown to users, but historical orders are not affected. Continue?':
         'Après désactivation, il ne sera plus affiché aux utilisateurs, mais les commandes historiques ne sont pas affectées. Continuer ?',
       'After enabling, the plan will be shown to users. Continue?':
-        "Après activation, le plan sera affiché aux utilisateurs. Continuer ?",
+        'Après activation, le plan sera affiché aux utilisateurs. Continuer ?',
       'After invalidating, this subscription will be immediately deactivated. Historical records are not affected. Continue?':
-        "Après invalidation, cet abonnement sera immédiatement désactivé. Les enregistrements historiques ne sont pas affectés. Continuer ?",
+        'Après invalidation, cet abonnement sera immédiatement désactivé. Les enregistrements historiques ne sont pas affectés. Continuer ?',
       'All Groups': 'Tous les groupes',
       'All Plans': 'Tous les plans',
       'All Status': 'Tous les statuts',
@@ -401,6 +415,7 @@ export const subscriptionsI18nResources = {
       'Confirm disable': 'Confirmer la désactivation',
       'Confirm enable': "Confirmer l'activation",
       'Confirm invalidate': "Confirmer l'invalidation",
+      'Confirm manual renew': 'Confirmer le renouvellement manuel',
       'Create Plan': 'Créer un plan',
       'Create new subscription plan': "Créer un nouveau plan d'abonnement",
       'Create succeeded': 'Création réussie',
@@ -413,6 +428,7 @@ export const subscriptionsI18nResources = {
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         "La suppression effacera définitivement cet enregistrement d'abonnement (y compris les détails des avantages). Continuer ?",
       Disable: 'Désactiver',
+      'Disable before deleting': 'Désactiver avant de supprimer',
       'Duration Settings': 'Paramètres de durée',
       'Duration Unit': 'Unité de durée',
       'Duration Value': 'Valeur de durée',
@@ -444,6 +460,7 @@ export const subscriptionsI18nResources = {
       Invalidated: 'Invalidé',
       'Loading failed': 'Échec du chargement',
       'Loading...': 'Chargement...',
+      'Manual Renew': 'Renouvellement manuel',
       'Manage subscription plan creation, pricing and status':
         "Gérer la création, la tarification et le statut des plans d'abonnement",
       'Manage your subscriptions and billing preferences':
@@ -479,18 +496,20 @@ export const subscriptionsI18nResources = {
       Plans: 'Plans',
       'Please enter amount': 'Veuillez entrer un montant',
       'Please enter plan title': 'Veuillez entrer le titre du plan',
-      'Please select a payment method': 'Veuillez sélectionner un mode de paiement',
-      'Please select a subscription plan': "Veuillez sélectionner un plan d'abonnement",
+      'Please select a payment method':
+        'Veuillez sélectionner un mode de paiement',
+      'Please select a subscription plan':
+        "Veuillez sélectionner un plan d'abonnement",
       Priority: 'Priorité',
       'Purchase Limit': "Limite d'achat",
-      'Purchase Subscription': "Acheter un abonnement",
+      'Purchase Subscription': 'Acheter un abonnement',
       'Purchase limit reached': "Limite d'achat atteinte",
       'Purchase successful': 'Achat réussi',
       Renew: 'Renouveler',
-      'Renew Subscription': 'Renouveler l\'abonnement',
+      'Renew Subscription': "Renouveler l'abonnement",
       'Renewal successful': 'Renouvellement réussi',
       'No payment method available': 'Aucun mode de paiement disponible',
-      'Subscription ID': 'ID d\'abonnement',
+      'Subscription ID': "ID d'abonnement",
       Quota: 'Quota',
       'Quota Amount': 'Quantité de quota',
       'Quota Limits': 'Limites de quota',
@@ -521,6 +540,10 @@ export const subscriptionsI18nResources = {
         "Stripe/Creem nécessite la création de produits sur la plateforme tierce et la saisie de l'ID",
       'Subscription Management': 'Gestion des abonnements',
       'Third-party Payment Config': 'Configuration de paiement tiers',
+      'This will extend the active subscription by one original plan period. Continue?':
+        "Cela prolongera l'abonnement actif d'une période du forfait d'origine. Continuer ?",
+      'This will permanently delete the disabled subscription plan. Continue?':
+        "Cela supprimera le forfait d'abonnement désactivé. Continuer ?",
       'Total Quota': 'Quota total',
       Unlimited: 'Illimité',
       'Update plan info': 'Mettre à jour les informations du plan',
@@ -530,7 +553,7 @@ export const subscriptionsI18nResources = {
       User: 'Utilisateur',
       'User Group': 'Groupe utilisateur',
       'User ID': 'ID utilisateur',
-      'User Subscription Management': "Gestion des abonnements utilisateur",
+      'User Subscription Management': 'Gestion des abonnements utilisateur',
       Validity: 'Validité',
       'Validity Period': 'Période de validité',
       Weekly: 'Hebdomadaire',
@@ -584,6 +607,7 @@ export const subscriptionsI18nResources = {
       'Confirm disable': '無効化の確認',
       'Confirm enable': '有効化の確認',
       'Confirm invalidate': '無効化の確認',
+      'Confirm manual renew': '手動更新を確認',
       'Create Plan': 'プランを作成',
       'Create new subscription plan': '新しいサブスクリプションプランを作成',
       'Create succeeded': '作成しました',
@@ -596,6 +620,7 @@ export const subscriptionsI18nResources = {
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         '削除するとこのサブスクリプションレコード（特典詳細を含む）が完全に削除されます。続行しますか？',
       Disable: '無効化',
+      'Disable before deleting': '削除前に無効化してください',
       'Duration Settings': '期間設定',
       'Duration Unit': '期間単位',
       'Duration Value': '期間値',
@@ -628,6 +653,7 @@ export const subscriptionsI18nResources = {
       Invalidated: '無効化済み',
       'Loading failed': '読み込みに失敗しました',
       'Loading...': '読み込み中...',
+      'Manual Renew': '手動更新',
       'Manage subscription plan creation, pricing and status':
         'サブスクリプションプランの作成・価格・ステータスを管理します',
       'Manage your subscriptions and billing preferences':
@@ -705,6 +731,10 @@ export const subscriptionsI18nResources = {
         'Stripe/Creem はサードパーティプラットフォームで製品を作成し、IDを入力する必要があります',
       'Subscription Management': 'サブスクリプション管理',
       'Third-party Payment Config': 'サードパーティ決済設定',
+      'This will extend the active subscription by one original plan period. Continue?':
+        '有効なサブスクリプションを元のプラン期間分だけ延長します。続行しますか？',
+      'This will permanently delete the disabled subscription plan. Continue?':
+        '無効化されたサブスクリプションプランを削除します。続行しますか？',
       'Total Quota': '合計クォータ',
       Unlimited: '無制限',
       'Update plan info': 'プラン情報を更新',
@@ -769,6 +799,7 @@ export const subscriptionsI18nResources = {
       'Confirm disable': 'Подтвердить отключение',
       'Confirm enable': 'Подтвердить включение',
       'Confirm invalidate': 'Подтвердить аннулирование',
+      'Confirm manual renew': 'Подтвердить ручное продление',
       'Create Plan': 'Создать план',
       'Create new subscription plan': 'Создать новый план подписки',
       'Create succeeded': 'Создание выполнено',
@@ -781,13 +812,15 @@ export const subscriptionsI18nResources = {
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         'Удаление навсегда удалит эту запись подписки (включая детали льгот). Продолжить?',
       Disable: 'Отключить',
+      'Disable before deleting': 'Сначала отключите',
       'Duration Settings': 'Настройки длительности',
       'Duration Unit': 'Единица длительности',
       'Duration Value': 'Значение длительности',
       Edit: 'Редактировать',
       'e.g. Basic Plan': 'например Базовый план',
       'e.g. group1, group2': 'например group1, group2',
-      'e.g. Suitable for light usage': 'например Подходит для лёгкого использования',
+      'e.g. Suitable for light usage':
+        'например Подходит для лёгкого использования',
       'Empty means no restriction':
         'Пустое значение означает отсутствие ограничений',
       Enable: 'Включить',
@@ -813,6 +846,7 @@ export const subscriptionsI18nResources = {
       Invalidated: 'Аннулировано',
       'Loading failed': 'Ошибка загрузки',
       'Loading...': 'Загрузка...',
+      'Manual Renew': 'Продлить вручную',
       'Manage subscription plan creation, pricing and status':
         'Управление созданием, ценообразованием и статусом планов подписки',
       'Manage your subscriptions and billing preferences':
@@ -849,8 +883,7 @@ export const subscriptionsI18nResources = {
       'Please enter amount': 'Пожалуйста, введите сумму',
       'Please enter plan title': 'Пожалуйста, введите заголовок плана',
       'Please select a payment method': 'Пожалуйста, выберите способ оплаты',
-      'Please select a subscription plan':
-        'Пожалуйста, выберите план подписки',
+      'Please select a subscription plan': 'Пожалуйста, выберите план подписки',
       Priority: 'Приоритет',
       'Purchase Limit': 'Лимит покупок',
       'Purchase Subscription': 'Купить подписку',
@@ -890,6 +923,10 @@ export const subscriptionsI18nResources = {
         'Stripe/Creem требует создания продуктов на сторонней платформе и ввода ID',
       'Subscription Management': 'Управление подписками',
       'Third-party Payment Config': 'Настройка сторонней оплаты',
+      'This will extend the active subscription by one original plan period. Continue?':
+        'Активная подписка будет продлена на один исходный период тарифа. Продолжить?',
+      'This will permanently delete the disabled subscription plan. Continue?':
+        'Отключенный тариф подписки будет удален. Продолжить?',
       'Total Quota': 'Общая квота',
       Unlimited: 'Без ограничений',
       'Update plan info': 'Обновить информацию о плане',
@@ -954,6 +991,7 @@ export const subscriptionsI18nResources = {
       'Confirm disable': 'Xác nhận vô hiệu hóa',
       'Confirm enable': 'Xác nhận kích hoạt',
       'Confirm invalidate': 'Xác nhận hủy',
+      'Confirm manual renew': 'Xác nhận gia hạn thủ công',
       'Create Plan': 'Tạo gói',
       'Create new subscription plan': 'Tạo gói đăng ký mới',
       'Create succeeded': 'Tạo thành công',
@@ -966,6 +1004,7 @@ export const subscriptionsI18nResources = {
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         'Xóa sẽ xóa vĩnh viễn bản ghi đăng ký này (bao gồm chi tiết quyền lợi). Tiếp tục?',
       Disable: 'Vô hiệu hóa',
+      'Disable before deleting': 'Vô hiệu hóa trước khi xóa',
       'Duration Settings': 'Cài đặt thời hạn',
       'Duration Unit': 'Đơn vị thời hạn',
       'Duration Value': 'Giá trị thời hạn',
@@ -997,6 +1036,7 @@ export const subscriptionsI18nResources = {
       Invalidated: 'Đã hủy',
       'Loading failed': 'Tải thất bại',
       'Loading...': 'Đang tải...',
+      'Manual Renew': 'Gia hạn thủ công',
       'Manage subscription plan creation, pricing and status':
         'Quản lý tạo gói đăng ký, định giá và trạng thái',
       'Manage your subscriptions and billing preferences':
@@ -1073,6 +1113,10 @@ export const subscriptionsI18nResources = {
         'Stripe/Creem yêu cầu tạo sản phẩm trên nền tảng bên thứ ba và nhập ID',
       'Subscription Management': 'Quản lý đăng ký',
       'Third-party Payment Config': 'Cấu hình thanh toán bên thứ ba',
+      'This will extend the active subscription by one original plan period. Continue?':
+        'Thao tác này sẽ gia hạn đăng ký đang hoạt động thêm một chu kỳ gói ban đầu. Tiếp tục?',
+      'This will permanently delete the disabled subscription plan. Continue?':
+        'Thao tác này sẽ xóa gói đăng ký đã bị vô hiệu hóa. Tiếp tục?',
       'Total Quota': 'Tổng hạn mức',
       Unlimited: 'Không giới hạn',
       'Update plan info': 'Cập nhật thông tin gói',

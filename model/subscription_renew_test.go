@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -13,9 +14,10 @@ func insertSubscriptionRenewUser(t *testing.T, id int) {
 	t.Helper()
 	require.NoError(t, DB.Create(&User{
 		Id:       id,
-		Username: "subscription_renew_user",
+		Username: fmt.Sprintf("subscription_renew_user_%d", id),
 		Status:   common.UserStatusEnabled,
 		Group:    "default",
+		AffCode:  fmt.Sprintf("aff_%d", id),
 	}).Error)
 }
 
@@ -142,4 +144,72 @@ func TestGetLatestSubscriptionPlanForRenewalBypassesStalePlanCache(t *testing.T)
 	latest, err := GetLatestSubscriptionPlanForRenewal(plan.Id)
 	require.NoError(t, err)
 	assert.Equal(t, 19.99, latest.PriceAmount)
+}
+
+func TestAdminRenewUserSubscriptionExtendsActiveSubscriptionFromCurrentEndTime(t *testing.T) {
+	truncateTables(t)
+
+	userId := 1501
+	adminId := 1
+	insertSubscriptionRenewUser(t, userId)
+	insertSubscriptionRenewUser(t, adminId)
+	plan := insertSubscriptionRenewPlan(t, 1502, 9.99)
+	now := common.GetTimestamp()
+	oldEnd := now + 3600
+	sub := insertSubscriptionRenewSubscription(t, userId, plan.Id, "active", oldEnd)
+
+	result, err := AdminRenewUserSubscription(sub.Id, adminId, "127.0.0.1")
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	expectedEnd, err := calcPlanEndTime(time.Unix(oldEnd, 0), plan)
+	require.NoError(t, err)
+	assert.Equal(t, oldEnd, result.OldEndTime)
+	assert.Equal(t, expectedEnd, result.NewEndTime)
+	assert.Equal(t, plan.Id, result.PlanId)
+	assert.Equal(t, plan.Title, result.PlanTitle)
+
+	var reloaded UserSubscription
+	require.NoError(t, DB.First(&reloaded, sub.Id).Error)
+	assert.Equal(t, "active", reloaded.Status)
+	assert.Equal(t, result.NewEndTime, reloaded.EndTime)
+
+	var log Log
+	require.NoError(t, DB.Where("user_id = ? AND type = ?", userId, LogTypeManage).Order("id desc").First(&log).Error)
+	assert.Contains(t, log.Content, "管理员手动续费订阅")
+	assert.Contains(t, log.Other, "admin_info")
+}
+
+func TestAdminRenewUserSubscriptionRejectsInactiveSubscription(t *testing.T) {
+	testCases := []struct {
+		name   string
+		status string
+		end    int64
+	}{
+		{name: "expired", status: "expired", end: common.GetTimestamp() - 60},
+		{name: "cancelled", status: "cancelled", end: common.GetTimestamp() + 3600},
+		{name: "active but ended", status: "active", end: common.GetTimestamp() - 60},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			truncateTables(t)
+
+			userId := 1601
+			insertSubscriptionRenewUser(t, userId)
+			plan := insertSubscriptionRenewPlan(t, 1602, 9.99)
+			sub := insertSubscriptionRenewSubscription(t, userId, plan.Id, tc.status, tc.end)
+
+			result, err := AdminRenewUserSubscription(sub.Id, 1, "127.0.0.1")
+
+			require.Error(t, err)
+			assert.Nil(t, result)
+			assert.Contains(t, err.Error(), "subscription is not active")
+
+			var reloaded UserSubscription
+			require.NoError(t, DB.First(&reloaded, sub.Id).Error)
+			assert.Equal(t, tc.status, reloaded.Status)
+			assert.Equal(t, tc.end, reloaded.EndTime)
+		})
+	}
 }

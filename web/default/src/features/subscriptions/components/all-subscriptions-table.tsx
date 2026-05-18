@@ -7,13 +7,12 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { MoreHorizontal, Ban, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Ban, RefreshCw, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
   DataTablePagination,
   TableSkeleton,
@@ -48,6 +48,7 @@ import {
   getAdminPlans,
   invalidateUserSubscription,
   deleteUserSubscription,
+  renewUserSubscription,
 } from '../api'
 import { formatBillingMode, formatTimestamp } from '../lib'
 import type { AdminUserSubscriptionOverview } from '../types'
@@ -62,13 +63,11 @@ const STATUS_CONFIG: Record<string, { variant: StatusBadgeProps['variant'] }> =
   }
 
 type ConfirmAction = {
-  type: 'invalidate' | 'delete'
+  type: 'invalidate' | 'delete' | 'renew'
   row: AdminUserSubscriptionOverview
 }
 
-function useAllSubscriptionsColumns(
-  onAction: (action: ConfirmAction) => void
-) {
+function useAllSubscriptionsColumns(onAction: (action: ConfirmAction) => void) {
   const { t } = useTranslation()
 
   return useMemo(
@@ -391,6 +390,13 @@ function useAllSubscriptionsColumns(
               <DropdownMenuContent align='end'>
                 <DropdownMenuItem
                   disabled={!isActive}
+                  onClick={() => onAction({ type: 'renew', row: row.original })}
+                >
+                  <RefreshCw className='mr-2 h-4 w-4' />
+                  {t('Manual Renew')}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!isActive}
                   onClick={() =>
                     onAction({ type: 'invalidate', row: row.original })
                   }
@@ -545,7 +551,25 @@ export function AllSubscriptionsTable() {
         const res = await invalidateUserSubscription(confirmAction.row.id)
         if (res.success) {
           toast.success(res.data?.message || t('Has been invalidated'))
-          queryClient.invalidateQueries({ queryKey: ['admin-all-subscriptions'] })
+          queryClient.invalidateQueries({
+            queryKey: ['admin-all-subscriptions'],
+          })
+          setConfirmAction(null)
+        } else {
+          toast.error(res.message || t('Operation failed'))
+        }
+      } else if (confirmAction.type === 'renew') {
+        const res = await renewUserSubscription(confirmAction.row.id)
+        if (res.success) {
+          const newEndTime = res.data?.new_end_time
+          toast.success(
+            newEndTime
+              ? `${t('Renewal successful')}: ${formatTimestamp(newEndTime)}`
+              : t('Renewal successful')
+          )
+          queryClient.invalidateQueries({
+            queryKey: ['admin-all-subscriptions'],
+          })
           setConfirmAction(null)
         } else {
           toast.error(res.message || t('Operation failed'))
@@ -554,7 +578,9 @@ export function AllSubscriptionsTable() {
         const res = await deleteUserSubscription(confirmAction.row.id)
         if (res.success) {
           toast.success(t('Deleted'))
-          queryClient.invalidateQueries({ queryKey: ['admin-all-subscriptions'] })
+          queryClient.invalidateQueries({
+            queryKey: ['admin-all-subscriptions'],
+          })
           setConfirmAction(null)
         } else {
           toast.error(res.message || t('Operation failed'))
@@ -577,7 +603,10 @@ export function AllSubscriptionsTable() {
           onChange={(e) => setUsername(e.target.value)}
           className='h-8 w-[200px]'
         />
-        <Select value={planIdFilter} onValueChange={setPlanIdFilter}>
+        <Select
+          value={planIdFilter}
+          onValueChange={(value) => setPlanIdFilter(value ?? '__all__')}
+        >
           <SelectTrigger className='h-8 w-[150px]'>
             <SelectValue placeholder={t('Plan')} />
           </SelectTrigger>
@@ -589,7 +618,10 @@ export function AllSubscriptionsTable() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => setStatusFilter(value ?? '__all__')}
+        >
           <SelectTrigger className='h-8 w-[120px]'>
             <SelectValue placeholder={t('Status')} />
           </SelectTrigger>
@@ -674,20 +706,29 @@ export function AllSubscriptionsTable() {
           title={
             confirmAction.type === 'invalidate'
               ? t('Confirm invalidate')
-              : t('Confirm delete')
+              : confirmAction.type === 'renew'
+                ? t('Confirm manual renew')
+                : t('Confirm delete')
           }
           desc={
             confirmAction.type === 'invalidate'
               ? t(
                   'After invalidating, this subscription will be immediately deactivated. Historical records are not affected. Continue?'
                 )
-              : t(
-                  'Deleting will permanently remove this subscription record (including benefit details). Continue?'
-                )
+              : confirmAction.type === 'renew'
+                ? t(
+                    'This will extend the active subscription by one original plan period. Continue?'
+                  )
+                : t(
+                    'Deleting will permanently remove this subscription record (including benefit details). Continue?'
+                  )
           }
           handleConfirm={handleConfirmAction}
           isLoading={actionLoading}
           destructive={confirmAction.type === 'delete'}
+          confirmText={
+            confirmAction.type === 'renew' ? t('Manual Renew') : undefined
+          }
         />
       )}
     </div>

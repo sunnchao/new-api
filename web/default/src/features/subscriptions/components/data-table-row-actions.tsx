@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { type Row } from '@tanstack/react-table'
-import { MoreHorizontal, Pencil, Power, PowerOff } from 'lucide-react'
+import { MoreHorizontal, Pencil, Power, PowerOff, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -73,6 +73,19 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
               {t('Enable')}
             </>
           )}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={!complianceConfirmed || row.original.plan.enabled}
+          variant='destructive'
+          onClick={() => {
+            setCurrentRow(row.original)
+            setOpen('delete')
+          }}
+        >
+          <Trash2 className='mr-2 h-4 w-4' />
+          {row.original.plan.enabled
+            ? t('Disable before deleting')
+            : t('Delete')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

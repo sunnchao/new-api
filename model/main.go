@@ -433,6 +433,7 @@ func ensureSubscriptionPlanTableSQLite() error {
 ` + "`monthly_approximate_times`" + ` bigint DEFAULT 0,
 ` + "`created_at`" + ` bigint,
 ` + "`updated_at`" + ` bigint,
+` + "`deleted_at`" + ` datetime,
 PRIMARY KEY (` + "`id`" + `)
 )`
 		return DB.Exec(createSQL).Error
@@ -484,6 +485,7 @@ PRIMARY KEY (` + "`id`" + `)
 		{Name: "monthly_approximate_times", DDL: "`monthly_approximate_times` bigint DEFAULT 0"},
 		{Name: "created_at", DDL: "`created_at` bigint"},
 		{Name: "updated_at", DDL: "`updated_at` bigint"},
+		{Name: "deleted_at", DDL: "`deleted_at` datetime"},
 	}
 	for _, col := range required {
 		if _, ok := existing[col.Name]; ok {

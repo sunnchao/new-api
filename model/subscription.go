@@ -217,9 +217,10 @@ type SubscriptionPlan struct {
 	MonthlyApproximateTimes int64  `json:"monthly_approximate_times" gorm:"type:bigint;default:0"`
 
 	// ApproximateTimes is displayed on the frontend for quota-based plans as the estimated request count.
-	ApproximateTimes int64 `json:"approximate_times" gorm:"type:bigint;default:0"`
-	CreatedAt        int64 `json:"created_at" gorm:"bigint"`
-	UpdatedAt        int64 `json:"updated_at" gorm:"bigint"`
+	ApproximateTimes int64          `json:"approximate_times" gorm:"type:bigint;default:0"`
+	CreatedAt        int64          `json:"created_at" gorm:"bigint"`
+	UpdatedAt        int64          `json:"updated_at" gorm:"bigint"`
+	DeletedAt        gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
 func (p *SubscriptionPlan) BeforeCreate(tx *gorm.DB) error {
@@ -232,6 +233,23 @@ func (p *SubscriptionPlan) BeforeCreate(tx *gorm.DB) error {
 func (p *SubscriptionPlan) BeforeUpdate(tx *gorm.DB) error {
 	p.UpdatedAt = common.GetTimestamp()
 	return nil
+}
+
+func DeleteSubscriptionPlan(planId int) error {
+	if planId <= 0 {
+		return errors.New("invalid planId")
+	}
+	return DB.Transaction(func(tx *gorm.DB) error {
+		var plan SubscriptionPlan
+		if err := tx.Set("gorm:query_option", "FOR UPDATE").
+			Where("id = ?", planId).First(&plan).Error; err != nil {
+			return err
+		}
+		if plan.Enabled {
+			return errors.New("subscription plan must be disabled before deletion")
+		}
+		return tx.Delete(&plan).Error
+	})
 }
 
 // Subscription order (payment -> webhook -> create UserSubscription)
@@ -497,6 +515,21 @@ func getLatestSubscriptionPlanForRenewalTx(tx *gorm.DB, id int) (*SubscriptionPl
 		query = tx
 	}
 	if err := query.Where("id = ?", id).First(&plan).Error; err != nil {
+		return nil, err
+	}
+	return &plan, nil
+}
+
+func getSubscriptionPlanByIdUnscopedTx(tx *gorm.DB, id int) (*SubscriptionPlan, error) {
+	if id <= 0 {
+		return nil, errors.New("invalid plan id")
+	}
+	var plan SubscriptionPlan
+	query := DB
+	if tx != nil {
+		query = tx
+	}
+	if err := query.Unscoped().Where("id = ?", id).First(&plan).Error; err != nil {
 		return nil, err
 	}
 	return &plan, nil
@@ -1889,7 +1922,7 @@ func GetSubscriptionPlanInfoByUserSubscriptionId(userSubscriptionId int) (*Subsc
 	if err := DB.Where("id = ?", userSubscriptionId).First(&sub).Error; err != nil {
 		return nil, err
 	}
-	plan, err := getSubscriptionPlanByIdTx(nil, sub.PlanId)
+	plan, err := getSubscriptionPlanByIdUnscopedTx(nil, sub.PlanId)
 	if err != nil {
 		return nil, err
 	}

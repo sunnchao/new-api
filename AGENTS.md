@@ -52,6 +52,11 @@ web/             — Frontend themes container
 - Usage: `useTranslation()` hook, call `t('English key')` in components
 - CLI tools: `bun run i18n:sync` (from `web/default/`)
 
+### Feature-local frontend i18n
+- Feature-specific UI copy should live in the feature module's `i18n.ts` bundle and be merged via `web/default/src/i18n/config.ts`
+- Do not add new feature/UI translation keys to `web/default/src/i18n/locales/{lang}.json` unless the text is truly global/shared across the app
+- Prefer module-local `i18n.ts` for feature-only labels, dialogs, toasts, and workflow copy
+
 ## Rules
 
 ### Rule 1: JSON Package — Use `common/json.go`
