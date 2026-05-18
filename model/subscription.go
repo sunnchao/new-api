@@ -483,6 +483,25 @@ func GetSubscriptionPlanById(id int) (*SubscriptionPlan, error) {
 	return getSubscriptionPlanByIdTx(nil, id)
 }
 
+func GetLatestSubscriptionPlanForRenewal(id int) (*SubscriptionPlan, error) {
+	return getLatestSubscriptionPlanForRenewalTx(nil, id)
+}
+
+func getLatestSubscriptionPlanForRenewalTx(tx *gorm.DB, id int) (*SubscriptionPlan, error) {
+	if id <= 0 {
+		return nil, errors.New("invalid plan id")
+	}
+	var plan SubscriptionPlan
+	query := DB
+	if tx != nil {
+		query = tx
+	}
+	if err := query.Where("id = ?", id).First(&plan).Error; err != nil {
+		return nil, err
+	}
+	return &plan, nil
+}
+
 func getSubscriptionPlanByIdTx(tx *gorm.DB, id int) (*SubscriptionPlan, error) {
 	if id <= 0 {
 		return nil, errors.New("invalid plan id")
@@ -516,6 +535,10 @@ func CountUserSubscriptionsByPlan(userId int, planId int) (int64, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+func IsUserSubscriptionActive(sub *UserSubscription, now int64) bool {
+	return sub != nil && sub.Status == "active" && sub.EndTime > now
 }
 
 func getUserGroupByIdTx(tx *gorm.DB, userId int) (string, error) {

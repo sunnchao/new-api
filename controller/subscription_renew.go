@@ -36,6 +36,21 @@ type RenewCreemPayRequest struct {
 
 // ---- Balance renewal ----
 
+func loadRenewableSubscriptionAndLatestPlan(userId int, userSubscriptionId int) (*model.UserSubscription, *model.SubscriptionPlan, error) {
+	var sub model.UserSubscription
+	if err := model.DB.Where("id = ? AND user_id = ?", userSubscriptionId, userId).First(&sub).Error; err != nil {
+		return nil, nil, fmt.Errorf("订阅不存在")
+	}
+	if !model.IsUserSubscriptionActive(&sub, model.GetDBTimestamp()) {
+		return nil, nil, fmt.Errorf("仅生效中的订阅可以续费")
+	}
+	plan, err := model.GetLatestSubscriptionPlanForRenewal(sub.PlanId)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &sub, plan, nil
+}
+
 func SubscriptionRequestRenewBalancePay(c *gin.Context) {
 	if !requirePaymentCompliance(c) {
 		return
@@ -49,17 +64,9 @@ func SubscriptionRequestRenewBalancePay(c *gin.Context) {
 
 	userId := c.GetInt("id")
 
-	// Verify subscription exists and belongs to user
-	var sub model.UserSubscription
-	if err := model.DB.Where("id = ? AND user_id = ?", req.UserSubscriptionId, userId).First(&sub).Error; err != nil {
-		common.ApiErrorMsg(c, "订阅不存在")
-		return
-	}
-
-	// Get plan (use latest config)
-	plan, err := model.GetSubscriptionPlanById(sub.PlanId)
+	_, plan, err := loadRenewableSubscriptionAndLatestPlan(userId, req.UserSubscriptionId)
 	if err != nil {
-		common.ApiError(c, err)
+		common.ApiErrorMsg(c, err.Error())
 		return
 	}
 	if !plan.Enabled {
@@ -158,17 +165,9 @@ func SubscriptionRequestRenewStripePay(c *gin.Context) {
 
 	userId := c.GetInt("id")
 
-	// Verify subscription
-	var sub model.UserSubscription
-	if err := model.DB.Where("id = ? AND user_id = ?", req.UserSubscriptionId, userId).First(&sub).Error; err != nil {
-		common.ApiErrorMsg(c, "订阅不存在")
-		return
-	}
-
-	// Get plan
-	plan, err := model.GetSubscriptionPlanById(sub.PlanId)
+	_, plan, err := loadRenewableSubscriptionAndLatestPlan(userId, req.UserSubscriptionId)
 	if err != nil {
-		common.ApiError(c, err)
+		common.ApiErrorMsg(c, err.Error())
 		return
 	}
 	if !plan.Enabled {
@@ -292,17 +291,9 @@ func SubscriptionRequestRenewCreemPay(c *gin.Context) {
 
 	userId := c.GetInt("id")
 
-	// Verify subscription
-	var sub model.UserSubscription
-	if err := model.DB.Where("id = ? AND user_id = ?", req.UserSubscriptionId, userId).First(&sub).Error; err != nil {
-		common.ApiErrorMsg(c, "订阅不存在")
-		return
-	}
-
-	// Get plan
-	plan, err := model.GetSubscriptionPlanById(sub.PlanId)
+	_, plan, err := loadRenewableSubscriptionAndLatestPlan(userId, req.UserSubscriptionId)
 	if err != nil {
-		common.ApiError(c, err)
+		common.ApiErrorMsg(c, err.Error())
 		return
 	}
 	if !plan.Enabled {

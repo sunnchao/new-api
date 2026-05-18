@@ -589,7 +589,7 @@ export function SubscriptionPlansCard({
                             })}
                           </span>
                         )}
-                        {(isActive || isExpired) && (
+                        {isActive && (
                           <Button
                             variant='ghost'
                             size='sm'

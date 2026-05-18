@@ -58,6 +58,9 @@ func CompleteRenewalOrder(tradeNo string, providerPayload string, expectedPaymen
 			}
 			return err
 		}
+		if !IsUserSubscriptionActive(&sub, getDBTimestampTx(tx)) {
+			return errors.New("subscription is not active")
+		}
 
 		// Verify the subscription's plan matches the order's plan
 		if sub.PlanId != order.PlanId {
@@ -65,7 +68,7 @@ func CompleteRenewalOrder(tradeNo string, providerPayload string, expectedPaymen
 		}
 
 		// Get the plan (use latest plan config for renewal)
-		plan, err := getSubscriptionPlanByIdTx(tx, order.PlanId)
+		plan, err := getLatestSubscriptionPlanForRenewalTx(tx, order.PlanId)
 		if err != nil {
 			return err
 		}
