@@ -75,6 +75,7 @@ import {
 } from '../constants'
 import {
   getPlanFormSchema,
+  getPlanAmountInputStep,
   PLAN_FORM_DEFAULTS,
   planToFormValues,
   formValuesToPlanPayload,
@@ -173,8 +174,10 @@ export function SubscriptionsMutateDrawer({
       currency: currencyLabel,
     })
   }
-  const totalQuotaStep =
-    !isQuotaMode || currencyMeta.kind === 'tokens' ? 1 : 0.01
+  const totalQuotaStep = getPlanAmountInputStep(
+    billingMode,
+    currencyMeta.kind
+  )
 
   const onSubmit = async (values: PlanFormValues) => {
     setIsSubmitting(true)

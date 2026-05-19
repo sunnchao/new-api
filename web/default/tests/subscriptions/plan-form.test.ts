@@ -35,8 +35,12 @@ Object.defineProperty(globalThis, 'window', {
 const { DEFAULT_CURRENCY_CONFIG, useSystemConfigStore } = await import(
   '../../src/stores/system-config-store'
 )
-const { formValuesToPlanPayload, PLAN_FORM_DEFAULTS, planToFormValues } =
-  await import('../../src/features/subscriptions/lib/plan-form')
+const {
+  formValuesToPlanPayload,
+  getPlanAmountInputStep,
+  PLAN_FORM_DEFAULTS,
+  planToFormValues,
+} = await import('../../src/features/subscriptions/lib/plan-form')
 
 beforeEach(() => {
   useSystemConfigStore.getState().setConfig({
@@ -89,6 +93,13 @@ test('keeps request-based total amount as request count', () => {
   })
 
   expect(payload.plan.total_amount).toBe(1500)
+})
+
+test('uses micro-unit step for quota-based currency amount inputs', () => {
+  expect(getPlanAmountInputStep('quota', 'currency')).toBe(0.000001)
+  expect(getPlanAmountInputStep('quota', 'custom')).toBe(0.000001)
+  expect(getPlanAmountInputStep('quota', 'tokens')).toBe(1)
+  expect(getPlanAmountInputStep('request', 'currency')).toBe(1)
 })
 
 test('converts quota-based limit amounts to display currency when editing', () => {

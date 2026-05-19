@@ -69,6 +69,16 @@ export function getPlanFormSchema(t: TFunction) {
 
 export type PlanFormValues = z.infer<ReturnType<typeof getPlanFormSchema>>
 
+type PlanAmountInputStepCurrencyKind = 'currency' | 'custom' | 'tokens'
+
+export function getPlanAmountInputStep(
+  billingMode: PlanFormValues['billing_mode'],
+  currencyKind: PlanAmountInputStepCurrencyKind
+): number {
+  if (billingMode === 'request' || currencyKind === 'tokens') return 1
+  return 0.000001
+}
+
 export const PLAN_FORM_DEFAULTS: PlanFormValues = {
   title: '',
   subtitle: '',

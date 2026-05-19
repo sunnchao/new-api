@@ -49,6 +49,33 @@ var (
 )
 
 const (
+	SubscriptionLimitScopeTotal   = "total"
+	SubscriptionLimitScopeHourly  = "hourly"
+	SubscriptionLimitScopeDaily   = "daily"
+	SubscriptionLimitScopeWeekly  = "weekly"
+	SubscriptionLimitScopeMonthly = "monthly"
+)
+
+type SubscriptionQuotaInsufficientError struct {
+	Need        int64
+	Remain      int64
+	BillingMode string
+	LimitScope  string
+	ResetTime   int64
+}
+
+func (e *SubscriptionQuotaInsufficientError) Error() string {
+	if e == nil {
+		return ErrSubscriptionQuotaInsufficient.Error()
+	}
+	return fmt.Sprintf("%s, scope=%s, remain=%d, need=%d", ErrSubscriptionQuotaInsufficient.Error(), e.LimitScope, e.Remain, e.Need)
+}
+
+func (e *SubscriptionQuotaInsufficientError) Unwrap() error {
+	return ErrSubscriptionQuotaInsufficient
+}
+
+const (
 	subscriptionPlanCacheNamespace     = "new-api:subscription_plan:v1"
 	subscriptionPlanInfoCacheNamespace = "new-api:subscription_plan_info:v1"
 )
@@ -1486,6 +1513,41 @@ func (s *UserSubscription) IsGroupAllowed(group string) bool {
 	return false
 }
 
+func newSubscriptionQuotaInsufficientError(sub *UserSubscription, consumeAmount int64, scope string, remain int64, resetTime int64) *SubscriptionQuotaInsufficientError {
+	if remain < 0 {
+		remain = 0
+	}
+	billingMode := SubscriptionBillingModeQuota
+	if sub != nil {
+		billingMode = NormalizeSubscriptionBillingMode(sub.BillingMode)
+	}
+	return &SubscriptionQuotaInsufficientError{
+		Need:        consumeAmount,
+		Remain:      remain,
+		BillingMode: billingMode,
+		LimitScope:  scope,
+		ResetTime:   resetTime,
+	}
+}
+
+func betterSubscriptionInsufficientError(current *SubscriptionQuotaInsufficientError, candidate *SubscriptionQuotaInsufficientError) *SubscriptionQuotaInsufficientError {
+	if candidate == nil {
+		return current
+	}
+	if current == nil {
+		return candidate
+	}
+	currentGap := current.Need - current.Remain
+	candidateGap := candidate.Need - candidate.Remain
+	if candidateGap < currentGap {
+		return candidate
+	}
+	if candidateGap == currentGap && candidate.Remain > current.Remain {
+		return candidate
+	}
+	return current
+}
+
 // PreConsumeUserSubscription pre-consumes from any active subscription total quota.
 func PreConsumeUserSubscription(requestId string, userId int, modelName string, quotaType int, amount int64, group string) (*SubscriptionPreConsumeResult, error) {
 	if userId <= 0 {
@@ -1535,6 +1597,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			return ErrNoActiveSubscription
 		}
 		hasMatchedGroup := false
+		var insufficientErr *SubscriptionQuotaInsufficientError
 		for _, candidate := range subs {
 			sub := candidate
 			if !sub.IsGroupAllowed(group) {
@@ -1571,6 +1634,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if sub.AmountTotal > 0 {
 				remain := sub.AmountTotal - usedBefore
 				if remain < consumeAmount {
+					insufficientErr = betterSubscriptionInsufficientError(insufficientErr, newSubscriptionQuotaInsufficientError(&sub, consumeAmount, SubscriptionLimitScopeTotal, remain, sub.NextResetTime))
 					continue
 				}
 			}
@@ -1579,6 +1643,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if sub.HourlyLimitAmount > 0 {
 				hourlyRemain := sub.HourlyLimitAmount - sub.HourlyAmountUsed
 				if hourlyRemain < consumeAmount {
+					insufficientErr = betterSubscriptionInsufficientError(insufficientErr, newSubscriptionQuotaInsufficientError(&sub, consumeAmount, SubscriptionLimitScopeHourly, hourlyRemain, sub.HourlyNextResetTime))
 					continue // Hourly limit insufficient
 				}
 			}
@@ -1587,6 +1652,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if sub.DailyLimitAmount > 0 {
 				dailyRemain := sub.DailyLimitAmount - sub.DailyAmountUsed
 				if dailyRemain < consumeAmount {
+					insufficientErr = betterSubscriptionInsufficientError(insufficientErr, newSubscriptionQuotaInsufficientError(&sub, consumeAmount, SubscriptionLimitScopeDaily, dailyRemain, sub.DailyNextResetTime))
 					continue // Daily limit insufficient
 				}
 			}
@@ -1595,6 +1661,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if sub.WeeklyLimitAmount > 0 {
 				weeklyRemain := sub.WeeklyLimitAmount - sub.WeeklyAmountUsed
 				if weeklyRemain < consumeAmount {
+					insufficientErr = betterSubscriptionInsufficientError(insufficientErr, newSubscriptionQuotaInsufficientError(&sub, consumeAmount, SubscriptionLimitScopeWeekly, weeklyRemain, sub.WeeklyNextResetTime))
 					continue // Weekly limit insufficient
 				}
 			}
@@ -1603,6 +1670,7 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if sub.MonthlyLimitAmount > 0 {
 				monthlyRemain := sub.MonthlyLimitAmount - sub.MonthlyAmountUsed
 				if monthlyRemain < consumeAmount {
+					insufficientErr = betterSubscriptionInsufficientError(insufficientErr, newSubscriptionQuotaInsufficientError(&sub, consumeAmount, SubscriptionLimitScopeMonthly, monthlyRemain, sub.MonthlyNextResetTime))
 					continue // Monthly limit insufficient
 				}
 			}
@@ -1662,7 +1730,15 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			}
 			return fmt.Errorf("%w: group=%s", ErrNoValidSubscriptionForGroup, strings.TrimSpace(group))
 		}
-		return fmt.Errorf("%w, need=%d", ErrSubscriptionQuotaInsufficient, amount)
+		if insufficientErr != nil {
+			return insufficientErr
+		}
+		return &SubscriptionQuotaInsufficientError{
+			Need:        amount,
+			Remain:      0,
+			BillingMode: SubscriptionBillingModeQuota,
+			LimitScope:  SubscriptionLimitScopeTotal,
+		}
 	})
 	if err != nil {
 		return nil, err

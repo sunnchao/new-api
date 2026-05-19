@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
@@ -285,15 +287,8 @@ func buildSubscriptionFundingError(err error) *types.NewAPIError {
 	if err == nil {
 		return nil
 	}
-	message := "订阅扣费失败"
-	switch {
-	case errors.Is(err, model.ErrNoValidSubscriptionForGroup):
-		message = "未包含有效的订阅套餐"
-	case errors.Is(err, model.ErrNoActiveSubscription):
-		message = "未开通有效订阅套餐"
-	case errors.Is(err, model.ErrSubscriptionQuotaInsufficient):
-		message = "订阅额度不足"
-	default:
+	message := buildSubscriptionFundingMessage(err)
+	if message == "" {
 		return nil
 	}
 	return types.NewErrorWithStatusCode(
@@ -303,6 +298,120 @@ func buildSubscriptionFundingError(err error) *types.NewAPIError {
 		types.ErrOptionWithSkipRetry(),
 		types.ErrOptionWithNoRecordErrorLog(),
 	)
+}
+
+func buildSubscriptionFundingMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	switch {
+	case errors.Is(err, model.ErrNoValidSubscriptionForGroup):
+		return "未包含有效的订阅套餐"
+	case errors.Is(err, model.ErrNoActiveSubscription):
+		return "未开通有效订阅套餐"
+	case errors.Is(err, model.ErrSubscriptionQuotaInsufficient):
+		var quotaErr *model.SubscriptionQuotaInsufficientError
+		if errors.As(err, &quotaErr) {
+			return formatSubscriptionQuotaInsufficientMessage(quotaErr)
+		}
+		return "订阅额度不足"
+	default:
+		return ""
+	}
+}
+
+func formatWalletInsufficientMessage(userQuota int, needQuota int) string {
+	if userQuota <= 0 {
+		return fmt.Sprintf("用户额度不足, 剩余额度: %s", logger.FormatQuota(userQuota))
+	}
+	return fmt.Sprintf("预扣费额度失败, 用户剩余额度: %s, 需要预扣费额度: %s", logger.FormatQuota(userQuota), logger.FormatQuota(needQuota))
+}
+
+func newInsufficientUserQuotaError(message string) *types.NewAPIError {
+	return types.NewErrorWithStatusCode(
+		fmt.Errorf("%s", message),
+		types.ErrorCodeInsufficientUserQuota,
+		http.StatusForbidden,
+		types.ErrOptionWithSkipRetry(),
+		types.ErrOptionWithNoRecordErrorLog(),
+	)
+}
+
+func combineFundingFailureMessages(primary *types.NewAPIError, fallback *types.NewAPIError) string {
+	parts := make([]string, 0, 2)
+	if primary != nil && primary.Error() != "" {
+		parts = append(parts, normalizeCombinedFundingFailurePart(primary.Error()))
+	}
+	if fallback != nil && fallback.Error() != "" && fallback.Error() != primary.Error() {
+		parts = append(parts, normalizeCombinedFundingFailurePart(fallback.Error()))
+	}
+	if len(parts) == 0 {
+		return "预扣费额度失败"
+	}
+	return "预扣费额度失败：" + strings.Join(parts, "；")
+}
+
+func normalizeCombinedFundingFailurePart(message string) string {
+	message = strings.TrimSpace(message)
+	if strings.HasPrefix(message, "预扣费额度失败, ") {
+		return "余额额度不足, " + strings.TrimPrefix(message, "预扣费额度失败, ")
+	}
+	return message
+}
+
+func formatSubscriptionQuotaInsufficientMessage(err *model.SubscriptionQuotaInsufficientError) string {
+	if err == nil {
+		return "订阅额度不足"
+	}
+	scopeLabel := subscriptionLimitScopeLabel(err.LimitScope)
+	if err.BillingMode == model.SubscriptionBillingModeRequest {
+		message := fmt.Sprintf("%s不足, 订阅剩余请求次数: %d, 需要请求次数: %d", scopeLabel, err.Remain, err.Need)
+		if reset := formatSubscriptionResetTime(err); reset != "" {
+			message += ", 下次重置时间: " + reset
+		}
+		return message
+	}
+	message := fmt.Sprintf("%s不足, 订阅剩余额度: %s, 需要订阅额度: %s", scopeLabel, logger.FormatQuota(int(err.Remain)), logger.FormatQuota(int(err.Need)))
+	if reset := formatSubscriptionResetTime(err); reset != "" {
+		message += ", 下次重置时间: " + reset
+	}
+	return message
+}
+
+func subscriptionLimitScopeLabel(scope string) string {
+	switch scope {
+	case model.SubscriptionLimitScopeHourly:
+		return "订阅额度" // 每小时订阅额度
+	case model.SubscriptionLimitScopeDaily:
+		return "订阅额度" // 每日订阅额度
+	case model.SubscriptionLimitScopeWeekly:
+		return "订阅额度" // 每周订阅额度
+	case model.SubscriptionLimitScopeMonthly:
+		return "订阅额度" // 每月订阅额度
+	default:
+		return "订阅额度"
+	}
+}
+
+func formatSubscriptionResetTime(err *model.SubscriptionQuotaInsufficientError) string {
+	if err == nil || err.ResetTime <= 0 {
+		return ""
+	}
+	switch err.LimitScope {
+	case model.SubscriptionLimitScopeHourly, model.SubscriptionLimitScopeDaily, model.SubscriptionLimitScopeWeekly, model.SubscriptionLimitScopeMonthly:
+	default:
+		return ""
+	}
+	t := time.Unix(err.ResetTime, 0).In(time.Local)
+	_, offsetSeconds := t.Zone()
+	sign := "+"
+	if offsetSeconds < 0 {
+		sign = "-"
+		offsetSeconds = -offsetSeconds
+	}
+	offsetHours := offsetSeconds / 3600
+	offsetMinutes := (offsetSeconds % 3600) / 60
+	return fmt.Sprintf("%s UTC%s%02d:%02d", t.Format("2006-01-02 15:04:05"), sign, offsetHours, offsetMinutes)
 }
 
 // shouldTrust 统一信任额度检查，适用于钱包和订阅。
@@ -444,16 +553,10 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 			return nil, types.NewError(err, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
 		}
 		if userQuota <= 0 {
-			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("用户额度不足, 剩余额度: %s", logger.FormatQuota(userQuota)),
-				types.ErrorCodeInsufficientUserQuota, http.StatusForbidden,
-				types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
+			return nil, newInsufficientUserQuotaError(formatWalletInsufficientMessage(userQuota, preConsumedQuota))
 		}
 		if userQuota-preConsumedQuota < 0 {
-			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("预扣费额度失败, 用户剩余额度: %s, 需要预扣费额度: %s", logger.FormatQuota(userQuota), logger.FormatQuota(preConsumedQuota)),
-				types.ErrorCodeInsufficientUserQuota, http.StatusForbidden,
-				types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
+			return nil, newInsufficientUserQuotaError(formatWalletInsufficientMessage(userQuota, preConsumedQuota))
 		}
 		relayInfo.UserQuota = userQuota
 
@@ -504,12 +607,16 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 	case "wallet_only":
 		return tryWallet()
 	case "wallet_first":
-		session, err := tryWallet()
-		if err != nil {
-			if err.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
-				return trySubscription()
+		session, walletErr := tryWallet()
+		if walletErr != nil {
+			if walletErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
+				subSession, subErr := trySubscription()
+				if subErr != nil && subErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
+					return nil, newInsufficientUserQuotaError(combineFundingFailureMessages(walletErr, subErr))
+				}
+				return subSession, subErr
 			}
-			return nil, err
+			return nil, walletErr
 		}
 		return session, nil
 	case "subscription_first":
@@ -522,12 +629,16 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 		if !hasSub {
 			return tryWallet()
 		}
-		session, apiErr := trySubscription()
-		if apiErr != nil {
-			if apiErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
-				return tryWallet()
+		session, subErr := trySubscription()
+		if subErr != nil {
+			if subErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
+				walletSession, walletErr := tryWallet()
+				if walletErr != nil && walletErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
+					return nil, newInsufficientUserQuotaError(combineFundingFailureMessages(subErr, walletErr))
+				}
+				return walletSession, walletErr
 			}
-			return nil, apiErr
+			return nil, subErr
 		}
 		return session, nil
 	}

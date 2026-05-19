@@ -45,3 +45,5 @@ skills-lock.json
 node_modules
 web/next/.next
 web/.next
+.tmp
+.pnpm-store

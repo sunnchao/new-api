@@ -36,6 +36,7 @@ export {
 } from './format'
 export {
   getPlanFormSchema,
+  getPlanAmountInputStep,
   PLAN_FORM_DEFAULTS,
   planToFormValues,
   formValuesToPlanPayload,
