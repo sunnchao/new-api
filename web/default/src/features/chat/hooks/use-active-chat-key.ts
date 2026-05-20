@@ -20,37 +20,47 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth-store'
 import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
 import { API_KEY_STATUS } from '@/features/keys/constants'
+import type { ApiKey } from '@/features/keys/types'
 
-export async function fetchActiveChatKey() {
-  const result = await getApiKeys({ p: 1, size: 50 })
-  if (!result.success) {
-    throw new Error(result.message || 'Failed to load API keys')
-  }
+/**
+ * Get the list of enabled API keys available for chat selection.
+ */
+export function useEnabledChatTokens(enabled: boolean) {
+  const userId = useAuthStore((state) => state.auth.user?.id)
 
-  const items = result.data?.items ?? []
-  const active = items.find((item) => item.status === API_KEY_STATUS.ENABLED)
-  if (!active) {
-    throw new Error('No enabled API keys found. Create or enable one first.')
-  }
-
-  const keyResult = await fetchTokenKey(active.id)
-  if (!keyResult.success || !keyResult.data?.key) {
-    throw new Error(keyResult.message || 'Failed to load API key')
-  }
-
-  return `sk-${keyResult.data.key}`
+  return useQuery<ApiKey[]>({
+    queryKey: ['chat-enabled-tokens', userId],
+    queryFn: async () => {
+      const result = await getApiKeys({ p: 1, size: 50 })
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to load API keys')
+      }
+      const items = result.data?.items ?? []
+      return items.filter((item) => item.status === API_KEY_STATUS.ENABLED)
+    },
+    enabled: enabled && Boolean(userId),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  })
 }
 
 /**
- * Get the currently active API key for chat links
+ * Fetch the unmasked key for the given token id.
  */
-export function useActiveChatKey(enabled: boolean) {
+export function useChatTokenKey(tokenId: number | null) {
   const userId = useAuthStore((state) => state.auth.user?.id)
 
-  return useQuery({
-    queryKey: ['chat-active-key', userId],
-    queryFn: fetchActiveChatKey,
-    enabled: enabled && Boolean(userId),
+  return useQuery<string>({
+    queryKey: ['chat-token-key', userId, tokenId],
+    queryFn: async () => {
+      if (tokenId == null) throw new Error('No token selected')
+      const keyResult = await fetchTokenKey(tokenId)
+      if (!keyResult.success || !keyResult.data?.key) {
+        throw new Error(keyResult.message || 'Failed to load API key')
+      }
+      return `sk-${keyResult.data.key}`
+    },
+    enabled: tokenId != null && Boolean(userId),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })

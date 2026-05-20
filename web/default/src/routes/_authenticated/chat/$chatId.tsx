@@ -16,13 +16,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { Loader2, MessageCircleWarning } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { useActiveChatKey } from '@/features/chat/hooks/use-active-chat-key'
+import { ChatTokenPickerDialog } from '@/features/chat/components/chat-token-picker-dialog'
+import {
+  useChatTokenKey,
+  useEnabledChatTokens,
+} from '@/features/chat/hooks/use-active-chat-key'
 import { useChatPresets } from '@/features/chat/hooks/use-chat-presets'
 import {
   chatLinkRequiresApiKey,
@@ -55,22 +59,43 @@ function ChatRouteComponent() {
     return chatLinkRequiresApiKey(preset.url ?? '')
   }, [isWebLink, preset])
 
+  const needsToken = Boolean(preset && requiresActiveKey)
+
+  const [selectedTokenId, setSelectedTokenId] = useState<number | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(needsToken)
+  const [cancelled, setCancelled] = useState(false)
+  const [resetKey, setResetKey] = useState(`${chatId}:${needsToken}`)
+
+  // Reset selection whenever the chat preset (or its key requirement) changes.
+  if (resetKey !== `${chatId}:${needsToken}`) {
+    setResetKey(`${chatId}:${needsToken}`)
+    setSelectedTokenId(null)
+    setCancelled(false)
+    setPickerOpen(needsToken)
+  }
+
+  const {
+    data: tokens = [],
+    isLoading: tokensLoading,
+    error: tokensError,
+  } = useEnabledChatTokens(needsToken && pickerOpen)
+
   const {
     data: activeKey,
-    isPending,
-    isError,
-    error,
-  } = useActiveChatKey(Boolean(preset && requiresActiveKey))
+    isPending: keyPending,
+    isError: keyIsError,
+    error: keyError,
+  } = useChatTokenKey(needsToken ? selectedTokenId : null)
 
   const iframeSrc = useMemo(() => {
     if (!preset || !isWebLink) return ''
-    if (requiresActiveKey && !activeKey) return ''
+    if (needsToken && !activeKey) return ''
     return resolveChatUrl({
       template: preset.url,
-      apiKey: requiresActiveKey ? activeKey : undefined,
+      apiKey: needsToken ? activeKey : undefined,
       serverAddress,
     })
-  }, [activeKey, isWebLink, preset, requiresActiveKey, serverAddress])
+  }, [activeKey, isWebLink, needsToken, preset, serverAddress])
 
   if (!preset) {
     return (
@@ -111,7 +136,62 @@ function ChatRouteComponent() {
     )
   }
 
-  if (requiresActiveKey && isPending) {
+  const picker = (
+    <ChatTokenPickerDialog
+      open={pickerOpen}
+      onOpenChange={(open) => {
+        setPickerOpen(open)
+        if (!open && selectedTokenId == null) {
+          setCancelled(true)
+        }
+      }}
+      tokens={tokens}
+      isLoading={tokensLoading}
+      error={tokensError as Error | null}
+      onSelect={(tokenId) => {
+        setSelectedTokenId(tokenId)
+        setPickerOpen(false)
+        setCancelled(false)
+      }}
+    />
+  )
+
+  if (needsToken && cancelled && selectedTokenId == null) {
+    return (
+      <>
+        {picker}
+        <div className='flex h-full flex-col items-center justify-center gap-4 p-6 text-center'>
+          <p className='text-muted-foreground text-sm'>
+            {t('You cancelled token selection.')}
+          </p>
+          <Button
+            onClick={() => {
+              setCancelled(false)
+              setPickerOpen(true)
+            }}
+          >
+            {t('Select token again')}
+          </Button>
+        </div>
+      </>
+    )
+  }
+
+  if (needsToken && selectedTokenId == null) {
+    return (
+      <>
+        {picker}
+        <div className='flex h-full flex-col items-center justify-center gap-4'>
+          <Loader2 className='text-muted-foreground h-8 w-8 animate-spin' />
+          <p className='text-muted-foreground text-sm'>
+            {t('Preparing your chat link…')}
+          </p>
+        </div>
+      </>
+    )
+  }
+
+  if (needsToken && keyPending) {
     return (
       <div className='flex h-full flex-col items-center justify-center gap-4'>
         <Loader2 className='text-muted-foreground h-8 w-8 animate-spin' />
@@ -122,22 +202,31 @@ function ChatRouteComponent() {
     )
   }
 
-  if (requiresActiveKey && (isError || !activeKey || !iframeSrc)) {
+  if (needsToken && (keyIsError || !activeKey || !iframeSrc)) {
     const message =
-      error instanceof Error
-        ? error.message
+      keyError instanceof Error
+        ? keyError.message
         : 'Unable to generate chat link. Please check your API keys.'
     return (
-      <div className='flex h-full flex-col items-center justify-center p-6'>
+      <div className='flex h-full flex-col items-center justify-center gap-4 p-6'>
         <Alert variant='destructive' className='max-w-xl'>
           <AlertTitle>{t('Unable to open chat')}</AlertTitle>
           <AlertDescription>{message}</AlertDescription>
         </Alert>
+        <Button
+          variant='outline'
+          onClick={() => {
+            setSelectedTokenId(null)
+            setPickerOpen(true)
+          }}
+        >
+          {t('Select token again')}
+        </Button>
       </div>
     )
   }
 
-  if (!requiresActiveKey && !iframeSrc) {
+  if (!needsToken && !iframeSrc) {
     return (
       <div className='flex h-full flex-col items-center justify-center p-6'>
         <Alert variant='destructive' className='max-w-xl'>

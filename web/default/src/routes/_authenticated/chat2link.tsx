@@ -16,14 +16,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { useActiveChatKey } from '@/features/chat/hooks/use-active-chat-key'
+import { Button } from '@/components/ui/button'
+import { ChatTokenPickerDialog } from '@/features/chat/components/chat-token-picker-dialog'
+import {
+  useChatTokenKey,
+  useEnabledChatTokens,
+} from '@/features/chat/hooks/use-active-chat-key'
 import { useChatPresets } from '@/features/chat/hooks/use-chat-presets'
-import { resolveChatUrl } from '@/features/chat/lib/chat-links'
+import {
+  chatLinkRequiresApiKey,
+  resolveChatUrl,
+} from '@/features/chat/lib/chat-links'
 
 export const Route = createFileRoute('/_authenticated/chat2link')({
   component: Chat2LinkPage,
@@ -39,9 +47,36 @@ function Chat2LinkPage() {
     [chatPresets]
   )
 
-  const { data: activeKey, error: keyError } = useActiveChatKey(
-    Boolean(firstWebPreset)
+  const needsToken = useMemo(
+    () =>
+      Boolean(firstWebPreset && chatLinkRequiresApiKey(firstWebPreset.url)),
+    [firstWebPreset]
   )
+
+  const [selectedTokenId, setSelectedTokenId] = useState<number | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [cancelled, setCancelled] = useState(false)
+  const presetKey = firstWebPreset?.id ?? null
+  const [resetKey, setResetKey] = useState<string | null>(null)
+  const nextResetKey = needsToken ? presetKey : null
+
+  if (resetKey !== nextResetKey) {
+    setResetKey(nextResetKey)
+    setSelectedTokenId(null)
+    setCancelled(false)
+    setPickerOpen(Boolean(nextResetKey))
+  }
+
+  const {
+    data: tokens = [],
+    isLoading: tokensLoading,
+    error: tokensError,
+  } = useEnabledChatTokens(needsToken && pickerOpen)
+
+  const {
+    data: activeKey,
+    error: keyError,
+  } = useChatTokenKey(needsToken ? selectedTokenId : null)
 
   useEffect(() => {
     if (!firstWebPreset) {
@@ -51,21 +86,23 @@ function Chat2LinkPage() {
       return
     }
 
-    if (activeKey === undefined && !keyError) return
-
-    if (keyError || !activeKey) {
-      const message =
-        keyError instanceof Error
-          ? keyError.message
-          : t('No enabled tokens available')
-      toast.error(message)
-      navigate({ to: '/keys' })
-      return
+    if (needsToken) {
+      if (selectedTokenId == null) return
+      if (activeKey === undefined && !keyError) return
+      if (keyError || !activeKey) {
+        const message =
+          keyError instanceof Error
+            ? keyError.message
+            : t('No enabled tokens available')
+        toast.error(message)
+        navigate({ to: '/keys' })
+        return
+      }
     }
 
     const url = resolveChatUrl({
       template: firstWebPreset.url,
-      apiKey: activeKey,
+      apiKey: needsToken ? activeKey : undefined,
       serverAddress,
     })
 
@@ -74,6 +111,8 @@ function Chat2LinkPage() {
     }
   }, [
     firstWebPreset,
+    needsToken,
+    selectedTokenId,
     activeKey,
     keyError,
     serverAddress,
@@ -82,12 +121,56 @@ function Chat2LinkPage() {
     t,
   ])
 
+  const picker = (
+    <ChatTokenPickerDialog
+      open={pickerOpen}
+      onOpenChange={(open) => {
+        setPickerOpen(open)
+        if (!open && selectedTokenId == null) {
+          setCancelled(true)
+        }
+      }}
+      tokens={tokens}
+      isLoading={tokensLoading}
+      error={tokensError as Error | null}
+      onSelect={(tokenId) => {
+        setSelectedTokenId(tokenId)
+        setPickerOpen(false)
+        setCancelled(false)
+      }}
+    />
+  )
+
+  if (needsToken && cancelled && selectedTokenId == null) {
+    return (
+      <>
+        {picker}
+        <div className='flex h-full flex-col items-center justify-center gap-4 p-6 text-center'>
+          <p className='text-muted-foreground text-sm'>
+            {t('You cancelled token selection.')}
+          </p>
+          <Button
+            onClick={() => {
+              setCancelled(false)
+              setPickerOpen(true)
+            }}
+          >
+            {t('Select token again')}
+          </Button>
+        </div>
+      </>
+    )
+  }
+
   return (
-    <div className='flex h-full flex-col items-center justify-center gap-3'>
-      <Loader2 className='text-muted-foreground h-8 w-8 animate-spin' />
-      <p className='text-muted-foreground text-sm'>
-        {t('Redirecting to chat page...')}
-      </p>
-    </div>
+    <>
+      {picker}
+      <div className='flex h-full flex-col items-center justify-center gap-3'>
+        <Loader2 className='text-muted-foreground h-8 w-8 animate-spin' />
+        <p className='text-muted-foreground text-sm'>
+          {t('Redirecting to chat page...')}
+        </p>
+      </div>
+    </>
   )
 }

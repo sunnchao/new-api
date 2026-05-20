@@ -40,13 +40,15 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { fetchActiveChatKey } from '@/features/chat/hooks/use-active-chat-key'
+import { ChatTokenPickerDialog } from '@/features/chat/components/chat-token-picker-dialog'
+import { useEnabledChatTokens } from '@/features/chat/hooks/use-active-chat-key'
 import { useChatPresets } from '@/features/chat/hooks/use-chat-presets'
 import {
   chatLinkRequiresApiKey,
   resolveChatUrl,
   type ChatPreset,
 } from '@/features/chat/lib/chat-links'
+import { fetchTokenKey } from '@/features/keys/api'
 import { normalizeHref } from '../lib/url-utils'
 import type { NavChatPresets } from '../types'
 
@@ -159,47 +161,25 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
   const href = useLocation({ select: (location) => location.href })
   const [loadingPresetId, setLoadingPresetId] = useState<string | null>(null)
   const loadingPresetIdRef = useRef<string | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pendingPreset, setPendingPreset] = useState<ChatPreset | null>(null)
+
+  const {
+    data: tokens = [],
+    isLoading: tokensLoading,
+    error: tokensError,
+  } = useEnabledChatTokens(pickerOpen)
 
   const visiblePresets = useMemo(
     () => chatPresets.filter((preset) => preset.type !== 'fluent'),
     [chatPresets]
   )
 
-  const handleOpenExternal = useCallback(
-    async (preset: ChatPreset) => {
-      if (preset.type === 'web') return
-
-      const needsKey = chatLinkRequiresApiKey(preset.url)
-      let activeKey: string | undefined
-
-      if (needsKey && loadingPresetIdRef.current) {
-        toast.info(t('Preparing your chat link, please try again in a moment.'))
-        return
-      }
-
-      if (needsKey) {
-        loadingPresetIdRef.current = preset.id
-        setLoadingPresetId(preset.id)
-        try {
-          activeKey = await fetchActiveChatKey()
-        } catch (error) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : t(
-                  'Unable to prepare chat link. Please ensure you have an enabled API key.'
-                )
-          toast.error(message)
-          return
-        } finally {
-          loadingPresetIdRef.current = null
-          setLoadingPresetId(null)
-        }
-      }
-
+  const launchExternalUrl = useCallback(
+    (preset: ChatPreset, apiKey?: string) => {
       const url = resolveChatUrl({
         template: preset.url,
-        apiKey: needsKey ? activeKey : undefined,
+        apiKey,
         serverAddress,
       })
 
@@ -216,6 +196,59 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
     [serverAddress, setOpenMobile, t]
   )
 
+  const handleTokenSelected = useCallback(
+    async (tokenId: number) => {
+      const preset = pendingPreset
+      setPickerOpen(false)
+      if (!preset) return
+
+      loadingPresetIdRef.current = preset.id
+      setLoadingPresetId(preset.id)
+      try {
+        const result = await fetchTokenKey(tokenId)
+        if (!result.success || !result.data?.key) {
+          throw new Error(result.message || t('Failed to load API key'))
+        }
+        launchExternalUrl(preset, `sk-${result.data.key}`)
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : t(
+                'Unable to prepare chat link. Please ensure you have an enabled API key.'
+              )
+        toast.error(message)
+      } finally {
+        loadingPresetIdRef.current = null
+        setLoadingPresetId(null)
+        setPendingPreset(null)
+      }
+    },
+    [pendingPreset, launchExternalUrl, t]
+  )
+
+  const handleOpenExternal = useCallback(
+    async (preset: ChatPreset) => {
+      if (preset.type === 'web') return
+
+      const needsKey = chatLinkRequiresApiKey(preset.url)
+
+      if (needsKey && loadingPresetIdRef.current) {
+        toast.info(t('Preparing your chat link, please try again in a moment.'))
+        return
+      }
+
+      if (needsKey) {
+        setPendingPreset(preset)
+        setPickerOpen(true)
+        return
+      }
+
+      launchExternalUrl(preset)
+    },
+    [launchExternalUrl, t]
+  )
+
   const normalizedHref = normalizeHref(href)
 
   // Don't render if no visible presets
@@ -223,62 +256,84 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
     return null
   }
 
+  const tokenPicker = (
+    <ChatTokenPickerDialog
+      open={pickerOpen}
+      onOpenChange={(open) => {
+        setPickerOpen(open)
+        if (!open) {
+          setPendingPreset(null)
+        }
+      }}
+      tokens={tokens}
+      isLoading={tokensLoading}
+      error={tokensError as Error | null}
+      onSelect={(tokenId) => void handleTokenSelected(tokenId)}
+    />
+  )
+
   // Collapsed state on non-mobile - render dropdown menu
   if (state === 'collapsed' && !isMobile) {
     return (
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={<SidebarMenuButton tooltip={item.title} />}
-          >
-            {item.icon && <item.icon className='h-4 w-4' />}
-            <span>{item.title}</span>
-            <ChevronRight className='ms-auto h-4 w-4 opacity-70' />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='start'>
-            {visiblePresets.map((preset) => (
-              <DropdownPresetItem
-                key={preset.id}
-                preset={preset}
-                loading={loadingPresetId === preset.id}
-                onOpen={handleOpenExternal}
-              />
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
+      <>
+        {tokenPicker}
+        <SidebarMenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<SidebarMenuButton tooltip={item.title} />}
+            >
+              {item.icon && <item.icon className='h-4 w-4' />}
+              <span>{item.title}</span>
+              <ChevronRight className='ms-auto h-4 w-4 opacity-70' />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='start'>
+              {visiblePresets.map((preset) => (
+                <DropdownPresetItem
+                  key={preset.id}
+                  preset={preset}
+                  loading={loadingPresetId === preset.id}
+                  onOpen={handleOpenExternal}
+                />
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
+      </>
     )
   }
 
   // Expanded state - render collapsible menu
   return (
-    <Collapsible
-      defaultOpen={normalizedHref.startsWith('/chat')}
-      className='group/collapsible'
-      render={<SidebarMenuItem />}
-    >
-      <CollapsibleTrigger
-        className='group/collapsible-trigger'
-        render={<SidebarMenuButton />}
+    <>
+      {tokenPicker}
+      <Collapsible
+        defaultOpen={normalizedHref.startsWith('/chat')}
+        className='group/collapsible'
+        render={<SidebarMenuItem />}
       >
-        {item.icon && <item.icon />}
-        <span>{item.title}</span>
-        <ChevronRight className='ms-auto transition-transform duration-200 group-data-[panel-open]/collapsible-trigger:rotate-90' />
-      </CollapsibleTrigger>
-      <CollapsibleContent className='CollapsibleContent'>
-        <SidebarMenuSub>
-          {visiblePresets.map((preset) => (
-            <ChatMenuItem
-              key={preset.id}
-              preset={preset}
-              active={normalizedHref === `/chat/${preset.id}`}
-              loading={loadingPresetId === preset.id}
-              onOpen={handleOpenExternal}
-              onNavigate={() => setOpenMobile(false)}
-            />
-          ))}
-        </SidebarMenuSub>
-      </CollapsibleContent>
-    </Collapsible>
+        <CollapsibleTrigger
+          className='group/collapsible-trigger'
+          render={<SidebarMenuButton />}
+        >
+          {item.icon && <item.icon />}
+          <span>{item.title}</span>
+          <ChevronRight className='ms-auto transition-transform duration-200 group-data-[panel-open]/collapsible-trigger:rotate-90' />
+        </CollapsibleTrigger>
+        <CollapsibleContent className='CollapsibleContent'>
+          <SidebarMenuSub>
+            {visiblePresets.map((preset) => (
+              <ChatMenuItem
+                key={preset.id}
+                preset={preset}
+                active={normalizedHref === `/chat/${preset.id}`}
+                loading={loadingPresetId === preset.id}
+                onOpen={handleOpenExternal}
+                onNavigate={() => setOpenMobile(false)}
+              />
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </Collapsible>
+    </>
   )
 }
