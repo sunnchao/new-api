@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useSystemConfigStore, type QuotaDisplayType } from "@/stores/system-config-store";
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 function AuthHydrationProvider({ children }: { children: ReactNode }) {
   const setUser = useAuthStore((s) => s.setUser);
@@ -164,7 +165,9 @@ export function Providers({ children }: { children: ReactNode }) {
           <AuthHydrationProvider>
             <SetupGuardProvider>
               <SystemConfigProvider>
-                {children}
+                <TooltipProvider delayDuration={150}>
+                  {children}
+                </TooltipProvider>
                 <Toaster richColors position="top-right" />
               </SystemConfigProvider>
             </SetupGuardProvider>

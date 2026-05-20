@@ -25,6 +25,7 @@ export interface FacetedFilterOption {
   label: string;
   value: string;
   icon?: React.ComponentType<{ className?: string }>;
+  iconNode?: React.ReactNode;
   count?: number;
 }
 
@@ -32,12 +33,15 @@ export interface DataTableFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>;
   title?: string;
   options: FacetedFilterOption[];
+  /** When true, only one option can be selected at a time */
+  singleSelect?: boolean;
 }
 
 export function DataTableFacetedFilter<TData, TValue>({
   column,
   title,
   options,
+  singleSelect,
 }: DataTableFacetedFilterProps<TData, TValue>) {
   const facets = column?.getFacetedUniqueValues();
   const selectedValues = new Set(
@@ -101,6 +105,14 @@ export function DataTableFacetedFilter<TData, TValue>({
                   <CommandItem
                     key={option.value}
                     onSelect={() => {
+                      if (singleSelect) {
+                        if (isSelected) {
+                          column?.setFilterValue(undefined);
+                        } else {
+                          column?.setFilterValue([option.value]);
+                        }
+                        return;
+                      }
                       if (isSelected) {
                         selectedValues.delete(option.value);
                       } else {

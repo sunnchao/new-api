@@ -4,7 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { PublicHeader } from "./public-header";
 import { useSystemConfigStore } from "@/stores/system-config-store";
 
-export function PublicLayout({ children }: { children: React.ReactNode }) {
+export function PublicLayout({
+  children,
+  showMainContainer = true,
+}: {
+  children: React.ReactNode;
+  showMainContainer?: boolean;
+}) {
   const persistedFooterHtml = useSystemConfigStore((s) => s.getFooterHtml());
   const persistedSystemName = useSystemConfigStore((s) => s.getSystemName());
   const [mounted, setMounted] = useState(false);
@@ -34,7 +40,13 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-[var(--background)]">
       <PublicHeader />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1">
+        {showMainContainer ? (
+          <div className="container mx-auto px-4 py-6">{children}</div>
+        ) : (
+          children
+        )}
+      </main>
       {footerHtml ? (
         <footer className="border-t border-[var(--border)] px-4 py-6 text-center text-sm text-[var(--muted)]">
           <div dangerouslySetInnerHTML={{ __html: safeFooterHtml }} />

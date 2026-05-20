@@ -1,82 +1,107 @@
 "use client";
 
 import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-const Empty = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-[var(--border)] bg-[var(--background)] p-8 text-center",
-      className
-    )}
-    {...props}
-  />
-));
-Empty.displayName = "Empty";
+function Empty({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="empty"
+      className={cn(
+        "flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 rounded-xl border-dashed p-6 text-center text-balance",
+        className
+      )}
+      {...props}
+    />
+  );
+}
 
-const EmptyIcon = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted)] [&>svg]:h-6 [&>svg]:w-6",
-      className
-    )}
-    {...props}
-  />
-));
-EmptyIcon.displayName = "EmptyIcon";
+function EmptyHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="empty-header"
+      className={cn("flex max-w-sm flex-col items-center gap-2", className)}
+      {...props}
+    />
+  );
+}
 
-const EmptyTitle = React.forwardRef<
-  HTMLHeadingElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h3
-    ref={ref}
-    className={cn(
-      "text-base font-semibold leading-tight text-[var(--foreground)]",
-      className
-    )}
-    {...props}
-  />
-));
-EmptyTitle.displayName = "EmptyTitle";
+const emptyMediaVariants = cva(
+  "mb-2 flex shrink-0 items-center justify-center [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  {
+    variants: {
+      variant: {
+        default: "bg-transparent",
+        icon: "flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)] text-[var(--foreground)] [&_svg:not([class*='size-'])]:size-4",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);
 
-const EmptyDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <p
-    ref={ref}
-    className={cn(
-      "max-w-sm text-sm leading-relaxed text-[var(--muted)]",
-      className
-    )}
-    {...props}
-  />
-));
-EmptyDescription.displayName = "EmptyDescription";
+function EmptyMedia({
+  className,
+  variant = "default",
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof emptyMediaVariants>) {
+  return (
+    <div
+      data-slot="empty-icon"
+      data-variant={variant}
+      className={cn(emptyMediaVariants({ variant, className }))}
+      {...props}
+    />
+  );
+}
 
-const EmptyContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("mt-2 flex flex-wrap items-center justify-center gap-2", className)}
-    {...props}
-  />
-));
-EmptyContent.displayName = "EmptyContent";
+function EmptyTitle({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="empty-title"
+      className={cn("text-sm font-medium tracking-tight", className)}
+      {...props}
+    />
+  );
+}
 
-// Aliases for compatibility with default frontend
-export const EmptyMedia = EmptyIcon;
-export const EmptyHeader = EmptyTitle;
+function EmptyDescription({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="empty-description"
+      className={cn(
+        "text-[var(--muted)] text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-[var(--accent)]",
+        className
+      )}
+      {...props}
+    />
+  );
+}
 
-export { Empty, EmptyIcon, EmptyTitle, EmptyDescription, EmptyContent };
+function EmptyContent({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="empty-content"
+      className={cn(
+        "flex w-full max-w-sm min-w-0 flex-col items-center gap-2.5 text-sm text-balance",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+// Back-compat alias — older code imports EmptyIcon
+const EmptyIcon = EmptyMedia;
+
+export {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyIcon,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+};

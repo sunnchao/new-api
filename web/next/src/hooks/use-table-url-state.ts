@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type {
   ColumnFiltersState,
   OnChangeFn,
@@ -104,8 +104,9 @@ export function useTableUrlState(
   const globalFilterEnabled = globalFilterCfg?.enabled ?? true
   const trimGlobal = globalFilterCfg?.trim ?? true
 
-  // Build initial column filters from the current search params
-  const initialColumnFilters: ColumnFiltersState = useMemo(() => {
+  // Build column filters from the current search params on every render.
+  // URL is the single source of truth — derive directly, don't mirror into state.
+  const columnFilters: ColumnFiltersState = useMemo(() => {
     const collected: ColumnFiltersState = []
     for (const cfg of columnFiltersCfg) {
       const raw = (search as SearchRecord)[cfg.searchKey]
@@ -124,16 +125,8 @@ export function useTableUrlState(
       }
     }
     return collected
-  }, [columnFiltersCfg, search])
-
-  const [columnFilters, setColumnFilters] =
-    useState<ColumnFiltersState>(initialColumnFilters)
-
-  // URL is the single source of truth: sync only when search (URL) changes
-  useEffect(() => {
-    setColumnFilters(initialColumnFilters)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search])
+  }, [search, columnFiltersCfg])
 
   const pagination: PaginationState = useMemo(() => {
     const rawPage = (search as SearchRecord)[pageKey]
@@ -186,7 +179,6 @@ export function useTableUrlState(
   const onColumnFiltersChange: OnChangeFn<ColumnFiltersState> = (updater) => {
     const next =
       typeof updater === 'function' ? updater(columnFilters) : updater
-    setColumnFilters(next)
 
     const patch: Record<string, unknown> = {}
 
@@ -215,22 +207,26 @@ export function useTableUrlState(
     })
   }
 
-  const ensurePageInRange = (
-    pageCount: number,
-    opts: { resetTo?: 'first' | 'last' } = { resetTo: 'first' }
-  ) => {
-    const currentPage = (search as SearchRecord)[pageKey]
-    const pageNum = typeof currentPage === 'number' ? currentPage : defaultPage
-    if (pageCount > 0 && pageNum > pageCount) {
-      navigate({
-        replace: true,
-        search: (prev) => ({
-          ...(prev as SearchRecord),
-          [pageKey]: opts.resetTo === 'last' ? pageCount : undefined,
-        }),
-      })
-    }
-  }
+  const ensurePageInRange = useCallback(
+    (
+      pageCount: number,
+      opts: { resetTo?: 'first' | 'last' } = { resetTo: 'first' }
+    ) => {
+      const currentPage = (search as SearchRecord)[pageKey]
+      const pageNum =
+        typeof currentPage === 'number' ? currentPage : defaultPage
+      if (pageCount > 0 && pageNum > pageCount) {
+        navigate({
+          replace: true,
+          search: (prev) => ({
+            ...(prev as SearchRecord),
+            [pageKey]: opts.resetTo === 'last' ? pageCount : undefined,
+          }),
+        })
+      }
+    },
+    [search, navigate, pageKey, defaultPage]
+  )
 
   return {
     globalFilter: globalFilterEnabled ? (globalFilter ?? '') : undefined,
@@ -255,35 +251,45 @@ export function useNextTableUrlState(
 ): UseTableUrlStateReturn {
   const { searchParams, router, ...rest } = params
 
-  const search: SearchRecord = {}
-  searchParams.forEach((value, key) => {
-    search[key] = value
-  })
+  // Stabilize `search` by URL string so downstream useMemo/useCallback deps
+  // don't churn on every render.
+  const searchKey = searchParams.toString()
+  const search: SearchRecord = useMemo(() => {
+    const obj: SearchRecord = {}
+    searchParams.forEach((value, key) => {
+      obj[key] = value
+    })
+    return obj
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchKey])
 
-  const navigate: NavigateFn = (opts) => {
-    const current = new URLSearchParams(searchParams.toString())
+  const navigate: NavigateFn = useCallback(
+    (opts) => {
+      const current = new URLSearchParams(searchKey)
 
-    let nextRecord: SearchRecord
-    if (opts.search === true) {
-      nextRecord = search
-    } else if (typeof opts.search === 'function') {
-      nextRecord = opts.search(search)
-    } else {
-      nextRecord = opts.search
-    }
-
-    // Apply each key to URL params
-    for (const [key, value] of Object.entries(nextRecord)) {
-      if (value === undefined || value === null || value === '') {
-        current.delete(key)
+      let nextRecord: SearchRecord
+      if (opts.search === true) {
+        nextRecord = search
+      } else if (typeof opts.search === 'function') {
+        nextRecord = opts.search(search)
       } else {
-        current.set(key, String(value))
+        nextRecord = opts.search
       }
-    }
 
-    const method = opts.replace ? 'replace' : 'push'
-    router[method]?.(`?${current.toString()}`)
-  }
+      // Apply each key to URL params
+      for (const [key, value] of Object.entries(nextRecord)) {
+        if (value === undefined || value === null || value === '') {
+          current.delete(key)
+        } else {
+          current.set(key, String(value))
+        }
+      }
+
+      const method = opts.replace ? 'replace' : 'push'
+      router[method]?.(`?${current.toString()}`)
+    },
+    [router, search, searchKey]
+  )
 
   return useTableUrlState({ search, navigate, ...rest })
 }
