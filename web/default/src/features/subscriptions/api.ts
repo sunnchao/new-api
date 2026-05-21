@@ -203,6 +203,37 @@ export async function payRenewBalance(
 }
 
 // ============================================================================
+// Scheduled (pending) Subscription Activation
+// ============================================================================
+
+export interface ActivateScheduledResponse {
+  user_subscription_id: number
+  user_id?: number
+  plan_id: number
+  plan_title: string
+  start_time: number
+  end_time: number
+}
+
+export async function activateScheduledSubscription(
+  subId: number
+): Promise<ApiResponse<ActivateScheduledResponse>> {
+  const res = await api.post(
+    `/api/subscription/scheduled/${subId}/activate`
+  )
+  return res.data
+}
+
+export async function adminActivateScheduledSubscription(
+  subId: number
+): Promise<ApiResponse<ActivateScheduledResponse>> {
+  const res = await api.post(
+    `/api/subscription/admin/user_subscriptions/${subId}/activate`
+  )
+  return res.data
+}
+
+// ============================================================================
 // User Self Subscriptions
 // ============================================================================
 

@@ -146,7 +146,7 @@ func TestGetLatestSubscriptionPlanForRenewalBypassesStalePlanCache(t *testing.T)
 	assert.Equal(t, 19.99, latest.PriceAmount)
 }
 
-func TestAdminRenewUserSubscriptionExtendsActiveSubscriptionFromCurrentEndTime(t *testing.T) {
+func TestAdminRenewUserSubscriptionCreatesScheduledSubscription(t *testing.T) {
 	truncateTables(t)
 
 	userId := 1501
@@ -168,11 +168,21 @@ func TestAdminRenewUserSubscriptionExtendsActiveSubscriptionFromCurrentEndTime(t
 	assert.Equal(t, expectedEnd, result.NewEndTime)
 	assert.Equal(t, plan.Id, result.PlanId)
 	assert.Equal(t, plan.Title, result.PlanTitle)
+	assert.NotEqual(t, sub.Id, result.UserSubscriptionId, "renewal should produce a new scheduled subscription, not extend the old one")
 
-	var reloaded UserSubscription
-	require.NoError(t, DB.First(&reloaded, sub.Id).Error)
-	assert.Equal(t, "active", reloaded.Status)
-	assert.Equal(t, result.NewEndTime, reloaded.EndTime)
+	// Old subscription must remain untouched: same EndTime, still active.
+	var oldReloaded UserSubscription
+	require.NoError(t, DB.First(&oldReloaded, sub.Id).Error)
+	assert.Equal(t, "active", oldReloaded.Status)
+	assert.Equal(t, oldEnd, oldReloaded.EndTime)
+
+	// New scheduled subscription must be persisted with anchor==oldEnd.
+	var scheduled UserSubscription
+	require.NoError(t, DB.First(&scheduled, result.UserSubscriptionId).Error)
+	assert.Equal(t, UserSubscriptionStatusScheduled, scheduled.Status)
+	assert.Equal(t, oldEnd, scheduled.StartTime)
+	assert.Equal(t, expectedEnd, scheduled.EndTime)
+	assert.Equal(t, "admin", scheduled.Source)
 
 	var log Log
 	require.NoError(t, DB.Where("user_id = ? AND type = ?", userId, LogTypeManage).Order("id desc").First(&log).Error)

@@ -39,6 +39,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
 import {
@@ -58,11 +63,19 @@ import { PublicPlanModelsDialog } from './public-plan-models-dialog'
 
 export type PublicSubscriptionPlanCardMode = PublicPlanCardMode
 
+export type PublicSubscriptionPlanCardActionOverride = {
+  labelKey: string
+  onClick?: () => void
+  disabled?: boolean
+  disabledTooltip?: string
+}
+
 type PublicSubscriptionPlanCardProps = {
   record: PlanRecord
   isAuthenticated: boolean
   featured?: boolean
   mode?: PublicSubscriptionPlanCardMode
+  actionOverride?: PublicSubscriptionPlanCardActionOverride
 }
 
 function getTotalLabel(plan: SubscriptionPlan, t: TFunction) {
@@ -78,6 +91,7 @@ export function PublicSubscriptionPlanCard({
   isAuthenticated,
   featured = false,
   mode = 'catalog',
+  actionOverride,
 }: PublicSubscriptionPlanCardProps) {
   const { t } = useTranslation()
   const [modelsOpen, setModelsOpen] = useState(false)
@@ -225,14 +239,51 @@ export function PublicSubscriptionPlanCard({
         </CardContent>
 
         <CardFooter>
-          <Button
-            className='w-full min-w-0'
-            variant={isHome && !featured ? 'outline' : 'default'}
-            render={<Link to={action.to} />}
-          >
-            <span className='min-w-0 truncate'>{t(action.labelKey)}</span>
-            <ArrowRight className='size-4 shrink-0' />
-          </Button>
+          {actionOverride ? (
+            actionOverride.disabled && actionOverride.disabledTooltip ? (
+              <Tooltip>
+                <TooltipTrigger render={<div className='w-full' />}>
+                  <Button
+                    type='button'
+                    className='w-full min-w-0'
+                    variant={isHome && !featured ? 'outline' : 'default'}
+                    disabled
+                  >
+                    <span className='min-w-0 truncate'>
+                      {t(actionOverride.labelKey)}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {actionOverride.disabledTooltip}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button
+                type='button'
+                className='w-full min-w-0'
+                variant={isHome && !featured ? 'outline' : 'default'}
+                onClick={actionOverride.onClick}
+                disabled={actionOverride.disabled}
+              >
+                <span className='min-w-0 truncate'>
+                  {t(actionOverride.labelKey)}
+                </span>
+                {!actionOverride.disabled ? (
+                  <ArrowRight className='size-4 shrink-0' />
+                ) : null}
+              </Button>
+            )
+          ) : (
+            <Button
+              className='w-full min-w-0'
+              variant={isHome && !featured ? 'outline' : 'default'}
+              render={<Link to={action.to} />}
+            >
+              <span className='min-w-0 truncate'>{t(action.labelKey)}</span>
+              <ArrowRight className='size-4 shrink-0' />
+            </Button>
+          )}
         </CardFooter>
       </Card>
 

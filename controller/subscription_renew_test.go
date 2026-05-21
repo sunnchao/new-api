@@ -189,13 +189,22 @@ func TestAdminRenewUserSubscriptionEndpointRenewsActiveSubscription(t *testing.T
 
 	var payload model.AdminRenewSubscriptionResult
 	require.NoError(t, common.Unmarshal(response.Data, &payload))
-	assert.Equal(t, 3301, payload.UserSubscriptionId)
+	assert.NotEqual(t, 3301, payload.UserSubscriptionId, "renewal must create a new scheduled subscription, not modify the existing one")
 	assert.Equal(t, int64(now+3600), payload.OldEndTime)
 	assert.Equal(t, int64(now+3600+7*24*3600), payload.NewEndTime)
 
-	var reloaded model.UserSubscription
-	require.NoError(t, db.First(&reloaded, 3301).Error)
-	assert.Equal(t, payload.NewEndTime, reloaded.EndTime)
+	// Existing active subscription is untouched.
+	var original model.UserSubscription
+	require.NoError(t, db.First(&original, 3301).Error)
+	assert.Equal(t, "active", original.Status)
+	assert.Equal(t, int64(now+3600), original.EndTime)
+
+	// New scheduled subscription is persisted with the correct anchor.
+	var scheduled model.UserSubscription
+	require.NoError(t, db.First(&scheduled, payload.UserSubscriptionId).Error)
+	assert.Equal(t, model.UserSubscriptionStatusScheduled, scheduled.Status)
+	assert.Equal(t, payload.OldEndTime, scheduled.StartTime)
+	assert.Equal(t, payload.NewEndTime, scheduled.EndTime)
 }
 
 func TestAdminRenewUserSubscriptionEndpointRejectsInactiveSubscription(t *testing.T) {

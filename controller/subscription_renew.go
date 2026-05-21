@@ -48,6 +48,9 @@ func loadRenewableSubscriptionAndLatestPlan(userId int, userSubscriptionId int) 
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := model.EnsureNoExistingScheduledRenewal(userId, sub.PlanId); err != nil {
+		return nil, nil, err
+	}
 	return &sub, plan, nil
 }
 

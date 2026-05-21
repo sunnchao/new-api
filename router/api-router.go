@@ -173,6 +173,8 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionRoute.POST("/renew/balance/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestRenewBalancePay)
 			subscriptionRoute.POST("/renew/stripe/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestRenewStripePay)
 			subscriptionRoute.POST("/renew/creem/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestRenewCreemPay)
+			// Scheduled (pending) subscription manual activation
+			subscriptionRoute.POST("/scheduled/:id/activate", middleware.CriticalRateLimit(), controller.UserActivateScheduledSubscription)
 		}
 		subscriptionAdminRoute := apiRouter.Group("/subscription/admin")
 		subscriptionAdminRoute.Use(middleware.AdminAuth())
@@ -189,6 +191,7 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionAdminRoute.POST("/users/:id/subscriptions", controller.AdminCreateUserSubscription)
 			subscriptionAdminRoute.POST("/user_subscriptions/:id/invalidate", controller.AdminInvalidateUserSubscription)
 			subscriptionAdminRoute.POST("/user_subscriptions/:id/renew", controller.AdminRenewUserSubscription)
+			subscriptionAdminRoute.POST("/user_subscriptions/:id/activate", controller.AdminActivateScheduledSubscription)
 			subscriptionAdminRoute.DELETE("/user_subscriptions/:id", controller.AdminDeleteUserSubscription)
 
 			// All site subscriptions overview (admin)

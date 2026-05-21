@@ -75,8 +75,13 @@ func CompleteRenewalOrder(tradeNo string, providerPayload string, expectedPaymen
 
 		nowUnix := getDBTimestampTx(tx)
 
-		// Perform renewal
-		if err := renewUserSubscriptionTx(tx, &sub, plan, nowUnix); err != nil {
+		// Create a scheduled subscription instead of mutating the current one.
+		// The new subscription becomes active either automatically when the
+		// existing subscription's end_time arrives or when the user manually
+		// activates it. The existing subscription is left untouched so the user
+		// keeps every minute they already paid for (subscriptions are
+		// non-refundable).
+		if _, err := CreateScheduledSubscriptionTx(tx, sub.UserId, plan, sub.EndTime, "order"); err != nil {
 			return err
 		}
 
@@ -111,7 +116,7 @@ func CompleteRenewalOrder(tradeNo string, providerPayload string, expectedPaymen
 	}
 
 	if logUserId > 0 {
-		msg := fmt.Sprintf("订阅续费成功，套餐: %s，支付金额: %.2f，支付方式: %s", logPlanTitle, logMoney, logPaymentMethod)
+		msg := fmt.Sprintf("订阅续费成功，已创建待生效订阅，套餐: %s，支付金额: %.2f，支付方式: %s", logPlanTitle, logMoney, logPaymentMethod)
 		otherParam := map[string]interface{}{
 			"RequestIp": clientIP,
 		}
@@ -151,18 +156,23 @@ func AdminRenewUserSubscription(userSubscriptionId int, adminId int, callerIp st
 			return err
 		}
 
-		oldEndTime := sub.EndTime
-		if err := renewUserSubscriptionTx(tx, &sub, plan, now); err != nil {
+		// Mirror the user-facing renewal flow: create a scheduled subscription
+		// anchored at the existing subscription's end_time so admin-initiated
+		// renewals also defer activation, instead of overwriting the active
+		// subscription. The active subscription continues to serve traffic
+		// until its natural expiry.
+		newSub, err := CreateScheduledSubscriptionTx(tx, sub.UserId, plan, sub.EndTime, "admin")
+		if err != nil {
 			return err
 		}
 
 		result = &AdminRenewSubscriptionResult{
-			UserSubscriptionId: sub.Id,
-			UserId:             sub.UserId,
+			UserSubscriptionId: newSub.Id,
+			UserId:             newSub.UserId,
 			PlanId:             plan.Id,
 			PlanTitle:          plan.Title,
-			OldEndTime:         oldEndTime,
-			NewEndTime:         sub.EndTime,
+			OldEndTime:         sub.EndTime,
+			NewEndTime:         newSub.EndTime,
 		}
 		return nil
 	})
@@ -182,7 +192,7 @@ func AdminRenewUserSubscription(userSubscriptionId int, adminId int, callerIp st
 		"new_end_time":         result.NewEndTime,
 	}
 	RecordLogWithAdminInfo(result.UserId, LogTypeManage,
-		fmt.Sprintf("管理员手动续费订阅，套餐: %s，订阅ID: %d，到期时间: %d -> %d",
+		fmt.Sprintf("管理员手动续费订阅，套餐: %s，待生效订阅ID: %d，预计生效时间: %d，预计到期时间: %d",
 			result.PlanTitle, result.UserSubscriptionId, result.OldEndTime, result.NewEndTime),
 		adminInfo,
 	)
