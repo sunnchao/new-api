@@ -524,6 +524,39 @@ func TestBuildTieredTokenParams_Claude_WithCache(t *testing.T) {
 	}
 }
 
+func TestBuildTieredTokenParams_Claude_AggregateCacheCreationFallsBackToCC(t *testing.T) {
+	usage := &dto.Usage{
+		PromptTokens:     1,
+		CompletionTokens: 3296,
+		UsageSemantic:    "anthropic",
+		PromptTokensDetails: dto.InputTokenDetails{
+			CachedTokens:         24083,
+			CachedCreationTokens: 5650,
+		},
+	}
+	expr := `tier("base", p * 5 + c * 25 + cr * 0.5 + cc * 6.25 + cc1h * 6.25)`
+	params := BuildTieredTokenParams(usage, true, billingexpr.UsedVars(expr))
+
+	if params.CC != 5650 {
+		t.Fatalf("CC = %f, want 5650 from aggregate cache creation tokens", params.CC)
+	}
+	if params.CC1h != 0 {
+		t.Fatalf("CC1h = %f, want 0 when upstream did not provide 1h split", params.CC1h)
+	}
+	if params.Len != 29734 {
+		t.Fatalf("Len = %f, want input + cache read + cache creation", params.Len)
+	}
+
+	cost, _, err := billingexpr.RunExpr(expr, params)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantCost := 1.0*5 + 3296.0*25 + 24083.0*0.5 + 5650.0*6.25
+	if math.Abs(cost-wantCost) > 1e-6 {
+		t.Fatalf("cost = %f, want %f", cost, wantCost)
+	}
+}
+
 func TestBuildTieredTokenParams_GPT_AudioOutput(t *testing.T) {
 	usage := &dto.Usage{
 		PromptTokens:     1000,
