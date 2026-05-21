@@ -64,6 +64,11 @@ export const THEME_PRESETS = [
     name: 'Lavender Dream',
     swatches: ['oklch(0.5709 0.1808 306.89)', 'oklch(0.811 0.0589 201.14)'],
   },
+  {
+    value: 'nexus-ai',
+    name: 'NexusAI',
+    swatches: ['oklch(0.585 0.233 277)', 'oklch(0.62 0.231 295)'],
+  },
 ] as const
 
 export type ThemePreset = (typeof THEME_PRESETS)[number]['value']

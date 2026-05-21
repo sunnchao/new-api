@@ -291,6 +291,54 @@ For commercial licensing, please contact support@quantumnous.com
   --sidebar-ring: oklch(0.6359 0.1699 307.95);
 }
 
+/* ── NexusAI ──────────────────────────────────────────────────────────── */
+[data-theme-preset='nexus-ai'] {
+  --primary: oklch(0.585 0.233 277);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.62 0.231 295);
+  --secondary-foreground: oklch(1 0 0);
+  --ring: oklch(0.585 0.233 277);
+  --chart-1: oklch(0.585 0.233 277);
+  --chart-2: oklch(0.62 0.231 295);
+  --chart-3: oklch(0.78 0.13 275);
+  --chart-4: oklch(0.82 0.1 295);
+  --chart-5: oklch(0.94 0.04 280);
+  --sidebar-primary: oklch(0.585 0.233 277);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.585 0.233 277);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-ring: oklch(0.585 0.233 277);
+  --radius: 0.75rem;
+  --text-xs: 0.78rem;
+  --text-sm: 0.9rem;
+  --text-base: 1rem;
+  --text-lg: 1.15rem;
+  --text-xl: 1.32rem;
+  --text-2xl: 1.65rem;
+  --text-3xl: 2.1rem;
+  --tracking-tighter: -0.045em;
+  --tracking-tight: -0.025em;
+  --tracking-normal: -0.005em;
+  --tracking-wide: 0.02em;
+}
+.dark [data-theme-preset='nexus-ai'] {
+  --primary: oklch(0.66 0.205 277);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.68 0.2 295);
+  --secondary-foreground: oklch(1 0 0);
+  --ring: oklch(0.66 0.205 277);
+  --chart-1: oklch(0.66 0.205 277);
+  --chart-2: oklch(0.68 0.2 295);
+  --chart-3: oklch(0.78 0.13 275);
+  --chart-4: oklch(0.82 0.1 295);
+  --chart-5: oklch(0.94 0.04 280);
+  --sidebar-primary: oklch(0.66 0.205 277);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.66 0.205 277);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-ring: oklch(0.66 0.205 277);
+}
+
 /* ── Semantic surface bridge ──────────────────────────────────────────── */
 /* Color presets should tint the surfaces most components actually use, not
  * only primary buttons. These derived tokens keep the app theme-aware without
