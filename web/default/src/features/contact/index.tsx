@@ -85,15 +85,9 @@ export function Contact() {
     <PublicLayout showMainContainer={false}>
       <main className='mx-auto flex min-h-svh w-full max-w-6xl flex-col px-4 pt-24 pb-12 sm:px-6 lg:px-8'>
         <section className='mx-auto max-w-3xl text-center'>
-          <Badge variant='outline' className='mb-4'>
-            {t('Support channels')}
-          </Badge>
           <h1 className='text-3xl leading-tight font-semibold tracking-tight sm:text-4xl'>
             {t('Contact us')}
           </h1>
-          <p className='text-muted-foreground mt-4 text-base leading-7'>
-            {t('Classic homepage contact details.')}
-          </p>
         </section>
 
         <section className='mx-auto mt-10 grid w-full max-w-3xl gap-4 md:grid-cols-2'>
