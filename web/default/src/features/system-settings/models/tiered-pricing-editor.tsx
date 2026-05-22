@@ -536,7 +536,6 @@ function PriceField({ label, hint, value, onChange }: PriceFieldProps) {
       <Label className='text-muted-foreground text-xs'>{label}</Label>
       <DraftNumberInput
         min={0}
-        step={0.01}
         value={Number.isFinite(value) ? value : 0}
         onValueChange={onChange}
         className='h-8 w-full'
@@ -1433,7 +1432,6 @@ function RuleGroupCard({
           <>
             <DraftNumberInput
                 min={0}
-                step={0.01}
                 value={group.multiplier}
                 onValueChange={(value) =>
                     onChange({ ...group, multiplier: String(value) })
