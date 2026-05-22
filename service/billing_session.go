@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -321,10 +320,7 @@ func buildSubscriptionFundingMessage(err error) string {
 }
 
 func formatWalletInsufficientMessage(userQuota int, needQuota int) string {
-	if userQuota <= 0 {
-		return fmt.Sprintf("用户额度不足, 剩余额度: %s", logger.FormatQuota(userQuota))
-	}
-	return fmt.Sprintf("预扣费额度失败, 用户剩余额度: %s, 需要预扣费额度: %s", logger.FormatQuota(userQuota), logger.FormatQuota(needQuota))
+	return formatWalletFundingFailureMessage(userQuota, needQuota)
 }
 
 func newInsufficientUserQuotaError(message string) *types.NewAPIError {
@@ -338,59 +334,11 @@ func newInsufficientUserQuotaError(message string) *types.NewAPIError {
 }
 
 func combineFundingFailureMessages(primary *types.NewAPIError, fallback *types.NewAPIError) string {
-	parts := make([]string, 0, 2)
-	if primary != nil && primary.Error() != "" {
-		parts = append(parts, normalizeCombinedFundingFailurePart(primary.Error()))
-	}
-	if fallback != nil && fallback.Error() != "" && fallback.Error() != primary.Error() {
-		parts = append(parts, normalizeCombinedFundingFailurePart(fallback.Error()))
-	}
-	if len(parts) == 0 {
-		return "预扣费额度失败"
-	}
-	return "预扣费额度失败：" + strings.Join(parts, "；")
-}
-
-func normalizeCombinedFundingFailurePart(message string) string {
-	message = strings.TrimSpace(message)
-	if strings.HasPrefix(message, "预扣费额度失败, ") {
-		return "余额额度不足, " + strings.TrimPrefix(message, "预扣费额度失败, ")
-	}
-	return message
+	return formatCombinedFundingFailureMessage(primary, fallback)
 }
 
 func formatSubscriptionQuotaInsufficientMessage(err *model.SubscriptionQuotaInsufficientError) string {
-	if err == nil {
-		return "订阅额度不足"
-	}
-	scopeLabel := subscriptionLimitScopeLabel(err.LimitScope)
-	if err.BillingMode == model.SubscriptionBillingModeRequest {
-		message := fmt.Sprintf("%s不足, 订阅剩余请求次数: %d, 需要请求次数: %d", scopeLabel, err.Remain, err.Need)
-		if reset := formatSubscriptionResetTime(err); reset != "" {
-			message += ", 下次重置时间: " + reset
-		}
-		return message
-	}
-	message := fmt.Sprintf("%s不足, 订阅剩余额度: %s, 需要订阅额度: %s", scopeLabel, logger.FormatQuota(int(err.Remain)), logger.FormatQuota(int(err.Need)))
-	if reset := formatSubscriptionResetTime(err); reset != "" {
-		message += ", 下次重置时间: " + reset
-	}
-	return message
-}
-
-func subscriptionLimitScopeLabel(scope string) string {
-	switch scope {
-	case model.SubscriptionLimitScopeHourly:
-		return "订阅额度" // 每小时订阅额度
-	case model.SubscriptionLimitScopeDaily:
-		return "订阅额度" // 每日订阅额度
-	case model.SubscriptionLimitScopeWeekly:
-		return "订阅额度" // 每周订阅额度
-	case model.SubscriptionLimitScopeMonthly:
-		return "订阅额度" // 每月订阅额度
-	default:
-		return "订阅额度"
-	}
+	return formatSubscriptionFundingFailureMessage(err)
 }
 
 func formatSubscriptionResetTime(err *model.SubscriptionQuotaInsufficientError) string {

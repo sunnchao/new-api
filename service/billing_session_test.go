@@ -88,17 +88,7 @@ func newBillingTestRelayInfo(userId int, preference string) *relaycommon.RelayIn
 
 func TestNewBillingSessionWalletFirstCombinesWalletAndSubscriptionQuotaFailures(t *testing.T) {
 	truncate(t)
-	originalDisplayType := operation_setting.GetGeneralSetting().QuotaDisplayType
-	originalQuotaPerUnit := common.QuotaPerUnit
-	originalExchangeRate := operation_setting.USDExchangeRate
-	t.Cleanup(func() {
-		operation_setting.GetGeneralSetting().QuotaDisplayType = originalDisplayType
-		common.QuotaPerUnit = originalQuotaPerUnit
-		operation_setting.USDExchangeRate = originalExchangeRate
-	})
-	operation_setting.GetGeneralSetting().QuotaDisplayType = operation_setting.QuotaDisplayTypeCNY
-	common.QuotaPerUnit = 500000
-	operation_setting.USDExchangeRate = 7.3
+	useCNYQuotaDisplay(t)
 
 	const userID = 101
 	const planID = 201
@@ -115,12 +105,7 @@ func TestNewBillingSessionWalletFirstCombinesWalletAndSubscriptionQuotaFailures(
 	require.NotNil(t, apiErr)
 	assert.Equal(t, types.ErrorCodeInsufficientUserQuota, apiErr.GetErrorCode())
 	message := apiErr.Error()
-	assert.Contains(t, message, "预扣费额度失败")
-	assert.NotContains(t, message, "预扣费额度失败：预扣费额度失败")
-	assert.Contains(t, message, "用户剩余额度: ¥0.015228")
-	assert.Contains(t, message, "需要预扣费额度: ¥0.079993")
-	assert.Contains(t, message, "订阅剩余额度: ¥0.014600")
-	assert.Contains(t, message, "需要订阅额度: ¥0.079993")
+	assert.Equal(t, "额度不足：①余额不足，当前余额 ¥0.015228，本次需要 ¥0.079993；②订阅额度不足，剩余额度 ¥0.014600，本次需要 ¥0.079993", message)
 }
 
 func TestNewBillingSessionSubscriptionFirstCombinesRequestSubscriptionAndWalletFailures(t *testing.T) {
@@ -139,9 +124,8 @@ func TestNewBillingSessionSubscriptionFirstCombinesRequestSubscriptionAndWalletF
 	require.NotNil(t, apiErr)
 	assert.Equal(t, types.ErrorCodeInsufficientUserQuota, apiErr.GetErrorCode())
 	message := apiErr.Error()
-	assert.True(t, strings.Contains(message, "订阅剩余请求次数: 0") || strings.Contains(message, "订阅剩余次数: 0"))
-	assert.Contains(t, message, "需要请求次数: 1")
-	assert.Contains(t, message, "用户额度不足, 剩余额度:")
+	assert.True(t, strings.HasPrefix(message, "额度不足：①订阅请求次数不足，剩余请求次数 0，本次需要 1；②余额不足，当前余额 "))
+	assert.Contains(t, message, "②余额不足")
 }
 
 func TestNewBillingSessionSubscriptionOnlyReportsDailyLimitResetTime(t *testing.T) {
@@ -177,8 +161,41 @@ func TestNewBillingSessionSubscriptionOnlyReportsDailyLimitResetTime(t *testing.
 
 	require.NotNil(t, apiErr)
 	message := apiErr.Error()
-	assert.Contains(t, message, "每日订阅额度不足")
-	assert.Contains(t, message, "订阅剩余额度")
-	assert.Contains(t, message, "需要订阅额度")
-	assert.Contains(t, message, "下次重置时间: 2026-05-20 09:30:45 UTC+08:00")
+	assert.Contains(t, message, "订阅额度不足：剩余额度")
+	assert.Contains(t, message, "本次需要")
+	assert.Contains(t, message, "下次重置时间：2026-05-20 09:30:45 UTC+08:00")
+	assert.NotContains(t, message, "①")
+	assert.NotContains(t, message, "②")
+}
+
+func TestNewBillingSessionWalletOnlyReportsSingleWalletFailure(t *testing.T) {
+	truncate(t)
+	useCNYQuotaDisplay(t)
+
+	const userID = 104
+	const userQuota = 1043
+	const needQuota = 5479
+
+	seedUser(t, userID, userQuota)
+
+	_, apiErr := NewBillingSession(newBillingTestContext(), newBillingTestRelayInfo(userID, "wallet_only"), needQuota)
+
+	require.NotNil(t, apiErr)
+	assert.Equal(t, types.ErrorCodeInsufficientUserQuota, apiErr.GetErrorCode())
+	assert.Equal(t, "余额不足：当前余额 ¥0.015228，本次需要 ¥0.079993", apiErr.Error())
+}
+
+func useCNYQuotaDisplay(t *testing.T) {
+	t.Helper()
+	originalDisplayType := operation_setting.GetGeneralSetting().QuotaDisplayType
+	originalQuotaPerUnit := common.QuotaPerUnit
+	originalExchangeRate := operation_setting.USDExchangeRate
+	t.Cleanup(func() {
+		operation_setting.GetGeneralSetting().QuotaDisplayType = originalDisplayType
+		common.QuotaPerUnit = originalQuotaPerUnit
+		operation_setting.USDExchangeRate = originalExchangeRate
+	})
+	operation_setting.GetGeneralSetting().QuotaDisplayType = operation_setting.QuotaDisplayTypeCNY
+	common.QuotaPerUnit = 500000
+	operation_setting.USDExchangeRate = 7.3
 }
