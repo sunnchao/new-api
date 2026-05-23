@@ -60,6 +60,7 @@ export const subscriptionPlanSchema = z.object({
   daily_approximate_times: z.number().optional(),
   weekly_approximate_times: z.number().optional(),
   monthly_approximate_times: z.number().optional(),
+  waffo_pancake_product_id: z.string().optional(),
 })
 
 export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>
@@ -144,8 +145,17 @@ export interface SubscriptionPayResponse {
   success: boolean
   message?: string
   data?: {
+    // Stripe-style hosted checkout link.
     pay_link?: string
+    // Waffo Pancake / Creem hosted checkout URL.
     checkout_url?: string
+    // Pancake-only: order metadata + self-service buyer session token,
+    // surfaced for future flows (refund / cancel from new-api's own UI).
+    session_id?: string
+    expires_at?: number | string
+    order_id?: string
+    token?: string
+    token_expires_at?: number | string
   }
   url?: string
 }

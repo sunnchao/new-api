@@ -64,6 +64,7 @@ export function getPlanFormSchema(t: TFunction) {
     daily_approximate_times: z.coerce.number().min(0).optional(),
     weekly_approximate_times: z.coerce.number().min(0).optional(),
     monthly_approximate_times: z.coerce.number().min(0).optional(),
+    waffo_pancake_product_id: z.string().optional(),
   })
 }
 
@@ -99,6 +100,7 @@ export const PLAN_FORM_DEFAULTS: PlanFormValues = {
   billing_mode: 'quota',
   stripe_price_id: '',
   creem_product_id: '',
+  waffo_pancake_product_id: '',
   // Rate limits
   hourly_limit_amount: 0,
   hourly_limit_hours: 1,
@@ -195,6 +197,7 @@ export function planToFormValues(plan: SubscriptionPlan): PlanFormValues {
     daily_approximate_times: Number(plan.daily_approximate_times || 0),
     weekly_approximate_times: Number(plan.weekly_approximate_times || 0),
     monthly_approximate_times: Number(plan.monthly_approximate_times || 0),
+    waffo_pancake_product_id: plan.waffo_pancake_product_id || '',
   }
 }
 
