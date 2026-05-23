@@ -24,6 +24,7 @@ import { PlaygroundInput } from './components/playground-input'
 import { usePlaygroundState, useChatHandler } from './hooks'
 import { createUserMessage, createLoadingAssistantMessage } from './lib'
 import type { Message as MessageType } from './types'
+import { DEFAULT_GROUP } from './constants'
 
 export function Playground() {
   const {
