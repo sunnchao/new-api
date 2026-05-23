@@ -418,6 +418,7 @@ function DraftNumberInput({
 
   return (
     <Input
+      step='any'
       {...props}
       type='number'
       value={draft}
