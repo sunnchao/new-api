@@ -269,7 +269,11 @@ func ListModels(c *gin.Context, modelType int) {
 			// 非 auto 场景下追加备用分组模型
 			backupTokenGroup := common.GetContextKeyString(c, constant.ContextKeyBackupTokenGroup)
 			for _, backupGroup := range service.GetTokenBackupGroup(backupTokenGroup, userGroup) {
-				//addModels(model.GetGroupEnabledModels(backupGroup))
+				for _, backupModel := range model.GetGroupEnabledModels(backupGroup) {
+					if !common.StringsContains(models, backupModel) {
+						models = append(models, backupModel)
+					}
+				}
 			}
 		}
 		for _, modelName := range models {
