@@ -47,3 +47,4 @@ web/next/.next
 web/.next
 .tmp
 .pnpm-store
+output
