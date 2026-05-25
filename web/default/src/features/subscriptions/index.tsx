@@ -42,9 +42,6 @@ function SubscriptionsContent() {
         <SectionPageLayout.Title>
           {t('Subscription Management')}
         </SectionPageLayout.Title>
-        <SectionPageLayout.Description>
-          {t('Manage subscription plan creation, pricing and status')}
-        </SectionPageLayout.Description>
         <SectionPageLayout.Actions>
           {activeTab === 'plans' && (
             <div className='flex items-center gap-2'>

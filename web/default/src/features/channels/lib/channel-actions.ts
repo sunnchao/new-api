@@ -205,7 +205,12 @@ export async function handleUpdateTagField(
  */
 export async function handleTestChannel(
   id: number,
-  options?: { testModel?: string; endpointType?: string; stream?: boolean },
+  options?: {
+    testModel?: string
+    endpointType?: string
+    stream?: boolean
+    silent?: boolean
+  },
   onTestComplete?: (
     success: boolean,
     responseTime?: number,
@@ -227,17 +232,23 @@ export async function handleTestChannel(
   try {
     const response = await testChannel(id, payload)
     if (response.success) {
-      toast.success(i18next.t(SUCCESS_MESSAGES.TESTED))
+      if (!options?.silent) {
+        toast.success(i18next.t(SUCCESS_MESSAGES.TESTED))
+      }
       onTestComplete?.(true, response.data?.response_time)
     } else {
-      toast.error(response.message || i18next.t(ERROR_MESSAGES.TEST_FAILED))
+      if (!options?.silent) {
+        toast.error(response.message || i18next.t(ERROR_MESSAGES.TEST_FAILED))
+      }
       onTestComplete?.(false, undefined, response.message, response.error_code)
     }
   } catch (_error: unknown) {
     const err = _error as { response?: { data?: { message?: string } } }
     const errorMsg =
       err?.response?.data?.message || i18next.t(ERROR_MESSAGES.TEST_FAILED)
-    toast.error(errorMsg)
+    if (!options?.silent) {
+      toast.error(errorMsg)
+    }
     onTestComplete?.(false, undefined, errorMsg)
   }
 }
@@ -256,7 +267,7 @@ export async function handleCopyChannel(
     if (response.success) {
       toast.success(i18next.t(SUCCESS_MESSAGES.COPIED))
       queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
-      onSuccess?.(response.data?.id)
+      onSuccess?.(response.data?.id ?? 0)
     } else {
       toast.error(response.message || i18next.t('Failed to copy channel'))
     }

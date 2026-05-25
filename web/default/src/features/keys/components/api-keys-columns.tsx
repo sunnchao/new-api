@@ -125,7 +125,6 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
           <StatusBadge
             label={t(statusConfig.label)}
             variant={statusConfig.variant}
-            showDot={statusConfig.showDot}
             copyable={false}
           />
         )
@@ -221,12 +220,11 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
               >
                 <GroupBadge group='auto' />
                 {apiKey.cross_group_retry && (
-                  <>
-                    <span className='text-muted-foreground/30'>·</span>
-                    <span className='text-muted-foreground/60'>
-                      {t('Cross-group')}
-                    </span>
-                  </>
+                  <StatusBadge
+                    label={t('Cross-group')}
+                    variant='info'
+                    copyable={false}
+                  />
                 )}
               </TooltipTrigger>
               <TooltipContent>

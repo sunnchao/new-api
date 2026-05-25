@@ -191,7 +191,7 @@ export async function getFreshModuleAccess(
     cacheStatus(status)
     return getModuleAccessFromStatus(status, module)
   } catch {
-    return getModuleAccess(module)
+    return { enabled: false, requireAuth: true }
   }
 }
 

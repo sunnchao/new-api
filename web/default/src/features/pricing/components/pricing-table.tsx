@@ -105,7 +105,7 @@ export function PricingTable(props: PricingTableProps) {
                   <TableHead
                     key={header.id}
                     style={{ width: header.getSize() }}
-                    className='text-muted-foreground text-[10px] font-medium tracking-wider uppercase'
+                    className='text-muted-foreground font-medium'
                   >
                     {header.isPlaceholder
                       ? null

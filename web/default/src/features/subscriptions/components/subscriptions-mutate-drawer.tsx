@@ -67,6 +67,14 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import {
+  SideDrawerSection,
+  sideDrawerContentClassName,
+  sideDrawerFooterClassName,
+  sideDrawerFormClassName,
+  sideDrawerHeaderClassName,
+  sideDrawerSwitchItemClassName,
+} from '@/components/drawer-layout'
+import {
   createPlan,
   updatePlan,
   getGroups,
@@ -194,7 +202,7 @@ export function SubscriptionsMutateDrawer({
   const currencyLabel = getCurrencyLabel()
   const isQuotaMode = billingMode !== 'request'
   const totalQuotaLabel = isQuotaMode
-    ? `${t('Total Quota')} (${currencyLabel})`
+    ? `${t('Received amount')} (${currencyLabel})`
     : t('Request Count')
   const limitAmountLabel = isQuotaMode
     ? `${t('Quota Amount')} (${currencyLabel})`
@@ -321,8 +329,8 @@ export function SubscriptionsMutateDrawer({
         }
       }}
     >
-      <SheetContent className='flex h-dvh w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[600px]'>
-        <SheetHeader className='border-b px-4 py-3 text-start sm:px-6 sm:py-4'>
+      <SheetContent className={sideDrawerContentClassName('sm:max-w-[600px]')}>
+        <SheetHeader className={sideDrawerHeaderClassName()}>
           <SheetTitle>
             {isEdit ? t('Update plan info') : t('Create new subscription plan')}
           </SheetTitle>
@@ -338,14 +346,14 @@ export function SubscriptionsMutateDrawer({
           <form
             id='subscription-form'
             onSubmit={form.handleSubmit(onSubmit)}
-            className='flex-1 space-y-4 overflow-y-auto px-3 py-3 pb-4 sm:space-y-6 sm:px-4'
+            className={sideDrawerFormClassName()}
           >
             {/* Basic Info */}
-            <div className='bg-card space-y-4 rounded-xl border p-5'>
-              <CardHeading
-                title={t('Basic Info')}
-                icon={<Settings2 className='h-4 w-4' />}
-              />
+              <SideDrawerSection>
+                  <CardHeading
+                      title={t('Basic Info')}
+                      icon={<Settings2 className='h-4 w-4' />}
+                  />
 
               <FormField
                 control={form.control}
@@ -419,7 +427,9 @@ export function SubscriptionsMutateDrawer({
                         />
                       </FormControl>
                       <FormDescription>
-                        {t('0 means unlimited')}
+                        {t(
+                          '0 means unlimited. The value is converted to quota units when saved.'
+                        )}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -524,21 +534,18 @@ export function SubscriptionsMutateDrawer({
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormLabel className='!mt-0'>
-                        {t('Enabled Status')}
-                      </FormLabel>
                     </FormItem>
                   )}
                 />
               </div>
-            </div>
+            </SideDrawerSection>
 
             {/* Duration Settings */}
-            <div className='bg-card space-y-4 rounded-xl border p-5'>
-              <CardHeading
-                title={t('Duration Settings')}
-                icon={<CalendarClock className='h-4 w-4' />}
-              />
+            <SideDrawerSection>
+                <CardHeading
+                    title={t('Duration Settings')}
+                    icon={<CalendarClock className='h-4 w-4' />}
+                />
 
               <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
                 <FormField
@@ -621,14 +628,14 @@ export function SubscriptionsMutateDrawer({
                   />
                 )}
               </div>
-            </div>
+            </SideDrawerSection>
 
             {/* Quota Reset */}
-            <div className='bg-card space-y-4 rounded-xl border p-5'>
-              <CardHeading
-                title={t('Quota Reset')}
-                icon={<RefreshCw className='h-4 w-4' />}
-              />
+              <SideDrawerSection>
+                  <CardHeading
+                      title={t('Quota Reset')}
+                      icon={<RefreshCw className='h-4 w-4' />}
+                  />
 
               <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
                 <FormField
@@ -721,10 +728,10 @@ export function SubscriptionsMutateDrawer({
                   )}
                 />
               )}
-            </div>
+            </SideDrawerSection>
 
             {/* Billing & Display */}
-            <div className='bg-card space-y-4 rounded-xl border p-5'>
+              <SideDrawerSection>
               <CardHeading
                 title={t('Billing & Display')}
                 icon={<SlidersHorizontal className='h-4 w-4' />}
@@ -823,7 +830,7 @@ export function SubscriptionsMutateDrawer({
                   )}
                 />
               )}
-            </div>
+            </SideDrawerSection>
 
             {/* Rate Limits (Collapsible) */}
             <Collapsible open={rateLimitsOpen} onOpenChange={setRateLimitsOpen}>
@@ -1222,11 +1229,11 @@ export function SubscriptionsMutateDrawer({
             </Collapsible>
 
             {/* Payment Config */}
-            <div className='bg-card space-y-4 rounded-xl border p-5'>
-              <CardHeading
-                title={t('Third-party Payment Config')}
-                icon={<CreditCard className='h-4 w-4' />}
-              />
+              <SideDrawerSection>
+                  <CardHeading
+                      title={t('Third-party Payment Config')}
+                      icon={<CreditCard className='h-4 w-4' />}
+                  />
 
               <FormField
                 control={form.control}
@@ -1282,9 +1289,7 @@ export function SubscriptionsMutateDrawer({
                           disabled={items.length === 0}
                         >
                           <SelectTrigger className='w-full flex-1'>
-                            <SelectValue
-                              placeholder={t('Select a product')}
-                            />
+                            <SelectValue placeholder={t('Select a product')} />
                           </SelectTrigger>
                           <SelectContent>
                             {items.map((item) => (
@@ -1298,7 +1303,9 @@ export function SubscriptionsMutateDrawer({
                           type='button'
                           variant='outline'
                           onClick={handleCreatePancakeProduct}
-                          disabled={creatingPancakeProduct || !pancakeCreateReady}
+                          disabled={
+                            creatingPancakeProduct || !pancakeCreateReady
+                          }
                           className='shrink-0'
                         >
                           {creatingPancakeProduct
@@ -1316,10 +1323,10 @@ export function SubscriptionsMutateDrawer({
                   )
                 }}
               />
-            </div>
+            </SideDrawerSection>
           </form>
         </Form>
-        <SheetFooter className='grid grid-cols-2 gap-2 border-t px-4 py-3 sm:flex sm:px-6 sm:py-4'>
+        <SheetFooter className={sideDrawerFooterClassName()}>
           <SheetClose render={<Button variant='outline' />}>
             {t('Close')}
           </SheetClose>
