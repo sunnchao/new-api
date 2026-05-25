@@ -19,9 +19,13 @@ For commercial licensing, please contact support@quantumnous.com
 import type { StatusBadgeProps } from '@/components/status-badge'
 import {
   BILLING_PRICING_VARS,
+  REQUEST_RULE_ACTION_FIXED,
   normalizeTierLabel,
   parseTiersFromExpr,
+  splitBillingExprAndRequestRules,
+  tryParseRequestRuleExpr,
   type ParsedTier,
+  type RequestRuleGroup,
 } from '@/features/pricing/lib/billing-expr'
 import type { UsageLog } from '../data/schema'
 import type { LogOtherData } from '../types'
@@ -232,6 +236,12 @@ export interface TieredBillingSummary {
   priceEntries: Array<{ field: string; shortLabel: string; price: number }>
 }
 
+export interface MatchedFixedRequestRule {
+  ruleNumber: number
+  fixedPrice: number
+  group: RequestRuleGroup
+}
+
 /**
  * Whether the request payload reports any cache-related token usage. Used to
  * suppress cache pricing rows from the tiered breakdown when the request did
@@ -276,6 +286,34 @@ export function getTieredBillingSummary(
     }
   }
   return { tiers, tier, priceEntries }
+}
+
+export function getMatchedFixedRequestRule(
+  other: LogOtherData | null
+): MatchedFixedRequestRule | null {
+  if (!other || other.billing_mode !== 'tiered_expr') return null
+  const match = `${other.matched_tier || ''}`.match(/^request_fixed_(\d+)$/)
+  if (!match) return null
+
+  const exprStr = decodeBillingExprB64(other.expr_b64)
+  if (!exprStr) return null
+
+  const ruleIndex = Number(match[1]) - 1
+  if (!Number.isInteger(ruleIndex) || ruleIndex < 0) return null
+
+  const { requestRuleExpr } = splitBillingExprAndRequestRules(exprStr)
+  const ruleGroups = tryParseRequestRuleExpr(requestRuleExpr || '') || []
+  const group = ruleGroups[ruleIndex]
+  if (!group || group.actionType !== REQUEST_RULE_ACTION_FIXED) return null
+
+  const fixedPrice = Number(group.fixedPrice)
+  if (!Number.isFinite(fixedPrice)) return null
+
+  return {
+    ruleNumber: ruleIndex + 1,
+    fixedPrice,
+    group,
+  }
 }
 
 /**
