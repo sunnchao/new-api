@@ -17,22 +17,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useEffect, useState } from 'react';
-import { Button, Card, Spin, Tag, Typography } from '@douyinfe/semi-ui';
-import { Link } from 'react-router-dom';
+import React, { useContext, useEffect, useState } from 'react';
+import { Spin } from '@douyinfe/semi-ui';
 import { API } from '../../helpers';
-import { convertUSDToCurrency } from '../../helpers/render';
-import {
-  filterHomepageSubscriptionPlans,
-  isRequestBasedSubscription,
-} from '../../helpers/subscriptionFormat';
+import { filterHomepageSubscriptionPlans } from '../../helpers/subscriptionFormat';
 import { useTranslation } from 'react-i18next';
-import HomeSubscriptionPlanMetrics from './HomeSubscriptionPlanMetrics';
-
-const { Text } = Typography;
+import { PublicSubscriptionPlanCard } from '../subscriptions/PublicSubscriptionPlanCard';
+import { UserContext } from '../../context/User';
 
 const HomeSubscriptionPlansSection = () => {
   const { t } = useTranslation();
+  const [userState] = useContext(UserContext);
+  const isAuthenticated = !!userState?.user;
   const [plans, setPlans] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -94,80 +90,14 @@ const HomeSubscriptionPlansSection = () => {
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8'>
-{plans.map(({ plan }) => {
-            const isRequestBilling = isRequestBasedSubscription(plan);
-            const accentClass = isRequestBilling
-              ? 'from-emerald-500/12 via-white to-teal-500/10 dark:from-emerald-900/20 dark:via-slate-900 dark:to-teal-900/20'
-              : 'from-sky-500/12 via-white to-indigo-500/10 dark:from-sky-900/20 dark:via-slate-900 dark:to-indigo-900/20';
-
-            return (
-              <Card
-                key={plan?.id}
-                shadows='hover'
-                className='!rounded-3xl h-full border border-semi-color-border overflow-hidden relative'
-                bodyStyle={{
-                  padding: 28,
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-                style={{
-                  background:
-                    'var(--semi-color-bg-0)',
-                }}
-              >
-                <div
-                  className={`absolute inset-0 pointer-events-none bg-gradient-to-br ${accentClass}`}
-                />
-                <div className='relative z-10 flex flex-col h-full'>
-                  <div className='flex items-start justify-between gap-3 mb-6'>
-                    <div>
-                      <Text strong className='!text-xl !text-semi-color-text-0'>
-                        {plan?.title || t('订阅套餐')}
-                      </Text>
-                      {plan?.subtitle ? (
-                        <Text
-                          type='tertiary'
-                          className='!block mt-2 !text-sm leading-6'
-                        >
-                          {plan.subtitle}
-                        </Text>
-                      ) : null}
-                    </div>
-                    <Tag
-                      color={isRequestBilling ? 'teal' : 'blue'}
-                      shape='circle'
-                    >
-                      {isRequestBilling ? t('按次计费') : t('按量计费')}
-                    </Tag>
-                  </div>
-
-                  <div className='mb-6'>
-                    <div className='text-sm text-semi-color-text-2 mb-2'>
-                      {t('实付金额')}
-                    </div>
-                    <div className='text-3xl font-bold text-semi-color-text-0'>
-                      {convertUSDToCurrency(Number(plan?.price_amount || 0), 2)}
-                    </div>
-                  </div>
-
-                  <HomeSubscriptionPlanMetrics plan={plan} t={t} />
-
-                  <div className='mt-auto'>
-                    <Link to='/console/subscriptions' className='block'>
-                      <Button
-                        theme='solid'
-                        type='primary'
-                        className='w-full !rounded-2xl'
-                      >
-                        {t('查看详情')}
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
+          {plans.map((record, index) => (
+            <PublicSubscriptionPlanCard
+              key={record?.plan?.id}
+              record={record}
+              isAuthenticated={isAuthenticated}
+              featured={index === 0 && plans.length > 1}
+            />
+          ))}
         </div>
       </div>
     </div>

@@ -1,0 +1,166 @@
+.classic-plan-model-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.classic-plan-model-description {
+  display: block;
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.classic-plan-model-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.classic-plan-model-groups a {
+  text-decoration: none;
+}
+
+.classic-plan-model-body {
+  min-height: 220px;
+}
+
+.classic-plan-model-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(48vh, 460px);
+  padding-right: 6px;
+  overflow-y: auto;
+}
+
+.classic-plan-model-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: 8px;
+  color: var(--semi-color-text-0);
+  background: var(--semi-color-bg-0);
+  text-decoration: none;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.classic-plan-model-row:hover {
+  transform: translateY(-1px);
+  border-color: var(--semi-color-primary);
+  color: var(--semi-color-text-0);
+  background: var(--semi-color-fill-0);
+}
+
+.classic-plan-model-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: 8px;
+  background: var(--semi-color-fill-0);
+}
+
+.classic-plan-model-initial {
+  color: var(--semi-color-text-2);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.classic-plan-model-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.classic-plan-model-name {
+  display: block;
+  overflow: hidden;
+  color: var(--semi-color-text-0);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.classic-plan-model-vendor {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--semi-color-text-2);
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.classic-plan-model-arrow {
+  flex-shrink: 0;
+  color: var(--semi-color-text-2);
+}
+
+.classic-plan-model-empty {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  gap: 12px;
+  border: 1px dashed var(--semi-color-border);
+  border-radius: 8px;
+  background: var(--semi-color-fill-0);
+}
+
+.classic-plan-model-empty-desc {
+  display: block;
+  margin-top: 6px;
+}
+
+.classic-plan-model-skeleton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 12px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: 8px;
+}
+
+.classic-plan-model-skeleton-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.classic-plan-model-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .classic-plan-model-modal .semi-modal {
+    width: calc(100vw - 24px) !important;
+    margin: 12px;
+  }
+
+  .classic-plan-model-list {
+    max-height: 52vh;
+  }
+
+  .classic-plan-model-footer {
+    flex-direction: column-reverse;
+  }
+
+  .classic-plan-model-footer .semi-button {
+    width: 100%;
+  }
+}

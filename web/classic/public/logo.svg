@@ -1,0 +1,21 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="innerPrism" x1="25" y1="18" x2="155" y2="162" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7FEE7"/>
+      <stop offset="0.55" stop-color="#BEF264"/>
+      <stop offset="1" stop-color="#67E8F9"/>
+    </linearGradient>
+    <linearGradient id="coreGlow" x1="58" y1="50" x2="122" y2="130" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7FEE7"/>
+      <stop offset="1" stop-color="#A3E635"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="90" cy="90" r="90" fill="#07110F"/>
+  <path d="M90 31L139 60V120L90 149L41 120V60L90 31Z" stroke="url(#innerPrism)" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M45 90H135" stroke="#F7FEE7" stroke-width="7" stroke-linecap="round"/>
+  <path d="M90 45V135" stroke="#F7FEE7" stroke-width="7" stroke-linecap="round"/>
+  <path d="M90 54L102 78L126 90L102 102L90 126L78 102L54 90L78 78L90 54Z" fill="#07110F"/>
+  <circle cx="90" cy="90" r="14" fill="url(#coreGlow)"/>
+  <circle cx="90" cy="90" r="5" fill="#F7FEE7"/>
+</svg>

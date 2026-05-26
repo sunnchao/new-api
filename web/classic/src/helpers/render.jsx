@@ -2506,6 +2506,7 @@ export function renderTieredModelPriceSimple(opts) {
         const l2 = normalizeLabel(matchedTier);
         return l1 === l2 && l1 !== '';
       });
+    const { requestRuleExpr } = splitBillingExprAndRequestRules(exprStr);
     const ruleGroups = tryParseRequestRuleExpr(requestRuleExpr || '');
 
   if (outputMode === 'segments') {

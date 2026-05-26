@@ -74,9 +74,10 @@ export const textColorMap = {
 export type StatusVariant = keyof typeof dotColorMap
 
 const sizeMap = {
-  sm: 'h-6 gap-1 px-2 text-sm leading-none',
-  md: 'h-6 gap-1 px-2 text-sm leading-none',
-  lg: 'h-7 gap-1.5 px-2.5 text-sm leading-none',
+  xs: 'h-6 gap-1 px-2.5 text-xs leading-none',
+  sm: 'h-6 gap-1 px-5 text-sm leading-none',
+  md: 'h-6 gap-1 px-5 text-sm leading-none',
+  lg: 'h-8 gap-1.5 px-7.5 text-sm leading-none',
 } as const
 
 const badgeSurfaceMap = {
@@ -114,7 +115,7 @@ export interface StatusBadgeProps extends Omit<
   /** Kept for compatibility. Badges no longer render leading dots. */
   showDot?: boolean
   variant?: StatusVariant | null
-  size?: 'sm' | 'md' | 'lg' | null
+  size?: 'xs' | 'sm' | 'md' | 'lg' | null
   copyable?: boolean
   copyText?: string
   autoColor?: string
@@ -125,7 +126,7 @@ export function StatusBadge({
   children,
   icon: Icon,
   variant,
-  size = 'sm',
+  size = 'xs',
   pulse = false,
   showDot = false,
   copyable = true,
@@ -156,7 +157,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        'inline-flex w-fit max-w-full shrink-0 items-center rounded-full font-medium tracking-normal whitespace-nowrap transition-colors',
+        'inline-flex w-fit max-w-full shrink-0 items-center rounded-full font-normal tracking-normal whitespace-nowrap transition-colors',
         sizeMap[size ?? 'sm'],
         badgeSurfaceMap[computedVariant],
         pulse && 'animate-pulse',

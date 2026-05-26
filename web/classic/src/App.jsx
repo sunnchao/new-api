@@ -28,6 +28,7 @@ import NotFound from './pages/NotFound';
 import Forbidden from './pages/Forbidden';
 import Setting from './pages/Setting';
 import { StatusContext } from './context/Status';
+import { parseHeaderNavModulesConfig } from './hooks/common/useNavigation';
 
 import PasswordResetForm from './components/auth/PasswordResetForm';
 import PasswordResetConfirm from './components/auth/PasswordResetConfirm';
@@ -59,10 +60,12 @@ import GeminiCodeTutorial from './pages/GeminiCode';
 import ClaudeCodeAdmin from './pages/ClaudeCode/Admin';
 import ClaudeCodeSubscription from './pages/ClaudeCode/Subscription';
 import OpenClawTutorial from './pages/OpenClaw';
+import SubscriptionPlans from './pages/SubscriptionPlans';
 
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
 const UserAgreement = lazy(() => import('./pages/UserAgreement'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
@@ -77,24 +80,18 @@ function App() {
 
   // 获取模型广场权限配置
   const pricingRequireAuth = useMemo(() => {
-    const headerNavModulesConfig = statusState?.status?.HeaderNavModules;
-    if (headerNavModulesConfig) {
-      try {
-        const modules = JSON.parse(headerNavModulesConfig);
+    const modules = parseHeaderNavModulesConfig(
+      statusState?.status?.HeaderNavModules,
+    );
+    return modules.pricing.requireAuth === true;
+  }, [statusState?.status?.HeaderNavModules]);
 
-        // 处理向后兼容性：如果pricing是boolean，默认不需要登录
-        if (typeof modules.pricing === 'boolean') {
-          return false; // 默认不需要登录鉴权
-        }
-
-        // 如果是对象格式，使用requireAuth配置
-        return modules.pricing?.requireAuth === true;
-      } catch (error) {
-        console.error('解析顶栏模块配置失败:', error);
-        return false; // 默认不需要登录
-      }
-    }
-    return false; // 默认不需要登录
+  // 获取订阅套餐页权限配置
+  const subscriptionsRequireAuth = useMemo(() => {
+    const modules = parseHeaderNavModulesConfig(
+      statusState?.status?.HeaderNavModules,
+    );
+    return modules.subscriptions.requireAuth === true;
   }, [statusState?.status?.HeaderNavModules]);
 
   return (
@@ -389,10 +386,37 @@ function App() {
           }
         />
         <Route
+          path='/subscription-plans'
+          element={
+            subscriptionsRequireAuth ? (
+              <PrivateRoute>
+                <Suspense
+                  fallback={<Loading></Loading>}
+                  key={location.pathname}
+                >
+                  <SubscriptionPlans />
+                </Suspense>
+              </PrivateRoute>
+            ) : (
+              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+                <SubscriptionPlans />
+              </Suspense>
+            )
+          }
+        />
+        <Route
           path='/about'
           element={
             <Suspense fallback={<Loading></Loading>} key={location.pathname}>
               <About />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/contact'
+          element={
+            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <Contact />
             </Suspense>
           }
         />

@@ -19,20 +19,92 @@ For commercial licensing, please contact support@quantumnous.com
 
 import { useMemo } from 'react';
 
+export const defaultHeaderNavModules = {
+  home: true,
+  console: true,
+  pricing: {
+    enabled: true,
+    requireAuth: false,
+  },
+  subscriptions: {
+    enabled: true,
+    requireAuth: false,
+  },
+  vibecoding: true,
+  docs: true,
+  about: true,
+  contact: true,
+};
+
+const accessModuleKeys = new Set(['pricing', 'subscriptions']);
+
+function normalizeAccessModule(value, fallback) {
+  if (typeof value === 'boolean') {
+    return {
+      enabled: value,
+      requireAuth: fallback.requireAuth,
+    };
+  }
+
+  if (value && typeof value === 'object') {
+    return {
+      enabled:
+        typeof value.enabled === 'boolean' ? value.enabled : fallback.enabled,
+      requireAuth:
+        typeof value.requireAuth === 'boolean'
+          ? value.requireAuth
+          : fallback.requireAuth,
+    };
+  }
+
+  return { ...fallback };
+}
+
+export function normalizeHeaderNavModules(rawModules) {
+  const normalized = {
+    ...defaultHeaderNavModules,
+    pricing: { ...defaultHeaderNavModules.pricing },
+    subscriptions: { ...defaultHeaderNavModules.subscriptions },
+  };
+
+  if (!rawModules || typeof rawModules !== 'object') {
+    return normalized;
+  }
+
+  Object.entries(rawModules).forEach(([key, value]) => {
+    if (accessModuleKeys.has(key)) {
+      normalized[key] = normalizeAccessModule(value, normalized[key]);
+      return;
+    }
+
+    if (typeof value === 'boolean') {
+      normalized[key] = value;
+    }
+  });
+
+  return normalized;
+}
+
+export function parseHeaderNavModulesConfig(rawConfig) {
+  if (!rawConfig) {
+    return normalizeHeaderNavModules(null);
+  }
+
+  if (typeof rawConfig === 'object') {
+    return normalizeHeaderNavModules(rawConfig);
+  }
+
+  try {
+    return normalizeHeaderNavModules(JSON.parse(rawConfig));
+  } catch (error) {
+    console.error('解析顶栏模块配置失败:', error);
+    return normalizeHeaderNavModules(null);
+  }
+}
+
 export const useNavigation = (t, docsLink, headerNavModules) => {
   const mainNavLinks = useMemo(() => {
-    // 默认配置，如果没有传入配置则显示所有模块
-    const defaultModules = {
-      home: true,
-      console: true,
-      pricing: true,
-      vibecoding: true,
-      docs: true,
-      about: true,
-    };
-
-    // 使用传入的配置或默认配置
-    const modules = headerNavModules || defaultModules;
+    const modules = normalizeHeaderNavModules(headerNavModules);
 
     const allLinks = [
       {
@@ -49,6 +121,11 @@ export const useNavigation = (t, docsLink, headerNavModules) => {
         text: t('模型广场'),
         itemKey: 'pricing',
         to: '/pricing',
+      },
+      {
+        text: t('订阅广场'),
+        itemKey: 'subscriptions',
+        to: '/subscription-plans',
       },
       {
         text: 'VibeCoding',
@@ -97,6 +174,11 @@ export const useNavigation = (t, docsLink, headerNavModules) => {
         itemKey: 'about',
         to: '/about',
       },
+      {
+        text: t('联系我们'),
+        itemKey: 'contact',
+        to: '/contact',
+      },
     ];
 
     // 根据配置过滤导航链接
@@ -109,6 +191,11 @@ export const useNavigation = (t, docsLink, headerNavModules) => {
         return typeof modules.pricing === 'object'
           ? modules.pricing.enabled
           : modules.pricing;
+      }
+      if (link.itemKey === 'subscriptions') {
+        return typeof modules.subscriptions === 'object'
+          ? modules.subscriptions.enabled
+          : modules.subscriptions;
       }
       if (link.itemKey === 'vibecoding') {
         return modules.vibecoding !== false;

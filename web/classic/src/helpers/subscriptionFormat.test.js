@@ -7,6 +7,7 @@ import {
   filterHomepageSubscriptionPlans,
   formatSubscriptionUsageSummary,
   formatSubscriptionAmountValue,
+  formatSubscriptionResetMode,
   formatSubscriptionTotalValue,
   formatSubscriptionQuotaLimitSummary,
   getSubscriptionUsageMetrics,
@@ -131,6 +132,10 @@ test('request-based amount formatting ignores approximate request counts', () =>
     ),
     '12 次',
   );
+});
+
+test('anchor reset mode uses the shorter anchor cycle label', () => {
+  assert.equal(formatSubscriptionResetMode('anchor', t), '锚点周期');
 });
 
 test('request-based limit summary uses count units', () => {

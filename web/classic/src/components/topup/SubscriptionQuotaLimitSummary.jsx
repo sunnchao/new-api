@@ -22,7 +22,6 @@ import { renderQuota } from '../../helpers';
 import {
   formatSubscriptionAmountValue,
   getSubscriptionQuotaLimitTitle,
-  formatSubscriptionResetMode,
   getSubscriptionQuotaLimitItems,
   formatSubscriptionUsageSummary,
 } from '../../helpers/subscriptionFormat';
@@ -79,9 +78,6 @@ const SubscriptionQuotaLimitSummary = ({
                       approximateTimes: item.approximateTimes,
                     },
                   )}
-                </Tag>
-                <Tag size='small' color='white'>
-                  {formatSubscriptionResetMode(item.mode, t)}
                 </Tag>
               </div>
 

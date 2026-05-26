@@ -26,7 +26,7 @@ export function formatSubscriptionResetMode(mode, t, options = {}) {
   if (options.short) {
     return normalized === 'natural' ? t('自然') : t('锚点');
   }
-  return normalized === 'natural' ? t('自然周期') : t('订阅锚点周期');
+  return normalized === 'natural' ? t('自然周期') : t('锚点周期');
 }
 
 export function formatSubscriptionResetPeriod(plan, t, options = {}) {
@@ -42,17 +42,6 @@ export function formatSubscriptionResetPeriod(plan, t, options = {}) {
       label = `${Math.floor(seconds / 3600)} ${t('小时')}`;
     else if (seconds >= 60) label = `${Math.floor(seconds / 60)} ${t('分钟')}`;
     else label = `${seconds} ${t('秒')}`;
-  }
-
-  const includeMode = options.includeMode !== false;
-  if (includeMode && ['daily', 'weekly', 'monthly'].includes(period)) {
-    return `${label} · ${formatSubscriptionResetMode(
-      plan?.quota_reset_mode,
-      t,
-      {
-        short: options.shortMode,
-      },
-    )}`;
   }
   return label;
 }
@@ -291,11 +280,6 @@ export function formatSubscriptionQuotaLimitItemText(
   renderQuota,
   options = {},
 ) {
-  const includeMode = options.includeMode !== false;
-  const modeSuffix = includeMode
-    ? ` · ${formatSubscriptionResetMode(item.mode, t, { short: true })}`
-    : '';
-
   return `${item.label} ${formatSubscriptionAmountValue(
     item.amount,
     item,
@@ -304,7 +288,7 @@ export function formatSubscriptionQuotaLimitItemText(
     {
       approximateTimes: item.approximateTimes,
     },
-  )}${modeSuffix}`;
+  )}`;
 }
 
 export function formatSubscriptionTotalValue(

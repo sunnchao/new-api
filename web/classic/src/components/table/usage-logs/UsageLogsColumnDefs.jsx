@@ -542,19 +542,17 @@ export const getLogsColumns = ({
         return isAdminUser &&
           (record.type === 0 ||
             record.type === 2 ||
-            record.type === 6 || record.type === 7 || record.type === 9) ? (
+            record.type === 6 || record.type === 7 || record.type === 9) ? [
           <Space>
             <span style={{ position: 'relative', display: 'inline-block' }}>
-              <Tooltip content={record.channel_name || t('未知渠道')}>
-                <span>
-                  <Tag
-                    color={colors[parseInt(text) % colors.length]}
-                    shape='circle'
-                  >
-                    {text}
-                  </Tag>
-                </span>
-              </Tooltip>
+              <span>
+                <Tag
+                  color={colors[parseInt(text) % colors.length]}
+                  shape='circle'
+                >
+                  {text}
+                </Tag>
+              </span>
               {showMarker && (
                 <Tooltip
                   content={
@@ -594,13 +592,31 @@ export const getLogsColumns = ({
                 </Tooltip>
               )}
             </span>
+            
             {isMultiKey && (
               <Tag color='white' shape='circle'>
                 {multiKeyIndex}
               </Tag>
             )}
-          </Space>
-        ) : null;
+            
+          </Space>,
+          <Typography.Text
+          key={`${record.channel_name}-${index}`}
+          type={record.channel_name ? 'tertiary' : undefined}
+          size={record.channel_name ? 'small' : undefined}
+          style={{
+            display: 'block',
+            maxWidth: '100%',
+            fontSize: 12,
+            marginTop: index === 0 ? 0 : 2,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {record.channel_name || t('未知渠道')}
+        </Typography.Text> 
+        ] : null;
       },
     },
     {

@@ -20,11 +20,15 @@ For commercial licensing, please contact support@quantumnous.com
 import React from 'react';
 import { Banner } from '@douyinfe/semi-ui';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import SubscriptionPlansCard from '../../components/topup/SubscriptionPlansCard';
 import useSubscriptionCenterData from '../../hooks/subscription/useSubscriptionCenterData';
+import { SUBSCRIPTION_CHECKOUT_PARAM } from '../../helpers/subscriptionRouting';
 
 const MySubscriptionsPage = () => {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const autoOpenPlanId = searchParams.get(SUBSCRIPTION_CHECKOUT_PARAM) || '';
   const {
     loading,
     error,
@@ -61,6 +65,12 @@ const MySubscriptionsPage = () => {
           allSubscriptions={allSubscriptions}
           reloadSubscriptionSelf={reloadSubscriptionSelf}
           reloadUserQuota={reloadUserQuota}
+          autoOpenPlanId={autoOpenPlanId}
+          onAutoOpenConsumed={() => {
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete(SUBSCRIPTION_CHECKOUT_PARAM);
+            setSearchParams(nextParams, { replace: true });
+          }}
         />
       </div>
     </div>

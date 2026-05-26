@@ -40,7 +40,6 @@ import CardTable from '../../common/ui/CardTable';
 import { useTableCompactMode } from '../../../hooks/common/useTableCompactMode.js';
 import {
   formatSubscriptionQuotaLimitItemText,
-  formatSubscriptionResetMode,
   getSubscriptionQuotaLimitItems,
   getSubscriptionQuotaLimitTitle,
   getSubscriptionTotalLabel,
@@ -480,11 +479,6 @@ const SubscriptionOverviewPage = () => {
                             <Text ellipsis={{ showTooltip: true }}>
                               {item.label}
                             </Text>
-                            <Tag size='small' color='white' shape='circle'>
-                              {formatSubscriptionResetMode(item.mode, t, {
-                                short: true,
-                              })}
-                            </Tag>
                           </div>
                           <Text type='secondary' size='small'>
                             {metrics.remainText}/{metrics.totalText}
