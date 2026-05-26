@@ -348,9 +348,14 @@ export function getSubscriptionUsageMetrics(
   const totalValue = Number(total || 0);
   const isUnlimited = totalValue <= 0;
   const remainValue = isUnlimited ? 0 : Math.max(0, totalValue - usedValue);
+  const rawPercent = isUnlimited
+    ? 0
+    : Math.max(0, parseFloat(((usedValue / totalValue) * 100).toFixed(2)));
   const percent = isUnlimited
     ? 0
-    : Math.max(0, Math.min(100, Math.round((usedValue / totalValue) * 100)));
+    : remainValue > 0
+      ? Math.min(99.99, rawPercent)
+      : Math.min(100, rawPercent);
   const summary = formatSubscriptionUsageSummary(
     {
       used: usedValue,

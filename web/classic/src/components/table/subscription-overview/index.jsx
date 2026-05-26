@@ -31,7 +31,6 @@ import {
   Popover,
   Progress,
   Divider,
-  Badge,
   Tooltip,
 } from '@douyinfe/semi-ui';
 import { IconRefresh, IconSearch, IconFilter } from '@douyinfe/semi-icons';
@@ -39,9 +38,7 @@ import { API, renderQuota, showError, showSuccess } from '../../../helpers';
 import CardTable from '../../common/ui/CardTable';
 import { useTableCompactMode } from '../../../hooks/common/useTableCompactMode.js';
 import {
-  formatSubscriptionQuotaLimitItemText,
   getSubscriptionQuotaLimitItems,
-  getSubscriptionQuotaLimitTitle,
   getSubscriptionTotalLabel,
   getSubscriptionUsageMetrics,
   isRequestBasedSubscription,
@@ -436,7 +433,7 @@ const SubscriptionOverviewPage = () => {
       },
       {
         title: t('额度限制'),
-        width: 260,
+        width: 320,
         render: (_, record) => {
           const limitItems = getSubscriptionQuotaLimitItems(record, t);
           if (limitItems.length === 0) {
@@ -455,126 +452,45 @@ const SubscriptionOverviewPage = () => {
               renderQuota,
             ),
           }));
-          const visibleItems = itemsWithMetrics.slice(0, 3);
-          const hiddenCount = itemsWithMetrics.length - visibleItems.length;
 
           return (
-            <Popover
-              content={
-                <div style={{ width: 300 }}>
-                  <div className='flex items-center gap-2 mb-2'>
-                    <Text strong>
-                      {getSubscriptionQuotaLimitTitle(record, t)}
-                    </Text>
-                    <Tag color='orange' size='small' shape='circle'>
-                      {limitItems.length} {t('项')}
-                    </Tag>
-                  </div>
-                  <Space vertical spacing={10} style={{ width: '100%' }}>
-                    {itemsWithMetrics.map(({ item, metrics }) => (
-                      <div key={`${record.id}-${item.key}`}>
-                        <div className='flex items-center justify-between gap-3 mb-1'>
-                          <div className='flex items-center gap-2 min-w-0'>
-                            <Badge dot type='warning' />
-                            <Text ellipsis={{ showTooltip: true }}>
-                              {item.label}
-                            </Text>
-                          </div>
-                          <Text type='secondary' size='small'>
-                            {metrics.remainText}/{metrics.totalText}
-                          </Text>
-                        </div>
-                        <Progress
-                          percent={metrics.percent}
-                          size='small'
-                          showInfo={false}
-                          stroke={getUsageStroke(metrics.percent)}
-                        />
-                        <div className='mt-1 text-xs text-gray-500'>
-                          <span>
-                            {t('已用')} {metrics.usedText}
-                          </span>
-                          <span className='mx-2'>·</span>
-                          <span>
-                            {t('剩余')} {metrics.remainText}
-                          </span>
-                          {item.nextResetTime > 0 && (
-                            <>
-                              <span className='mx-2'>·</span>
-                              <span>
-                                {t('下一次重置')}{' '}
-                                {formatDate(
-                                  item.nextResetTime,
-                                  currentLanguage,
-                                )}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </Space>
-                </div>
-              }
-              position='rightTop'
-              showArrow
-            >
-              <div
-                className='cursor-pointer'
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 6,
-                  alignItems: 'center',
-                  maxWidth: 240,
-                }}
-              >
-                {visibleItems.map(({ item, metrics }) => {
-                  const fullText = formatSubscriptionQuotaLimitItemText(
-                    item,
-                    t,
-                    renderQuota,
-                  );
-                  const tagText = `${item.label} ${metrics.remainText}/${metrics.totalText}`;
-                  return (
+            <Space vertical spacing={8} style={{ width: '100%' }}>
+              {itemsWithMetrics.map(({ item, metrics }) => (
+                <div key={`${record.id}-${item.key}`} style={{ width: '100%' }}>
+                  <div className='flex items-center justify-between gap-2 mb-1'>
                     <Tag
-                      key={`${record.id}-${item.key}`}
                       size='small'
                       color={LIMIT_COLOR_MAP[item.key] || 'grey'}
                       type='light'
                       shape='circle'
-                      style={{
-                        maxWidth: '100%',
-                        minWidth: 0,
-                        margin: 0,
-                      }}
                     >
-                      <Tooltip
-                        content={`${fullText} · ${t('已用')} ${metrics.usedText}`}
-                      >
-                        <Text
-                          ellipsis={{ showTooltip: false }}
-                          style={{
-                            display: 'block',
-                            color: 'inherit',
-                            maxWidth: '100%',
-                            overflow: 'hidden',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {tagText}
-                        </Text>
-                      </Tooltip>
+                      {item.label}
                     </Tag>
-                  );
-                })}
-                {hiddenCount > 0 && (
-                  <Tag size='small' color='grey' type='light' shape='circle'>
-                    +{hiddenCount}
-                  </Tag>
-                )}
-              </div>
-            </Popover>
+                    <Text type='secondary' size='small'>
+                      {metrics.remainText}/{metrics.totalText}
+                      <Text type='tertiary' size='small' style={{ marginLeft: 4 }}>
+                        ({metrics.percent}%)
+                      </Text>
+                    </Text>
+                  </div>
+                  <Progress
+                    percent={metrics.percent}
+                    size='small'
+                    showInfo={false}
+                    stroke={getUsageStroke(metrics.percent)}
+                  />
+                  {item.nextResetTime > 0 && (
+                    <Text
+                      type='tertiary'
+                      size='small'
+                      style={{ display: 'block', marginTop: 2 }}
+                    >
+                      {t('下一次重置')}：{formatDate(item.nextResetTime, currentLanguage)}
+                    </Text>
+                  )}
+                </div>
+              ))}
+            </Space>
           );
         },
       },
