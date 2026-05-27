@@ -627,7 +627,11 @@ export const getEffectiveModelBillingContext = ({
   let usedGroup = selectedGroup;
   let usedGroupRatio = groupRatio[selectedGroup];
 
-  if (selectedGroup === 'all' || usedGroupRatio === undefined) {
+  if (selectedGroup === 'all') {
+    // 全部分组视图：使用默认 1 倍率
+    usedGroup = null;
+    usedGroupRatio = 1;
+  } else if (usedGroupRatio === undefined) {
     // 在模型可用分组中选择倍率最小的分组，若无则使用 1
     let minRatio = Number.POSITIVE_INFINITY;
     if (
@@ -644,7 +648,6 @@ export const getEffectiveModelBillingContext = ({
       });
     }
 
-    // 如果找不到合适分组倍率，回退为 1
     if (usedGroupRatio === undefined) {
       usedGroupRatio = 1;
     }

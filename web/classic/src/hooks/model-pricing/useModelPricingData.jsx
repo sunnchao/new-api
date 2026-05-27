@@ -332,7 +332,7 @@ export const useModelPricingData = () => {
     setSelectedGroup(group);
     setFilterGroup(group);
     if (group === 'all') {
-      showInfo(t('已切换至最优倍率视图，每个模型使用其最低倍率分组'));
+      showInfo(t('已切换至全部分组视图，使用默认 1 倍率显示'));
     } else {
       showInfo(
         t('当前查看的分组为：{{group}}，倍率为：{{ratio}}', {
