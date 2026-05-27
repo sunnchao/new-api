@@ -560,7 +560,7 @@ const SubscriptionOverviewPage = () => {
         render: (_, record) => (
           <Space>
             <Button
-              type='danger'
+              type='warning'
               size='small'
               disabled={
                 record.status === 'expired' ||
