@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useEffect } from 'react'
-import { Crown, CalendarClock, Wallet } from 'lucide-react'
+import { Crown, CalendarClock, Wallet, Package } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { DEFAULT_CURRENCY_CONFIG } from '@/stores/system-config-store'
@@ -45,7 +45,6 @@ import {
   paySubscriptionStripe,
   paySubscriptionCreem,
   paySubscriptionEpay,
-  paySubscriptionBalance,
   paySubscriptionWaffoPancake,
   paySubscriptionBalance,
 } from '../../api'
@@ -342,13 +341,13 @@ export function SubscriptionPurchaseDialog(props: Props) {
                 <AlertDescription>{t('Insufficient balance')}</AlertDescription>
               </Alert>
             )}
-            <Button
-              variant='outline'
-              onClick={handlePayBalance}
-              disabled={paying || limitReached || insufficientBalance}
-            >
-              {t('Pay with Balance')}
-            </Button>
+            {/*<Button*/}
+            {/*  variant='outline'*/}
+            {/*  onClick={handlePayBalance}*/}
+            {/*  disabled={paying || limitReached || insufficientBalance}*/}
+            {/*>*/}
+            {/*  {t('Pay with Balance')}*/}
+            {/*</Button>*/}
           </div>
 
           {hasAnyPayment && (

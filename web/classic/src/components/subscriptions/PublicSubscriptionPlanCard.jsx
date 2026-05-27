@@ -77,6 +77,7 @@ export function PublicSubscriptionPlanCard({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [hovered, setHovered] = useState(false);
   const [modelsOpen, setModelsOpen] = useState(false);
   const plan = record?.plan;
   if (!plan) return null;
@@ -163,7 +164,11 @@ export function PublicSubscriptionPlanCard({
 
   return (
     <>
-      <article className={`classic-plan-card${featured ? ' is-featured' : ''}`}>
+      <article
+        className={`classic-plan-card${featured ? ' is-featured' : ''}`}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
         <div className='classic-plan-card-header'>
           <div className='classic-plan-title-block'>
             <Title

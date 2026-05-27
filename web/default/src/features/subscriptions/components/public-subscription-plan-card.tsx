@@ -245,7 +245,7 @@ export function PublicSubscriptionPlanCard({
                 <TooltipTrigger render={<div className='w-full' />}>
                   <Button
                     type='button'
-                    className='w-full min-w-0'
+                    className='h-9 w-full min-w-0'
                     variant={isHome && !featured ? 'outline' : 'default'}
                     disabled
                   >
@@ -261,7 +261,7 @@ export function PublicSubscriptionPlanCard({
             ) : (
               <Button
                 type='button'
-                className='w-full min-w-0'
+                className='h-9 w-full min-w-0'
                 variant={isHome && !featured ? 'outline' : 'default'}
                 onClick={actionOverride.onClick}
                 disabled={actionOverride.disabled}
@@ -276,8 +276,8 @@ export function PublicSubscriptionPlanCard({
             )
           ) : (
             <Button
-              className='w-full min-w-0'
-              variant={isHome && !featured ? 'outline' : 'default'}
+              className='h-9 w-full min-w-0'
+              variant={isHome && !featured ? 'outline' : 'outline'}
               render={<Link to={action.to} />}
             >
               <span className='min-w-0 truncate'>{t(action.labelKey)}</span>
