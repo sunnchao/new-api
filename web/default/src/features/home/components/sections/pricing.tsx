@@ -57,7 +57,7 @@ export function Pricing(_props: PricingProps) {
         }}
       />
 
-      <div className='mx-auto max-w-5xl'>
+      <div className='mx-auto max-w-6xl'>
         <AnimateInView className='mb-16 text-center' animation='fade-up'>
           <h2 className='text-3xl font-bold tracking-tight md:text-4xl'>
             {t('Choose Your Plan')}

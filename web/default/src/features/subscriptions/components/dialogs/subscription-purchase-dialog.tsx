@@ -165,30 +165,6 @@ export function SubscriptionPurchaseDialog(props: Props) {
     }
   }
 
-  const handlePayBalance = async () => {
-    setPaying(true)
-    try {
-      const res = await paySubscriptionBalance({ plan_id: plan.id })
-      if (res.message === 'success') {
-        toast.success(t('Purchase successful'))
-        props.onPaymentSuccess?.()
-        props.onOpenChange(false)
-      } else {
-        const errMsg =
-          typeof res.data === 'string'
-            ? res.data
-            : res.message && res.message !== 'success'
-              ? res.message
-              : t('Payment request failed')
-        toast.error(errMsg)
-      }
-    } catch {
-      toast.error(t('Payment request failed'))
-    } finally {
-      setPaying(false)
-    }
-  }
-
   // In-tab redirect (not window.open) — user-gesture context is lost
   // across the await, so a popup would be blocked. Same as the wallet hook.
   const handlePayWaffoPancake = async () => {
