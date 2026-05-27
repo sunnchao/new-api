@@ -46,6 +46,7 @@ const PricingTable = ({
   openModelDetail,
   t,
   groupModelBilling = {},
+  modelHealthMap = {},
 }) => {
   const columns = useMemo(() => {
     return getPricingTableColumns({
@@ -61,6 +62,7 @@ const PricingTable = ({
       displayPrice,
       showRatio,
       groupModelBilling,
+      modelHealthMap,
     });
   }, [
     t,
@@ -75,6 +77,7 @@ const PricingTable = ({
     displayPrice,
     showRatio,
     groupModelBilling,
+    modelHealthMap,
   ]);
 
   // 更新列定义中的 searchValue

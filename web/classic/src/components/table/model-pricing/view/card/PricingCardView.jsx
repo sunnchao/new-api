@@ -46,6 +46,7 @@ import TierPricingBadge from './TierPricingBadge';
 import { useMinimumLoadingTime } from '../../../../../hooks/common/useMinimumLoadingTime';
 import { renderLimitedItems } from '../../../../common/ui/RenderUtils';
 import { useIsMobile } from '../../../../../hooks/common/useIsMobile';
+import ModelHealthBadge from '../../../../health/ModelHealthBadge';
 
 const CARD_STYLES = {
   container:
@@ -79,6 +80,7 @@ const PricingCardView = ({
   openModelDetail,
   tierPricingConfig,
   groupModelBilling = {},
+  modelHealthMap = {},
 }) => {
   const showSkeleton = useMinimumLoadingTime(loading);
   const startIndex = (currentPage - 1) * pageSize;
@@ -281,9 +283,16 @@ const PricingCardView = ({
                   <div className='flex items-start space-x-3 flex-1 min-w-0'>
                     {getModelIcon(model)}
                     <div className='flex-1 min-w-0'>
-                      <h3 className='text-lg font-bold text-gray-900 truncate'>
-                        {model.model_name}
-                      </h3>
+                      <div className='flex items-center gap-1.5'>
+                        <ModelHealthBadge
+                          health={modelHealthMap[model.model_name]}
+                          modelName={model.model_name}
+                          size='small'
+                        />
+                        <h3 className='text-lg font-bold text-gray-900 truncate'>
+                          {model.model_name}
+                        </h3>
+                      </div>
                       <div className='flex flex-col gap-1 text-xs mt-1'>
                         {priceData.isDynamicPricing ? (
                           formatDynamicPriceSummary(priceData.billingExpr, t, priceData.usedGroupRatio)
@@ -340,6 +349,18 @@ const PricingCardView = ({
                   )}
                   {/* 标签区域 */}
                   {renderTags(model, priceData)}
+
+                  {/* 性能健康指标 */}
+                  {modelHealthMap[model.model_name] && (
+                    <div className='pt-2'>
+                      <ModelHealthBadge
+                        health={modelHealthMap[model.model_name]}
+                        modelName={model.model_name}
+                        size='default'
+                        showTooltip={false}
+                      />
+                    </div>
+                  )}
 
                   {/* 倍率信息（可选） */}
                   {showRatio && (

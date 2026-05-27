@@ -17,8 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React from 'react';
-import { SideSheet, Typography, Button, Divider } from '@douyinfe/semi-ui';
+import React, { useState } from 'react';
+import { SideSheet, Typography, Button, Divider, TabPane, Tabs } from '@douyinfe/semi-ui';
 import { IconClose } from '@douyinfe/semi-icons';
 
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
@@ -27,6 +27,7 @@ import ModelBasicInfo from './components/ModelBasicInfo';
 import ModelEndpoints from './components/ModelEndpoints';
 import ModelPricingTable from './components/ModelPricingTable';
 import DynamicPricingBreakdown from './components/DynamicPricingBreakdown';
+import ModelPerformancePanel from '../../../health/ModelPerformancePanel';
 
 const { Text } = Typography;
 
@@ -48,6 +49,7 @@ const ModelDetailSideSheet = ({
   groupModelBilling = {},
 }) => {
   const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState('overview');
 
   return (
     <SideSheet
@@ -80,35 +82,35 @@ const ModelDetailSideSheet = ({
           </div>
         )}
         {modelData && (
-          <>
-            <div style={{ padding: '0 24px' }}>
-              <ModelBasicInfo
-                modelData={modelData}
-                vendorsMap={vendorsMap}
-                t={t}
-              />
-            </div>
-            <Divider margin={16} />
-            <div style={{ padding: '0 24px' }}>
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            style={{ padding: '0 24px' }}
+          >
+            <TabPane tab={t('概览')} itemKey='overview'>
+              <div style={{ paddingTop: 12 }}>
+                <ModelBasicInfo
+                  modelData={modelData}
+                  vendorsMap={vendorsMap}
+                  t={t}
+                />
+              </div>
+              <Divider margin={16} />
               <ModelEndpoints
                 modelData={modelData}
                 endpointMap={endpointMap}
                 t={t}
               />
-            </div>
-            {modelData.billing_mode === 'tiered_expr' && modelData.billing_expr && (
-              <>
-                <Divider margin={16} />
-                <div style={{ padding: '0 24px' }}>
+              {modelData.billing_mode === 'tiered_expr' && modelData.billing_expr && (
+                <>
+                  <Divider margin={16} />
                   <DynamicPricingBreakdown
                     billingExpr={modelData.billing_expr}
                     t={t}
                   />
-                </div>
-              </>
-            )}
-            <Divider margin={16} />
-            <div style={{ padding: '0 24px' }}>
+                </>
+              )}
+              <Divider margin={16} />
               <ModelPricingTable
                 modelData={modelData}
                 groupRatio={groupRatio}
@@ -122,9 +124,13 @@ const ModelDetailSideSheet = ({
                 t={t}
                 groupModelBilling={groupModelBilling}
               />
-            </div>
-            <Divider margin={16} />
-          </>
+            </TabPane>
+            <TabPane tab={t('性能')} itemKey='performance'>
+              <div style={{ paddingTop: 12 }}>
+                <ModelPerformancePanel modelName={modelData.model_name} />
+              </div>
+            </TabPane>
+          </Tabs>
         )}
       </div>
     </SideSheet>

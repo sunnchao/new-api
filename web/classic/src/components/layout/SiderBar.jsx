@@ -181,6 +181,12 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         className: isAdmin() ? '' : 'tableHiddle',
       },
       {
+        text: t('health.dashboard.title'),
+        itemKey: 'health',
+        to: '/console/health',
+        className: isAdmin() ? '' : 'tableHiddle',
+      },
+      {
         text: t('兑换码管理'),
         itemKey: 'redemption',
         to: '/redemption',

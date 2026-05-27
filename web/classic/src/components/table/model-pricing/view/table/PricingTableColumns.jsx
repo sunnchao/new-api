@@ -32,6 +32,7 @@ import {
   renderDescription,
 } from '../../../../common/ui/RenderUtils';
 import { useIsMobile } from '../../../../../hooks/common/useIsMobile';
+import ModelHealthBadge from '../../../../health/ModelHealthBadge';
 
 function renderQuotaType(type, t) {
   switch (type) {
@@ -114,6 +115,7 @@ export const getPricingTableColumns = ({
   displayPrice,
   showRatio,
   groupModelBilling = {},
+  modelHealthMap = {},
 }) => {
   const isMobile = useIsMobile();
   const priceDataCache = new WeakMap();
@@ -191,6 +193,18 @@ export const getPricingTableColumns = ({
 
   const baseColumns = [
     modelNameColumn,
+    {
+      title: ' ',
+      dataIndex: 'model_name',
+      width: 40,
+      render: (text) => (
+        <ModelHealthBadge
+          health={modelHealthMap[text]}
+          modelName={text}
+          size='small'
+        />
+      ),
+    },
     vendorColumn,
     descriptionColumn,
     tagsColumn,

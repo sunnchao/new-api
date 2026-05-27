@@ -23,10 +23,12 @@ import PricingSidebar from './PricingSidebar';
 import PricingContent from './content/PricingContent';
 import ModelDetailSideSheet from '../modal/ModelDetailSideSheet';
 import { useModelPricingData } from '../../../../hooks/model-pricing/useModelPricingData';
+import { useModelPricingHealth } from '../../../../hooks/model-pricing/useModelPricingHealth';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 
 const PricingPage = () => {
   const pricingData = useModelPricingData();
+  const { modelHealthMap } = useModelPricingHealth(pricingData.models);
   const { Sider, Content } = Layout;
   const isMobile = useIsMobile();
   const [showRatio, setShowRatio] = React.useState(true);
@@ -40,6 +42,7 @@ const PricingPage = () => {
     setShowRatio,
     viewMode,
     setViewMode,
+    modelHealthMap,
   };
 
   return (

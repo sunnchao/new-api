@@ -29,6 +29,7 @@ import ApiInfoPanel from './ApiInfoPanel';
 import AnnouncementsPanel from './AnnouncementsPanel';
 import FaqPanel from './FaqPanel';
 import UptimePanel from './UptimePanel';
+import PerformanceHealthSummaryPanel from './PerformanceHealthSummaryPanel';
 import SearchModal from './modals/SearchModal';
 
 import { useDashboardData } from '../../hooks/dashboard/useDashboardData';
@@ -219,7 +220,7 @@ const Dashboard = () => {
       </div>
 
       {/* 系统公告和常见问答卡片 */}
-      {dashboardData.hasInfoPanels && (
+      {(dashboardData.hasInfoPanels || true) && (
         <div className='mb-4'>
           <div className='grid grid-cols-1 lg:grid-cols-4 gap-4'>
             {/* 公告卡片 */}
@@ -276,6 +277,9 @@ const Dashboard = () => {
                 t={dashboardData.t}
               />
             )}
+
+            {/* 性能健康概览卡片 */}
+            <PerformanceHealthSummaryPanel t={dashboardData.t} />
           </div>
         </div>
       )}

@@ -61,6 +61,7 @@ import ClaudeCodeAdmin from './pages/ClaudeCode/Admin';
 import ClaudeCodeSubscription from './pages/ClaudeCode/Subscription';
 import OpenClawTutorial from './pages/OpenClaw';
 import SubscriptionPlans from './pages/SubscriptionPlans';
+import Health from './pages/Health';
 
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -127,6 +128,14 @@ function App() {
           element={
             <AdminRoute>
               <ModelDeploymentPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path='/console/health'
+          element={
+            <AdminRoute>
+              <Health />
             </AdminRoute>
           }
         />
