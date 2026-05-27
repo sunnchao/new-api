@@ -109,7 +109,7 @@ const SubscriptionOverviewPage = () => {
   const [planIdFilter, setPlanIdFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
 
   // Operations
   const [operatingId, setOperatingId] = useState(null);
@@ -689,7 +689,6 @@ const SubscriptionOverviewPage = () => {
           </Space>
         </div>
       )}
-
       <CardTable
         columns={columns}
         dataSource={subscriptions}
