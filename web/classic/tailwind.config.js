@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     colors: {
@@ -142,6 +143,16 @@ export default {
         'semi-border-radius-large': 'var(--semi-border-radius-large)',
         'semi-border-radius-circle': 'var(--semi-border-radius-circle)',
         'semi-border-radius-full': 'var(--semi-border-radius-full)',
+      },
+      colors: {
+        foreground: 'rgb(var(--foreground-rgb) / <alpha-value>)',
+        'muted-foreground': 'rgb(var(--muted-foreground-rgb) / <alpha-value>)',
+        muted: 'rgb(var(--muted-rgb) / <alpha-value>)',
+        border: 'rgb(var(--border-rgb) / <alpha-value>)',
+        background: 'rgb(var(--background-rgb) / <alpha-value>)',
+      },
+      backdropBlur: {
+        xs: '2px',
       },
     },
   },

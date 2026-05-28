@@ -39,6 +39,13 @@
     --v3-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
     --v3-backdrop: blur(16px);
     --v3-bg-0: #f8fafc;
+
+    /* ==================== Shadcn-style design tokens ==================== */
+    --foreground-rgb: 15 23 42;
+    --muted-foreground-rgb: 100 116 139;
+    --muted-rgb: 241 245 249;
+    --border-rgb: 226 232 240;
+    --background-rgb: 255 255 255;
 }
 
 body.sidebar-collapsed {
@@ -52,6 +59,13 @@ html.dark {
     --v3-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 18px 54px rgba(0, 0, 0, 0.7);
     --v3-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.6);
     --v3-bg-0: #0b1220;
+
+    /* Shadcn-style design tokens (dark) */
+    --foreground-rgb: 248 250 252;
+    --muted-foreground-rgb: 148 163 184;
+    --muted-rgb: 30 41 59;
+    --border-rgb: 51 65 85;
+    --background-rgb: 2 6 23;
 }
 
 body {
@@ -792,6 +806,30 @@ html.dark .sbg-variant-green {
 
 .semi-scrolllist-list-outer {
     padding-right: 0 !important;
+}
+
+/* ==================== Landing page fade-up animation ==================== */
+@keyframes landing-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.landing-animate-fade-up {
+    animation: landing-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-animate-fade-up {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
 }
 
 /* ==================== Banner 背景模糊球 ==================== */
