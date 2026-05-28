@@ -49,7 +49,7 @@ const UptimePanel = ({
   return (
     <Card
       {...CARD_PROPS}
-      className='shadow-sm !rounded-2xl lg:col-span-1'
+      className='shadow-sm !rounded-2xl lg:col-span-2'
       title={
         <div className='flex items-center justify-between w-full gap-2'>
           <div className='flex items-center gap-2'>

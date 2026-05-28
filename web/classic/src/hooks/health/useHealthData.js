@@ -5,6 +5,7 @@ import {
   deriveAvgLatency,
   HEALTH_STATUS,
 } from '../../constants/health.constants';
+import { normalizeHealthModelsPayload } from './useHealthDataUtils';
 
 export function useHealthData() {
   const [models, setModels] = useState([]);
@@ -21,7 +22,7 @@ export function useHealthData() {
       ]);
 
       if (modelsRes.data?.success) {
-        setModels(modelsRes.data.data || []);
+        setModels(normalizeHealthModelsPayload(modelsRes.data.data));
       }
       if (channelsRes.data?.success && channelsRes.data?.data?.items) {
         setChannels(channelsRes.data.data.items);
