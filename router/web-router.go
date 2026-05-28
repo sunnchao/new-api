@@ -40,7 +40,7 @@ func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 		if common.GetTheme() == "classic" {
 			c.Data(http.StatusOK, "text/html; charset=utf-8", assets.ClassicIndexPage)
 		} else {
-			c.Data(http.StatusOK, "text/html; charset=utf-8", assets.ClassicIndexPage)
+			c.Data(http.StatusOK, "text/html; charset=utf-8", assets.DefaultIndexPage)
 		}
 	})
 }
