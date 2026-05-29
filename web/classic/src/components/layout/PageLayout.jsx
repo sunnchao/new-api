@@ -146,7 +146,6 @@ const PageLayout = () => {
     }
   }, [i18n, userState?.user?.setting]);
 
-
   return (
     <Layout
       className='app-layout'
@@ -185,7 +184,7 @@ const PageLayout = () => {
             style={{
               position: 'fixed',
               left: 0,
-              top: '64px',
+              top: '65px',
               zIndex: 99,
               border: 'none',
               paddingRight: '0',

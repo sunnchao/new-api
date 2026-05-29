@@ -73,21 +73,21 @@ body {
     'Microsoft YaHei', sans-serif;
     color: var(--semi-color-text-0);
     background-color: var(--v3-bg-0);
-    background-image: radial-gradient(
-            1200px circle at 72% 10%,
-            rgba(20, 184, 166, 0.18) 0%,
-            transparent 62%
-    ),
-    radial-gradient(
-            1100px circle at 28% 16%,
-            rgba(99, 102, 241, 0.15) 0%,
-            transparent 58%
-    ),
-    radial-gradient(
-            900px circle at 50% 90%,
-            rgba(59, 130, 246, 0.1) 0%,
-            transparent 62%
-    );
+    /*background-image: radial-gradient(*/
+    /*        1200px circle at 72% 10%,*/
+    /*        rgba(20, 184, 166, 0.18) 0%,*/
+    /*        transparent 62%*/
+    /*),*/
+    /*radial-gradient(*/
+    /*        1100px circle at 28% 16%,*/
+    /*        rgba(99, 102, 241, 0.15) 0%,*/
+    /*        transparent 58%*/
+    /*),*/
+    /*radial-gradient(*/
+    /*        900px circle at 50% 90%,*/
+    /*        rgba(59, 130, 246, 0.1) 0%,*/
+    /*        transparent 62%*/
+    /*);*/
     background-attachment: fixed;
     line-height: 1.65;
     font-size: 14px;
@@ -983,22 +983,22 @@ html.dark .with-pastel-balls::before {
 
 /* ==================== 模型定价页面布局 ==================== */
 .pricing-layout {
-    height: calc(100vh - 60px);
+    height: calc(100vh - 65px);
     overflow: hidden;
-    margin-top: 60px;
+    margin-top: 65px;
 }
 
 .pricing-sidebar {
     width: clamp(280px, 24vw, 520px) !important;
     min-width: clamp(280px, 24vw, 520px) !important;
     max-width: clamp(280px, 24vw, 520px) !important;
-    height: calc(100vh - 60px);
+    height: calc(100vh - 65px);
     background-color: var(--semi-color-bg-0);
     overflow: auto;
 }
 
 .pricing-content {
-    height: calc(100vh - 60px);
+    height: calc(100vh - 65px);
     background-color: var(--semi-color-bg-0);
     display: flex;
     flex-direction: column;
