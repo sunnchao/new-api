@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -156,6 +157,13 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 			imageRequest.Size = formData.Get("size")
 			if imageValue := formData.Get("image"); imageValue != "" {
 				imageRequest.Image, _ = common.Marshal(imageValue)
+			}
+			if formData.Has("stream") {
+				stream, err := strconv.ParseBool(formData.Get("stream"))
+				if err != nil {
+					return nil, fmt.Errorf("stream must be a boolean")
+				}
+				imageRequest.Stream = &stream
 			}
 
 			if imageRequest.Model == "gpt-image-1" || imageRequest.Model == "gpt-image-2" {
