@@ -37,6 +37,7 @@ export const subscriptionPlanSchema = z.object({
   enabled: z.boolean(),
   show_on_home: z.boolean().optional(),
   sort_order: z.number(),
+  allow_balance_pay: z.boolean().optional().default(true),
   max_purchase_per_user: z.number(),
   total_amount: z.number(),
   upgrade_group: z.string().optional(),
