@@ -127,11 +127,11 @@ export const useNavigation = (t, docsLink, headerNavModules) => {
         itemKey: 'pricing',
         to: '/pricing',
       },
-      // {
-      //   text: t('排行榜'),
-      //   itemKey: 'rankings',
-      //   to: '/rankings',
-      // },
+      {
+        text: t('排行榜'),
+        itemKey: 'rankings',
+        to: '/rankings',
+      },
       {
         text: t('订阅广场'),
         itemKey: 'subscriptions',
