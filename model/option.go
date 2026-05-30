@@ -180,6 +180,9 @@ func InitOptionMap() {
 	common.OptionMap["ExposeRatioEnabled"] = strconv.FormatBool(ratio_setting.IsExposeRatioEnabled())
 	common.OptionMap[InvoiceAllowSubscriptionRecordsOption] = "false"
 
+	// 工单分类配置
+	common.OptionMap["TicketCategories"] = ""
+
 	// 自动添加所有注册的模型配置
 	modelConfigs := config.GlobalConfig.ExportAllConfigs()
 	for k, v := range modelConfigs {

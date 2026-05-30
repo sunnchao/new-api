@@ -69,6 +69,9 @@ const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const UserAgreement = lazy(() => import('./pages/UserAgreement'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const Rankings = lazy(() => import('./pages/Rankings'));
+const Tickets = lazy(() => import('./pages/Tickets'));
+const TicketDetail = lazy(() => import('./pages/Tickets/Detail'));
 
 function DynamicOAuth2Callback() {
   const { provider } = useParams();
@@ -93,6 +96,14 @@ function App() {
       statusState?.status?.HeaderNavModules,
     );
     return modules.subscriptions.requireAuth === true;
+  }, [statusState?.status?.HeaderNavModules]);
+
+  // 获取排行榜权限配置
+  const rankingsRequireAuth = useMemo(() => {
+    const modules = parseHeaderNavModulesConfig(
+      statusState?.status?.HeaderNavModules,
+    );
+    return modules.rankings.requireAuth === true;
   }, [statusState?.status?.HeaderNavModules]);
 
   return (
@@ -192,6 +203,42 @@ function App() {
           element={
             <AdminRoute>
               <Redemption />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path='/tickets'
+          element={
+            <PrivateRoute>
+              <Suspense fallback={<Loading />}>
+                <Tickets />
+              </Suspense>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path='/ticket/:id'
+          element={
+            <PrivateRoute>
+              <Suspense fallback={<Loading />}>
+                <TicketDetail />
+              </Suspense>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path='/console/tickets'
+          element={
+            <AdminRoute>
+              <Tickets isAdmin={true} />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path='/console/ticket/:id'
+          element={
+            <AdminRoute>
+              <TicketDetail isAdmin={true} />
             </AdminRoute>
           }
         />
@@ -409,6 +456,25 @@ function App() {
             ) : (
               <Suspense fallback={<Loading></Loading>} key={location.pathname}>
                 <SubscriptionPlans />
+              </Suspense>
+            )
+          }
+        />
+        <Route
+          path='/rankings'
+          element={
+            rankingsRequireAuth ? (
+              <PrivateRoute>
+                <Suspense
+                  fallback={<Loading></Loading>}
+                  key={location.pathname}
+                >
+                  <Rankings />
+                </Suspense>
+              </PrivateRoute>
+            ) : (
+              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+                <Rankings />
               </Suspense>
             )
           }

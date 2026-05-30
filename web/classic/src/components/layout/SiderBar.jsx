@@ -53,6 +53,8 @@ const routerMap = {
   personal: '/console/personal',
   subscriptions: '/console/subscriptions',
   packages: '/console/packages',
+  ticket: '/tickets',
+  admin_ticket: '/console/tickets',
 };
 
 const SiderBar = ({ onNavigate = () => {} }) => {
@@ -139,6 +141,11 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         to: '/subscriptions',
       },
       {
+        text: t('工单'),
+        itemKey: 'ticket',
+        to: '/tickets',
+      },
+      {
         text: t('个人设置'),
         itemKey: 'personal',
         to: '/personal',
@@ -190,6 +197,12 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         text: t('兑换码管理'),
         itemKey: 'redemption',
         to: '/redemption',
+        className: isAdmin() ? '' : 'tableHiddle',
+      },
+      {
+        text: t('工单管理'),
+        itemKey: 'admin_ticket',
+        to: '/console/tickets',
         className: isAdmin() ? '' : 'tableHiddle',
       },
       {
@@ -311,6 +324,14 @@ const SiderBar = ({ onNavigate = () => {} }) => {
       } else {
         matchingKey = 'chat';
       }
+    }
+
+    // 用户工单路由使用控制台布局，但路径保留在 /tickets。
+    if (
+      !matchingKey &&
+      (currentPath === '/tickets' || currentPath.startsWith('/ticket/'))
+    ) {
+      matchingKey = 'ticket';
     }
 
     // 如果找到匹配的键，更新选中的键

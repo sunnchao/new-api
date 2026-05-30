@@ -43,6 +43,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     enabled: true,
     topup: true,
     subscriptions: true,
+    ticket: true,
     personal: true,
   },
   admin: {
@@ -52,6 +53,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     models: true,
     deployment: true,
     redemption: true,
+    admin_ticket: true,
     user: true,
     admin_token: true,
     packages: true,

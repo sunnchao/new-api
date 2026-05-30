@@ -33,6 +33,7 @@ import {
   User,
   Users,
   Wallet,
+  Headset,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { type SidebarData } from '@/components/layout/types'
@@ -112,6 +113,11 @@ export function useSidebarData(): SidebarData {
             icon: CreditCard,
           },
           {
+            title: t('Tickets'),
+            url: '/tickets',
+            icon: Headset,
+          },
+          {
             title: t('Profile'),
             url: '/profile',
             icon: User,
@@ -146,6 +152,11 @@ export function useSidebarData(): SidebarData {
             title: t('Redemption Codes'),
             url: '/redemption-codes',
             icon: Ticket,
+          },
+          {
+            title: t('Ticket Management'),
+            url: '/tickets',
+            icon: Headset,
           },
           {
             title: t('Subscription Management'),

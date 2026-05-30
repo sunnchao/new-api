@@ -26,6 +26,10 @@ export const defaultHeaderNavModules = {
     enabled: true,
     requireAuth: false,
   },
+  rankings: {
+    enabled: true,
+    requireAuth: false,
+  },
   subscriptions: {
     enabled: true,
     requireAuth: false,
@@ -36,7 +40,7 @@ export const defaultHeaderNavModules = {
   contact: true,
 };
 
-const accessModuleKeys = new Set(['pricing', 'subscriptions']);
+const accessModuleKeys = new Set(['pricing', 'rankings', 'subscriptions']);
 
 function normalizeAccessModule(value, fallback) {
   if (typeof value === 'boolean') {
@@ -64,6 +68,7 @@ export function normalizeHeaderNavModules(rawModules) {
   const normalized = {
     ...defaultHeaderNavModules,
     pricing: { ...defaultHeaderNavModules.pricing },
+    rankings: { ...defaultHeaderNavModules.rankings },
     subscriptions: { ...defaultHeaderNavModules.subscriptions },
   };
 
@@ -122,6 +127,11 @@ export const useNavigation = (t, docsLink, headerNavModules) => {
         itemKey: 'pricing',
         to: '/pricing',
       },
+      // {
+      //   text: t('排行榜'),
+      //   itemKey: 'rankings',
+      //   to: '/rankings',
+      // },
       {
         text: t('订阅广场'),
         itemKey: 'subscriptions',
@@ -191,6 +201,11 @@ export const useNavigation = (t, docsLink, headerNavModules) => {
         return typeof modules.pricing === 'object'
           ? modules.pricing.enabled
           : modules.pricing;
+      }
+      if (link.itemKey === 'rankings') {
+        return typeof modules.rankings === 'object'
+          ? modules.rankings.enabled
+          : modules.rankings;
       }
       if (link.itemKey === 'subscriptions') {
         return typeof modules.subscriptions === 'object'

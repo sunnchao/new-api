@@ -64,14 +64,20 @@ const PageLayout = () => {
     '/pricing',
   ];
 
-  const shouldHideFooter = cardProPages.includes(location.pathname);
+  const isTicketRoute =
+    location.pathname === '/tickets' ||
+    location.pathname.startsWith('/ticket/');
+
+  const shouldHideFooter =
+    cardProPages.includes(location.pathname) || isTicketRoute;
 
   const shouldInnerPadding =
-    location.pathname.includes('/console') &&
+    (location.pathname.includes('/console') || isTicketRoute) &&
     !location.pathname.startsWith('/console/chat') &&
     location.pathname !== '/console/playground';
 
-  const isConsoleRoute = location.pathname.startsWith('/console');
+  const isConsoleRoute =
+    location.pathname.startsWith('/console') || isTicketRoute;
   const showSider = isConsoleRoute && (!isMobile || drawerOpen);
 
   useEffect(() => {

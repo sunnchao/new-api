@@ -98,6 +98,7 @@ import {
   Sparkles,
   CalendarClock,
   HeartPulse,
+  Headset,
 } from 'lucide-react';
 import {
   SiAtlassian,
@@ -171,6 +172,8 @@ export function getLucideIcon(key, selected = false) {
       return <CalendarClock {...commonProps} color={iconColor} />;
     case 'health':
       return <HeartPulse {...commonProps} color={iconColor} />;
+    case 'ticket':
+      return <Headset {...commonProps} color={iconColor} />;
     case 'setting':
       return <Settings {...commonProps} color={iconColor} />;
     case 'vibecoding':

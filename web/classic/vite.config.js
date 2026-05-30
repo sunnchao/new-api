@@ -97,23 +97,43 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules')) {
             // 核心框架 - 保持稳定
-            if (['react', 'react-dom', 'react-router-dom', 'scheduler'].some((m) => id.includes(m))) {
+            if (
+              ['react', 'react-dom', 'react-router-dom', 'scheduler'].some(
+                (m) => id.includes(m),
+              )
+            ) {
               return 'react-core';
             }
             // Semi UI - 单独拆包
-            if (['@douyinfe/semi-icons', '@douyinfe/semi-ui'].some((m) => id.includes(m))) {
+            if (
+              ['@douyinfe/semi-icons', '@douyinfe/semi-ui'].some((m) =>
+                id.includes(m),
+              )
+            ) {
               return 'semi-ui';
             }
             // 工具库
-            if (['axios', 'history', 'marked', 'decimal.js', 'dayjs'].some((m) => id.includes(m))) {
+            if (
+              ['axios', 'history', 'marked', 'decimal.js', 'dayjs'].some((m) =>
+                id.includes(m),
+              )
+            ) {
               return 'utils';
             }
             // 图表库 - 单独拆包
-            if (['@visactor', 'echarts', 'mermaid', 'cytoscape'].some((m) => id.includes(m))) {
+            if (
+              ['@visactor', 'echarts', 'mermaid', 'cytoscape'].some((m) =>
+                id.includes(m),
+              )
+            ) {
               return 'charts';
             }
             // Markdown 相关
-            if (['react-markdown', 'remark-', 'rehype-', 'katex'].some((m) => id.includes(m))) {
+            if (
+              ['react-markdown', 'remark-', 'rehype-', 'katex'].some((m) =>
+                id.includes(m),
+              )
+            ) {
               return 'markdown';
             }
             // i18n
@@ -122,9 +142,13 @@ export default defineConfig({
             }
             // UI 组件
             if (
-              ['react-dropzone', 'react-fireworks', 'react-toastify', 'react-turnstile', 'qrcode.react'].some(
-                (m) => id.includes(m),
-              )
+              [
+                'react-dropzone',
+                'react-fireworks',
+                'react-toastify',
+                'react-turnstile',
+                'qrcode.react',
+              ].some((m) => id.includes(m))
             ) {
               return 'components';
             }
@@ -145,6 +169,10 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/pg': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/uploads': {
         target: 'http://localhost:3000',
         changeOrigin: true,
       },

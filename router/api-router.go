@@ -465,5 +465,37 @@ func SetApiRouter(router *gin.Engine) {
 			deploymentsRoute.POST("/:id/extend", controller.ExtendDeployment)
 			deploymentsRoute.DELETE("/:id", controller.DeleteDeployment)
 		}
+
+		// Ticket routes — user-facing
+		ticketRoute := apiRouter.Group("/ticket")
+		ticketRoute.Use(middleware.UserAuth())
+		{
+			ticketRoute.POST("/", controller.CreateTicket)
+			ticketRoute.POST("/attachments", middleware.UploadRateLimit(), controller.UploadTicketAttachment)
+			ticketRoute.GET("/self", controller.GetUserTickets)
+			ticketRoute.GET("/self/search", controller.SearchUserTickets)
+			ticketRoute.GET("/categories", controller.GetTicketCategories)
+		}
+
+		// Ticket routes — shared operations (permission checked in handler)
+		ticketOpsRoute := apiRouter.Group("/ticket")
+		ticketOpsRoute.Use(middleware.UserAuth())
+		{
+			ticketOpsRoute.GET("/:id", controller.GetTicketDetail)
+			ticketOpsRoute.POST("/:id/message", controller.SendTicketMessage)
+			ticketOpsRoute.PUT("/:id/close", controller.CloseTicket)
+		}
+
+		// Ticket routes — admin-only
+		ticketAdminRoute := apiRouter.Group("/ticket")
+		ticketAdminRoute.Use(middleware.AdminAuth())
+		{
+			ticketAdminRoute.GET("/", controller.GetAllTickets)
+			ticketAdminRoute.GET("/search", controller.SearchTickets)
+			ticketAdminRoute.PUT("/:id/status", controller.UpdateTicketStatus)
+			ticketAdminRoute.PUT("/:id/assign", controller.AssignTicket)
+			ticketAdminRoute.DELETE("/:id", controller.DeleteTicket)
+			ticketAdminRoute.PUT("/categories", controller.UpdateTicketCategoriesCtrl)
+		}
 	}
 }
