@@ -25,6 +25,7 @@ import (
 
 const (
 	ticketAttachmentURLPrefix = "/uploads/tickets/"
+	ticketAttachmentAPIPrefix = "/api/uploads/tickets/"
 	maxTicketAttachmentCount  = 6
 	maxTicketAttachmentBytes  = 5 << 20
 )
@@ -153,6 +154,7 @@ func normalizeTicketAttachmentUrls(raw string) (string, int, error) {
 		if !isValidTicketAttachmentURL(url) {
 			return "", 0, fmt.Errorf("invalid attachment url")
 		}
+		url = normalizeTicketAttachmentURL(url)
 		if _, ok := seen[url]; ok {
 			continue
 		}
@@ -175,10 +177,17 @@ func normalizeTicketAttachmentUrls(raw string) (string, int, error) {
 }
 
 func isValidTicketAttachmentURL(url string) bool {
-	return strings.HasPrefix(url, ticketAttachmentURLPrefix) &&
+	return (strings.HasPrefix(url, ticketAttachmentURLPrefix) || strings.HasPrefix(url, ticketAttachmentAPIPrefix)) &&
 		!strings.Contains(url, "..") &&
 		!strings.Contains(url, "\\") &&
 		!strings.ContainsAny(url, "\x00\r\n\t")
+}
+
+func normalizeTicketAttachmentURL(url string) string {
+	if strings.HasPrefix(url, ticketAttachmentURLPrefix) {
+		return ticketAttachmentAPIPrefix + strings.TrimPrefix(url, ticketAttachmentURLPrefix)
+	}
+	return url
 }
 
 func countTicketAttachmentUrls(raw string) int {

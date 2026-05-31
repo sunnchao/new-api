@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/dto"
@@ -51,6 +53,7 @@ func CreateTicket(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	go notifyTicketCreated(ticket)
 	common.ApiSuccess(c, ticket)
 }
 
@@ -197,6 +200,7 @@ func CloseTicket(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	go notifyTicketClosed(ticket)
 	common.ApiSuccess(c, nil)
 }
 
@@ -336,6 +340,67 @@ func buildTicketUserContext(userId int) gin.H {
 	return context
 }
 
+var notifyUser = service.NotifyUser
+
+// notifyTicketCreated 工单创建通知
+func notifyTicketCreated(ticket *model.Ticket) {
+	user, err := model.GetUserById(ticket.UserId, false)
+	if err != nil {
+		common.SysLog(fmt.Sprintf("failed to load ticket owner for ticket created notification: %s", err.Error()))
+		return
+	}
+	admin := model.GetRootUser()
+	if admin == nil || admin.Id == 0 {
+		common.SysLog("failed to notify ticket created: root admin not found")
+		return
+	}
+	notification := buildTicketCreatedNotify(ticket, user)
+	if err := notifyUser(admin.Id, admin.Email, admin.GetSetting(), notification); err != nil {
+		common.SysLog(fmt.Sprintf("failed to notify admin %d for ticket created: %s", admin.Id, err.Error()))
+	}
+}
+
+func buildTicketCreatedNotify(ticket *model.Ticket, user *model.User) dto.Notify {
+	content := "收到新工单 #{{value}}"
+	if ticket.Title != "" {
+		content += "\n标题：" + ticket.Title
+	}
+	if ticket.Category != "" {
+		content += "\n分类：" + ticket.Category
+	}
+	if ticket.Priority > 0 {
+		content += fmt.Sprintf("\n优先级：%s", ticketPriorityText(ticket.Priority))
+	}
+	if user != nil {
+		username := strings.TrimSpace(user.Username)
+		if username == "" {
+			username = fmt.Sprintf("ID %d", user.Id)
+		}
+		content += "\n用户：" + username
+		if user.Email != "" {
+			content += " <" + user.Email + ">"
+		}
+	}
+	if preview := buildTicketReplyPreview(ticket.Description, 120); preview != "" {
+		content += "\n描述：" + preview
+	}
+	if count := countTicketAttachmentUrls(ticket.AttachmentUrls); count > 0 {
+		content += fmt.Sprintf("\n附件 %d 张", count)
+	}
+	return dto.NewNotify(dto.NotifyTypeTicketCreated, "新工单通知", content, []interface{}{ticket.Id})
+}
+
+func ticketPriorityText(priority int) string {
+	switch priority {
+	case model.TicketPriorityMedium:
+		return "中"
+	case model.TicketPriorityHigh:
+		return "高"
+	default:
+		return "低"
+	}
+}
+
 // notifyTicketMessage 工单回复通知
 func notifyTicketMessage(ticket *model.Ticket, message *model.TicketMessage, isAdmin bool) {
 	notification := buildTicketReplyNotify(ticket, message, isAdmin)
@@ -345,7 +410,7 @@ func notifyTicketMessage(ticket *model.Ticket, message *model.TicketMessage, isA
 		if err != nil {
 			return
 		}
-		_ = service.NotifyUser(user.Id, user.Email, user.GetSetting(), notification)
+		_ = notifyUser(user.Id, user.Email, user.GetSetting(), notification)
 	} else {
 		// 用户回复 → 通知分配的管理员
 		if ticket.AssignedAdminId <= 0 {
@@ -356,7 +421,7 @@ func notifyTicketMessage(ticket *model.Ticket, message *model.TicketMessage, isA
 		if err != nil {
 			return
 		}
-		_ = service.NotifyUser(admin.Id, admin.Email, admin.GetSetting(), notification)
+		_ = notifyUser(admin.Id, admin.Email, admin.GetSetting(), notification)
 	}
 }
 
@@ -377,12 +442,37 @@ func notifyTicketStatusChange(ticketId int) {
 		model.TicketStatusClosed:   "已关闭",
 	}
 	statusText := statusMap[ticket.Status]
-	_ = service.NotifyUser(user.Id, user.Email, user.GetSetting(), dto.NewNotify(
+	_ = notifyUser(user.Id, user.Email, user.GetSetting(), dto.NewNotify(
 		dto.NotifyTypeTicketStatus,
 		"工单状态变更",
 		"您的工单 #{{value}} 状态已更新为 "+statusText,
 		[]interface{}{ticket.Id},
 	))
+}
+
+// notifyTicketClosed 用户关闭工单通知管理员
+func notifyTicketClosed(ticket *model.Ticket) {
+	notification := buildTicketClosedNotify(ticket)
+	if ticket.AssignedAdminId <= 0 {
+		service.NotifyRootUser(notification.Type, notification.Title, renderNotifyContent(notification))
+		return
+	}
+	admin, err := model.GetUserById(ticket.AssignedAdminId, false)
+	if err != nil {
+		common.SysLog(fmt.Sprintf("failed to load assigned admin for ticket closed notification: %s", err.Error()))
+		return
+	}
+	if err := notifyUser(admin.Id, admin.Email, admin.GetSetting(), notification); err != nil {
+		common.SysLog(fmt.Sprintf("failed to notify admin %d for ticket closed: %s", admin.Id, err.Error()))
+	}
+}
+
+func buildTicketClosedNotify(ticket *model.Ticket) dto.Notify {
+	content := "用户已关闭工单 #{{value}}"
+	if ticket.Title != "" {
+		content += "\n标题：" + ticket.Title
+	}
+	return dto.NewNotify(dto.NotifyTypeTicketStatus, "工单关闭通知", content, []interface{}{ticket.Id})
 }
 
 // notifyTicketAssigned 工单分配通知
@@ -391,7 +481,7 @@ func notifyTicketAssigned(ticketId int, adminId int) {
 	if err != nil {
 		return
 	}
-	_ = service.NotifyUser(admin.Id, admin.Email, admin.GetSetting(), dto.NewNotify(
+	_ = notifyUser(admin.Id, admin.Email, admin.GetSetting(), dto.NewNotify(
 		dto.NotifyTypeTicketAssigned,
 		"工单分配通知",
 		"您被分配了工单 #{{value}}",

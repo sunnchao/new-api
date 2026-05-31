@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -33,11 +32,12 @@ func generateSignature(secret string, payload []byte) string {
 
 // SendWebhookNotify 发送 webhook 通知
 func SendWebhookNotify(webhookURL string, secret string, data dto.Notify) error {
-	// 处理占位符
-	content := data.Content
-	for _, value := range data.Values {
-		content = fmt.Sprintf(content, value)
+	if isFeishuWebhookURL(webhookURL) {
+		return SendFeishuWebhookNotify(webhookURL, secret, data)
 	}
+
+	// 处理占位符
+	content := renderWebhookNotifyContent(data)
 
 	// 构建 webhook 负载
 	payload := WebhookPayload{
@@ -49,7 +49,7 @@ func SendWebhookNotify(webhookURL string, secret string, data dto.Notify) error 
 	}
 
 	// 序列化负载
-	payloadBytes, err := json.Marshal(payload)
+	payloadBytes, err := common.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal webhook payload: %v", err)
 	}

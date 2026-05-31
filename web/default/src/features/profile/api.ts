@@ -60,6 +60,16 @@ export async function updateUserSettings(
 }
 
 /**
+ * Send a test notification using current user notification settings
+ */
+export async function testUserNotification(
+  data?: Partial<UpdateUserSettingsRequest>
+): Promise<ApiResponse> {
+  const res = await api.post('/api/user/setting/test_notify', data)
+  return res.data
+}
+
+/**
  * Update interface language preference
  */
 export async function updateUserLanguage(

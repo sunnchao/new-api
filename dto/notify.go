@@ -13,6 +13,7 @@ const (
 	NotifyTypeQuotaExceed    = "quota_exceed"
 	NotifyTypeChannelUpdate  = "channel_update"
 	NotifyTypeChannelTest    = "channel_test"
+	NotifyTypeTicketCreated  = "ticket_created"
 	NotifyTypeTicketReply    = "ticket_reply"
 	NotifyTypeTicketStatus   = "ticket_status"
 	NotifyTypeTicketAssigned = "ticket_assigned"

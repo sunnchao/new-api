@@ -32,7 +32,13 @@ import {
   Row,
   Col,
 } from '@douyinfe/semi-ui';
-import { IconMail, IconKey, IconBell, IconLink } from '@douyinfe/semi-icons';
+import {
+  IconMail,
+  IconKey,
+  IconBell,
+  IconLink,
+  IconSend,
+} from '@douyinfe/semi-icons';
 import { ShieldCheck, Bell, DollarSign, Settings } from 'lucide-react';
 import {
   renderQuotaWithPrompt,
@@ -125,6 +131,7 @@ const NotificationSettings = ({
     getDefaultSidebarModulesUser,
   );
   const [adminConfig, setAdminConfig] = useState(null);
+  const [testingWebhook, setTestingWebhook] = useState(false);
 
   // 使用后端权限验证替代前端角色判断
   const {
@@ -236,6 +243,26 @@ const NotificationSettings = ({
   // 处理表单字段变化
   const handleFormChange = (field, value) => {
     handleNotificationSettingChange(field, value);
+  };
+
+  const testWebhookNotification = async () => {
+    setTestingWebhook(true);
+    try {
+      const res = await API.post('/api/user/setting/test_notify', {
+        notify_type: 'webhook',
+        webhook_url: notificationSettings.webhookUrl,
+        webhook_secret: notificationSettings.webhookSecret,
+      });
+      if (res.data.success) {
+        showSuccess(t('测试通知已发送'));
+      } else {
+        showError(res.data.message || t('测试通知发送失败'));
+      }
+    } catch (error) {
+      showError(t('测试通知发送失败'));
+    } finally {
+      setTestingWebhook(false);
+    }
   };
 
   // 检查功能是否被管理员允许
@@ -556,6 +583,18 @@ const NotificationSettings = ({
                       )}
                       showClear
                     />
+
+                    <Form.Slot>
+                      <Button
+                        theme='light'
+                        type='primary'
+                        icon={<IconSend />}
+                        loading={testingWebhook}
+                        onClick={testWebhookNotification}
+                      >
+                        {testingWebhook ? t('测试发送中') : t('发送测试通知')}
+                      </Button>
+                    </Form.Slot>
 
                     <Form.Slot label={t('Webhook请求结构说明')}>
                       <div>
