@@ -77,6 +77,8 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 
 	AppendChannelAffinityAdminInfo(ctx, adminInfo)
 
+	appendImageRequestInfo(relayInfo, adminInfo)
+
 	other["admin_info"] = adminInfo
 	appendRequestPath(ctx, relayInfo, other)
 	appendRequestConversionChain(relayInfo, other)
@@ -289,4 +291,30 @@ func InjectTieredBillingInfo(other map[string]interface{}, relayInfo *relaycommo
 	if result != nil {
 		other["matched_tier"] = result.MatchedTier
 	}
+}
+
+func appendImageRequestInfo(relayInfo *relaycommon.RelayInfo, adminInfo map[string]interface{}) {
+	if relayInfo == nil || relayInfo.Request == nil || adminInfo == nil {
+		return
+	}
+	imageReq, ok := relayInfo.Request.(*dto.ImageRequest)
+	if !ok || imageReq == nil {
+		return
+	}
+	imageInfo := map[string]interface{}{
+		"model": imageReq.Model,
+	}
+	if imageReq.Prompt != "" {
+		imageInfo["prompt"] = imageReq.Prompt
+	}
+	if imageReq.Size != "" {
+		imageInfo["size"] = imageReq.Size
+	}
+	if imageReq.Quality != "" {
+		imageInfo["quality"] = imageReq.Quality
+	}
+	if imageReq.N != nil {
+		imageInfo["n"] = *imageReq.N
+	}
+	adminInfo["image_request"] = imageInfo
 }

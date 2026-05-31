@@ -25,7 +25,6 @@ import React, {
 } from 'react';
 import {
   Button,
-  Table,
   Tag,
   Modal,
   Form,
@@ -55,6 +54,10 @@ import {
   showError,
   showSuccess,
 } from '../../helpers';
+import { createCardProPagination } from '../../helpers/utils';
+import CardPro from '../../components/common/ui/CardPro';
+import CardTable from '../../components/common/ui/CardTable';
+import { useIsMobile } from '../../hooks/common/useIsMobile';
 import {
   PAGE_SIZE,
   PRIORITY_COLORS,
@@ -100,6 +103,7 @@ function TicketEmptyState({ icon: Icon, title, description, children }) {
 const Tickets = ({ isAdmin = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [tickets, setTickets] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -299,7 +303,7 @@ const Tickets = ({ isAdmin = false }) => {
     });
   };
 
-  const renderTicketActions = (ticket, { compact = false } = {}) => {
+  const renderTicketActions = (ticket) => {
     const actionState = getTicketActionState(
       ticket,
       isAdmin ? currentAdminId : 0,
@@ -326,11 +330,7 @@ const Tickets = ({ isAdmin = false }) => {
     ].filter(Boolean);
 
     return (
-      <Space
-        spacing={6}
-        wrap
-        className={`classic-ticket-actions ${compact ? 'classic-ticket-actions--compact' : ''}`}
-      >
+      <Space spacing={6} wrap className='classic-ticket-actions'>
         <Button
           type='tertiary'
           size='small'
@@ -374,52 +374,6 @@ const Tickets = ({ isAdmin = false }) => {
       </Space>
     );
   };
-
-  const renderMobileTicketCard = (ticket) => (
-    <article key={ticket.id} className='classic-ticket-mobile-card'>
-      <div className='classic-ticket-mobile-card-header'>
-        <span className='classic-ticket-id'>#{ticket.id}</span>
-        <Tag color={STATUS_COLORS[ticket.status]}>
-          {t(TICKET_STATUS_MAP[ticket.status])}
-        </Tag>
-      </div>
-      <button
-        type='button'
-        className='classic-ticket-title-link'
-        onClick={() => handleViewTicket(ticket)}
-      >
-        <span className='classic-ticket-title-text'>{ticket.title}</span>
-        {ticket.description && (
-          <span className='classic-ticket-title-preview'>
-            {getTextPreview(ticket.description)}
-          </span>
-        )}
-      </button>
-      <div className='classic-ticket-mobile-meta'>
-        <Tag>{getCategoryLabel(categories, ticket.category)}</Tag>
-        <Tag color={PRIORITY_COLORS[ticket.priority]}>
-          {t(TICKET_PRIORITY_MAP[ticket.priority])}
-        </Tag>
-        {isAdmin && (
-          <Text type='tertiary'>
-            {t('Assigned To')}:&nbsp;
-            {ticket.assigned_admin_id > 0
-              ? `#${ticket.assigned_admin_id}`
-              : '-'}
-          </Text>
-        )}
-        <Text type='tertiary'>
-          {t('Created At')}: {formatTicketTime(ticket.created_at)}
-        </Text>
-        <Text type='tertiary'>
-          {t('Updated At')}: {formatTicketTime(ticket.updated_at)}
-        </Text>
-      </div>
-      <div className='classic-ticket-mobile-card-actions'>
-        {renderTicketActions(ticket, { compact: true })}
-      </div>
-    </article>
-  );
 
   const summary = useMemo(() => summarizeTicketStatuses(tickets), [tickets]);
 
@@ -526,11 +480,146 @@ const Tickets = ({ isAdmin = false }) => {
     },
   ];
 
+  const statsArea = (
+    <div className='classic-ticket-summary-grid'>
+      {summaryItems.map((item) => {
+        const Icon = item.icon;
+        return (
+          <div key={item.label} className='classic-ticket-summary-item'>
+            <div>
+              <Text type='tertiary' size='small'>
+                {item.label}
+              </Text>
+              <strong>{item.value}</strong>
+            </div>
+            {Icon ? (
+              <Icon size={18} />
+            ) : (
+              <span
+                className='classic-ticket-summary-dot'
+                data-color={item.color}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const searchArea = (
+    <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-2 w-full'>
+      <div className='flex items-center gap-2 flex-1 min-w-0 flex-wrap'>
+        <Input
+          value={keyword}
+          prefix={<Search size={14} />}
+          placeholder={t('Search tickets')}
+          onChange={setKeyword}
+          onEnterPress={handleSearch}
+          style={{ width: isMobile ? '100%' : 240 }}
+        />
+        <Button theme='solid' type='tertiary' onClick={handleSearch}>
+          {t('Search')}
+        </Button>
+        <Button
+          theme='borderless'
+          type='tertiary'
+          icon={<RotateCcw size={14} />}
+          onClick={handleReset}
+        >
+          {t('Reset')}
+        </Button>
+      </div>
+      <div className='flex items-center gap-2 flex-wrap'>
+        <Select
+          value={statusFilter}
+          onChange={handleFilterChange(setStatusFilter)}
+          style={{ width: 150 }}
+        >
+          <Select.Option value={0}>{t('All Statuses')}</Select.Option>
+          {Object.entries(TICKET_STATUS_MAP).map(([key, value]) => (
+            <Select.Option key={key} value={Number(key)}>
+              {t(value)}
+            </Select.Option>
+          ))}
+        </Select>
+        {isAdmin && (
+          <>
+            <Select
+              value={categoryFilter}
+              onChange={handleFilterChange(setCategoryFilter)}
+              style={{ width: 150 }}
+            >
+              <Select.Option value=''>{t('All Categories')}</Select.Option>
+              {categories.map((category) => (
+                <Select.Option key={category.value} value={category.value}>
+                  {category.label}
+                </Select.Option>
+              ))}
+            </Select>
+            <Select
+              value={priorityFilter}
+              onChange={handleFilterChange(setPriorityFilter)}
+              style={{ width: 150 }}
+            >
+              <Select.Option value={0}>{t('All Priorities')}</Select.Option>
+              {Object.entries(TICKET_PRIORITY_MAP).map(([key, value]) => (
+                <Select.Option key={key} value={Number(key)}>
+                  {t(value)}
+                </Select.Option>
+              ))}
+            </Select>
+          </>
+        )}
+        <Button
+          theme='borderless'
+          type='tertiary'
+          icon={
+            <RefreshCw
+              size={14}
+              className={refreshing ? 'classic-ticket-spin' : ''}
+            />
+          }
+          disabled={refreshing}
+          onClick={handleRefresh}
+        >
+          {t('Refresh')}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const ticketEmpty = (
+    <TicketEmptyState
+      icon={Inbox}
+      title={t('No tickets found')}
+      description={searchKeyword ? t('No matching tickets found') : ''}
+    >
+      {isAdmin ? (
+        <Button
+          theme='outline'
+          type='tertiary'
+          icon={<RefreshCw size={14} />}
+          onClick={handleRefresh}
+        >
+          {t('Refresh')}
+        </Button>
+      ) : (
+        <Button
+          theme='solid'
+          icon={<Plus size={14} />}
+          onClick={() => setCreateVisible(true)}
+        >
+          {t('Create Ticket')}
+        </Button>
+      )}
+    </TicketEmptyState>
+  );
+
   return (
-    <div className='classic-tickets-page w-full mx-auto relative min-h-screen lg:min-h-0 mt-[60px] px-2'>
-      <div className='classic-tickets-header'>
+    <div className='w-full mx-auto relative min-h-screen lg:min-h-0 mt-[60px] px-2 pb-10'>
+      <div className='flex items-center justify-between gap-4 mb-4'>
         <div>
-          <SemiTitle heading={3} className='classic-tickets-heading'>
+          <SemiTitle heading={3} className='!mb-1'>
             {isAdmin ? t('Ticket Management') : t('My Tickets')}
           </SemiTitle>
           <Text type='tertiary'>
@@ -548,162 +637,30 @@ const Tickets = ({ isAdmin = false }) => {
         )}
       </div>
 
-      <div className='classic-ticket-summary-grid'>
-        {summaryItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.label} className='classic-ticket-summary-item'>
-              <div>
-                <Text type='tertiary' size='small'>
-                  {item.label}
-                </Text>
-                <strong>{item.value}</strong>
-              </div>
-              {Icon ? (
-                <Icon size={18} />
-              ) : (
-                <span
-                  className='classic-ticket-summary-dot'
-                  data-color={item.color}
-                />
-              )}
-            </div>
-          );
+      <CardPro
+        type='type2'
+        statsArea={statsArea}
+        searchArea={searchArea}
+        paginationArea={createCardProPagination({
+          currentPage: page,
+          pageSize: PAGE_SIZE,
+          total,
+          onPageChange: setPage,
+          isMobile,
+          t,
         })}
-      </div>
-
-      <div className='classic-tickets-toolbar'>
-        <div className='classic-tickets-search'>
-          <Input
-            value={keyword}
-            prefix={<Search size={14} />}
-            placeholder={t('Search tickets')}
-            onChange={setKeyword}
-            onEnterPress={handleSearch}
-          />
-          <Button theme='solid' type='tertiary' onClick={handleSearch}>
-            {t('Search')}
-          </Button>
-          <Button
-            theme='borderless'
-            type='tertiary'
-            icon={<RotateCcw size={14} />}
-            onClick={handleReset}
-          >
-            {t('Reset')}
-          </Button>
-        </div>
-        <div className='classic-tickets-filters'>
-          <Select
-            value={statusFilter}
-            onChange={handleFilterChange(setStatusFilter)}
-            style={{ width: 150 }}
-          >
-            <Select.Option value={0}>{t('All Statuses')}</Select.Option>
-            {Object.entries(TICKET_STATUS_MAP).map(([key, value]) => (
-              <Select.Option key={key} value={Number(key)}>
-                {t(value)}
-              </Select.Option>
-            ))}
-          </Select>
-          {isAdmin && (
-            <>
-              <Select
-                value={categoryFilter}
-                onChange={handleFilterChange(setCategoryFilter)}
-                style={{ width: 150 }}
-              >
-                <Select.Option value=''>{t('All Categories')}</Select.Option>
-                {categories.map((category) => (
-                  <Select.Option key={category.value} value={category.value}>
-                    {category.label}
-                  </Select.Option>
-                ))}
-              </Select>
-              <Select
-                value={priorityFilter}
-                onChange={handleFilterChange(setPriorityFilter)}
-                style={{ width: 150 }}
-              >
-                <Select.Option value={0}>{t('All Priorities')}</Select.Option>
-                {Object.entries(TICKET_PRIORITY_MAP).map(([key, value]) => (
-                  <Select.Option key={key} value={Number(key)}>
-                    {t(value)}
-                  </Select.Option>
-                ))}
-              </Select>
-            </>
-          )}
-          <Button
-            theme='borderless'
-            type='tertiary'
-            icon={
-              <RefreshCw
-                size={14}
-                className={refreshing ? 'classic-ticket-spin' : ''}
-              />
-            }
-            disabled={refreshing}
-            onClick={handleRefresh}
-          >
-            {t('Refresh')}
-          </Button>
-        </div>
-      </div>
-
-      <div
-        className={`classic-ticket-table-card ${tickets.length > 0 && !loading ? 'classic-ticket-table-card--with-mobile' : ''}`}
+        t={t}
       >
-        {tickets.length > 0 || loading ? (
-          <>
-            <div className='classic-ticket-desktop-table'>
-              <Table
-                rowKey='id'
-                columns={columns}
-                dataSource={tickets}
-                loading={loading}
-                scroll={{ x: isAdmin ? 1240 : 1020 }}
-                pagination={{
-                  total,
-                  currentPage: page,
-                  pageSize: PAGE_SIZE,
-                  onPageChange: setPage,
-                }}
-              />
-            </div>
-            {!loading && tickets.length > 0 && (
-              <div className='classic-ticket-mobile-list'>
-                {tickets.map(renderMobileTicketCard)}
-              </div>
-            )}
-          </>
-        ) : (
-          <TicketEmptyState
-            icon={Inbox}
-            title={t('No tickets found')}
-            description={searchKeyword ? t('No matching tickets found') : ''}
-          >
-            {isAdmin ? (
-              <Button
-                theme='outline'
-                type='tertiary'
-                icon={<RefreshCw size={14} />}
-                onClick={handleRefresh}
-              >
-                {t('Refresh')}
-              </Button>
-            ) : (
-              <Button
-                theme='solid'
-                icon={<Plus size={14} />}
-                onClick={() => setCreateVisible(true)}
-              >
-                {t('Create Ticket')}
-              </Button>
-            )}
-          </TicketEmptyState>
-        )}
-      </div>
+        <CardTable
+          rowKey='id'
+          columns={columns}
+          dataSource={tickets}
+          loading={loading}
+          hidePagination
+          scroll={{ x: isAdmin ? 1240 : 1020 }}
+          empty={ticketEmpty}
+        />
+      </CardPro>
 
       <Modal
         title={t('Create Ticket')}

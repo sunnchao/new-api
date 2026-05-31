@@ -28,7 +28,8 @@ const (
 	DefaultStreamingTimeout     = 300 * time.Second
 )
 
-func getScannerBufferSize() int {
+// GetScannerBufferSize returns the configured maximum SSE scanner token size.
+func GetScannerBufferSize() int {
 	if constant.StreamScannerMaxBufferMB > 0 {
 		return constant.StreamScannerMaxBufferMB << 20
 	}
@@ -41,9 +42,7 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 		return
 	}
 
-	if info.StreamStatus == nil {
-		info.StreamStatus = relaycommon.NewStreamStatus()
-	}
+	info.StreamStatus = relaycommon.NewStreamStatus()
 
 	// 确保响应体总是被关闭
 	defer func() {
@@ -109,7 +108,7 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 		close(stopChan)
 	}()
 
-	scanner.Buffer(make([]byte, InitialScannerBufferSize), getScannerBufferSize())
+	scanner.Buffer(make([]byte, InitialScannerBufferSize), GetScannerBufferSize())
 	scanner.Split(bufio.ScanLines)
 	SetEventStreamHeaders(c)
 

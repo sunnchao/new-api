@@ -16,6 +16,7 @@ type OpenAIError struct {
 	Type     string          `json:"type"`
 	Param    string          `json:"param"`
 	Code     any             `json:"code"`
+	Status   int             `json:"status,omitempty"`
 	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 

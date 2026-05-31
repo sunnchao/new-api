@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -145,16 +146,25 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 	switch relayMode {
 	case relayconstant.RelayModeImagesEdits:
 		if strings.Contains(c.Request.Header.Get("Content-Type"), "multipart/form-data") {
-			_, err := c.MultipartForm()
+			form, err := common.ParseMultipartFormReusable(c)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse image edit form request: %w", err)
 			}
-			formData := c.Request.PostForm
+			formData := url.Values(form.Value)
+			c.Request.MultipartForm = form
+			c.Request.PostForm = formData
 			imageRequest.Prompt = formData.Get("prompt")
 			imageRequest.Model = formData.Get("model")
 			imageRequest.N = common.GetPointer(uint(common.String2Int(formData.Get("n"))))
 			imageRequest.Quality = formData.Get("quality")
 			imageRequest.Size = formData.Get("size")
+			if streamValue := strings.TrimSpace(formData.Get("stream")); streamValue != "" {
+				stream, err := strconv.ParseBool(streamValue)
+				if err != nil {
+					return nil, fmt.Errorf("invalid stream value: %w", err)
+				}
+				imageRequest.Stream = &stream
+			}
 			if imageValue := formData.Get("image"); imageValue != "" {
 				imageRequest.Image, _ = common.Marshal(imageValue)
 			}
@@ -166,7 +176,7 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 				imageRequest.Stream = &stream
 			}
 
-			if imageRequest.Model == "gpt-image-1" || imageRequest.Model == "gpt-image-2" {
+			if imageRequest.Model == "gpt-image-1" {
 				if imageRequest.Quality == "" {
 					imageRequest.Quality = "standard"
 				}
@@ -216,7 +226,7 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 			if imageRequest.Size == "" {
 				imageRequest.Size = "1024x1024"
 			}
-		} else if imageRequest.Model == "gpt-image-1" || imageRequest.Model == "gpt-image-2" {
+		} else if imageRequest.Model == "gpt-image-1" {
 			if imageRequest.Quality == "" {
 				imageRequest.Quality = "auto"
 			}

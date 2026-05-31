@@ -1,24 +1,7 @@
-.classic-tickets-page {
-  padding-bottom: 40px;
-}
-
-.classic-tickets-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.classic-tickets-heading {
-  margin: 0 0 6px;
-}
-
 .classic-ticket-summary-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 14px;
 }
 
 .classic-ticket-summary-item {
@@ -29,7 +12,7 @@
   min-height: 76px;
   padding: 14px 16px;
   border: 1px solid var(--semi-color-border);
-  border-radius: 8px;
+  border-radius: 12px;
   color: var(--semi-color-text-1);
   background: var(--semi-color-bg-1);
 }
@@ -63,53 +46,6 @@
 
 .classic-ticket-summary-dot[data-color='grey'] {
   background: var(--semi-color-text-2);
-}
-
-.classic-tickets-toolbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 14px;
-  padding: 14px;
-  border: 1px solid var(--semi-color-border);
-  border-radius: 8px;
-  background: var(--semi-color-bg-1);
-}
-
-.classic-tickets-search {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: min(100%, 360px);
-  gap: 8px;
-}
-
-.classic-tickets-filters {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.classic-ticket-table-card {
-  overflow: hidden;
-  border: 1px solid var(--semi-color-border);
-  border-radius: 8px;
-  background: var(--semi-color-bg-1);
-}
-
-.classic-ticket-table-card .semi-table-container {
-  border: 0;
-}
-
-.classic-ticket-desktop-table {
-  display: block;
-}
-
-.classic-ticket-mobile-list {
-  display: none;
 }
 
 .classic-ticket-id {
@@ -154,42 +90,8 @@
   justify-content: flex-end;
 }
 
-.classic-ticket-actions--compact {
-  justify-content: flex-start;
-}
-
 .classic-ticket-actions .semi-button {
   min-width: 0;
-}
-
-.classic-ticket-mobile-card {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-  border-bottom: 1px solid var(--semi-color-border);
-}
-
-.classic-ticket-mobile-card:last-child {
-  border-bottom: 0;
-}
-
-.classic-ticket-mobile-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.classic-ticket-mobile-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-width: 0;
-}
-
-.classic-ticket-mobile-card-actions {
-  padding-top: 2px;
 }
 
 .classic-ticket-empty {
@@ -210,7 +112,7 @@
   height: 54px;
   margin-bottom: 14px;
   border: 1px solid var(--semi-color-border);
-  border-radius: 8px;
+  border-radius: 12px;
   color: var(--semi-color-primary);
   background: var(--semi-color-fill-0);
 }
@@ -359,7 +261,7 @@
   margin-bottom: 16px;
   padding: 12px 14px;
   border: 1px solid var(--semi-color-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--semi-color-bg-1);
 }
 
@@ -384,7 +286,7 @@
 .classic-ticket-closed-notice,
 .classic-ticket-reply-form {
   border: 1px solid var(--semi-color-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--semi-color-bg-1);
 }
 
@@ -502,7 +404,7 @@
   gap: 4px;
   padding: 10px;
   border: 1px solid var(--semi-color-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--semi-color-fill-0);
 }
 
@@ -517,19 +419,6 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .classic-tickets-toolbar {
-    flex-direction: column;
-  }
-
-  .classic-tickets-search,
-  .classic-tickets-filters {
-    width: 100%;
-  }
-
-  .classic-tickets-filters {
-    justify-content: flex-start;
-  }
-
   .classic-ticket-detail-grid {
     grid-template-columns: 1fr;
   }
@@ -540,44 +429,8 @@
 }
 
 @media (max-width: 720px) {
-  .classic-tickets-page {
-    padding-bottom: 32px;
-  }
-
-  .classic-tickets-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   .classic-ticket-summary-grid {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .classic-tickets-search {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .classic-tickets-search .semi-input-wrapper,
-  .classic-tickets-search .semi-button {
-    width: 100%;
-  }
-
-  .classic-tickets-filters .semi-select,
-  .classic-tickets-filters .semi-button {
-    width: 100% !important;
-  }
-
-  .classic-ticket-table-card--with-mobile {
-    overflow: visible;
-  }
-
-  .classic-ticket-desktop-table {
-    display: none;
-  }
-
-  .classic-ticket-mobile-list {
-    display: grid;
   }
 
   .classic-ticket-actions {
