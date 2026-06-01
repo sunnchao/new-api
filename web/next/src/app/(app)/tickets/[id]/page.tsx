@@ -1,13 +1,13 @@
 "use client";
 
 import { use } from "react";
-import { TicketDetail } from "@/features/tickets/components/ticket-detail";
+import { TicketDetailPage } from "@/features/tickets";
 
-export default function TicketDetailPage({
+export default function TicketDetailRoute({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  return <TicketDetail ticketId={Number(id)} />;
+  return <TicketDetailPage ticketId={Number(id)} />;
 }
