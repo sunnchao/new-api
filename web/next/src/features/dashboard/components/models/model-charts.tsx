@@ -163,8 +163,8 @@ export function ModelCharts(props: ModelChartsProps) {
               ...spec,
               theme: resolvedTheme === 'dark' ? 'dark' : 'light',
               background: 'transparent',
-            }}
-            option={VCHART_OPTION}
+            } as unknown as import("@visactor/react-vchart").VChartProps["spec"]}
+            options={VCHART_OPTION}
           />
         )}
       </div>

@@ -47,3 +47,5 @@ export function Redemptions() {
     </RedemptionsProvider>
   )
 }
+
+export { Redemptions as RedemptionCodes }

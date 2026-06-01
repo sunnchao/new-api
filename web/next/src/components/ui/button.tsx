@@ -51,12 +51,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     // Support render prop (default frontend compat)
     if (render) {
+      const renderProps = render.props as Record<string, unknown>;
       return React.cloneElement(render, {
-        className: cn(classes, render.props.className),
+        className: cn(classes, renderProps.className as string),
         ref,
         ...props,
-        ...render.props,
-      });
+        ...renderProps,
+      } as React.Attributes & Record<string, unknown>);
     }
 
     // Support asChild pattern

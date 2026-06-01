@@ -67,4 +67,25 @@ const Reasoning = React.forwardRef<HTMLDivElement, ReasoningProps>(
 );
 Reasoning.displayName = "Reasoning";
 
-export { Reasoning };
+const ReasoningTrigger = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ className, children, ...props }, ref) => (
+    <button
+      ref={ref}
+      type="button"
+      className={cn("flex items-center gap-2 text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]", className)}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+);
+ReasoningTrigger.displayName = "ReasoningTrigger";
+
+const ReasoningContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("px-3 pb-3 pt-1 text-xs leading-relaxed text-[var(--muted)]", className)} {...props} />
+  )
+);
+ReasoningContent.displayName = "ReasoningContent";
+
+export { Reasoning, ReasoningContent, ReasoningTrigger };

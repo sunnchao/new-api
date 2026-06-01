@@ -189,3 +189,19 @@ export function getFirstActiveKey(
   if (!Array.isArray(keys)) return undefined;
   return keys.find((item) => item.status === API_KEY_STATUS.ENABLED);
 }
+
+export function encodeChatLinkPayload(payload: {
+  title: string;
+  content: string;
+  created: number;
+}): string {
+  const json = JSON.stringify(payload);
+  return toBase64(json)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+export function buildChatLink(id: string): string {
+  return `${typeof window !== "undefined" ? window.location.origin : ""}/chat/${id}`;
+}

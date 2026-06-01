@@ -200,10 +200,7 @@ export function Dashboard() {
   )
   const handleSectionChange = useCallback(
     (section: string) => {
-      void router.push({
-        to: '/dashboard/$section',
-        params: { section: section as DashboardSectionId },
-      })
+      void router.push(`/dashboard/${section}`)
     },
     [router]
   )

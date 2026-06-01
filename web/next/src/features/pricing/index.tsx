@@ -301,3 +301,5 @@ export function Pricing() {
     </PublicLayout>
   )
 }
+
+export { ModelDetails } from './components'

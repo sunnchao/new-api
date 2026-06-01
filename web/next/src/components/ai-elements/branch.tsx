@@ -62,4 +62,43 @@ const Branch = React.forwardRef<HTMLDivElement, BranchProps>(
 );
 Branch.displayName = "Branch";
 
-export { Branch };
+const BranchMessages = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("flex flex-col", className)} {...props} />
+  )
+);
+BranchMessages.displayName = "BranchMessages";
+
+const BranchNext = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ className, children, ...props }, ref) => (
+    <Button ref={ref} type="button" variant="ghost" size="icon" className={cn("h-6 w-6", className)} {...props}>
+      {children ?? <ChevronRight className="h-3.5 w-3.5" />}
+    </Button>
+  )
+);
+BranchNext.displayName = "BranchNext";
+
+const BranchPrevious = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ className, children, ...props }, ref) => (
+    <Button ref={ref} type="button" variant="ghost" size="icon" className={cn("h-6 w-6", className)} {...props}>
+      {children ?? <ChevronLeft className="h-3.5 w-3.5" />}
+    </Button>
+  )
+);
+BranchPrevious.displayName = "BranchPrevious";
+
+const BranchPage = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
+  ({ className, ...props }, ref) => (
+    <span ref={ref} className={cn("min-w-[2.5rem] select-none text-center font-mono text-xs text-[var(--muted)]", className)} {...props} />
+  )
+);
+BranchPage.displayName = "BranchPage";
+
+const BranchSelector = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("inline-flex items-center gap-0.5 rounded-md border border-[var(--border)] bg-[var(--surface)]/40 p-0.5", className)} {...props} />
+  )
+);
+BranchSelector.displayName = "BranchSelector";
+
+export { Branch, BranchMessages, BranchNext, BranchPage, BranchPrevious, BranchSelector };

@@ -70,4 +70,26 @@ const ConversationItem = React.forwardRef<HTMLDivElement, ConversationItemProps>
 );
 ConversationItem.displayName = "ConversationItem";
 
-export { Conversation, ConversationItem };
+const ConversationContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("flex flex-col gap-4", className)} {...props} />
+  )
+);
+ConversationContent.displayName = "ConversationContent";
+
+const ConversationScrollButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ className, ...props }, ref) => (
+    <button
+      ref={ref}
+      type="button"
+      className={cn(
+        "absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-[var(--border)] bg-[var(--surface)] p-2 shadow-md transition-opacity hover:bg-[var(--surface-hover)]",
+        className
+      )}
+      {...props}
+    />
+  )
+);
+ConversationScrollButton.displayName = "ConversationScrollButton";
+
+export { Conversation, ConversationItem, ConversationContent, ConversationScrollButton };

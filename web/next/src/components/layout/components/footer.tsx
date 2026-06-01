@@ -66,7 +66,7 @@ function FooterLinkItem(props: { link: FooterLink }) {
 
   return (
     <Link
-      to={props.link.href}
+      href={props.link.href}
       className='text-muted-foreground hover:text-foreground text-sm transition-colors duration-200'
     >
       {label}
@@ -199,7 +199,7 @@ export function Footer(props: FooterProps) {
         <div className='flex flex-col justify-between gap-10 md:flex-row md:gap-16'>
           {/* Brand column */}
           <div className='shrink-0'>
-            <Link to='/' className='group flex items-center gap-2.5'>
+            <Link href='/' className='group flex items-center gap-2.5'>
               <img
                 src={displayLogo}
                 alt={displayName}

@@ -18,7 +18,7 @@ export const ADMIN_TOKEN_MJ_MODEL_OPTIONS = [
 
 export type AdminTokenMjModel = (typeof ADMIN_TOKEN_MJ_MODEL_OPTIONS)[number]
 
-export const adminTokenFormSchema = apiKeyFormSchema.safeParse({
+export const adminTokenFormSchema = apiKeyFormSchema.extend({
   user_id: z.number().int().positive('Please enter a valid user ID'),
   mj_model: z.enum(ADMIN_TOKEN_MJ_MODEL_OPTIONS),
 })

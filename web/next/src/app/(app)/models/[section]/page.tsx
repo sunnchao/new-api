@@ -2,10 +2,6 @@
 
 import { Models } from "@/features/models";
 
-export default function ModelsSectionPage({
-  params,
-}: {
-  params: { section: string };
-}) {
-  return <Models section={params.section} />;
+export default function ModelsSectionPage() {
+  return <Models />;
 }

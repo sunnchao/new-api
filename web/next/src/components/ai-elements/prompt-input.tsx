@@ -145,4 +145,36 @@ const PromptInput = React.forwardRef<HTMLTextAreaElement, PromptInputProps>(
 );
 PromptInput.displayName = "PromptInput";
 
-export { PromptInput };
+const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
+  ({ className, ...props }, ref) => (
+    <textarea
+      ref={ref}
+      className={cn("block w-full resize-none bg-transparent px-4 pt-3 pb-12 text-sm leading-5 text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none", className)}
+      {...props}
+    />
+  )
+);
+PromptInputTextarea.displayName = "PromptInputTextarea";
+
+const PromptInputFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-2 pb-2", className)} {...props} />
+  )
+);
+PromptInputFooter.displayName = "PromptInputFooter";
+
+const PromptInputButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ className, ...props }, ref) => (
+    <Button ref={ref} type="button" size="icon" className={cn("h-7 w-7", className)} {...props} />
+  )
+);
+PromptInputButton.displayName = "PromptInputButton";
+
+const PromptInputTools = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("flex items-center gap-1", className)} {...props} />
+  )
+);
+PromptInputTools.displayName = "PromptInputTools";
+
+export { PromptInput, PromptInputButton, PromptInputFooter, PromptInputTextarea, PromptInputTools };

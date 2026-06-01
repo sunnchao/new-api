@@ -129,4 +129,29 @@ const CodeBlock = React.forwardRef<HTMLDivElement, CodeBlockProps>(
 );
 CodeBlock.displayName = "CodeBlock";
 
-export { CodeBlock };
+const CodeBlockCopyButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { copied?: boolean }>(
+  ({ copied, className, ...props }, ref) => (
+    <Button
+      ref={ref}
+      variant="ghost"
+      size="sm"
+      className={cn("h-7 gap-1.5 px-2 text-xs text-[var(--muted)] hover:text-[var(--foreground)]", className)}
+      {...props}
+    >
+      {copied ? (
+        <>
+          <Check className="h-3.5 w-3.5 text-[var(--success)]" />
+          Copied
+        </>
+      ) : (
+        <>
+          <Copy className="h-3.5 w-3.5" />
+          Copy
+        </>
+      )}
+    </Button>
+  )
+);
+CodeBlockCopyButton.displayName = "CodeBlockCopyButton";
+
+export { CodeBlock, CodeBlockCopyButton };
