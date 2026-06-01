@@ -44,6 +44,7 @@ import type { AdminToken } from '../types'
 import { AdminTokenBulkActions } from './admin-token-bulk-actions'
 import { AdminTokenRowActions } from './admin-token-row-actions'
 import { useAdminTokens } from './admin-tokens-provider'
+import { MaskedValueDisplay } from '@/components/masked-value-display'
 
 function getQuotaProgressColor(percentage: number): string {
   if (percentage <= 10) return '[&_[data-slot=progress-indicator]]:bg-rose-500'
@@ -59,10 +60,22 @@ function parseGroupList(value?: string | null): string[] {
 }
 
 function AdminTokenKeyCell({ token }: { token: AdminToken }) {
-  const maskedKey = token.key.startsWith('sk-') ? token.key : `sk-${token.key}`
+  const { t } = useTranslation()
+  const fullKey = token.key.startsWith('sk-') ? token.key : `sk-${token.key}`
+  
+  // Generate masked display: show first 6 and last 4 characters
+  const maskedKey = fullKey.length > 10 
+    ? `${fullKey.slice(0, 6)}...${fullKey.slice(-4)}`
+    : fullKey
 
   return (
-    <span className='text-muted-foreground font-mono text-xs'>{maskedKey}</span>
+    <MaskedValueDisplay
+      label={t('Full API Key')}
+      fullValue={fullKey}
+      maskedValue={maskedKey}
+      copyTooltip={t('Copy to clipboard')}
+      copyAriaLabel={t('Copy to clipboard')}
+    />
   )
 }
 

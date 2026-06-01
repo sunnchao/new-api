@@ -136,7 +136,7 @@ const AdminTokensPage = () => {
           groupInfoMap={undefined}
           userGroup=''
           showOwnerColumns={true}
-          allowTokenKeyActions={false}
+          allowTokenKeyActions={true}
           allowChatActions={false}
         />
       </CardPro>
