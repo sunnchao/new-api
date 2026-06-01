@@ -105,7 +105,10 @@
     "operations": "運用",
     "integrations": "連携",
     "maintenance": "メンテナンス",
-    "requestLimits": "リクエスト制限"
+    "requestLimits": "リクエスト制限",
+    "tickets": "チケット",
+    "health": "ヘルス",
+    "adminPackages": "パッケージ"
   },
   "auth": {
     "signIn": "サインイン",

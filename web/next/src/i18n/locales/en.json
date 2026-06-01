@@ -111,7 +111,10 @@
     "operations": "Operations",
     "integrations": "Integrations",
     "maintenance": "Maintenance",
-    "requestLimits": "Request Limits"
+    "requestLimits": "Request Limits",
+    "tickets": "Tickets",
+    "health": "Health",
+    "adminPackages": "Packages"
   },
   "auth": {
     "signIn": "Sign In",

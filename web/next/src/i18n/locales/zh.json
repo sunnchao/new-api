@@ -111,7 +111,10 @@
     "operations": "运维",
     "integrations": "集成",
     "maintenance": "维护",
-    "requestLimits": "请求限制"
+    "requestLimits": "请求限制",
+    "tickets": "工单",
+    "health": "健康检查",
+    "adminPackages": "套餐管理"
   },
   "auth": {
     "signIn": "登录",

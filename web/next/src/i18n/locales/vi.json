@@ -105,7 +105,10 @@
     "operations": "Vận hành",
     "integrations": "Tích hợp",
     "maintenance": "Bảo trì",
-    "requestLimits": "Giới hạn yêu cầu"
+    "requestLimits": "Giới hạn yêu cầu",
+    "tickets": "Vé",
+    "health": "Sức khỏe",
+    "adminPackages": "Gói"
   },
   "auth": {
     "signIn": "Đăng nhập",

@@ -19,6 +19,9 @@ import {
   ShieldCheck,
   UserCircle,
   Gauge,
+  TicketCheck,
+  HeartPulse,
+  Package,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,6 +44,7 @@ export function useNavItems(): NavItem[] {
     { title: t("nav.playground"), href: "/playground", icon: MessageSquare },
     { title: t("nav.dashboard"), href: "/dashboard", icon: LayoutDashboard },
     { title: t("nav.keys"), href: "/keys", icon: Key },
+    { title: t("nav.tickets"), href: "/tickets", icon: TicketCheck },
     { title: t("nav.usageLogs"), href: "/usage-logs", icon: BarChart3 },
     { title: t("nav.wallet"), href: "/wallet", icon: Wallet },
     { title: t("nav.subscriptions"), href: "/my-subscriptions", icon: Crown },
@@ -52,7 +56,9 @@ export function useNavItems(): NavItem[] {
     { title: t("nav.users"), href: "/users", icon: Users, adminOnly: true },
     { title: t("nav.redemptionCodes"), href: "/redemption-codes", icon: CreditCard, adminOnly: true },
     { title: t("nav.subscriptions"), href: "/subscriptions", icon: Crown, adminOnly: true },
+    { title: t("nav.adminPackages"), href: "/admin-packages", icon: Package, adminOnly: true },
     { title: t("nav.adminTokens"), href: "/admin-tokens", icon: ShieldCheck, adminOnly: true },
+    { title: t("nav.health"), href: "/health", icon: HeartPulse, adminOnly: true },
     { title: t("nav.performance"), href: "/performance-metrics", icon: Gauge, adminOnly: true },
     { title: t("nav.systemSettings"), href: "/system-settings", icon: Settings, adminOnly: true },
   ];
@@ -71,11 +77,11 @@ export function SidebarNav({ collapsed, onNavigate }: SidebarNavProps) {
 
   const userItems = items.filter((i) => ![
     "/channels", "/models", "/users", "/redemption-codes", "/subscriptions",
-    "/admin-tokens", "/performance-metrics", "/system-settings"
+    "/admin-packages", "/admin-tokens", "/health", "/performance-metrics", "/system-settings"
   ].includes(i.href));
   const adminItems = items.filter((i) => [
     "/channels", "/models", "/users", "/redemption-codes", "/subscriptions",
-    "/admin-tokens", "/performance-metrics", "/system-settings"
+    "/admin-packages", "/admin-tokens", "/health", "/performance-metrics", "/system-settings"
   ].includes(i.href));
 
   const renderItems = (navItems: NavItem[]) =>

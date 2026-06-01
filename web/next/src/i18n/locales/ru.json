@@ -105,7 +105,10 @@
     "operations": "Операции",
     "integrations": "Интеграции",
     "maintenance": "Обслуживание",
-    "requestLimits": "Лимиты запросов"
+    "requestLimits": "Лимиты запросов",
+    "tickets": "Тикеты",
+    "health": "Здоровье",
+    "adminPackages": "Пакеты"
   },
   "auth": {
     "signIn": "Войти",

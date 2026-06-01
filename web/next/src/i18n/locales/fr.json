@@ -105,7 +105,10 @@
     "operations": "Opérations",
     "integrations": "Intégrations",
     "maintenance": "Maintenance",
-    "requestLimits": "Limites de requêtes"
+    "requestLimits": "Limites de requêtes",
+    "tickets": "Tickets",
+    "health": "Santé",
+    "adminPackages": "Forfaits"
   },
   "auth": {
     "signIn": "Se connecter",
