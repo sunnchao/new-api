@@ -1,5 +1,6 @@
 'use client'
 
+import '../i18n'
 import { useState } from 'react'
 import dayjs from 'dayjs'
 import { useForm } from 'react-hook-form'
