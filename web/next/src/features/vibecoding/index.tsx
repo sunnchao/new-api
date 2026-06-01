@@ -4,6 +4,7 @@ import { PublicLayout } from "@/components/layout/public-layout";
 import { TutorialPage } from "./components/tutorial-page";
 import { VALID_TOOL_IDS } from "./constants";
 import { notFound } from "next/navigation";
+import "./i18n";
 
 interface VibeCodingPageProps {
   toolId: string;
