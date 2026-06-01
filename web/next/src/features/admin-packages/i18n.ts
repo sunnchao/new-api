@@ -1,0 +1,200 @@
+/*
+Copyright (C) 2025 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import i18n from '@/i18n/config'
+
+const resources = {
+  en: {
+    translation: {
+      'Package Management': 'Package Management',
+      Subscriptions: 'Subscriptions',
+      Plans: 'Plans',
+      'Grant Subscription': 'Grant Subscription',
+      'Permission denied': 'Permission denied',
+      'This page is only available to administrators':
+        'This page is only available to administrators',
+      'Create Plan': 'Create Plan',
+      'Edit Plan': 'Edit Plan',
+      'Delete Plan': 'Delete Plan',
+      'Cancel Subscription': 'Cancel Subscription',
+      'Delete Subscription': 'Delete Subscription',
+      'Update Reset Limit': 'Update Reset Limit',
+      'Select User': 'Select User',
+      'Select Plan': 'Select Plan',
+      'Search by email or username': 'Search by email or username',
+      'Allow Stacking': 'Allow Stacking',
+      'Deduction Group': 'Deduction Group',
+      'Select groups': 'Select groups',
+      'Groups whose quota this plan deducts from':
+        'Groups whose quota this plan deducts from',
+      'Show in Portal': 'Show in Portal',
+      Active: 'Active',
+      'Unlimited Duration': 'Unlimited Duration',
+      'Daily Quota Limit': 'Daily Quota Limit',
+      'Weekly Quota Limit': 'Weekly Quota Limit',
+      'Monthly Quota Limit': 'Monthly Quota Limit',
+      'Resettable Count': 'Resettable Count',
+      Name: 'Name',
+      Type: 'Type',
+      Price: 'Price',
+      Currency: 'Currency',
+      Quota: 'Quota',
+      Duration: 'Duration',
+      Unit: 'Unit',
+      Description: 'Description',
+      User: 'User',
+      Plan: 'Plan',
+      Status: 'Status',
+      'Start Time': 'Start Time',
+      'End Time': 'End Time',
+      Total: 'Total',
+      Selected: 'Selected',
+      Unlimited: 'Unlimited',
+      Edit: 'Edit',
+      Delete: 'Delete',
+      Cancel: 'Cancel',
+      Confirm: 'Confirm',
+      Save: 'Save',
+      Refresh: 'Refresh',
+      Loading: 'Loading',
+      Previous: 'Previous',
+      Next: 'Next',
+      days: 'days',
+      weeks: 'weeks',
+      months: 'months',
+      quarter: 'Quarter',
+      year: 'year',
+      'No plans found': 'No plans found',
+      'No subscriptions found': 'No subscriptions found',
+      'Please select a user and a plan': 'Please select a user and a plan',
+      'Please select a plan': 'Please select a plan',
+      'Plan created successfully': 'Plan created successfully',
+      'Plan updated successfully': 'Plan updated successfully',
+      'Plan deleted successfully': 'Plan deleted successfully',
+      'Failed to save plan': 'Failed to save plan',
+      'Failed to delete plan': 'Failed to delete plan',
+      'Subscription granted successfully': 'Subscription granted successfully',
+      'Failed to grant subscription': 'Failed to grant subscription',
+      'Subscription cancelled successfully':
+        'Subscription cancelled successfully',
+      'Failed to cancel subscription': 'Failed to cancel subscription',
+      'Subscription deleted successfully': 'Subscription deleted successfully',
+      'Failed to delete subscription': 'Failed to delete subscription',
+      'Reset limit updated successfully': 'Reset limit updated successfully',
+      'Failed to update reset limit': 'Failed to update reset limit',
+      'Are you sure you want to delete this plan?':
+        'Are you sure you want to delete this plan?',
+      'Are you sure you want to cancel this subscription?':
+        'Are you sure you want to cancel this subscription?',
+      'Are you sure you want to delete this subscription?':
+        'Are you sure you want to delete this subscription?',
+    },
+  },
+  zh: {
+    translation: {
+      'Package Management': '套餐管理',
+      Subscriptions: '订阅',
+      Plans: '套餐计划',
+      'Grant Subscription': '授予订阅',
+      'Permission denied': '权限不足',
+      'This page is only available to administrators': '此页面仅管理员可访问',
+      'Create Plan': '创建套餐',
+      'Edit Plan': '编辑套餐',
+      'Delete Plan': '删除套餐',
+      'Cancel Subscription': '取消订阅',
+      'Delete Subscription': '删除订阅',
+      'Update Reset Limit': '更新重置限额',
+      'Select User': '选择用户',
+      'Select Plan': '选择套餐',
+      'Search by email or username': '按邮箱或用户名搜索',
+      'Allow Stacking': '允许叠加',
+      'Deduction Group': '扣费分组',
+      'Select groups': '选择分组',
+      'Groups whose quota this plan deducts from': '此套餐从这些分组扣除配额',
+      'Show in Portal': '在门户显示',
+      Active: '启用',
+      'Unlimited Duration': '无限时长',
+      'Daily Quota Limit': '每日配额限制',
+      'Weekly Quota Limit': '每周配额限制',
+      'Monthly Quota Limit': '每月配额限制',
+      'Resettable Count': '可重置次数',
+      Name: '名称',
+      Type: '类型',
+      Price: '价格',
+      Currency: '货币',
+      Quota: '配额',
+      Duration: '时长',
+      Unit: '单位',
+      Description: '描述',
+      User: '用户',
+      Plan: '套餐',
+      Status: '状态',
+      'Start Time': '开始时间',
+      'End Time': '结束时间',
+      Total: '总计',
+      Selected: '已选',
+      Unlimited: '无限',
+      Edit: '编辑',
+      Delete: '删除',
+      Cancel: '取消',
+      Confirm: '确认',
+      Save: '保存',
+      Refresh: '刷新',
+      Loading: '加载中',
+      Previous: '上一页',
+      Next: '下一页',
+      days: '天',
+      weeks: '周',
+      months: '月',
+      quarter: '季度',
+      year: '年',
+      'No plans found': '未找到套餐',
+      'No subscriptions found': '未找到订阅',
+      'Please select a user and a plan': '请选择用户和套餐',
+      'Please select a plan': '请选择套餐',
+      'Plan created successfully': '套餐创建成功',
+      'Plan updated successfully': '套餐更新成功',
+      'Plan deleted successfully': '套餐删除成功',
+      'Failed to save plan': '保存套餐失败',
+      'Failed to delete plan': '删除套餐失败',
+      'Subscription granted successfully': '订阅授予成功',
+      'Failed to grant subscription': '授予订阅失败',
+      'Subscription cancelled successfully': '订阅取消成功',
+      'Failed to cancel subscription': '取消订阅失败',
+      'Subscription deleted successfully': '订阅删除成功',
+      'Failed to delete subscription': '删除订阅失败',
+      'Reset limit updated successfully': '重置限额更新成功',
+      'Failed to update reset limit': '更新重置限额失败',
+      'Are you sure you want to delete this plan?': '确定要删除此套餐吗？',
+      'Are you sure you want to cancel this subscription?':
+        '确定要取消此订阅吗？',
+      'Are you sure you want to delete this subscription?':
+        '确定要删除此订阅吗？',
+    },
+  },
+} as const
+
+for (const [language, resource] of Object.entries(resources)) {
+  i18n.addResourceBundle(
+    language,
+    'translation',
+    resource.translation,
+    true,
+    true
+  )
+}
