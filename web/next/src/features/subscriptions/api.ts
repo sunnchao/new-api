@@ -64,6 +64,13 @@ export async function patchPlanStatus(
   return res.data
 }
 
+export async function deleteAdminPlan(
+  id: number
+): Promise<ApiResponse> {
+  const res = await api.delete(`/api/subscription/admin/plans/${id}`)
+  return res.data
+}
+
 // ============================================================================
 // Admin User Subscription Management
 // ============================================================================
@@ -106,6 +113,33 @@ export async function deleteUserSubscription(
   return res.data
 }
 
+export async function activateUserSubscription(
+  subId: number
+): Promise<ApiResponse> {
+  const res = await api.post(
+    `/api/subscription/admin/user_subscriptions/${subId}/activate`
+  )
+  return res.data
+}
+
+export async function renewUserSubscription(
+  subId: number
+): Promise<ApiResponse> {
+  const res = await api.post(
+    `/api/subscription/admin/user_subscriptions/${subId}/renew`
+  )
+  return res.data
+}
+
+export async function activateScheduledSubscription(
+  subId: number
+): Promise<ApiResponse> {
+  const res = await api.post(
+    `/api/subscription/scheduled/${subId}/activate`
+  )
+  return res.data
+}
+
 export async function getAllUserSubscriptions(
   params: AdminAllSubscriptionsParams = {}
 ): Promise<ApiResponse<AdminAllSubscriptionsResponse>> {
@@ -135,6 +169,48 @@ export async function paySubscriptionBalance(
   data: SubscriptionPayRequest
 ): Promise<SubscriptionPayResponse & { data?: { order_id?: string } | string }> {
   const res = await api.post('/api/subscription/balance/pay', data)
+  return res.data
+}
+
+export async function renewPayBalance(
+  data: SubscriptionPayRequest
+): Promise<SubscriptionPayResponse> {
+  const res = await api.post('/api/subscription/renew/balance/pay', data)
+  return res.data
+}
+
+export async function renewPayStripe(
+  data: SubscriptionPayRequest
+): Promise<SubscriptionPayResponse> {
+  const res = await api.post('/api/subscription/renew/stripe/pay', data)
+  return res.data
+}
+
+export async function renewPayCreem(
+  data: SubscriptionPayRequest
+): Promise<SubscriptionPayResponse> {
+  const res = await api.post('/api/subscription/renew/creem/pay', data)
+  return res.data
+}
+
+export async function paySubscriptionWaffoPancake(
+  data: SubscriptionPayRequest
+): Promise<SubscriptionPayResponse> {
+  const res = await api.post('/api/subscription/waffo-pancake/pay', data)
+  return res.data
+}
+
+export async function createWaffoPancakeProduct(
+  data: unknown
+): Promise<ApiResponse> {
+  const res = await api.post('/api/option/waffo-pancake/subscription-product', data)
+  return res.data
+}
+
+export async function createWaffoPancakeProductOptions(
+  data: unknown
+): Promise<ApiResponse> {
+  const res = await api.post('/api/option/waffo-pancake/subscription-product-options', data)
   return res.data
 }
 
