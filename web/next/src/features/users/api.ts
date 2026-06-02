@@ -183,14 +183,6 @@ export async function adminUnbindCustomOAuth(
 }
 
 /**
- * Get the list of models available to the current user
- */
-export async function getUserModels(): Promise<ApiResponse<string[]>> {
-  const res = await api.get('/api/user/models')
-  return res.data
-}
-
-/**
  * Send a test notification to the current user using their saved settings
  */
 export async function testNotify(): Promise<ApiResponse<{ message?: string }>> {
