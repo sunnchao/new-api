@@ -25,6 +25,7 @@ import {
   REDEMPTION_STATUS,
   REDEMPTION_STATUS_MAP,
   REDEMPTION_ACTIONS,
+  REDEMPTION_TYPES,
 } from '../../../constants/redemption.constants';
 
 /**
@@ -105,9 +106,18 @@ export const getRedemptionsColumns = ({
       },
     },
     {
-      title: t('额度'),
+      title: t('内容'),
       dataIndex: 'quota',
-      render: (text) => {
+      render: (text, record) => {
+        if (record.type === REDEMPTION_TYPES.SUBSCRIPTION) {
+          return (
+            <div>
+              <Tag color='blue' shape='circle'>
+                {t('订阅套餐')} #{record.subscription_plan_id || '-'}
+              </Tag>
+            </div>
+          );
+        }
         return (
           <div>
             <Tag color='grey' shape='circle'>
