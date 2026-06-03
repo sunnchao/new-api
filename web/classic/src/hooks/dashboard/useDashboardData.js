@@ -21,10 +21,14 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { API, isAdmin, showError, timestamp2string } from '../../helpers';
-import { getDefaultTime, getInitialTimestamp } from '../../helpers/dashboard';
+import { getDefaultTime } from '../../helpers/dashboard';
 import { TIME_OPTIONS } from '../../constants/dashboard.constants';
 import { useIsMobile } from '../common/useIsMobile';
 import { useMinimumLoadingTime } from '../common/useMinimumLoadingTime';
+import {
+  normalizeDashboardQuotaDataPayload,
+  normalizeQuotaDataListPayload,
+} from './useDashboardDataUtils';
 
 export const useDashboardData = (userState, userDispatch, statusState) => {
   const { t } = useTranslation();
@@ -82,7 +86,6 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
   const [activeUptimeTab, setActiveUptimeTab] = useState('');
 
   // ========== 常量 ==========
-  const now = new Date();
   const isAdminUser = isAdmin();
 
   // ========== Panel enable flags ==========
@@ -173,17 +176,9 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
       const res = await API.get(url);
       const { success, message, data } = res.data;
       if (success) {
-        setQuotaData(data);
-        if (data.length === 0) {
-          data.push({
-            count: 0,
-            model_name: '无数据',
-            quota: 0,
-            created_at: now.getTime() / 1000,
-          });
-        }
-        data.sort((a, b) => a.created_at - b.created_at);
-        return data;
+        const normalizedData = normalizeDashboardQuotaDataPayload(data);
+        setQuotaData(normalizedData);
+        return normalizedData;
       } else {
         showError(message);
         return [];
@@ -191,7 +186,7 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     } finally {
       setLoading(false);
     }
-  }, [inputs, dataExportDefaultTime, isAdminUser, now]);
+  }, [inputs, dataExportDefaultTime, isAdminUser]);
 
   const loadUptimeData = useCallback(async () => {
     setUptimeLoading(true);
@@ -223,7 +218,7 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
       const res = await API.get(url);
       const { success, message, data } = res.data;
       if (success) {
-        return data || [];
+        return normalizeQuotaDataListPayload(data);
       } else {
         showError(message);
         return [];
