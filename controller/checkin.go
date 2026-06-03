@@ -52,8 +52,9 @@ func DoCheckin(c *gin.Context) {
 	}
 
 	userId := c.GetInt("id")
+	requestIP := c.ClientIP()
 
-	checkin, err := model.UserCheckin(userId)
+	checkin, err := model.UserCheckin(userId, requestIP)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -63,7 +64,7 @@ func DoCheckin(c *gin.Context) {
 	}
 
 	otherParam := map[string]interface{}{
-		"RequestIp": c.ClientIP(),
+		"RequestIp": requestIP,
 	}
 
 	model.RecordLog(userId, model.LogTypeCheckin, fmt.Sprintf("用户签到，获得额度 %s", logger.LogQuota(checkin.QuotaAwarded)), otherParam)

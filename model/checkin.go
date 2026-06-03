@@ -14,9 +14,10 @@ import (
 type Checkin struct {
 	Id           int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	UserId       int    `json:"user_id" gorm:"not null;uniqueIndex:idx_user_checkin_date"`
-	CheckinDate  string `json:"checkin_date" gorm:"type:varchar(10);not null;uniqueIndex:idx_user_checkin_date"` // 格式: YYYY-MM-DD
+	CheckinDate  string `json:"checkin_date" gorm:"type:varchar(10);not null;uniqueIndex:idx_user_checkin_date;uniqueIndex:idx_checkin_date_ip"` // 格式: YYYY-MM-DD
 	QuotaAwarded int    `json:"quota_awarded" gorm:"not null"`
 	CreatedAt    int64  `json:"created_at" gorm:"bigint"`
+	RequestIP    string `json:"request_ip" gorm:"type:varchar(45);uniqueIndex:idx_checkin_date_ip"`
 }
 
 // CheckinRecord 用于API返回的签到记录（不包含敏感字段）
@@ -49,10 +50,23 @@ func HasCheckedInToday(userId int) (bool, error) {
 	return count > 0, err
 }
 
+// HasRequestIPCheckedInToday 检查请求 IP 今天是否已签到
+func HasRequestIPCheckedInToday(requestIP string) (bool, error) {
+	if requestIP == "" {
+		return false, nil
+	}
+	today := time.Now().Format("2006-01-02")
+	var count int64
+	err := DB.Model(&Checkin{}).
+		Where("request_ip = ? AND checkin_date = ?", requestIP, today).
+		Count(&count).Error
+	return count > 0, err
+}
+
 // UserCheckin 执行用户签到
 // MySQL 和 PostgreSQL 使用事务保证原子性
 // SQLite 不支持嵌套事务，使用顺序操作 + 手动回滚
-func UserCheckin(userId int) (*Checkin, error) {
+func UserCheckin(userId int, requestIP string) (*Checkin, error) {
 	setting := operation_setting.GetCheckinSetting()
 	if !setting.Enabled {
 		return nil, errors.New("签到功能未启用")
@@ -67,10 +81,27 @@ func UserCheckin(userId int) (*Checkin, error) {
 		return nil, errors.New("今日已签到")
 	}
 
+	hasIPChecked, err := HasRequestIPCheckedInToday(requestIP)
+	if err != nil {
+		return nil, err
+	}
+	if hasIPChecked {
+		return nil, errors.New("当前 IP 今日已存在签到记录")
+	}
+
 	// 计算随机额度奖励
 	quotaAwarded := setting.MinQuota
 	if setting.MaxQuota > setting.MinQuota {
 		quotaAwarded = setting.MinQuota + rand.Intn(setting.MaxQuota-setting.MinQuota+1)
+	}
+
+	// 如果用户余额为负数，签到金额减半
+	currentQuota, err := GetUserQuota(userId, false)
+	if err != nil {
+		return nil, err
+	}
+	if currentQuota < 0 {
+		quotaAwarded = quotaAwarded / 2
 	}
 
 	today := time.Now().Format("2006-01-02")
@@ -79,6 +110,7 @@ func UserCheckin(userId int) (*Checkin, error) {
 		CheckinDate:  today,
 		QuotaAwarded: quotaAwarded,
 		CreatedAt:    time.Now().Unix(),
+		RequestIP:    requestIP,
 	}
 
 	// 根据数据库类型选择不同的策略
