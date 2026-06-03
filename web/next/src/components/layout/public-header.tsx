@@ -52,9 +52,6 @@ export function PublicHeader() {
         <Link href="/pricing" className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
           {t("nav.pricing", "Pricing")}
         </Link>
-        <Link href="/rankings" className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
-          {t("nav.rankings", "Rankings")}
-        </Link>
         <Link href="/about" className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
           {t("nav.about", "About")}
         </Link>

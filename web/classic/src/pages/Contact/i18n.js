@@ -43,6 +43,7 @@ const resources = {
       群号: 'Group ID',
       复制群号: 'Copy group ID',
       查看二维码: 'View QR code',
+      一键加群: 'Quick join',
       '扫码加入 QQ 交流群': 'Scan to join the QQ group',
       '扫码加入群聊，或复制群号手动搜索。':
         'Scan to join the group, or copy the group ID and search manually.',
@@ -72,6 +73,7 @@ const resources = {
       群号: '群号',
       复制群号: '复制群号',
       查看二维码: '查看二维码',
+      一键加群: '一键加群',
       '扫码加入 QQ 交流群': '扫码加入 QQ 交流群',
       '扫码加入群聊，或复制群号手动搜索。':
         '扫码加入群聊，或复制群号手动搜索。',
@@ -102,6 +104,7 @@ const resources = {
       群号: '群號',
       复制群号: '複製群號',
       查看二维码: '查看 QR Code',
+      一键加群: '一鍵加群',
       '扫码加入 QQ 交流群': '掃碼加入 QQ 交流群',
       '扫码加入群聊，或复制群号手动搜索。':
         '掃描 QR Code 加入群聊，或複製群號手動搜尋。',
@@ -132,6 +135,7 @@ const resources = {
       群号: 'ID du groupe',
       复制群号: "Copier l'ID du groupe",
       查看二维码: 'Voir le QR code',
+      一键加群: 'Rejoindre',
       '扫码加入 QQ 交流群': 'Scannez pour rejoindre le groupe QQ',
       '扫码加入群聊，或复制群号手动搜索。':
         "Scannez pour rejoindre le groupe, ou copiez l'ID et recherchez-le manuellement.",
@@ -162,6 +166,7 @@ const resources = {
       群号: 'グループID',
       复制群号: 'グループIDをコピー',
       查看二维码: 'QRコードを表示',
+      一键加群: '参加する',
       '扫码加入 QQ 交流群': 'スキャンしてQQグループに参加',
       '扫码加入群聊，或复制群号手动搜索。':
         'QRコードをスキャンするか、グループIDをコピーして手動で検索できます。',
@@ -192,6 +197,7 @@ const resources = {
       群号: 'ID группы',
       复制群号: 'Скопировать ID группы',
       查看二维码: 'Показать QR-код',
+      一键加群: 'Присоединиться',
       '扫码加入 QQ 交流群': 'Сканируйте, чтобы вступить в группу QQ',
       '扫码加入群聊，或复制群号手动搜索。':
         'Отсканируйте код, чтобы вступить в группу, или скопируйте ID и найдите ее вручную.',
@@ -222,6 +228,7 @@ const resources = {
       群号: 'ID nhóm',
       复制群号: 'Sao chép ID nhóm',
       查看二维码: 'Xem mã QR',
+      一键加群: 'Tham gia ngay',
       '扫码加入 QQ 交流群': 'Quét để tham gia nhóm QQ',
       '扫码加入群聊，或复制群号手动搜索。':
         'Quét để tham gia nhóm, hoặc sao chép ID nhóm và tìm thủ công.',

@@ -27,7 +27,7 @@ export const defaultHeaderNavModules = {
     requireAuth: false,
   },
   rankings: {
-    enabled: true,
+    enabled: false,
     requireAuth: false,
   },
   subscriptions: {

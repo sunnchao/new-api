@@ -153,6 +153,28 @@
   line-height: 1.65;
 }
 
+.classic-contact-quick-join {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 6px 14px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: 6px;
+  color: var(--semi-color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.classic-contact-quick-join:hover {
+  background: var(--semi-color-fill-0);
+  border-color: var(--semi-color-primary);
+}
+
 .classic-contact-qr-frame {
   display: flex;
   align-items: center;

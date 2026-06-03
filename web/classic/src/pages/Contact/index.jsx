@@ -21,6 +21,7 @@ import React, { useMemo, useState } from 'react';
 import { Button, Modal, Typography } from '@douyinfe/semi-ui';
 import {
   IconCopy,
+  IconLink,
   IconMail,
   IconQrCode,
   IconSend,
@@ -153,13 +154,22 @@ const Contact = () => {
 
                     <div className='classic-contact-actions'>
                       {method.key === 'qq' ? (
-                        <Button
-                          icon={<IconQrCode />}
-                          theme='borderless'
-                          type='tertiary'
-                          aria-label={method.actionLabel}
-                          onClick={() => setQrVisible(true)}
-                        />
+                        <>
+                          <Button
+                            icon={<IconQrCode />}
+                            theme='borderless'
+                            type='tertiary'
+                            aria-label={method.actionLabel}
+                            onClick={() => setQrVisible(true)}
+                          />
+                          <Button
+                            icon={<IconLink />}
+                            theme='borderless'
+                            type='tertiary'
+                            aria-label={t('一键加群')}
+                            onClick={() => window.open('https://qm.qq.com/q/GJeiqkSsQA', '_blank', 'noopener,noreferrer')}
+                          />
+                        </>
                       ) : (
                         <Button
                           theme='solid'
@@ -195,6 +205,15 @@ const Contact = () => {
               <Text type='tertiary' className='classic-contact-muted'>
                 {t('扫码加入群聊，或复制群号手动搜索。')}
               </Text>
+              <a
+                href='https://qm.qq.com/q/GJeiqkSsQA'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='classic-contact-quick-join'
+              >
+                <IconLink size='small' />
+                <span>{t('一键加群')}</span>
+              </a>
             </div>
 
             <button
@@ -249,6 +268,15 @@ const Contact = () => {
           <Text type='tertiary' className='classic-contact-modal-number'>
             {contactMethods[1].value}
           </Text>
+          <a
+            href='https://qm.qq.com/q/GJeiqkSsQA'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='classic-contact-quick-join'
+          >
+            <IconLink size='small' />
+            <span>{t('一键加群')}</span>
+          </a>
         </div>
       </Modal>
     </div>

@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, type ElementType } from 'react'
-import { Mail, MessageCircle, QrCode } from 'lucide-react'
+import { ExternalLink, Mail, MessageCircle, QrCode } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import './i18n'
 import qqGroupQrCode from '@/assets/qq-group-qrcode.jpg'
@@ -108,23 +108,48 @@ export function Contact() {
                     </div>
                     <div className='flex items-center gap-1'>
                       {method.qrCodeSrc ? (
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                variant='ghost'
-                                size='icon'
-                                onClick={() => setQrCodeMethod(method)}
-                                aria-label={t('View QR code')}
-                              >
-                                <QrCode className='size-4' />
-                              </Button>
-                            }
-                          />
-                          <TooltipContent>
-                            <p>{t('View QR code')}</p>
-                          </TooltipContent>
-                        </Tooltip>
+                        <>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  variant='ghost'
+                                  size='icon'
+                                  onClick={() => setQrCodeMethod(method)}
+                                  aria-label={t('View QR code')}
+                                >
+                                  <QrCode className='size-4' />
+                                </Button>
+                              }
+                            />
+                            <TooltipContent>
+                              <p>{t('View QR code')}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  variant='ghost'
+                                  size='icon'
+                                  render={
+                                    <a
+                                      href='https://qm.qq.com/q/GJeiqkSsQA'
+                                      target='_blank'
+                                      rel='noopener noreferrer'
+                                    />
+                                  }
+                                  aria-label={t('Quick join')}
+                                >
+                                  <ExternalLink className='size-4' />
+                                </Button>
+                              }
+                            />
+                            <TooltipContent>
+                              <p>{t('Quick join')}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </>
                       ) : null}
                       <CopyButton
                         value={method.value}
@@ -183,6 +208,15 @@ export function Contact() {
             <p className='text-muted-foreground text-center font-mono text-xs'>
               {qrCodeMethod?.value}
             </p>
+            <a
+              href='https://qm.qq.com/q/GJeiqkSsQA'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 dark:text-emerald-300'
+            >
+              <ExternalLink className='size-3.5' />
+              {t('Quick join')}
+            </a>
           </DialogContent>
         </Dialog>
       </main>

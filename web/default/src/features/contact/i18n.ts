@@ -31,6 +31,7 @@ const resources = {
       'View QR code': 'View QR code',
       'Copy contact': 'Copy contact',
       'Copied!': 'Copied!',
+      'Quick join': 'Quick join',
       'QQ group QR code': 'QQ group QR code',
       'Scan the QR code to join the QQ group.':
         'Scan the QR code to join the QQ group.',
@@ -48,6 +49,7 @@ const resources = {
       'View QR code': '查看二维码',
       'Copy contact': '复制联系方式',
       'Copied!': '已复制！',
+      'Quick join': '一键加群',
       'QQ group QR code': 'QQ 群二维码',
       'Scan the QR code to join the QQ group.': '扫描二维码加入 QQ 群。',
     },
@@ -66,6 +68,7 @@ const resources = {
       'View QR code': 'Voir le QR code',
       'Copy contact': 'Copier le contact',
       'Copied!': 'Copié !',
+      'Quick join': 'Rejoindre',
       'QQ group QR code': 'QR code du groupe QQ',
       'Scan the QR code to join the QQ group.':
         'Scannez le QR code pour rejoindre le groupe QQ.',
@@ -85,6 +88,7 @@ const resources = {
       'View QR code': 'QRコードを表示',
       'Copy contact': '連絡先をコピー',
       'Copied!': 'コピーしました！',
+      'Quick join': '参加する',
       'QQ group QR code': 'QQグループのQRコード',
       'Scan the QR code to join the QQ group.':
         'QRコードをスキャンしてQQグループに参加。',
@@ -104,6 +108,7 @@ const resources = {
       'View QR code': 'Просмотреть QR-код',
       'Copy contact': 'Копировать контакт',
       'Copied!': 'Скопировано!',
+      'Quick join': 'Присоединиться',
       'QQ group QR code': 'QR-код группы QQ',
       'Scan the QR code to join the QQ group.':
         'Отсканируйте QR-код, чтобы присоединиться к группе QQ.',
@@ -123,6 +128,7 @@ const resources = {
       'View QR code': 'Xem mã QR',
       'Copy contact': 'Sao chép liên hệ',
       'Copied!': 'Đã sao chép!',
+      'Quick join': 'Tham gia ngay',
       'QQ group QR code': 'Mã QR nhóm QQ',
       'Scan the QR code to join the QQ group.':
         'Quét mã QR để tham gia nhóm QQ.',
