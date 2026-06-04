@@ -213,7 +213,7 @@ const Hero = ({ isAuthenticated }) => {
                 </>
               ) : (
                 <>
-                  <Link to='/sign-up'>
+                  <Link to='/login'>
                     <Button
                       theme='solid'
                       type='primary'
