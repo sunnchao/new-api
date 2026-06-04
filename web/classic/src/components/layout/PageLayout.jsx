@@ -159,7 +159,7 @@ const PageLayout = () => {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        overflow: isFixedLayout && !isMobile ? 'hidden' : 'visible',
+        overflow: isFixedLayout && !isMobile ? 'hidden' : 'auto',
       }}
     >
       <Header

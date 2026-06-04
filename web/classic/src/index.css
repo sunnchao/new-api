@@ -101,8 +101,39 @@ body {
 }
 
 .app-layout {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-layout-fixed {
     height: 100vh;
     height: 100dvh;
+}
+
+.public-page-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.classic-page-fill {
+  flex: 1 0 auto;
+  min-height: 100%;
+}
+
+.classic-home-page,
+.classic-home-default {
+  display: flex;
+  flex-direction: column;
+}
+
+.classic-home-default {
+  flex: 1 0 auto;
+}
+
+.classic-home-hero {
+  flex: 1 0 auto;
 }
 
 .app-sider {

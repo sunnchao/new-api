@@ -467,14 +467,14 @@ const Home = () => {
   ];
 
   return (
-    <div className='w-full overflow-x-hidden'>
+    <div className='classic-page-fill classic-home-page w-full overflow-x-hidden'>
       <NoticeModal
         visible={noticeVisible}
         onClose={() => setNoticeVisible(false)}
         isMobile={isMobile}
       />
       {showDefaultHome ? (
-        <div className='w-full overflow-x-hidden'>
+        <div className='classic-home-default w-full overflow-x-hidden'>
           <Hero isAuthenticated={!!userState.user} />
 
           <HomeSubscriptionPlansSection />
@@ -663,12 +663,12 @@ const Home = () => {
           <Spin spinning size='large' />
         </div>
       ) : (
-        <div className='overflow-x-hidden w-full'>
+        <div className='classic-page-fill overflow-x-hidden w-full'>
           {homePageContent.startsWith('https://') ? (
             <iframe
               ref={iframeRef}
               src={homePageContent}
-              className='w-full h-screen border-none'
+              className='w-full h-full border-none'
               onLoad={postIframeContext}
             />
           ) : (
