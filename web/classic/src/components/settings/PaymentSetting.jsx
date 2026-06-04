@@ -24,6 +24,7 @@ import SettingsPaymentGateway from '../../pages/Setting/Payment/SettingsPaymentG
 import SettingsPaymentGatewayStripe from '../../pages/Setting/Payment/SettingsPaymentGatewayStripe';
 import SettingsPaymentGatewayCreem from '../../pages/Setting/Payment/SettingsPaymentGatewayCreem';
 import SettingsPaymentGatewayWaffo from '../../pages/Setting/Payment/SettingsPaymentGatewayWaffo';
+import SettingsPaymentGatewayWaffoPancake from '../../pages/Setting/Payment/SettingsPaymentGatewayWaffoPancake';
 import { API, showError, showSuccess, toBoolean } from '../../helpers';
 import { useTranslation } from 'react-i18next';
 import RiskAcknowledgementModal from '../common/modals/RiskAcknowledgementModal';
@@ -51,6 +52,14 @@ const PaymentSetting = () => {
     StripeUnitPrice: 8.0,
     StripeMinTopUp: 1,
     StripePromotionCodesEnabled: false,
+
+    WaffoPancakeMerchantID: '',
+    WaffoPancakePrivateKey: '',
+    WaffoPancakeReturnURL: '',
+    WaffoPancakeUnitPrice: 1,
+    WaffoPancakeMinTopUp: 1,
+    WaffoPancakeStoreID: '',
+    WaffoPancakeProductID: '',
 
     'payment_setting.compliance_confirmed': false,
     'payment_setting.compliance_terms_version': '',
@@ -163,7 +172,11 @@ const PaymentSetting = () => {
           case 'MinTopUp':
           case 'StripeUnitPrice':
           case 'StripeMinTopUp':
+          case 'WaffoPancakeUnitPrice':
             newInputs[item.key] = parseFloat(item.value);
+            break;
+          case 'WaffoPancakeMinTopUp':
+            newInputs[item.key] = parseInt(item.value) || 1;
             break;
           default:
             if (item.key.endsWith('Enabled')) {
@@ -301,6 +314,16 @@ const PaymentSetting = () => {
               </Tabs.TabPane>
               <Tabs.TabPane tab={t('Waffo 设置')} itemKey='waffo'>
                 <SettingsPaymentGatewayWaffo
+                  options={inputs}
+                  refresh={onRefresh}
+                  hideSectionTitle
+                />
+              </Tabs.TabPane>
+              <Tabs.TabPane
+                tab={t('Waffo Pancake 设置')}
+                itemKey='waffo-pancake'
+              >
+                <SettingsPaymentGatewayWaffoPancake
                   options={inputs}
                   refresh={onRefresh}
                   hideSectionTitle

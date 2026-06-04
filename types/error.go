@@ -177,6 +177,10 @@ func (e *NewAPIError) MaskSensitiveErrorWithStatusCode() string {
 
 func (e *NewAPIError) SetMessage(message string) {
 	e.Err = errors.New(message)
+	if openAIError, ok := e.RelayError.(OpenAIError); ok {
+		openAIError.Message = message
+		e.RelayError = openAIError
+	}
 }
 
 func (e *NewAPIError) ToOpenAIError() OpenAIError {
@@ -209,6 +213,7 @@ func (e *NewAPIError) ToOpenAIError() OpenAIError {
 	if result.Message == "" {
 		result.Message = string(e.errorType)
 	}
+	result = filterOpenAIError(result, e.StatusCode)
 	return result
 }
 
@@ -238,6 +243,7 @@ func (e *NewAPIError) ToClaudeError() ClaudeError {
 	if result.Message == "" {
 		result.Message = string(e.errorType)
 	}
+	result = filterClaudeError(result, e.StatusCode)
 	return result
 }
 
@@ -420,8 +426,6 @@ func IsRecordErrorLog(e *NewAPIError) bool {
 
 // Error filtering patterns and keywords
 var (
-	requestIdRegex = regexp.MustCompile(`\(request id: [^\)]+\)`)
-	traceIdRegex   = regexp.MustCompile(`\(traceid: [^\)]+\)`)
 	// Extract group and model from messages like "当前分组 default 下对于模型 claude-3-5-haiku-20241022 无可用渠道"
 	groupAndModelKeywords = regexp.MustCompile(`当前分组 (\S+) 下对于模型 (\S+) 无可用渠道`)
 	quotaKeywords         = []string{"余额", "额度", "quota", "令牌"}
@@ -434,11 +438,6 @@ func filterOpenAIError(err OpenAIError, statusCode int) OpenAIError {
 	// Filter 429 errors to user-friendly message
 	if statusCode == http.StatusTooManyRequests {
 		result.Message = "当前分组上游负载已饱和，请稍后再试"
-	}
-
-	// Remove request id if already present (will be re-added by middleware)
-	if strings.Contains(result.Message, "(request id:") {
-		result.Message = requestIdRegex.ReplaceAllString(result.Message, "")
 	}
 
 	// Unify error types for upstream errors
@@ -478,11 +477,6 @@ func filterClaudeError(err ClaudeError, statusCode int) ClaudeError {
 	// Filter 429 errors to user-friendly message
 	if statusCode == http.StatusTooManyRequests {
 		result.Message = "当前分组上游负载已饱和，请稍后再试"
-	}
-
-	// Remove request id if already present
-	if strings.Contains(result.Message, "(request id:") {
-		result.Message = requestIdRegex.ReplaceAllString(result.Message, "")
 	}
 
 	// Unify error types

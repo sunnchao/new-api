@@ -92,6 +92,26 @@ func formatWaffoPancakeAmount(payMoney float64) string {
 	return decimal.NewFromFloat(payMoney).StringFixed(2)
 }
 
+func waffoPancakeUsdToDisplayRate() decimal.Decimal {
+	rate := operation_setting.GetUsdToCurrencyRate(operation_setting.USDExchangeRate)
+	if rate <= 0 {
+		return decimal.NewFromInt(1)
+	}
+	return decimal.NewFromFloat(rate)
+}
+
+func formatWaffoPancakeUSDAmount(displayAmount float64) string {
+	return decimal.NewFromFloat(displayAmount).Div(waffoPancakeUsdToDisplayRate()).StringFixed(2)
+}
+
+func formatWaffoPancakeUSDAmountString(displayAmount string) (string, error) {
+	amount, err := decimal.NewFromString(strings.TrimSpace(displayAmount))
+	if err != nil {
+		return "", err
+	}
+	return amount.Div(waffoPancakeUsdToDisplayRate()).StringFixed(2), nil
+}
+
 func getWaffoPancakeBuyerEmail(user *model.User) string {
 	if user != nil && strings.TrimSpace(user.Email) != "" {
 		return user.Email
@@ -277,13 +297,18 @@ func CreateWaffoPancakeSubscriptionProduct(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "Waffo Pancake 未完成配置，请先在支付设置中完成网关绑定"})
 		return
 	}
+	usdAmount, err := formatWaffoPancakeUSDAmountString(req.Amount)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "套餐价格格式错误"})
+		return
+	}
 	productID, err := service.CreateWaffoPancakeProductForPlan(
 		c.Request.Context(),
 		merchantID,
 		privateKey,
 		storeID,
 		req.Name,
-		req.Amount,
+		usdAmount,
 		setting.WaffoPancakeReturnURL,
 	)
 	if err != nil {
@@ -379,6 +404,7 @@ func RequestWaffoPancakePay(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "充值金额过低"})
 		return
 	}
+	usdPayMoney := formatWaffoPancakeUSDAmount(payMoney)
 
 	tradeNo := fmt.Sprintf("WAFFO_PANCAKE-%d-%d-%s", id, time.Now().UnixMilli(), randstr.String(6))
 	topUp := &model.TopUp{
@@ -402,7 +428,7 @@ func RequestWaffoPancakePay(c *gin.Context) {
 		ProductID:     setting.WaffoPancakeProductID,
 		BuyerIdentity: getWaffoPancakeBuyerIdentity(user),
 		PriceSnapshot: &service.WaffoPancakePriceSnapshot{
-			Amount:      formatWaffoPancakeAmount(payMoney),
+			Amount:      usdPayMoney,
 			TaxCategory: "saas",
 		},
 		BuyerEmail:              getWaffoPancakeBuyerEmail(user),

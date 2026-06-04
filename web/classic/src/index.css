@@ -101,15 +101,13 @@ body {
 }
 
 .app-layout {
-  height: 100vh;
-  height: 100dvh;
   min-height: 100vh;
   min-height: 100dvh;
 }
 
 .app-layout-fixed {
-    height: 100vh;
-    height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .public-page-content {

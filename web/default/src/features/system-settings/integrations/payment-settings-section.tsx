@@ -160,6 +160,8 @@ const paymentSchema = z.object({
   WaffoPancakeMerchantID: z.string(),
   WaffoPancakePrivateKey: z.string(),
   WaffoPancakeReturnURL: z.string(),
+  WaffoPancakeUnitPrice: z.coerce.number().min(0),
+  WaffoPancakeMinTopUp: z.coerce.number().min(1),
 })
 
 type PaymentFormValues = z.infer<typeof paymentSchema>
@@ -695,6 +697,8 @@ export function PaymentSettingsSection({
       WaffoPancakeReturnURL: removeTrailingSlash(
         values.WaffoPancakeReturnURL.trim()
       ),
+      WaffoPancakeUnitPrice: values.WaffoPancakeUnitPrice,
+      WaffoPancakeMinTopUp: values.WaffoPancakeMinTopUp,
     }
 
     const initial = {
@@ -744,6 +748,8 @@ export function PaymentSettingsSection({
       WaffoPancakeReturnURL: removeTrailingSlash(
         initialRef.current.WaffoPancakeReturnURL.trim()
       ),
+      WaffoPancakeUnitPrice: initialRef.current.WaffoPancakeUnitPrice,
+      WaffoPancakeMinTopUp: initialRef.current.WaffoPancakeMinTopUp,
     }
 
     const updates: Array<{ key: string; value: string | number | boolean }> = []
@@ -951,6 +957,20 @@ export function PaymentSettingsSection({
       updates.push({ key: 'WaffoPayMethods', value: sanitized.WaffoPayMethods })
     }
 
+    if (sanitized.WaffoPancakeUnitPrice !== initial.WaffoPancakeUnitPrice) {
+      updates.push({
+        key: 'WaffoPancakeUnitPrice',
+        value: sanitized.WaffoPancakeUnitPrice,
+      })
+    }
+
+    if (sanitized.WaffoPancakeMinTopUp !== initial.WaffoPancakeMinTopUp) {
+      updates.push({
+        key: 'WaffoPancakeMinTopUp',
+        value: sanitized.WaffoPancakeMinTopUp,
+      })
+    }
+
     const hasWaffoPancakeChanges =
       sanitized.WaffoPancakeMerchantID !== initial.WaffoPancakeMerchantID ||
       sanitized.WaffoPancakePrivateKey.length > 0 ||
@@ -1044,6 +1064,8 @@ export function PaymentSettingsSection({
     WaffoPancakeMerchantID: currentFormValues.WaffoPancakeMerchantID,
     WaffoPancakePrivateKey: currentFormValues.WaffoPancakePrivateKey,
     WaffoPancakeReturnURL: currentFormValues.WaffoPancakeReturnURL,
+    WaffoPancakeUnitPrice: currentFormValues.WaffoPancakeUnitPrice,
+    WaffoPancakeMinTopUp: currentFormValues.WaffoPancakeMinTopUp,
   }
 
   return (
@@ -1347,30 +1369,30 @@ export function PaymentSettingsSection({
               />
             </div>
 
-              <FormField
-                  control={form.control}
-                  name='InvoiceAllowSubscriptionRecordsEnabled'
-                  render={({ field }) => (
-                      <FormItem className='flex items-center justify-between gap-4 rounded-lg border p-4'>
-                          <div className='space-y-1'>
-                              <FormLabel>
-                                  {t('Allow subscription purchases for invoices')}
-                              </FormLabel>
-                              <FormDescription>
-                                  {t(
-                                      'When enabled, paid subscription orders can be selected in invoice requests.'
-                                  )}
-                              </FormDescription>
-                          </div>
-                          <FormControl>
-                              <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                              />
-                          </FormControl>
-                      </FormItem>
-                  )}
-              />
+            <FormField
+              control={form.control}
+              name='InvoiceAllowSubscriptionRecordsEnabled'
+              render={({ field }) => (
+                <FormItem className='flex items-center justify-between gap-4 rounded-lg border p-4'>
+                  <div className='space-y-1'>
+                    <FormLabel>
+                      {t('Allow subscription purchases for invoices')}
+                    </FormLabel>
+                    <FormDescription>
+                      {t(
+                        'When enabled, paid subscription orders can be selected in invoice requests.'
+                      )}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
           </div>
 
           <Separator />

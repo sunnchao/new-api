@@ -44,6 +44,8 @@ export type WaffoPancakeSettingsValues = {
   WaffoPancakeMerchantID: string
   WaffoPancakePrivateKey: string
   WaffoPancakeReturnURL: string
+  WaffoPancakeUnitPrice: number
+  WaffoPancakeMinTopUp: number
 }
 
 export interface WaffoPancakeBinding {
@@ -444,6 +446,47 @@ export function WaffoPancakeSettingsSection({
           <p className='text-muted-foreground text-xs'>
             {t(
               'The environment (test vs production) is decided by the key you paste here — use the Test key while integrating, then swap to the Production key when going live.'
+            )}
+          </p>
+        </div>
+
+        <div className='grid gap-1.5'>
+          <Label>{t('Unit price (local currency / USD)')}</Label>
+          <Input
+            type='number'
+            step={0.01}
+            min={0}
+            value={values.WaffoPancakeUnitPrice}
+            onChange={(event) =>
+              onValueChange(
+                'WaffoPancakeUnitPrice',
+                event.target.value === '' ? 0 : event.target.valueAsNumber
+              )
+            }
+          />
+          <p className='text-muted-foreground text-xs'>
+            {t(
+              'Waffo Pancake applies this multiplier before converting the displayed payment amount to USD. Use 1.01 to add a 1% payment fee.'
+            )}
+          </p>
+        </div>
+
+        <div className='grid gap-1.5'>
+          <Label>{t('Minimum top-up quantity')}</Label>
+          <Input
+            type='number'
+            min={1}
+            value={values.WaffoPancakeMinTopUp}
+            onChange={(event) =>
+              onValueChange(
+                'WaffoPancakeMinTopUp',
+                event.target.value === '' ? 1 : event.target.valueAsNumber
+              )
+            }
+          />
+          <p className='text-muted-foreground text-xs'>
+            {t(
+              'With USD exchange rate 6.5, a 5 local-unit top-up at unit price 1.01 is displayed as 5.05 and sent to Pancake as 0.78 USD.'
             )}
           </p>
         </div>

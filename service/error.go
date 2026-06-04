@@ -101,13 +101,15 @@ func RelayErrorHandler(ctx context.Context, resp *http.Response, showBodyWhenFai
 		return fmt.Errorf("bad response status code %d, message: %s, body: %s", resp.StatusCode, message, responseBodyText)
 	}
 
-	err = common.Unmarshal(responseBody, &errResponse)
+	// 使用 json.Decoder 而非 common.Unmarshal，因为上游返回的 body 可能包含尾部数据
+	//（例如 SSE 事件数据拼接在 JSON 错误响应之后: {"error":{...}}data: {...}）
+	err = json.NewDecoder(strings.NewReader(responseBodyText)).Decode(&errResponse)
 	if err != nil {
 		if showBodyWhenFail {
 			newApiErr.Err = buildErrWithBody("")
 		} else {
 			logger.LogError(ctx, fmt.Sprintf("bad response status code %d, body: %s", resp.StatusCode, responseBodyPreview))
-			newApiErr.Err = fmt.Errorf("bad response status code %d", resp.StatusCode)
+			newApiErr.Err = fmt.Errorf("bad response status code %d, body: %s", resp.StatusCode, responseBodyText)
 		}
 		return
 	}
@@ -123,7 +125,11 @@ func RelayErrorHandler(ctx context.Context, resp *http.Response, showBodyWhenFai
 			return
 		}
 	}
-	newApiErr = types.NewOpenAIError(errors.New(errResponse.ToMessage()), types.ErrorCodeBadResponseStatusCode, resp.StatusCode)
+	message := errResponse.ToMessage()
+	if message == "" {
+		message = responseBodyText
+	}
+	newApiErr = types.NewOpenAIError(errors.New(message), types.ErrorCodeBadResponseStatusCode, resp.StatusCode)
 	if showBodyWhenFail {
 		newApiErr.Err = buildErrWithBody(newApiErr.Error())
 	}
