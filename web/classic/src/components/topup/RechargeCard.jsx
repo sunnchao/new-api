@@ -245,7 +245,7 @@ const RechargeCard = ({
                 enableWaffoTopUp ||
                 enableWaffoPancakeTopUp) && (
                 <Row gutter={12}>
-                  <Col xs={24} sm={24} md={24} lg={10} xl={10}>
+                  <Col xs={24} sm={24} md={24} lg={24} xl={24}>
                     <Form.InputNumber
                       field='topUpCount'
                       label={t('充值数量')}
@@ -295,12 +295,12 @@ const RechargeCard = ({
                             />
                           }
                         >
-                          <Text type='secondary' className='text-red-600'>
-                            {t('实付金额：')}
-                            <span style={{ color: 'red' }}>
-                              {renderAmount()}
-                            </span>
-                          </Text>
+                          {/*<Text type='secondary' className='text-red-600'>*/}
+                          {/*  {t('实付金额：')}*/}
+                          {/*  <span style={{ color: 'red' }}>*/}
+                          {/*    {renderAmount()}*/}
+                          {/*  </span>*/}
+                          {/*</Text>*/}
                         </Skeleton>
                       }
                       style={{ width: '100%' }}

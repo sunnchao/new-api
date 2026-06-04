@@ -44,6 +44,18 @@ const PaymentConfirmModal = ({
     discountRate && discountRate > 0 && discountRate < 1 && amountNumber > 0;
   const originalAmount = hasDiscount ? amountNumber / discountRate : 0;
   const discountAmount = hasDiscount ? originalAmount - amountNumber : 0;
+  const isWaffoPancake = payWay === 'waffo_pancake';
+  const formatModalAmount = (value) => {
+    const numericValue = Number(value);
+    const displayValue = Number.isFinite(numericValue)
+      ? numericValue.toFixed(2)
+      : value;
+    return isWaffoPancake ? `$${displayValue}` : `${displayValue} ${t('元')}`;
+  };
+  const actualAmountText = isWaffoPancake
+    ? formatModalAmount(amountNumber)
+    : renderAmount();
+
   return (
     <Modal
       title={
@@ -80,7 +92,7 @@ const PaymentConfirmModal = ({
               ) : (
                 <div className='flex items-baseline space-x-2'>
                   <Text strong className='font-bold' style={{ color: 'red' }}>
-                    {renderAmount()}
+                    {actualAmountText}
                   </Text>
                   {hasDiscount && (
                     <Text size='small' className='text-rose-500'>
@@ -97,7 +109,7 @@ const PaymentConfirmModal = ({
                     {t('原价')}：
                   </Text>
                   <Text delete className='text-slate-500 dark:text-slate-400'>
-                    {`${originalAmount.toFixed(2)} ${t('元')}`}
+                    {formatModalAmount(originalAmount)}
                   </Text>
                 </div>
                 <div className='flex justify-between items-center'>
@@ -105,7 +117,7 @@ const PaymentConfirmModal = ({
                     {t('优惠')}：
                   </Text>
                   <Text className='text-emerald-600 dark:text-emerald-400'>
-                    {`- ${discountAmount.toFixed(2)} ${t('元')}`}
+                    {`- ${formatModalAmount(discountAmount)}`}
                   </Text>
                 </div>
               </>
