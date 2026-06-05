@@ -532,7 +532,7 @@ const Home = () => {
             </div>
           </div>
 
-          <div className='w-full py-16 md:py-24 lg:py-32 px-4 md:px-8'>
+          {/* <div className='w-full py-16 md:py-24 lg:py-32 px-4 md:px-8'>
             <div className='max-w-7xl mx-auto'>
               <div className='text-center mb-16 md:mb-20'>
                 <h2 className='text-3xl md:text-4xl lg:text-5xl font-bold text-semi-color-text-0 mb-6'>
@@ -654,7 +654,7 @@ const Home = () => {
                 </a>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       ) : showLoadingHome ? (
         <div className='w-full border-b border-semi-color-border min-h-[420px] md:min-h-[520px] lg:min-h-[620px] relative overflow-x-hidden flex items-center justify-center'>
