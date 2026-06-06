@@ -28,6 +28,7 @@ import {
   RankingsHero,
 } from './components'
 import { useRankings } from './hooks/use-rankings'
+import './i18n'
 import type { RankingPeriod } from './types'
 
 const VALID_PERIODS: RankingPeriod[] = ['today', 'week', 'month', 'year', 'all']

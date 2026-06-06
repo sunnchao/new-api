@@ -3,6 +3,7 @@ import i18n from '@/i18n/config'
 const resources = {
   en: {
     translation: {
+      '{{count}} model(s)': '{{count}} model(s)',
       'Add backup group': 'Add backup group',
       'Backup Groups': 'Backup Groups',
       'Fallback groups are tried in order when the primary group has no available channel.':
@@ -13,6 +14,7 @@ const resources = {
   },
   zh: {
     translation: {
+      '{{count}} model(s)': '{{count}} 个模型',
       'Add backup group': '添加备用分组',
       'Backup Groups': '备用分组',
       'Fallback groups are tried in order when the primary group has no available channel.':
@@ -23,6 +25,7 @@ const resources = {
   },
   fr: {
     translation: {
+      '{{count}} model(s)': '{{count}} modèle(s)',
       'Add backup group': 'Ajouter un groupe de secours',
       'Backup Groups': 'Groupes de secours',
       'Fallback groups are tried in order when the primary group has no available channel.':
@@ -33,6 +36,7 @@ const resources = {
   },
   ja: {
     translation: {
+      '{{count}} model(s)': '{{count}} モデル',
       'Add backup group': 'バックアップグループを追加',
       'Backup Groups': 'バックアップグループ',
       'Fallback groups are tried in order when the primary group has no available channel.':
@@ -43,6 +47,7 @@ const resources = {
   },
   ru: {
     translation: {
+      '{{count}} model(s)': '{{count}} модел(ей)',
       'Add backup group': 'Добавить резервную группу',
       'Backup Groups': 'Резервные группы',
       'Fallback groups are tried in order when the primary group has no available channel.':
@@ -53,6 +58,7 @@ const resources = {
   },
   vi: {
     translation: {
+      '{{count}} model(s)': '{{count}} mô hình',
       'Add backup group': 'Thêm nhóm dự phòng',
       'Backup Groups': 'Nhóm dự phòng',
       'Fallback groups are tried in order when the primary group has no available channel.':

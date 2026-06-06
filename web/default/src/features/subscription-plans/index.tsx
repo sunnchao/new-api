@@ -27,6 +27,7 @@ import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
 import { getPublicSubscriptionPlans } from './api'
 import { SubscriptionPlanCard } from './components/plan-card'
+import './i18n'
 
 function SubscriptionPlansLoading() {
   return (
@@ -54,13 +55,13 @@ export function SubscriptionPlans() {
     <PublicLayout showMainContainer={false}>
       <PageTransition className='mx-auto w-full max-w-[1280px] px-3 pt-16 pb-10 sm:px-6 sm:pt-20 sm:pb-12 xl:px-8'>
         <header className='mx-auto mb-8 max-w-3xl pt-5 text-center sm:mb-12 sm:pt-10'>
-          <p className='mb-3 text-xs font-medium tracking-widest text-muted-foreground uppercase'>
+          <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
             {t('Subscription Catalog')}
           </p>
           <h1 className='text-[clamp(2rem,5.5vw,3.5rem)] leading-[1.15] font-bold tracking-tight'>
             {t('Subscription Plans')}
           </h1>
-          <p className='mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground/70 sm:mt-4 sm:text-base'>
+          <p className='text-muted-foreground/70 mx-auto mt-3 max-w-2xl text-sm leading-relaxed sm:mt-4 sm:text-base'>
             {t(
               'Browse available subscription plans and choose the access package that fits your usage.'
             )}
@@ -86,7 +87,7 @@ export function SubscriptionPlans() {
         ) : (
           <>
             <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
-              <p className='text-sm text-muted-foreground'>
+              <p className='text-muted-foreground text-sm'>
                 {t('{{count}} plan(s) available', { count: plans.length })}
               </p>
               <Button

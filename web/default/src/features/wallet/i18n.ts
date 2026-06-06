@@ -21,35 +21,46 @@ import i18n from '@/i18n/config'
 const resources = {
   en: {
     translation: {
+      'Purchase a plan to enjoy model benefits':
+        'Purchase a plan to enjoy model benefits',
       'Successfully redeemed subscription: {{plan}}':
         'Successfully redeemed subscription: {{plan}}',
     },
   },
   zh: {
     translation: {
+      'Purchase a plan to enjoy model benefits': '购买套餐后即可享受模型权益',
       'Successfully redeemed subscription: {{plan}}': '订阅兑换成功：{{plan}}',
     },
   },
   fr: {
     translation: {
+      'Purchase a plan to enjoy model benefits':
+        'Souscrivez un plan pour bénéficier des avantages des modèles',
       'Successfully redeemed subscription: {{plan}}':
         'Abonnement utilisé avec succès : {{plan}}',
     },
   },
   ja: {
     translation: {
+      'Purchase a plan to enjoy model benefits':
+        'プランを購入してモデルの特典を享受',
       'Successfully redeemed subscription: {{plan}}':
         'サブスクリプションを交換しました: {{plan}}',
     },
   },
   ru: {
     translation: {
+      'Purchase a plan to enjoy model benefits':
+        'Приобретите план, чтобы воспользоваться преимуществами моделей',
       'Successfully redeemed subscription: {{plan}}':
         'Подписка успешно активирована: {{plan}}',
     },
   },
   vi: {
     translation: {
+      'Purchase a plan to enjoy model benefits':
+        'Mua gói để tận hưởng quyền lợi mô hình',
       'Successfully redeemed subscription: {{plan}}':
         'Đổi gói đăng ký thành công: {{plan}}',
     },

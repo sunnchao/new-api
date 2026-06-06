@@ -40,6 +40,7 @@ import {
   useWaffoPayment,
   useWaffoPancakePayment,
 } from './hooks'
+import './i18n'
 import {
   getDefaultPaymentType,
   getMinTopupAmount,

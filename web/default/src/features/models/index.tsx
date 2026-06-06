@@ -33,6 +33,7 @@ import { ModelsPrimaryButtons } from './components/models-primary-buttons'
 import { ModelsProvider, useModels } from './components/models-provider'
 import { ModelsTable } from './components/models-table'
 import { useModelDeploymentSettings } from './hooks/use-model-deployment-settings'
+import './i18n'
 import { deploymentsQueryKeys } from './lib'
 import {
   type ModelsSectionId,

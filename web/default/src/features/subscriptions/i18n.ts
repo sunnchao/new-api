@@ -196,6 +196,19 @@ export const subscriptionsI18nResources = {
       seconds: 'seconds',
       times: 'times',
       years: 'years',
+      Hourly: 'Hourly',
+      'Models available for {{plan}}': 'Models available for {{plan}}',
+      'No enabled models match these groups yet.':
+        'No enabled models match these groups yet.',
+      'No supported models found': 'No supported models found',
+      'Open Model Square': 'Open Model Square',
+      'Please refresh the page and try again.':
+        'Please refresh the page and try again.',
+      'Sign in to subscribe': 'Sign in to subscribe',
+      'Supported Models': 'Supported Models',
+      'Unable to load supported models': 'Unable to load supported models',
+      'View all models': 'View all models',
+      'View in Model Square': 'View in Model Square',
     },
   },
   zh: {
@@ -394,6 +407,17 @@ export const subscriptionsI18nResources = {
       seconds: '秒',
       times: '次',
       years: '年',
+      Hourly: '每小时',
+      'Models available for {{plan}}': '{{plan}} 可用的模型',
+      'No enabled models match these groups yet.': '暂无启用模型匹配这些分组。',
+      'No supported models found': '未找到支持的模型',
+      'Open Model Square': '打开模型广场',
+      'Please refresh the page and try again.': '请刷新页面后重试。',
+      'Sign in to subscribe': '登录后订阅',
+      'Supported Models': '支持的模型',
+      'Unable to load supported models': '无法加载支持的模型',
+      'View all models': '查看所有模型',
+      'View in Model Square': '在模型广场查看',
     },
   },
   fr: {
@@ -537,7 +561,7 @@ export const subscriptionsI18nResources = {
         "Après l'activation, le nouvel abonnement démarrera immédiatement. L'abonnement actif existant continue en parallèle jusqu'à son expiration naturelle. Continuer ?",
       'Subscription activated': 'Abonnement activé',
       'Activation failed': "Échec de l'activation",
-      'Scheduled to activate at': "Activation prévue à",
+      'Scheduled to activate at': 'Activation prévue à',
       'Estimated expiry': 'Expiration estimée',
       'Subscription ID': "ID d'abonnement",
       Quota: 'Quota',
@@ -597,6 +621,20 @@ export const subscriptionsI18nResources = {
       seconds: 'secondes',
       times: 'fois',
       years: 'ans',
+      Hourly: 'Toutes les heures',
+      'Models available for {{plan}}': 'Modèles disponibles pour {{plan}}',
+      'No enabled models match these groups yet.':
+        'Aucun modèle activé ne correspond encore à ces groupes.',
+      'No supported models found': 'Aucun modèle pris en charge trouvé',
+      'Open Model Square': 'Ouvrir la place des modèles',
+      'Please refresh the page and try again.':
+        'Veuillez actualiser la page puis réessayer.',
+      'Sign in to subscribe': 'Se connecter pour s’abonner',
+      'Supported Models': 'Modèles pris en charge',
+      'Unable to load supported models':
+        'Impossible de charger les modèles pris en charge',
+      'View all models': 'Voir tous les modèles',
+      'View in Model Square': 'Voir dans la place des modèles',
     },
   },
   ja: {
@@ -798,6 +836,19 @@ export const subscriptionsI18nResources = {
       seconds: '秒',
       times: '回',
       years: '年',
+      Hourly: '毎時',
+      'Models available for {{plan}}': '{{plan}} で利用できるモデル',
+      'No enabled models match these groups yet.':
+        'これらのグループに一致する有効なモデルはまだありません。',
+      'No supported models found': '対応モデルが見つかりません',
+      'Open Model Square': 'モデル広場を開く',
+      'Please refresh the page and try again.':
+        'ページを更新してもう一度お試しください。',
+      'Sign in to subscribe': 'ログインして登録',
+      'Supported Models': '対応モデル',
+      'Unable to load supported models': '対応モデルを読み込めません',
+      'View all models': 'すべてのモデルを表示',
+      'View in Model Square': 'モデル広場で表示',
     },
   },
   ru: {
@@ -1000,6 +1051,20 @@ export const subscriptionsI18nResources = {
       seconds: 'секунд',
       times: 'раз',
       years: 'лет',
+      Hourly: 'Ежечасно',
+      'Models available for {{plan}}': 'Модели, доступные для {{plan}}',
+      'No enabled models match these groups yet.':
+        'Пока нет включенных моделей, соответствующих этим группам.',
+      'No supported models found': 'Поддерживаемые модели не найдены',
+      'Open Model Square': 'Открыть витрину моделей',
+      'Please refresh the page and try again.':
+        'Обновите страницу и повторите попытку.',
+      'Sign in to subscribe': 'Войдите, чтобы оформить подписку',
+      'Supported Models': 'Поддерживаемые модели',
+      'Unable to load supported models':
+        'Не удалось загрузить поддерживаемые модели',
+      'View all models': 'Посмотреть все модели',
+      'View in Model Square': 'Посмотреть в витрине моделей',
     },
   },
   vi: {
@@ -1200,6 +1265,19 @@ export const subscriptionsI18nResources = {
       seconds: 'giây',
       times: 'lần',
       years: 'năm',
+      Hourly: 'Hàng giờ',
+      'Models available for {{plan}}': 'Mô hình có sẵn cho {{plan}}',
+      'No enabled models match these groups yet.':
+        'Chưa có mô hình đã bật nào khớp với các nhóm này.',
+      'No supported models found': 'Không tìm thấy mô hình được hỗ trợ',
+      'Open Model Square': 'Mở Quảng trường mô hình',
+      'Please refresh the page and try again.':
+        'Vui lòng làm mới trang rồi thử lại.',
+      'Sign in to subscribe': 'Đăng nhập để đăng ký',
+      'Supported Models': 'Mô hình được hỗ trợ',
+      'Unable to load supported models': 'Không thể tải mô hình được hỗ trợ',
+      'View all models': 'Xem tất cả mô hình',
+      'View in Model Square': 'Xem trong Quảng trường mô hình',
     },
   },
 } as const
