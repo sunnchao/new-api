@@ -28,8 +28,7 @@ const (
 	DefaultStreamingTimeout     = 300 * time.Second
 )
 
-// GetScannerBufferSize returns the configured maximum SSE scanner token size.
-func GetScannerBufferSize() int {
+func getScannerBufferSize() int {
 	if constant.StreamScannerMaxBufferMB > 0 {
 		return constant.StreamScannerMaxBufferMB << 20
 	}
