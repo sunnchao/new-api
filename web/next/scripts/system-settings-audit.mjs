@@ -176,6 +176,19 @@ export function auditSystemSettings() {
         "System settings runtime smoke should prove the maximum-token-per-user field saves the expected /api/option/ payload.",
     },
     {
+      name: "site-frontend-theme-runtime-smoke-covered",
+      ok:
+        /preserves and saves the Next frontend theme option/.test(
+          runtimeSmoke,
+        ) &&
+        /Frontend Theme/.test(runtimeSmoke) &&
+        /Next\.js Frontend/.test(runtimeSmoke) &&
+        /theme\.frontend/.test(runtimeSmoke) &&
+        /value:\s*"next"/.test(runtimeSmoke),
+      message:
+        "System settings runtime smoke should prove the site system-info form preserves and saves theme.frontend=next.",
+    },
+    {
       name: "billing-checkin-runtime-smoke-covered",
       ok:
         /saves daily check-in reward settings through runtime option APIs/.test(

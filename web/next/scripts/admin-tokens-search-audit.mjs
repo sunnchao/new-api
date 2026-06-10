@@ -50,13 +50,31 @@ export function auditAdminTokensSearch() {
         "Admin token table must call /api/admin/token/search when either keyword or token search is present.",
     },
     {
+      name: "admin-tokens-table-uses-manual-filtering",
+      ok: /manualFiltering:\s*true/.test(tableText),
+      message:
+        "Admin token table must not apply client-side global filtering after backend search, because backend supports exact and explicit wildcard LIKE semantics.",
+    },
+    {
       name: "admin-tokens-smoke-mocks-backend-search-fields",
       ok:
         /const keyword = \(params\.keyword \|\| ""\)/.test(smokeText) &&
         /const tokenKey = \(params\.token \|\| ""\)/.test(smokeText) &&
-        /request\.params\.token === "billing-secret"/.test(smokeText),
+        /request\.params\.token === "%billing-secret%"/.test(smokeText),
       message:
         "Admin token smoke must keep keyword and token backend search fields separate.",
+    },
+    {
+      name: "admin-tokens-smoke-models-backend-like-semantics",
+      ok:
+        /function matchesBackendLikePattern/.test(smokeText) &&
+        /pattern\.includes\("%"\)/.test(smokeText) &&
+        /request\.params\.keyword === "%billing%"/.test(smokeText) &&
+        /request\.params\.token === "%billing-secret%"/.test(smokeText) &&
+        !/\.includes\(keyword\)/.test(smokeText) &&
+        !/\.includes\(tokenKey\)/.test(smokeText),
+      message:
+        "Admin token smoke must model backend LIKE semantics: bare values are exact matches, while substring searches must send explicit % wildcards.",
     },
   ];
 

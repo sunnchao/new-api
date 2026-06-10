@@ -8,9 +8,11 @@ const nextRoot = path.resolve(scriptDir, "..");
 const sources = {
   publicPlans: "src/features/subscription-plans/index.tsx",
   walletPlans: "src/features/wallet/components/subscription-plans-card.tsx",
+  userSubscriptions: "src/features/subscriptions/user-index.tsx",
   planForm: "src/features/subscriptions/lib/plan-form.ts",
   purchaseDialog:
     "src/features/subscriptions/components/dialogs/subscription-purchase-dialog.tsx",
+  purchaseSmoke: "scripts/subscription-purchase-smoke.spec.js",
   subscriptionTypes: "src/features/subscriptions/types.ts",
   authSignIn: "src/features/auth/sign-in/index.tsx",
   authForm: "src/features/auth/sign-in/components/user-auth-form.tsx",
@@ -24,8 +26,10 @@ function readSource(relativePath) {
 export function auditSubscriptionPurchase() {
   const publicPlans = readSource(sources.publicPlans);
   const walletPlans = readSource(sources.walletPlans);
+  const userSubscriptions = readSource(sources.userSubscriptions);
   const planForm = readSource(sources.planForm);
   const purchaseDialog = readSource(sources.purchaseDialog);
+  const purchaseSmoke = readSource(sources.purchaseSmoke);
   const subscriptionTypes = readSource(sources.subscriptionTypes);
   const authSignIn = readSource(sources.authSignIn);
   const authForm = readSource(sources.authForm);
@@ -155,6 +159,72 @@ export function auditSubscriptionPurchase() {
         /This plan does not allow balance redemption/.test(purchaseDialog),
       message:
         "Subscription purchase dialog must honor plan.allow_balance_pay instead of showing balance payment for every plan.",
+    },
+    {
+      name: "my-subscriptions-refreshes-user-quota-after-balance-purchase",
+      ok:
+        /import \{ getSelf \} from ['"]@\/lib\/api['"]/.test(
+          userSubscriptions
+        ) &&
+        /useState<[^>]*UserWalletData\s*\|\s*null[^>]*>\(null\)/.test(
+          userSubscriptions
+        ) &&
+        /const fetchUser = useCallback\(async \(\) => \{[\s\S]*getSelf\(\)[\s\S]*setUser\(response\.data as UserWalletData\)[\s\S]*\}, \[\]\)/.test(
+          userSubscriptions
+        ) &&
+        /userQuota=\{user\?\.quota\}/.test(userSubscriptions) &&
+        /onPurchaseSuccess=\{fetchUser\}/.test(userSubscriptions),
+      message:
+        "/my-subscriptions must fetch self quota, pass it into SubscriptionPlansCard, and refresh it after balance purchases.",
+    },
+    {
+      name: "subscription-card-forwards-user-quota-to-purchase-dialog",
+      ok:
+        /userQuota\?: number/.test(walletPlans) &&
+        /onPurchaseSuccess\?: \(\) => void \| Promise<void>/.test(
+          walletPlans
+        ) &&
+        /userQuota,/.test(walletPlans) &&
+        /onPurchaseSuccess,/.test(walletPlans) &&
+        /userQuota=\{userQuota\}/.test(walletPlans) &&
+        /onPurchaseSuccess=\{onPurchaseSuccess\}/.test(walletPlans),
+      message:
+        "SubscriptionPlansCard must forward userQuota and onPurchaseSuccess to the purchase dialog.",
+    },
+    {
+      name: "purchase-dialog-shows-required-and-available-balance-context",
+      ok:
+        /DEFAULT_CURRENCY_CONFIG/.test(purchaseDialog) &&
+        /useSystemConfig/.test(purchaseDialog) &&
+        /userQuota\?: number/.test(purchaseDialog) &&
+        /onPurchaseSuccess\?: \(\) => void \| Promise<void>/.test(
+          purchaseDialog
+        ) &&
+        /const balanceCost = Math\.max\([\s\S]*Math\.ceil\(Number\(plan\.price_amount \|\| 0\) \* quotaPerUnit\)[\s\S]*\)/.test(
+          purchaseDialog
+        ) &&
+        /const userQuota = Math\.max\(0, Number\(props\.userQuota \|\| 0\)\)/.test(
+          purchaseDialog
+        ) &&
+        /t\(['"]Required['"]\)/.test(purchaseDialog) &&
+        /formatQuota\(balanceCost\)/.test(purchaseDialog) &&
+        /t\(['"]Available['"]\)/.test(purchaseDialog) &&
+        /formatQuota\(userQuota\)/.test(purchaseDialog) &&
+        /void props\.onPurchaseSuccess\?\.\(\)/.test(purchaseDialog),
+      message:
+        "Purchase dialog must show required/available quota context and refresh parent self quota after balance success.",
+    },
+    {
+      name: "purchase-dialog-balance-context-runtime-smoke-covered",
+      ok:
+        /getByText\(["']Required["']\)/.test(purchaseSmoke) &&
+        /getByText\(["']Available["']\)/.test(purchaseSmoke) &&
+        /6,170,000 tokens/.test(purchaseSmoke) &&
+        /100,000 tokens/.test(purchaseSmoke) &&
+        /selfRequestsBeforePurchase/.test(purchaseSmoke) &&
+        /toBeGreaterThan\(selfRequestsBeforePurchase\)/.test(purchaseSmoke),
+      message:
+        "Subscription purchase smoke must prove the balance context is visible and /api/user/self refreshes after balance purchase.",
     },
     {
       name: "wallet-plan-cards-expose-supported-models",

@@ -9,6 +9,12 @@ import type {
   AssignTicketRequest,
 } from './types'
 
+export function isTicketActionSuccess(
+  response: { success?: boolean } | null | undefined
+) {
+  return response?.success === true
+}
+
 export async function getUserTickets(
   params: {
     p?: number

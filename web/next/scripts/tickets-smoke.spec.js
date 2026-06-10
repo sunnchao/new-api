@@ -170,7 +170,7 @@ function detailFor(ticket, isAdmin) {
   };
 }
 
-async function mockApi(page) {
+async function mockApi(page, options = {}) {
   const requests = [];
   const unhandled = [];
   const mutableAdminTickets = clone(adminTickets);
@@ -204,6 +204,11 @@ async function mockApi(page) {
           quota_display_type: "TOKENS",
         },
       });
+      return;
+    }
+
+    if (method === "GET" && url.pathname === "/api/notice") {
+      await fulfill({ success: true, data: "" });
       return;
     }
 
@@ -241,6 +246,10 @@ async function mockApi(page) {
 
     const messageMatch = url.pathname.match(/^\/api\/ticket\/(\d+)\/message$/);
     if (messageMatch && method === "POST") {
+      if (options.failUserReply && url.pathname === "/api/ticket/7101/message") {
+        await fulfill({ success: false, message: "reply rejected" });
+        return;
+      }
       await fulfill({ success: true, message: "sent" });
       return;
     }
@@ -395,7 +404,14 @@ test.describe("tickets runtime surface", () => {
     await expect(page.getByText("Smoke billing question")).toBeVisible();
     await expect(page.getByText("Smoke technical issue")).toBeHidden();
 
-    await page.getByRole("button", { name: "Reset" }).click();
+    const userTicketFilters = page
+      .locator("div")
+      .filter({ has: page.getByPlaceholder("Search tickets") })
+      .filter({ has: page.getByRole("button", { name: "Search" }) })
+      .first();
+    await userTicketFilters
+      .getByRole("button", { name: "Reset", exact: true })
+      .click();
     await expect(page.getByText("Smoke technical issue")).toBeVisible();
 
     await page.getByRole("row", { name: /Smoke technical issue/ }).click();
@@ -438,6 +454,43 @@ test.describe("tickets runtime surface", () => {
     expect(statusSearchRequest).toBeTruthy();
     expect(detailRequest).toBeTruthy();
     expect(replyRequest).toBeTruthy();
+    expect(unhandled).toEqual([]);
+  });
+
+  test("keeps user reply draft when the API reports a business failure", async ({ page }) => {
+    const { requests, unhandled } = await mockApi(page, { failUserReply: true });
+    await authenticate(page, normalUser);
+
+    await page.goto("/tickets/7101");
+    await expect(page.getByRole("heading", { name: /#7101 Smoke billing question/ })).toBeVisible();
+
+    const replyInput = page.getByPlaceholder("Type your reply");
+    await replyInput.fill("This reply should remain");
+    const detailRequestsBefore = requests.filter(
+      (request) => request.method === "GET" && request.pathname === "/api/ticket/7101"
+    ).length;
+
+    const replyForm = page.locator("form").filter({
+      has: replyInput,
+    });
+    await replyForm.getByRole("button").first().click();
+
+    await expect(page.getByText("reply rejected")).toBeVisible();
+    await expect(page.getByText("Reply sent successfully")).toBeHidden();
+    await expect(replyInput).toHaveValue("This reply should remain");
+
+    const detailRequestsAfter = requests.filter(
+      (request) => request.method === "GET" && request.pathname === "/api/ticket/7101"
+    ).length;
+    const replyRequest = requests.find(
+      (request) =>
+        request.method === "POST" &&
+        request.pathname === "/api/ticket/7101/message" &&
+        request.body?.content === "This reply should remain"
+    );
+
+    expect(replyRequest).toBeTruthy();
+    expect(detailRequestsAfter).toBe(detailRequestsBefore);
     expect(unhandled).toEqual([]);
   });
 

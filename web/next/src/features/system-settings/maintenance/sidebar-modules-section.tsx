@@ -120,9 +120,17 @@ export function SidebarModulesSection({
         title: t('Invoices'),
         description: t('Apply for invoices from successful online top-ups'),
       },
+      ticket: {
+        title: t('Tickets'),
+        description: t('Create and follow up on support tickets.'),
+      },
       personal: {
         title: t('Profile'),
         description: t('Personal settings and profile management.'),
+      },
+      subscriptions: {
+        title: t('My Subscriptions'),
+        description: t('Purchase a plan to enjoy model benefits'),
       },
       subscription: {
         title: t('My Subscriptions'),
@@ -142,13 +150,25 @@ export function SidebarModulesSection({
         title: t('Models'),
         description: t('Manage catalog visibility and pricing.'),
       },
+      deployment: {
+        title: t('Model deployments'),
+        description: t('Create and operate hosted model deployments.'),
+      },
       redemption: {
         title: t('Redeem codes'),
         description: t('Create and review invite or credit codes.'),
       },
+      admin_ticket: {
+        title: t('Ticket Management'),
+        description: t('Review and respond to user support tickets.'),
+      },
       user: {
         title: t('Users'),
         description: t('Administer user accounts and roles.'),
+      },
+      packages: {
+        title: t('Packages'),
+        description: t('Manage subscription packages and grants.'),
       },
       setting: {
         title: t('System settings'),
@@ -157,6 +177,18 @@ export function SidebarModulesSection({
       subscription: {
         title: t('Subscription Management'),
         description: t('Manage subscription plans and pricing.'),
+      },
+      'subscription-overview': {
+        title: t('Subscription Overview'),
+        description: t('Review active subscription assignments.'),
+      },
+      health: {
+        title: t('Health'),
+        description: t('Monitor model and channel health.'),
+      },
+      performance: {
+        title: t('Performance'),
+        description: t('Inspect runtime performance metrics.'),
       },
     },
   }

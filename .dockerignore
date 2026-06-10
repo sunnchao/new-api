@@ -1,5 +1,10 @@
 .github
 .git
+.worktrees
+.env
+.env.*
+!.env.example
+!**/.env.example
 *.md
 .vscode
 .gitignore
@@ -12,4 +17,6 @@ docs
 /web/default/dist
 /web/classic/node_modules
 /web/classic/dist
+/web/next/node_modules
+/web/next/.next
 !THIRD-PARTY-LICENSES.md

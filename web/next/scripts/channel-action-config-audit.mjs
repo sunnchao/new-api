@@ -9,6 +9,10 @@ const upstreamUpdatesPath = path.join(
   nextRoot,
   "src/features/channels/hooks/use-channel-upstream-updates.ts",
 );
+const channelMutateHookPath = path.join(
+  nextRoot,
+  "src/features/channels/hooks/use-channel-mutate-form.ts",
+);
 const channelDrawerPath = path.join(
   nextRoot,
   "src/features/channels/components/drawers/channel-mutate-drawer.tsx",
@@ -37,6 +41,7 @@ function hasActionConfig(body, endpointPattern) {
 export function auditChannelActionConfig() {
   const api = readSource(apiPath);
   const upstreamUpdates = readSource(upstreamUpdatesPath);
+  const channelMutateHook = readSource(channelMutateHookPath);
   const channelDrawer = readSource(channelDrawerPath);
   const checks = [
     {
@@ -115,13 +120,26 @@ export function auditChannelActionConfig() {
       name: "channel-create-update-surface-business-failures",
       ok:
         /const response = await updateChannel[\s\S]*if \(!response\.success\)[\s\S]*throw new Error/.test(
-          channelDrawer,
+          channelMutateHook,
         ) &&
         /const response = await createChannel[\s\S]*if \(!response\.success\)[\s\S]*throw new Error/.test(
-          channelDrawer,
+          channelMutateHook,
         ),
       message:
-        "Channel create/update submit logic should surface success:false responses locally now that API wrappers skip global business toasts.",
+        "Channel create/update submit logic should surface success:false responses locally in the shared mutate hook now that API wrappers skip global business toasts.",
+    },
+    {
+      name: "channel-drawer-uses-split-sections-and-shared-mutate-hook",
+      ok:
+        /ChannelBasicSection/.test(channelDrawer) &&
+        /ChannelAuthSection/.test(channelDrawer) &&
+        /ChannelApiAccessSection/.test(channelDrawer) &&
+        /ChannelModelsSection/.test(channelDrawer) &&
+        /ChannelAdvancedSection/.test(channelDrawer) &&
+        /ChannelEditorLoadingState/.test(channelDrawer) &&
+        /useChannelMutateForm/.test(channelDrawer),
+      message:
+        "Channel mutate drawer should be split into reusable section components and delegate submission to the shared mutate hook like web/default.",
     },
   ];
 

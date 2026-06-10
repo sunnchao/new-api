@@ -8,9 +8,13 @@ const usersTablePath = path.join(
   nextRoot,
   "src/features/users/components/users-table.tsx",
 );
+const usersApiPath = path.join(nextRoot, "src/features/users/api.ts");
+const usersSmokePath = path.join(nextRoot, "scripts/users-smoke.spec.js");
 
 export function auditUsers() {
   const text = fs.readFileSync(usersTablePath, "utf8");
+  const apiText = fs.readFileSync(usersApiPath, "utf8");
+  const smokeText = fs.readFileSync(usersSmokePath, "utf8");
 
   const checks = [
     {
@@ -47,6 +51,25 @@ export function auditUsers() {
       ok: /manualPagination:\s*true/.test(text),
       message:
         "Users table pagination must stay server-side when keyword or column filters use backend search.",
+    },
+    {
+      name: "users-delete-uses-manage-soft-delete-action",
+      ok:
+        /export\s+async\s+function\s+deleteUser\([\s\S]*api\.post\(\s*['"]\/api\/user\/manage['"]\s*,\s*\{\s*id\s*,\s*action:\s*['"]delete['"]\s*\}/.test(
+          apiText,
+        ) && !/api\.delete\(\s*`\/api\/user\/\$\{id\}\/`/.test(apiText),
+      message:
+        "Users delete must follow classic/backend soft-delete semantics through POST /api/user/manage with action=delete, not hard-delete via DELETE /api/user/:id/.",
+    },
+    {
+      name: "users-smoke-covers-manage-delete-and-rejects-hard-delete",
+      ok:
+        /body\.action === ["']delete["']/.test(smokeText) &&
+        /request\.body\?\.action === ["']delete["']/.test(smokeText) &&
+        /not\.toBeTruthy\(\)/.test(smokeText) &&
+        /DELETE[\s\S]*\/api\/user\/9100\//.test(smokeText),
+      message:
+        "Users runtime smoke must prove deletion uses the manage delete action and does not call the hard-delete endpoint.",
     },
   ];
 

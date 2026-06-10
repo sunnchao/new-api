@@ -79,6 +79,11 @@ async function mockApi(page, statusOverrides = {}) {
       return;
     }
 
+    if (method === "GET" && url.pathname === "/api/notice") {
+      await fulfill({ success: true, data: "" });
+      return;
+    }
+
     if (method === "GET" && url.pathname === "/api/user/logout") {
       await fulfill({ success: true });
       return;
@@ -92,6 +97,14 @@ async function mockApi(page, statusOverrides = {}) {
         },
         resetEmailStatus || 200
       );
+      return;
+    }
+
+    if (method === "GET" && url.pathname === "/api/verification") {
+      await fulfill({
+        success: true,
+        message: "verification sent",
+      });
       return;
     }
 
@@ -113,6 +126,16 @@ async function mockApi(page, statusOverrides = {}) {
         },
         resetConfirmStatus || 200
       );
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/api/user/register") {
+      const body = request.postDataJSON();
+      requests.push({ method, pathname: url.pathname, params, body });
+      await fulfill({
+        success: true,
+        message: "registered",
+      });
       return;
     }
 
@@ -191,6 +214,13 @@ async function mockApi(page, statusOverrides = {}) {
           total: 0,
         },
       });
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/api/user/amount") {
+      const body = request.postDataJSON();
+      requests.push({ method, pathname: url.pathname, body });
+      await fulfill({ success: true, data: String(Number(body?.amount || 0)) });
       return;
     }
 
@@ -500,6 +530,55 @@ test.describe("auth public smoke", () => {
     await expect(page.getByRole("textbox", { name: "Password" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Sign up" })).toBeVisible();
+    expect(unhandled).toEqual([]);
+  });
+
+  test("registers with email verification code", async ({ page }) => {
+    const { requests, unhandled } = await mockApi(page, {
+      email_verification: true,
+      register_enabled: true,
+    });
+    await clearAuthState(page);
+
+    await page.goto("/sign-up");
+
+    await expect(
+      page.getByRole("heading", { name: "Create an account" })
+    ).toBeVisible();
+    await page.getByPlaceholder("Enter your username").fill("register-smoke");
+    await page
+      .getByPlaceholder("Enter password (8-20 characters)")
+      .fill("Register1!");
+    await page.getByPlaceholder("Confirm password").fill("Register1!");
+    await page.getByPlaceholder("name@example.com").fill("register-smoke@example.com");
+    await expect(page.getByPlaceholder("Verification code")).toBeVisible();
+
+    await page.getByRole("button", { name: "Send code" }).click();
+    await expect
+      .poll(() =>
+        requests.some(
+          (request) =>
+            request.method === "GET" &&
+            request.pathname === "/api/verification" &&
+            request.params.email === "register-smoke@example.com"
+        )
+      )
+      .toBe(true);
+
+    await page.getByPlaceholder("Verification code").fill("654321");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page).toHaveURL(/\/sign-in$/);
+
+    expect(
+      requests.some(
+        (request) =>
+          request.method === "POST" &&
+          request.pathname === "/api/user/register" &&
+          request.body?.username === "register-smoke" &&
+          request.body?.email === "register-smoke@example.com" &&
+          request.body?.verification_code === "654321"
+      )
+    ).toBeTruthy();
     expect(unhandled).toEqual([]);
   });
 

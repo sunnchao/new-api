@@ -45,6 +45,15 @@ export function auditUsageLogs() {
     "features/usage-logs/components/columns/common-logs-columns.tsx",
     warnings
   );
+  const constantsSource = readSource("features/usage-logs/constants.ts", warnings);
+  const classicFiltersSource = readScript(
+    "../../classic/src/components/table/usage-logs/UsageLogsFilters.jsx",
+    warnings
+  );
+  const classicColumnsSource = readScript(
+    "../../classic/src/components/table/usage-logs/UsageLogsColumnDefs.jsx",
+    warnings
+  );
   const tableSource = readSource(
     "features/usage-logs/components/usage-logs-table.tsx",
     warnings
@@ -76,6 +85,34 @@ export function auditUsageLogs() {
   );
   const usageLogsSmokeSource = readScript("usage-logs-smoke.spec.js", warnings);
 
+  if (
+    !/CHECKIN:\s*5/.test(constantsSource) ||
+    !/ERROR:\s*6/.test(constantsSource) ||
+    !/REFUND:\s*7/.test(constantsSource) ||
+    !/ARCHIVE:\s*8/.test(constantsSource) ||
+    !/ADMIN_ERROR:\s*9/.test(constantsSource) ||
+    !/SUBSCRIPTION_PAY:\s*10/.test(constantsSource) ||
+    !/value:\s*10,\s*label:\s*['"]Subscription['"]/.test(constantsSource)
+  ) {
+    failures.push({
+      id: "usage-logs-classic-log-type-coverage",
+      message:
+        "Common usage-log types should match backend/classic values 0-10, including subscription pay (10).",
+    });
+  }
+
+  if (
+    !/getLogTypeFilters\(isAdmin/.test(commonFilterBarSource) ||
+    !/LOG_TYPE_ENUM\.ADMIN_ERROR/.test(constantsSource) ||
+    !/LOG_TYPE_ENUM\.ADMIN_ERROR/.test(commonFilterBarSource)
+  ) {
+    failures.push({
+      id: "usage-logs-admin-error-filter-admin-only",
+      message:
+        "The common-log filter should hide the admin-error type from non-admin users while preserving it for admins.",
+    });
+  }
+
   if (!/result_url\??:\s*string/.test(typesSource)) {
     failures.push({
       id: "usage-logs-task-result-url-type",
@@ -87,6 +124,49 @@ export function auditUsageLogs() {
     failures.push({
       id: "usage-logs-task-result-url-preview",
       message: "Task video details should trim and prefer log.result_url for previews.",
+    });
+  }
+
+  if (
+    !/value='10'>\{t\('订阅'\)\}/.test(classicFiltersSource) ||
+    !/value='8'>\{t\('归档'\)\}/.test(classicFiltersSource) ||
+    !/value='9'>\{t\('错误\(管理员\)'\)\}/.test(classicFiltersSource)
+  ) {
+    failures.push({
+      id: "usage-logs-classic-filter-options-oracle",
+      message:
+        "Classic usage logs filter options should expose subscription, archive, and admin-only error entries.",
+    });
+  }
+
+  if (
+    !/case 8:[\s\S]*t\('日志归档'\)/.test(classicColumnsSource) ||
+    !/case 9:[\s\S]*t\('错误\(管理员\)'\)/.test(classicColumnsSource) ||
+    !/billing_source === 'subscription'/.test(classicColumnsSource) ||
+    !/t\('订阅抵扣'\)/.test(classicColumnsSource)
+  ) {
+    failures.push({
+      id: "usage-logs-classic-row-label-mapping-oracle",
+      message:
+        "Classic usage logs row/type mapping should expose subscription billing, archive, and admin-only error labels.",
+    });
+  }
+
+  if (
+    !/Subscription/.test(constantsSource) ||
+    !/Archive/.test(constantsSource) ||
+    !/Admin Error/.test(constantsSource) ||
+    !/value:\s*10/.test(constantsSource) ||
+    !/value:\s*8/.test(constantsSource) ||
+    !/value:\s*9/.test(constantsSource) ||
+    !/label:\s*'Subscription'/.test(constantsSource) ||
+    !/label:\s*'Archive'/.test(constantsSource) ||
+    !/label:\s*'Admin Error'/.test(constantsSource)
+  ) {
+    failures.push({
+      id: "usage-logs-next-higher-log-type-labels",
+      message:
+        "Next usage logs should keep the classic higher log type labels for subscription, archive, and admin error.",
     });
   }
 

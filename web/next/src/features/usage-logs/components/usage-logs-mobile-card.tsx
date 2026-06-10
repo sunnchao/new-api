@@ -41,6 +41,12 @@ import { getLogTypeConfig } from '../lib/utils'
 const logTypeRowTint: Record<number, string> = {
   [LOG_TYPE_ENUM.ERROR]: 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/50 dark:border-rose-900/30',
   [LOG_TYPE_ENUM.REFUND]: 'bg-blue-50/30 dark:bg-blue-950/15 border-blue-200/50 dark:border-blue-900/30',
+  [LOG_TYPE_ENUM.SUBSCRIPTION_PAY]:
+    'bg-violet-50/30 dark:bg-violet-950/15 border-violet-200/50 dark:border-violet-900/30',
+  [LOG_TYPE_ENUM.ARCHIVE]:
+    'bg-zinc-50/40 dark:bg-zinc-950/20 border-zinc-200/50 dark:border-zinc-900/30',
+  [LOG_TYPE_ENUM.ADMIN_ERROR]:
+    'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/50 dark:border-rose-900/30',
 }
 
 interface UsageLogsMobileListProps<TData> {

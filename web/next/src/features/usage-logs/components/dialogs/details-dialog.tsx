@@ -62,9 +62,11 @@ import {
 } from '../../lib/format'
 import {
   getLogTypeConfig,
+  isDisplayableLogType,
   isPerCallBilling,
   isTimingLogType,
 } from '../../lib/utils'
+import { LOG_TYPE_ENUM } from '../../constants'
 import type { LogOtherData } from '../../types'
 
 function timingTextColorClass(
@@ -417,10 +419,10 @@ export function DetailsDialog(props: DetailsDialogProps) {
   const typeConfig = getLogTypeConfig(props.log.type)
 
   const isViolation = isViolationFeeLog(other)
-  const isRefund = props.log.type === 6
-  const isConsume = props.log.type === 2
-  const isTopup = props.log.type === 1
-  const isManage = props.log.type === 3
+  const isRefund = props.log.type === LOG_TYPE_ENUM.REFUND
+  const isConsume = props.log.type === LOG_TYPE_ENUM.CONSUME
+  const isTopup = props.log.type === LOG_TYPE_ENUM.TOPUP
+  const isManage = props.log.type === LOG_TYPE_ENUM.MANAGE
   const isSubscription = other?.billing_source === 'subscription'
   const isTieredBilling =
     isConsume &&
@@ -488,7 +490,7 @@ export function DetailsDialog(props: DetailsDialogProps) {
       : conversionChain.join(' -> ')
   const showConversion =
     props.isAdmin &&
-    props.log.type !== 6 &&
+    !isRefund &&
     (other?.request_path || conversionChain.length > 0)
 
   const useChannel = other?.admin_info?.use_channel
@@ -857,7 +859,7 @@ export function DetailsDialog(props: DetailsDialogProps) {
             )}
 
             {/* Token breakdown (for consume/error types with token data) */}
-            {isDisplayableType(props.log.type) && other && (
+            {isDisplayableLogType(props.log.type) && other && (
               <TokenBreakdown log={props.log} other={other} />
             )}
 
@@ -884,7 +886,7 @@ export function DetailsDialog(props: DetailsDialogProps) {
             {/* Admin billing mode indicator for non-consume */}
             {props.isAdmin &&
               !isConsume &&
-              props.log.type !== 6 &&
+              !isRefund &&
               other?.admin_info && (
                 <DetailRow
                   label={t('Billing Source')}
@@ -1058,8 +1060,4 @@ export function DetailsDialog(props: DetailsDialogProps) {
       </DialogContent>
     </Dialog>
   )
-}
-
-function isDisplayableType(type: number): boolean {
-  return [0, 2, 5, 6].includes(type)
 }

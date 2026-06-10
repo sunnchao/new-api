@@ -276,7 +276,7 @@ test.describe("api keys runtime surface", () => {
       size: "20",
     });
 
-    await page.getByRole("button", { name: "Reset" }).click();
+    await page.getByRole("button", { name: "Reset", exact: true }).click();
     await expect(page.getByText("Runtime Smoke Primary")).toBeVisible();
 
     await page.getByPlaceholder("Filter by API key").fill("billing-secret");
@@ -297,7 +297,7 @@ test.describe("api keys runtime surface", () => {
     });
     expect(tokenSearchRequest.params.keyword).toBeUndefined();
 
-    await page.getByRole("button", { name: "Reset" }).click();
+    await page.getByRole("button", { name: "Reset", exact: true }).click();
     await expect(page.getByText("Runtime Smoke Primary")).toBeVisible();
 
     await page.getByRole("button", { name: "Create API Key" }).click();

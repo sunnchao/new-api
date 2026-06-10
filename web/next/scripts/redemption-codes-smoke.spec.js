@@ -143,6 +143,11 @@ async function mockApi(page) {
       return;
     }
 
+    if (method === "GET" && url.pathname === "/api/notice") {
+      await fulfill({ success: true, data: "" });
+      return;
+    }
+
     if (method === "GET" && url.pathname === "/api/user/self") {
       await fulfill({ success: true, data: adminUser });
       return;
@@ -293,7 +298,7 @@ test.describe("redemption codes runtime surface", () => {
     );
     expect(searchRequest).toBeTruthy();
 
-    await page.getByRole("button", { name: "Reset" }).click();
+    await page.getByRole("button", { name: "Reset", exact: true }).click();
     await expect(page.getByText("quota-runtime")).toBeVisible();
 
     await page.getByRole("button", { name: "Create Code" }).click();

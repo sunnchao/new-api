@@ -56,8 +56,12 @@ export const LOG_TYPE_ENUM = {
   CONSUME: 2,
   MANAGE: 3,
   SYSTEM: 4,
-  ERROR: 5,
-  REFUND: 6,
+  CHECKIN: 5,
+  ERROR: 6,
+  REFUND: 7,
+  ARCHIVE: 8,
+  ADMIN_ERROR: 9,
+  SUBSCRIPTION_PAY: 10,
 } as const
 
 /**
@@ -90,15 +94,26 @@ export const TIME_RANGE_PRESETS = [
 export const LOG_TYPES = [
   { value: 0, label: 'Unknown', color: 'default' },
   { value: 1, label: 'Top-up', color: 'cyan' },
+  { value: 10, label: 'Subscription', color: 'purple' },
   { value: 2, label: 'Consume', color: 'green' },
   { value: 3, label: 'Manage', color: 'orange' },
   { value: 4, label: 'System', color: 'purple' },
-  //   5 签到
-  { value: 5, label: 'Sign', color: 'red' },
+  { value: 5, label: 'Check-in', color: 'red' },
   { value: 6, label: 'Error', color: 'red' },
+  { value: 8, label: 'Archive', color: 'blue' },
   { value: 7, label: 'Refund', color: 'blue' },
-  { value: 8, label: 'System', color: 'blue' },
+  { value: 9, label: 'Admin Error', color: 'red' },
 ] as const
+
+export function getLogTypeFilters(isAdmin: boolean) {
+  return LOG_TYPES.filter((type) => {
+    if (type.value === LOG_TYPE_ENUM.UNKNOWN) return false
+    return isAdmin || type.value !== LOG_TYPE_ENUM.ADMIN_ERROR
+  }).map((type) => ({
+    label: type.label,
+    value: String(type.value),
+  }))
+}
 
 /**
  * Log types for DataTableToolbar filters (single select mode)
@@ -107,12 +122,7 @@ export const LOG_TYPES = [
  */
 export const LOG_TYPE_FILTERS = [
   { label: 'All Types', value: LOG_TYPE_ALL_VALUE },
-  ...LOG_TYPES.filter((type) => type.value !== LOG_TYPE_ENUM.UNKNOWN).map(
-    (type) => ({
-      label: type.label,
-      value: String(type.value),
-    })
-  ),
+  ...getLogTypeFilters(true),
 ] as const
 
 // ============================================================================
@@ -346,9 +356,21 @@ export const LOG_CATEGORY_LABELS: Record<LogCategory, string> = {
 /**
  * Log types that are displayable (have detailed info)
  */
-export const DISPLAYABLE_LOG_TYPES = [0, 2, 5, 6] as const
+export const DISPLAYABLE_LOG_TYPES = [
+  LOG_TYPE_ENUM.UNKNOWN,
+  LOG_TYPE_ENUM.CONSUME,
+  LOG_TYPE_ENUM.CHECKIN,
+  LOG_TYPE_ENUM.ERROR,
+  LOG_TYPE_ENUM.REFUND,
+  LOG_TYPE_ENUM.ARCHIVE,
+  LOG_TYPE_ENUM.ADMIN_ERROR,
+  LOG_TYPE_ENUM.SUBSCRIPTION_PAY,
+] as const
 
 /**
  * Log types that show timing info
  */
-export const TIMING_LOG_TYPES = [2, 5] as const
+export const TIMING_LOG_TYPES = [
+  LOG_TYPE_ENUM.CONSUME,
+  LOG_TYPE_ENUM.CHECKIN,
+] as const

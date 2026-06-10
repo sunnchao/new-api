@@ -4,15 +4,10 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import {
-  LayoutDashboard,
-  KeyRound,
-  Network,
-  Users,
-  User,
-  Wallet,
-  PlayCircle,
+  type LucideIcon,
 } from "lucide-react";
 import { create } from "zustand";
+import { useNavItems } from "@/components/layout/sidebar-nav";
 import {
   CommandDialog,
   CommandEmpty,
@@ -46,7 +41,7 @@ export function useCommandMenu() {
 export interface CommandMenuItem {
   id: string;
   label: string;
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: LucideIcon;
   shortcut?: string;
   group?: string;
   onSelect: () => void;
@@ -60,6 +55,7 @@ export function CommandMenu({ items = [] }: CommandMenuProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { open, setOpen } = useCommandMenu();
+  const navItems = useNavItems();
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -77,61 +73,15 @@ export function CommandMenu({ items = [] }: CommandMenuProps) {
     router.push(path);
   };
 
-  const defaultItems: CommandMenuItem[] = [
-    {
-      id: "dashboard",
-      label: t("nav.dashboard"),
-      icon: LayoutDashboard,
-      group: t("Navigate"),
-      shortcut: "G D",
-      onSelect: () => go("/dashboard"),
-    },
-    {
-      id: "keys",
-      label: t("nav.keys"),
-      icon: KeyRound,
-      group: t("Navigate"),
-      shortcut: "G K",
-      onSelect: () => go("/keys"),
-    },
-    {
-      id: "channels",
-      label: t("nav.channels"),
-      icon: Network,
-      group: t("Navigate"),
-      shortcut: "G C",
-      onSelect: () => go("/channels"),
-    },
-    {
-      id: "users",
-      label: t("nav.users"),
-      icon: Users,
-      group: t("Navigate"),
-      shortcut: "G U",
-      onSelect: () => go("/users"),
-    },
-    {
-      id: "profile",
-      label: t("nav.profile"),
-      icon: User,
-      group: t("Account"),
-      onSelect: () => go("/profile"),
-    },
-    {
-      id: "wallet",
-      label: t("nav.wallet"),
-      icon: Wallet,
-      group: t("Account"),
-      onSelect: () => go("/wallet"),
-    },
-    {
-      id: "playground",
-      label: t("nav.playground"),
-      icon: PlayCircle,
-      group: t("Tools"),
-      onSelect: () => go("/playground"),
-    },
-  ];
+  const defaultItems: CommandMenuItem[] = navItems
+    .filter((item) => !item.chatPreset && item.href.startsWith("/"))
+    .map((item) => ({
+      id: `nav:${item.href}`,
+      label: item.title,
+      icon: item.icon,
+      group: item.adminOnly ? t("Admin") : t("Navigate"),
+      onSelect: () => go(item.href),
+    }));
 
   const allItems = [...defaultItems, ...items];
   const groups = Array.from(

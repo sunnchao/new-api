@@ -207,7 +207,7 @@ async function mockApi(page) {
         pathname: url.pathname,
         body: request.postDataJSON(),
       });
-      await fulfill({ success: true, message: "success", data: { order_id: "smoke-order" } });
+      await fulfill({ success: true, message: "", data: null });
       return;
     }
 
@@ -288,10 +288,29 @@ test.describe("subscription selected-plan purchase handoff", () => {
     await expect(purchaseDialog).toBeVisible();
     await expect(purchaseDialog.getByRole("heading", { name: "Purchase Subscription" })).toBeVisible();
     await expect(purchaseDialog.getByText("Runtime Smoke Pro")).toBeVisible();
+    await expect(purchaseDialog.getByText("Required")).toBeVisible();
+    await expect(purchaseDialog.getByText("6,170,000 tokens")).toBeVisible();
+    await expect(purchaseDialog.getByText("Available")).toBeVisible();
+    await expect(purchaseDialog.getByText("100,000 tokens")).toBeVisible();
     await expect(page).toHaveURL(/\/my-subscriptions$/);
+
+    const selfRequestsBeforePurchase = requests.filter(
+      (request) =>
+        request.method === "GET" && request.pathname === "/api/user/self"
+    ).length;
 
     await purchaseDialog.getByRole("button", { name: "Balance Pay" }).click();
     await expect(page.getByText("Purchase successful")).toBeVisible();
+    await expect
+      .poll(
+        () =>
+          requests.filter(
+            (request) =>
+              request.method === "GET" &&
+              request.pathname === "/api/user/self"
+          ).length
+      )
+      .toBeGreaterThan(selfRequestsBeforePurchase);
 
     const balanceRequest = requests.find(
       (request) =>

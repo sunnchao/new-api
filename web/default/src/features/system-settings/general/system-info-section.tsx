@@ -53,7 +53,7 @@ import { useUpdateOption } from '../hooks/use-update-option'
 
 const _systemInfoSchema = z.object({
   theme: z.object({
-    frontend: z.enum(['default', 'classic']),
+    frontend: z.enum(['default', 'classic', 'next']),
   }),
   SystemName: z.string().min(1),
   ServerAddress: z.string().optional(),
@@ -78,14 +78,17 @@ function normalizeValue(value: unknown): string {
   return typeof value === 'string' ? value : String(value)
 }
 
+function normalizeFrontendTheme(value: unknown): 'default' | 'classic' | 'next' {
+  return value === 'classic' || value === 'next' ? value : 'default'
+}
+
 export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
 
   const normalizedDefaults: SystemInfoFormValues = {
     theme: {
-      frontend: 'default'
-        // defaultValues.theme?.frontend === 'classic' ? 'classic' : 'default',
+      frontend: normalizeFrontendTheme(defaultValues.theme?.frontend),
     },
     SystemName: normalizeValue(defaultValues.SystemName),
     ServerAddress: normalizeValue(defaultValues.ServerAddress),
@@ -101,7 +104,7 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
 
   const systemInfoSchemaWithI18n = z.object({
     theme: z.object({
-      frontend: z.enum(['default', 'classic']),
+      frontend: z.enum(['default', 'classic', 'next']),
     }),
     SystemName: z.string().min(1, {
       error: () => t('System name is required'),
@@ -170,6 +173,10 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                           value: 'classic',
                           label: t('Classic (Legacy Frontend)'),
                         },
+                        {
+                          value: 'next',
+                          label: t('Next.js Frontend'),
+                        },
                       ]}
                       onValueChange={field.onChange}
                       value={field.value}
@@ -187,12 +194,15 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                           <SelectItem value='classic'>
                             {t('Classic (Legacy Frontend)')}
                           </SelectItem>
+                          <SelectItem value='next'>
+                            {t('Next.js Frontend')}
+                          </SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
                     <FormDescription>
                       {t(
-                        'Switch between the new frontend and the classic frontend. Changes take effect after page reload.'
+                        'Switch between default, classic, and Next.js frontends. The Next.js option requires NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL to point at a running Next server.'
                       )}
                     </FormDescription>
                     <FormMessage />

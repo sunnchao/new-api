@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const workspaceRoot = __dirname.replace(/\/next$/, "");
 
 const nextConfig: NextConfig = {
+  output: "standalone",
+  outputFileTracingRoot: workspaceRoot,
   turbopack: {
     root: workspaceRoot,
   },
@@ -96,11 +98,6 @@ const nextConfig: NextConfig = {
       {
         source: "/vibecoding/claude/admin",
         destination: "/vibecoding/admin",
-        permanent: false,
-      },
-      {
-        source: "/vibecoding/claude/subscription",
-        destination: "/my-subscriptions",
         permanent: false,
       },
       {

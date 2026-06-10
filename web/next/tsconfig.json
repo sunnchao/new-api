@@ -19,11 +19,16 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "next/dynamic": ["./src/lib/vite-next/dynamic.tsx"],
+      "next/image": ["./src/lib/vite-next/image.tsx"],
+      "next/link": ["./src/lib/vite-next/link.tsx"],
+      "next/navigation": ["./src/lib/vite-next/navigation.ts"]
     }
   },
   "include": [
     "next-env.d.ts",
+    "vite-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",

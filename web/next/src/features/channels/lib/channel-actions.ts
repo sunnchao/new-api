@@ -363,8 +363,14 @@ export async function handleBatchEnable(
     )
     const results = await Promise.allSettled(promises)
 
-    const successCount = results.filter((r) => r.status === 'fulfilled').length
-    const failCount = results.filter((r) => r.status === 'rejected').length
+    const successCount = results.filter(
+      (r) => r.status === 'fulfilled' && r.value.success
+    ).length
+    const failCount = results.filter(
+      (r) =>
+        r.status === 'rejected' ||
+        (r.status === 'fulfilled' && !r.value.success)
+    ).length
 
     if (successCount > 0) {
       toast.success(
@@ -404,8 +410,14 @@ export async function handleBatchDisable(
     )
     const results = await Promise.allSettled(promises)
 
-    const successCount = results.filter((r) => r.status === 'fulfilled').length
-    const failCount = results.filter((r) => r.status === 'rejected').length
+    const successCount = results.filter(
+      (r) => r.status === 'fulfilled' && r.value.success
+    ).length
+    const failCount = results.filter(
+      (r) =>
+        r.status === 'rejected' ||
+        (r.status === 'fulfilled' && !r.value.success)
+    ).length
 
     if (successCount > 0) {
       toast.success(

@@ -71,6 +71,22 @@ function parseJsonBody(request) {
   return body ? JSON.parse(body) : undefined;
 }
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function matchesBackendLikePattern(value, pattern) {
+  const normalizedValue = String(value || "").toLowerCase();
+  const normalizedPattern = String(pattern || "").toLowerCase();
+  if (!normalizedPattern) return true;
+  if (!pattern.includes("%")) return normalizedValue === normalizedPattern;
+
+  const regex = new RegExp(
+    `^${normalizedPattern.split("%").map(escapeRegex).join(".*")}$`
+  );
+  return regex.test(normalizedValue);
+}
+
 function filterTokens(tokens, params) {
   const keyword = (params.keyword || "").toLowerCase();
   const tokenKey = (params.token || "").toLowerCase().replace(/^sk-/, "");
@@ -79,10 +95,10 @@ function filterTokens(tokens, params) {
   return tokens.filter((token) => {
     const keywordMatch =
       !keyword ||
-      token.name.toLowerCase().includes(keyword) ||
-      (token.user_name || "").toLowerCase().includes(keyword);
+      matchesBackendLikePattern(token.name, keyword) ||
+      matchesBackendLikePattern(token.user_name || "", keyword);
     const storedKey = token.key.toLowerCase().replace(/^sk-/, "");
-    const tokenMatch = !tokenKey || storedKey.includes(tokenKey);
+    const tokenMatch = !tokenKey || matchesBackendLikePattern(storedKey, tokenKey);
     return keywordMatch && tokenMatch;
   });
 }
@@ -278,7 +294,7 @@ test.describe("admin tokens runtime surface", () => {
     await expect(page.getByText("Admin Runtime Primary")).toBeVisible();
     await expect(page.getByText("Admin Billing Token")).toBeVisible();
 
-    await page.getByPlaceholder("Filter by token name").fill("billing");
+    await page.getByPlaceholder("Filter by token name").fill("%billing%");
     await expect(page.getByText("Admin Billing Token")).toBeVisible();
     await expect(page.getByText("Admin Runtime Primary")).toBeHidden();
 
@@ -286,15 +302,15 @@ test.describe("admin tokens runtime surface", () => {
       (request) =>
         request.method === "GET" &&
         request.pathname === "/api/admin/token/search" &&
-        request.params.keyword === "billing" &&
+        request.params.keyword === "%billing%" &&
         request.params.token === undefined
     );
     expect(searchRequest).toBeTruthy();
 
-    await page.getByRole("button", { name: "Reset" }).click();
+    await page.getByRole("button", { name: "Reset", exact: true }).click();
     await expect(page.getByText("Admin Runtime Primary")).toBeVisible();
 
-    await page.getByPlaceholder("Filter by API key").fill("billing-secret");
+    await page.getByPlaceholder("Filter by API key").fill("%billing-secret%");
     await expect(page.getByText("Admin Billing Token")).toBeVisible();
     await expect(page.getByText("Admin Runtime Primary")).toBeHidden();
 
@@ -302,12 +318,12 @@ test.describe("admin tokens runtime surface", () => {
       (request) =>
         request.method === "GET" &&
         request.pathname === "/api/admin/token/search" &&
-        request.params.token === "billing-secret" &&
+        request.params.token === "%billing-secret%" &&
         request.params.keyword === undefined
     );
     expect(tokenSearchRequest).toBeTruthy();
 
-    await page.getByRole("button", { name: "Reset" }).click();
+    await page.getByRole("button", { name: "Reset", exact: true }).click();
     await expect(page.getByText("Admin Runtime Primary")).toBeVisible();
 
     await page.getByRole("button", { name: "Create API Key" }).click();

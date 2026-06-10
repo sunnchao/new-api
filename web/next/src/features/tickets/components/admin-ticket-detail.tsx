@@ -45,6 +45,7 @@ import {
   deleteTicket,
   getTicketCategories,
   getTicketDetail,
+  isTicketActionSuccess,
   sendTicketMessage,
   updateTicketStatus,
 } from '../api'
@@ -100,7 +101,9 @@ export function AdminTicketDetail({ ticketId }: { ticketId: number }) {
   const sendMutation = useMutation({
     mutationFn: (msgData: { content: string; attachment_urls?: string }) =>
       sendTicketMessage(ticketId, msgData),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t('Reply sent successfully'))
       queryClient.invalidateQueries({ queryKey: ['ticket-detail', ticketId] })
       form.reset()
@@ -110,7 +113,9 @@ export function AdminTicketDetail({ ticketId }: { ticketId: number }) {
 
   const statusMutation = useMutation({
     mutationFn: (status: number) => updateTicketStatus(ticketId, { status }),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t(SUCCESS_MESSAGES.STATUS_UPDATED))
       queryClient.invalidateQueries({ queryKey: ['ticket-detail', ticketId] })
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
@@ -119,7 +124,9 @@ export function AdminTicketDetail({ ticketId }: { ticketId: number }) {
 
   const priorityMutation = useMutation({
     mutationFn: (priority: number) => updateTicketStatus(ticketId, { priority }),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t(SUCCESS_MESSAGES.STATUS_UPDATED))
       queryClient.invalidateQueries({ queryKey: ['ticket-detail', ticketId] })
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
@@ -128,7 +135,9 @@ export function AdminTicketDetail({ ticketId }: { ticketId: number }) {
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteTicket(ticketId),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t(SUCCESS_MESSAGES.TICKET_DELETED))
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
       router.push('/tickets')
@@ -138,7 +147,9 @@ export function AdminTicketDetail({ ticketId }: { ticketId: number }) {
   const assignToMeMutation = useMutation({
     mutationFn: () =>
       assignTicket(ticketId, { admin_id: currentAdminId }),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t(SUCCESS_MESSAGES.TICKET_ASSIGNED))
       queryClient.invalidateQueries({ queryKey: ['ticket-detail', ticketId] })
       queryClient.invalidateQueries({ queryKey: ['tickets'] })

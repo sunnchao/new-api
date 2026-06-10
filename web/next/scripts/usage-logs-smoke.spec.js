@@ -84,6 +84,88 @@ const commonLogs = [
     upstream_request_id: "up-common-smoke",
   },
   {
+    id: 8804,
+    user_id: user.id,
+    created_at: 1717203300,
+    type: 10,
+    content: "Subscription log smoke",
+    username: user.username,
+    token_name: "subscription-token",
+    model_name: "subscription-model",
+    quota: 3456,
+    prompt_tokens: 12,
+    completion_tokens: 34,
+    use_time: 678,
+    is_stream: false,
+    channel: 45,
+    channel_name: "subscription-channel",
+    token_id: 80,
+    group: "default",
+    ip: "127.0.0.1",
+    request_ip: "127.0.0.1",
+    other: JSON.stringify({
+      billing_source: "subscription",
+      subscription_plan_id: "plan-smoke-1",
+      subscription_plan_title: "Smoke Monthly",
+      subscription_id: "sub-smoke-1",
+      subscription_pre_consumed: 20,
+      subscription_post_delta: 5,
+      subscription_consumed: 25,
+      subscription_remain: 75,
+      subscription_total: 100,
+    }),
+    request_id: "req-subscription-smoke",
+    upstream_request_id: "up-subscription-smoke",
+  },
+  {
+    id: 8805,
+    user_id: user.id,
+    created_at: 1717203900,
+    type: 8,
+    content: "Archive log smoke",
+    username: user.username,
+    token_name: "archive-token",
+    model_name: "archive-model",
+    quota: 4567,
+    prompt_tokens: 13,
+    completion_tokens: 35,
+    use_time: 789,
+    is_stream: false,
+    channel: 46,
+    channel_name: "archive-channel",
+    token_id: 81,
+    group: "default",
+    ip: "127.0.0.1",
+    request_ip: "127.0.0.1",
+    other: "{}",
+    request_id: "req-archive-smoke",
+    upstream_request_id: "up-archive-smoke",
+  },
+  {
+    id: 8806,
+    user_id: user.id,
+    created_at: 1717204500,
+    type: 9,
+    content: "Admin error log smoke",
+    username: user.username,
+    token_name: "admin-error-token",
+    model_name: "admin-error-model",
+    quota: 5678,
+    prompt_tokens: 14,
+    completion_tokens: 36,
+    use_time: 890,
+    is_stream: false,
+    channel: 47,
+    channel_name: "admin-error-channel",
+    token_id: 82,
+    group: "default",
+    ip: "127.0.0.1",
+    request_ip: "127.0.0.1",
+    other: "{}",
+    request_id: "req-admin-error-smoke",
+    upstream_request_id: "up-admin-error-smoke",
+  },
+  {
     id: 8803,
     user_id: user.id,
     created_at: 1717204200,
@@ -236,9 +318,10 @@ function pagedItems(items, params) {
   const page = Number(params.p || 1);
   const pageSize = Number(params.page_size || 20);
   const filter = params.mj_id || params.task_id || params.model_name;
-  const typed = params.type
-    ? items.filter((item) => String(item.type) === String(params.type))
-    : items;
+  const typed =
+    params.type && String(params.type) !== "0"
+      ? items.filter((item) => String(item.type) === String(params.type))
+      : items;
   const filtered = filter
     ? typed.filter((item) =>
         String(item.mj_id || item.task_id || item.model_name || "").includes(filter)
@@ -394,6 +477,70 @@ async function authenticate(page, storedUser = user) {
 }
 
 test.describe("usage logs drawing and task runtime parity", () => {
+  test("renders higher common log types with classic labels", async ({
+    page,
+  }) => {
+    const { requests, unhandled } = await mockApi(page);
+    await authenticate(page);
+
+    await page.goto("/usage-logs/common");
+
+    await expect(page.getByRole("heading", { name: "Common Logs" })).toBeVisible();
+    await expect(page.getByText("subscription-model")).toBeVisible();
+    await expect(page.getByText("archive-model")).toBeVisible();
+    await expect(page.getByText("admin-error-model")).toBeVisible();
+
+    await expect(
+      page.getByRole("row", { name: /subscription-model/ }).getByText("Subscription", {
+        exact: true,
+      })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("row", { name: /archive-model/ }).getByText("Archive", {
+        exact: true,
+      })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("row", { name: /admin-error-model/ }).getByText("Admin Error", {
+        exact: true,
+      })
+    ).toBeVisible();
+
+    const listRequest = requests.find(
+      (request) => request.method === "GET" && request.pathname === "/api/log"
+    );
+    expect(listRequest).toBeTruthy();
+    expect(unhandled).toEqual([]);
+  });
+
+  test("shows admin-only higher log type filter option for admins only", async ({
+    page,
+  }) => {
+    const { unhandled } = await mockApi(page);
+    await authenticate(page);
+
+    await page.goto("/usage-logs/common");
+    await page.getByRole("combobox", { name: "All Types" }).click();
+    await expect(page.getByRole("option", { name: "Subscription" })).toBeVisible();
+    await expect(page.getByRole("option", { name: "Archive" })).toBeVisible();
+    await expect(page.getByRole("option", { name: "Admin Error" })).toBeVisible();
+    expect(unhandled).toEqual([]);
+
+    const nonAdminPage = await page.context().newPage();
+    const { unhandled: nonAdminUnhandled } = await mockApi(nonAdminPage, normalUser);
+    await authenticate(nonAdminPage, normalUser);
+
+    await nonAdminPage.goto("/usage-logs/common");
+    await nonAdminPage.getByRole("combobox", { name: "All Types" }).click();
+    await expect(nonAdminPage.getByRole("option", { name: "Subscription" })).toBeVisible();
+    await expect(nonAdminPage.getByRole("option", { name: "Archive" })).toBeVisible();
+    await expect(
+      nonAdminPage.getByRole("option", { name: "Admin Error" })
+    ).toHaveCount(0);
+    expect(nonAdminUnhandled).toEqual([]);
+    await nonAdminPage.close();
+  });
+
   test("preserves query filters from the legacy console common-log route", async ({
     page,
   }) => {

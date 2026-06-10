@@ -477,6 +477,8 @@ async function mockApi(page) {
         user.status = 2;
       } else if (body.action === "enable") {
         user.status = 1;
+      } else if (body.action === "delete") {
+        user.DeletedAt = { Time: "2026-06-10T00:00:00Z", Valid: true };
       } else if (body.action === "promote") {
         user.role = 10;
       } else if (body.action === "demote") {
@@ -505,15 +507,6 @@ async function mockApi(page) {
           : { success: false, message: "not found" },
         user ? 200 : 404
       );
-      return;
-    }
-
-    const deleteMatch = url.pathname.match(/^\/api\/user\/(\d+)\/$/);
-    if (deleteMatch && method === "DELETE") {
-      const id = Number(deleteMatch[1]);
-      const index = users.findIndex((user) => user.id === id);
-      if (index >= 0) users.splice(index, 1);
-      await fulfill({ success: true, message: "deleted" });
       return;
     }
 
@@ -585,7 +578,7 @@ test.describe("users runtime surface", () => {
     );
     expect(searchRequest).toBeTruthy();
 
-    await page.getByRole("button", { name: "Reset" }).click();
+    await page.getByRole("button", { name: "Reset", exact: true }).click();
     await expect(page.getByText("runtime-user")).toBeVisible();
 
     await page.getByRole("button", { name: "Add User" }).click();
@@ -667,13 +660,26 @@ test.describe("users runtime surface", () => {
     await expect(page.getByRole("alertdialog", { name: "Are you sure?" })).toBeVisible();
     await page.getByRole("button", { name: "Delete" }).click();
     await expect(page.getByText("User deleted successfully")).toBeVisible();
-    await expect(page.getByText("managed-user")).toBeHidden();
+    await expect(page.getByText("managed-user")).toBeVisible();
+    await expect(
+      page
+        .getByRole("row", { name: /managed-user/ })
+        .getByText("Deleted")
+    ).toBeVisible();
 
     const deleteRequest = requests.find(
       (request) =>
-        request.method === "DELETE" && request.pathname === "/api/user/9100/"
+        request.method === "POST" &&
+        request.pathname === "/api/user/manage" &&
+        request.body?.id === 9100 &&
+        request.body?.action === "delete"
     );
     expect(deleteRequest).toBeTruthy();
+    const hardDeleteRequest = requests.find(
+      (request) =>
+        request.method === "DELETE" && request.pathname === "/api/user/9100/"
+    );
+    expect(hardDeleteRequest).not.toBeTruthy();
     expect(unhandled).toEqual([]);
   });
 

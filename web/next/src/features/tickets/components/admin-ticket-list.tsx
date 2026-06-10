@@ -51,6 +51,7 @@ import {
   deleteTicket,
   getAllTickets,
   getTicketCategories,
+  isTicketActionSuccess,
   searchTickets,
   updateTicketStatus,
 } from '../api'
@@ -139,7 +140,9 @@ export function AdminTicketList() {
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: number }) =>
       updateTicketStatus(id, { status }),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t(SUCCESS_MESSAGES.STATUS_UPDATED))
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
     },
@@ -148,7 +151,9 @@ export function AdminTicketList() {
   const priorityMutation = useMutation({
     mutationFn: ({ id, priority }: { id: number; priority: number }) =>
       updateTicketStatus(id, { priority }),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t(SUCCESS_MESSAGES.STATUS_UPDATED))
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
     },
@@ -156,7 +161,9 @@ export function AdminTicketList() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteTicket(id),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t(SUCCESS_MESSAGES.TICKET_DELETED))
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
       setDeleteTarget(null)
@@ -166,7 +173,9 @@ export function AdminTicketList() {
   const assignToMeMutation = useMutation({
     mutationFn: (id: number) =>
       assignTicket(id, { admin_id: currentAdminId }),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t(SUCCESS_MESSAGES.TICKET_ASSIGNED))
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
     },

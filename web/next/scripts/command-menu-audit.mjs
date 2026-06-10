@@ -34,8 +34,33 @@ export function auditCommandMenu() {
   const providersText = readSource("src/app/providers.tsx");
   const appHeaderText = readSource("src/components/layout/app-header.tsx");
   const commandMenuText = readSource("src/components/command-menu.tsx");
+  const sidebarText = readSource("src/components/layout/sidebar-nav.tsx");
   const searchText = readSource("src/components/search.tsx");
   const smokeText = readSource("scripts/command-menu-smoke.spec.js");
+  const requiredSidebarRoutes = [
+    "/playground",
+    "/dashboard",
+    "/keys",
+    "/tickets",
+    "/usage-logs",
+    "/usage-logs/task",
+    "/wallet",
+    "/my-subscriptions",
+    "/invoices",
+    "/profile",
+    "/channels",
+    "/models",
+    "/models/deployments",
+    "/users",
+    "/redemption-codes",
+    "/subscriptions",
+    "/tickets?legacy_admin=1",
+    "/admin-packages",
+    "/admin-tokens",
+    "/health",
+    "/performance-metrics",
+    "/system-settings",
+  ];
 
   const checks = [
     {
@@ -73,6 +98,29 @@ export function auditCommandMenu() {
         /\/keys/.test(smokeText),
       message:
         "Command menu smoke must cover search trigger visibility, keyboard opening, and navigation.",
+    },
+    {
+      name: "command-menu-uses-sidebar-nav-source",
+      ok:
+        /useNavItems/.test(commandMenuText) &&
+        /from\s+["']@\/components\/layout\/sidebar-nav["']/.test(
+          commandMenuText,
+        ) &&
+        /!item\.chatPreset/.test(commandMenuText) &&
+        /router\.push\(path\)/.test(commandMenuText),
+      message:
+        "Command menu must derive default navigation commands from the sidebar item source so route coverage stays in parity with sidebar visibility/config.",
+    },
+    {
+      name: "command-menu-sidebar-route-coverage",
+      ok: requiredSidebarRoutes.every((route) =>
+        sidebarText.includes(`href: "${route}"`),
+      ),
+      message:
+        "Sidebar source used by the command menu must include all expected Next navigation routes.",
+      missingRoutes: requiredSidebarRoutes.filter(
+        (route) => !sidebarText.includes(`href: "${route}"`),
+      ),
     },
   ];
 

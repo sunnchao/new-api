@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { createTicket, getTicketCategories } from '../api'
+import { createTicket, getTicketCategories, isTicketActionSuccess } from '../api'
 import { TicketAttachmentUploader, serializeAttachmentUrls } from './ticket-attachments'
 
 const createTicketSchema = z.object({
@@ -60,7 +60,9 @@ export function CreateTicketDialog(props: {
 
   const createMutation = useMutation({
     mutationFn: createTicket,
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t('Ticket created successfully'))
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
       form.reset()

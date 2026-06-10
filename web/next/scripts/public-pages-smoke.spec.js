@@ -5,6 +5,7 @@ async function mockApi(page, options = {}) {
   const requests = [];
   const unhandled = [];
   const statusOverrides = options.status || {};
+  const apiOverrides = options.api || {};
 
   await page.route("**/api/**", async (route, request) => {
     const url = new URL(request.url());
@@ -40,6 +41,11 @@ async function mockApi(page, options = {}) {
       return;
     }
 
+    if (method === "GET" && url.pathname === "/api/notice") {
+      await fulfill({ success: true, data: "" });
+      return;
+    }
+
     if (method === "GET" && url.pathname === "/api/about") {
       await fulfill({
         success: true,
@@ -48,7 +54,35 @@ async function mockApi(page, options = {}) {
       return;
     }
 
+    if (method === "GET" && url.pathname === "/api/home_page_content") {
+      await fulfill({ success: true, data: "" });
+      return;
+    }
+
+    if (method === "GET" && url.pathname === "/api/subscription/home/plans") {
+      await fulfill({ success: true, data: [] });
+      return;
+    }
+
+    if (method === "GET" && url.pathname === "/api/pricing") {
+      await fulfill({
+        success: true,
+        data: [],
+        vendors: [],
+        group_ratio: {},
+        usable_group: {},
+        supported_endpoint: {},
+        auto_groups: [],
+      });
+      return;
+    }
+
     if (method === "GET" && url.pathname === "/api/privacy-policy") {
+      if (apiOverrides.privacyPolicy) {
+        await fulfill(apiOverrides.privacyPolicy);
+        return;
+      }
+
       await fulfill({
         success: true,
         data: "# Privacy Smoke Policy\n\nWe keep visitor privacy visible.",
@@ -57,6 +91,11 @@ async function mockApi(page, options = {}) {
     }
 
     if (method === "GET" && url.pathname === "/api/user-agreement") {
+      if (apiOverrides.userAgreement) {
+        await fulfill(apiOverrides.userAgreement);
+        return;
+      }
+
       await fulfill({
         success: true,
         data: "# User Smoke Agreement\n\nUse the service responsibly.",
@@ -75,6 +114,29 @@ async function mockApi(page, options = {}) {
 }
 
 test.describe("public informational pages smoke", () => {
+  test("public header exposes accessible language and theme controls", async ({
+    page,
+  }) => {
+    const { unhandled } = await mockApi(page);
+
+    await page.addInitScript(() => {
+      window.localStorage.removeItem("user");
+      window.localStorage.removeItem("uid");
+      window.localStorage.setItem("setup_required", "false");
+    });
+
+    await page.goto("/about");
+
+    await expect(
+      page.getByRole("button", { name: "Switch language" })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Toggle theme" })
+    ).toBeVisible();
+
+    expect(unhandled).toEqual([]);
+  });
+
   test("public header exposes VibeCoding and OpenClaw entry points", async ({
     page,
   }) => {
@@ -190,6 +252,48 @@ test.describe("public informational pages smoke", () => {
     expect(unhandled).toEqual([]);
   });
 
+  test("mobile public header exposes navigation drawer", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const { unhandled } = await mockApi(page);
+
+    await page.addInitScript(() => {
+      window.localStorage.removeItem("user");
+      window.localStorage.removeItem("uid");
+      window.localStorage.setItem("setup_required", "false");
+    });
+
+    await page.goto("/about");
+
+    await expect(page.getByRole("link", { name: "Model Square" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Toggle navigation menu" }).click();
+
+    const mobileNav = page.getByRole("navigation", { name: "Mobile public navigation" });
+    await expect(mobileNav.getByRole("link", { name: "Home" })).toHaveAttribute(
+      "href",
+      "/"
+    );
+    await expect(
+      mobileNav.getByRole("link", { name: "Subscription Plans" })
+    ).toHaveAttribute("href", "/subscription-plans");
+    await expect(
+      mobileNav.getByRole("link", { name: "Model Square" })
+    ).toHaveAttribute("href", "/pricing");
+    await expect(mobileNav.getByRole("link", { name: "Docs" })).toHaveAttribute(
+      "href",
+      "https://docs.example.com/new-api"
+    );
+    await expect(
+      mobileNav.getByRole("link", { name: "Claude Code" })
+    ).toHaveAttribute("href", "/vibecoding/claude");
+    await expect(mobileNav.getByRole("link", { name: "Sign in" })).toHaveAttribute(
+      "href",
+      "/sign-in"
+    );
+
+    expect(unhandled).toEqual([]);
+  });
+
   test("renders public content pages without unhandled API calls", async ({
     page,
   }) => {
@@ -251,6 +355,104 @@ test.describe("public informational pages smoke", () => {
           request.method === "GET" && request.pathname === "/api/status"
       )
     ).toBeTruthy();
+    expect(unhandled).toEqual([]);
+  });
+
+  test("home renders one public footer with enabled legal links", async ({
+    page,
+  }) => {
+    const { unhandled } = await mockApi(page, {
+      status: {
+        user_agreement_enabled: true,
+        privacy_policy_enabled: true,
+      },
+    });
+
+    await page.addInitScript(() => {
+      window.localStorage.removeItem("user");
+      window.localStorage.removeItem("uid");
+      window.localStorage.removeItem("home_page_content");
+      window.localStorage.removeItem("status");
+      window.localStorage.setItem("setup_required", "false");
+    });
+
+    await page.goto("/");
+
+    const footer = page.locator("footer");
+    await expect(footer).toHaveCount(1);
+    await expect(
+      footer.getByRole("link", { name: "New API" })
+    ).toHaveAttribute("href", "https://github.com/QuantumNous/new-api");
+    await expect(
+      footer.getByRole("link", { name: "User Agreement" })
+    ).toHaveAttribute("href", "/user-agreement");
+    await expect(
+      footer.getByRole("link", { name: "Privacy Policy" })
+    ).toHaveAttribute("href", "/privacy-policy");
+
+    expect(unhandled).toEqual([]);
+  });
+
+  test("public layout footer exposes enabled legal links on content pages", async ({
+    page,
+  }) => {
+    const { unhandled } = await mockApi(page, {
+      status: {
+        user_agreement_enabled: true,
+        privacy_policy_enabled: true,
+      },
+    });
+
+    await page.addInitScript(() => {
+      window.localStorage.removeItem("user");
+      window.localStorage.removeItem("uid");
+      window.localStorage.removeItem("status");
+      window.localStorage.setItem("setup_required", "false");
+    });
+
+    await page.goto("/about");
+
+    const footer = page.getByRole("contentinfo");
+    await expect(footer).toHaveCount(1);
+    await expect(
+      footer.getByRole("link", { name: "User Agreement" })
+    ).toHaveAttribute("href", "/user-agreement");
+    await expect(
+      footer.getByRole("link", { name: "Privacy Policy" })
+    ).toHaveAttribute("href", "/privacy-policy");
+
+    expect(unhandled).toEqual([]);
+  });
+
+  test("legal documents do not render failed api payload data", async ({
+    page,
+  }) => {
+    const { unhandled } = await mockApi(page, {
+      api: {
+        privacyPolicy: {
+          success: false,
+          message: "Privacy policy unavailable",
+          data: "# Should Not Render\n\nHidden failed payload.",
+        },
+      },
+    });
+
+    await page.addInitScript(() => {
+      window.localStorage.removeItem("user");
+      window.localStorage.removeItem("uid");
+      window.localStorage.setItem("setup_required", "false");
+    });
+
+    await page.goto("/privacy-policy");
+
+    await expect(
+      page.locator("p").filter({ hasText: /^Privacy policy unavailable$/ })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Should Not Render" })
+    ).toHaveCount(0);
+    await expect(page.getByText("Hidden failed payload.")).toHaveCount(0);
+
     expect(unhandled).toEqual([]);
   });
 });

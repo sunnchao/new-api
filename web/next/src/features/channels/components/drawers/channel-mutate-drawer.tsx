@@ -38,17 +38,17 @@ import {
   Eraser,
   Plus,
   Eye,
-  Link2,
-  RefreshCw,
-  ChevronDown,
-  Code,
-  Boxes,
-  KeyRound,
-  Route,
   Server,
+  Link2,
+  KeyRound,
+  Boxes,
+  RefreshCw,
+  Code,
+  Route,
   Settings,
   SlidersHorizontal,
   Wand2,
+  ChevronDown,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -58,12 +58,12 @@ import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { useHiddenClickUnlock } from '@/hooks/use-hidden-click-unlock'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Combobox } from '@/components/ui/combobox'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Combobox } from '@/components/ui/combobox'
 import {
   Form,
   FormControl,
@@ -102,11 +102,15 @@ import {
 import { JsonEditor } from '@/components/json-editor'
 import { MultiSelect } from '@/components/multi-select'
 import {
+  sideDrawerContentClassName,
+  sideDrawerFooterClassName,
+  sideDrawerFormClassName,
+} from '@/components/drawer-layout'
+import {
   SecureVerificationDialog,
   useSecureVerification,
 } from '@/features/auth/secure-verification'
 import {
-  createChannel,
   fetchModels,
   getAllModels,
   getChannel,
@@ -114,25 +118,20 @@ import {
   getGroups,
   getPrefillGroups,
   refreshCodexCredential,
-  updateChannel,
 } from '../../api'
 import {
   ADD_MODE_OPTIONS,
   CHANNEL_TYPE_OPTIONS,
   CHANNEL_TYPE_WARNINGS,
-  ERROR_MESSAGES,
   FIELD_DESCRIPTIONS,
   FIELD_PLACEHOLDERS,
   MODEL_FETCHABLE_TYPES,
-  SUCCESS_MESSAGES,
 } from '../../constants'
 import {
   CHANNEL_FORM_DEFAULT_VALUES,
   channelFormSchema,
   channelsQueryKeys,
   transformChannelToFormDefaults,
-  transformFormDataToCreatePayload,
-  transformFormDataToUpdatePayload,
   type ChannelFormValues,
   deduplicateKeys,
   getChannelTypeIcon,
@@ -152,6 +151,7 @@ import {
 } from '../../lib/status-code-risk-guard'
 import type { Channel } from '../../types'
 import { useChannels } from '../channels-provider'
+import { useChannelMutateForm } from '../../hooks/use-channel-mutate-form'
 import { CodexOAuthDialog } from '../dialogs/codex-oauth-dialog'
 import { FetchModelsDialog } from '../dialogs/fetch-models-dialog'
 import {
@@ -161,6 +161,14 @@ import {
 import { ParamOverrideEditorDialog } from '../dialogs/param-override-editor-dialog'
 import { StatusCodeRiskDialog } from '../dialogs/status-code-risk-dialog'
 import { ModelMappingEditor } from '../model-mapping-editor'
+import {
+  ChannelAdvancedSection,
+  ChannelApiAccessSection,
+  ChannelAuthSection,
+  ChannelBasicSection,
+  ChannelEditorLoadingState,
+  ChannelModelsSection,
+} from './sections'
 
 type ChannelMutateDrawerProps = {
   open: boolean
@@ -179,27 +187,6 @@ type ModelMappingGuardrail = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
-}
-
-function getErrorMessage(error: unknown): string | undefined {
-  if (error instanceof Error && typeof error.message === 'string') {
-    return error.message
-  }
-
-  if (!isRecord(error)) return undefined
-
-  const response = error.response
-  if (isRecord(response)) {
-    const data = response.data
-    if (isRecord(data)) {
-      const message = data.message
-      if (typeof message === 'string') return message
-    }
-  }
-
-  const message = error.message
-  if (typeof message === 'string') return message
-  return undefined
 }
 
 // Helper functions
@@ -303,7 +290,6 @@ export function ChannelMutateDrawer({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { setOpen } = useChannels()
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [customModel, setCustomModel] = useState('')
   const [fetchModelsDialogOpen, setFetchModelsDialogOpen] = useState(false)
   const [channelKey, setChannelKey] = useState<string | null>(null)
@@ -334,7 +320,7 @@ export function ChannelMutateDrawer({
   const channelId = currentRow?.id ?? null
 
   // Fetch channel details if editing
-  const { data: channelData } = useQuery({
+  const { data: channelData, isLoading: isChannelLoading } = useQuery({
     queryKey: channelsQueryKeys.detail(currentRow?.id || 0),
     queryFn: () => getChannel(currentRow!.id),
     enabled: isEditing && Boolean(currentRow?.id),
@@ -884,9 +870,23 @@ export function ChannelMutateDrawer({
   // Handle successful submission
   const handleSuccess = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
+    if (channelId) {
+      queryClient.invalidateQueries({
+        queryKey: channelsQueryKeys.detail(channelId),
+      })
+    }
     onOpenChange(false)
     setOpen(null)
-  }, [queryClient, onOpenChange, setOpen])
+  }, [channelId, queryClient, onOpenChange, setOpen])
+
+  const channelMutation = useChannelMutateForm({
+    currentRow,
+    isEditing,
+    isMultiKeyChannel,
+    onSuccess: handleSuccess,
+  })
+
+  const isSubmitting = channelMutation.isPending
 
   // Show missing models confirmation dialog
   const confirmMissingModelMappings = useCallback(
@@ -1023,56 +1023,14 @@ export function ChannelMutateDrawer({
         }
       }
 
-      setIsSubmitting(true)
-      try {
-        if (isEditing && currentRow) {
-          // Update existing channel
-          const payload = transformFormDataToUpdatePayload(data, currentRow.id)
-          const payloadWithKeyMode =
-            isMultiKeyChannel && data.key_mode
-              ? {
-                  ...payload,
-                  key_mode: data.key_mode,
-                }
-              : payload
-
-          const response = await updateChannel(
-            currentRow.id,
-            payloadWithKeyMode
-          )
-          if (!response.success) {
-            throw new Error(response.message || t(ERROR_MESSAGES.UPDATE_FAILED))
-          }
-          if (response.success) {
-            toast.success(t(SUCCESS_MESSAGES.UPDATED))
-            handleSuccess()
-          }
-        } else {
-          // Create new channel(s)
-          const payload = transformFormDataToCreatePayload(data)
-          const response = await createChannel(payload)
-          if (!response.success) {
-            throw new Error(response.message || t(ERROR_MESSAGES.CREATE_FAILED))
-          }
-          if (response.success) {
-            toast.success(t(SUCCESS_MESSAGES.CREATED))
-            handleSuccess()
-          }
-        }
-      } catch (error: unknown) {
-        toast.error(getErrorMessage(error) || t(ERROR_MESSAGES.CREATE_FAILED))
-      } finally {
-        setIsSubmitting(false)
-      }
+      await channelMutation.mutateAsync(data)
     },
     [
       isEditing,
-      currentRow,
-      isMultiKeyChannel,
       form,
-      handleSuccess,
       confirmMissingModelMappings,
       confirmStatusCodeRisk,
+      channelMutation,
       t,
     ]
   )

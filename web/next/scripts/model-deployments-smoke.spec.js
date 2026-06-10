@@ -104,6 +104,11 @@ async function mockApi(page) {
       return;
     }
 
+    if (method === "GET" && url.pathname === "/api/notice") {
+      await fulfill({ success: true, data: "" });
+      return;
+    }
+
     if (method === "GET" && url.pathname === "/api/user/self") {
       await fulfill({ success: true, data: user });
       return;
@@ -306,6 +311,9 @@ test.describe("model deployments runtime surface", () => {
     await page.getByRole("button", { name: "Create deployment" }).click();
     const createDialog = page.getByRole("dialog", { name: "Create deployment" });
     await expect(createDialog).toBeVisible();
+    await expect(createDialog.locator('textarea[name="secret_env_json"]')).toHaveValue(
+      /"OLLAMA_API_KEY": "ionet-[a-z0-9]+"/i
+    );
     await createDialog.getByLabel("Container name").fill("created-smoke-runtime");
     await createDialog.getByRole("combobox").first().click();
     await page.getByRole("option", { name: "NVIDIA H100" }).click();
@@ -420,7 +428,10 @@ test.describe("model deployments runtime surface", () => {
           replica_count: 2,
           traffic_port: 8080,
           env_variables: { MODEL: "smoke" },
-          secret_env_variables: { TOKEN: "secret" },
+          secret_env_variables: {
+            TOKEN: "secret",
+            OLLAMA_API_KEY: expect.stringMatching(/^ionet-[a-z0-9]+$/i),
+          },
         }),
         registry_config: expect.objectContaining({
           image_url: "ollama/ollama:latest",

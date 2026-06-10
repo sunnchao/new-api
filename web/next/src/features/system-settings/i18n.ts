@@ -124,7 +124,7 @@ const resources = {
       'Total tokens': 'Total des tokens',
       'Next.js Frontend': 'Frontend Next.js',
       'Switch between default, classic, and Next.js frontends. The Next.js option requires NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL to point at a running Next server.':
-        "Basculez entre les frontends default, classic et Next.js. L'option Next.js necessite NEXT_FRONTEND_BASE_URL ou FRONTEND_NEXT_BASE_URL pointant vers un service Next en cours d'execution.",
+        "Basculez entre les frontends default, classic et Next.js. L'option Next.js nécessite que NEXT_FRONTEND_BASE_URL ou FRONTEND_NEXT_BASE_URL pointe vers un service Next en cours d'exécution.",
     },
   },
   ja: {
@@ -256,7 +256,7 @@ const resources = {
       'Total tokens': 'Tổng token',
       'Next.js Frontend': 'Frontend Next.js',
       'Switch between default, classic, and Next.js frontends. The Next.js option requires NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL to point at a running Next server.':
-        'Chuyen doi giua cac frontend default, classic va Next.js. Tuy chon Next.js can NEXT_FRONTEND_BASE_URL hoac FRONTEND_NEXT_BASE_URL tro toi dich vu Next dang chay.',
+        'Chuyển đổi giữa các frontend default, classic và Next.js. Tùy chọn Next.js cần NEXT_FRONTEND_BASE_URL hoặc FRONTEND_NEXT_BASE_URL trỏ tới dịch vụ Next đang chạy.',
     },
   },
 } as const

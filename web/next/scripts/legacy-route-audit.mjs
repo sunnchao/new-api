@@ -60,7 +60,6 @@ export const requiredLegacyRoutes = [
   { source: "/console/chat/:id", destination: "/chat/:id" },
   { source: "/ticket/:id", destination: "/tickets/:id" },
   { source: "/vibecoding/claude/admin", destination: "/vibecoding/admin" },
-  { source: "/vibecoding/claude/subscription", destination: "/my-subscriptions" },
   { source: "/vibecoding/claude", destination: "/vibecoding/claude" },
   { source: "/vibecoding/codex", destination: "/vibecoding/codex" },
   { source: "/vibecoding/gemini", destination: "/vibecoding/gemini" },

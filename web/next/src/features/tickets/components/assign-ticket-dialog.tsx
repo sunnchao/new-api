@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { assignTicket } from '../api'
+import { assignTicket, isTicketActionSuccess } from '../api'
 import { SUCCESS_MESSAGES } from '../constants'
 
 interface AssignTicketDialogProps {
@@ -33,7 +33,9 @@ export function AssignTicketDialog({
 
   const mutation = useMutation({
     mutationFn: () => assignTicket(ticketId, { admin_id: Number(adminId) }),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t(SUCCESS_MESSAGES.TICKET_ASSIGNED))
       queryClient.invalidateQueries({ queryKey: ['ticket-detail', ticketId] })
       queryClient.invalidateQueries({ queryKey: ['tickets'] })

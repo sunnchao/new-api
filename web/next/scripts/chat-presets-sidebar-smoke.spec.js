@@ -4,6 +4,8 @@ const { test, expect } = require("@playwright/test");
 const gatewayAddress = "https://gateway.example.com";
 const chatLauncherUrl =
   "https://chat.example.com/#/?key={key}&url={address}";
+const externalLauncherUrl =
+  "cherry-studio://import?config={cherryConfig}";
 
 const user = {
   id: 9372,
@@ -29,7 +31,11 @@ const statusData = {
   server_address: gatewayAddress,
   display_in_currency: false,
   quota_display_type: "TOKENS",
-  chats: [{ "Smoke Web Chat": chatLauncherUrl }],
+  chats: [
+    { "Smoke Web Chat": chatLauncherUrl },
+    { "Smoke External Chat": externalLauncherUrl },
+    { "Smoke Fluent Chat": "fluent://chat" },
+  ],
 };
 
 const token = {
@@ -134,6 +140,16 @@ async function mockApi(page) {
       return;
     }
 
+    if (method === "POST" && url.pathname === "/api/token/7002/key") {
+      await fulfill({
+        success: true,
+        data: {
+          key: "sidebar-chat-smoke-key",
+        },
+      });
+      return;
+    }
+
     state.unhandled.push(requestLabel(method, url));
     await fulfill(
       { success: false, message: `Unhandled ${requestLabel(method, url)}` },
@@ -187,5 +203,56 @@ test.describe("chat presets sidebar parity smoke", () => {
     await presetLink.click();
     await expect(page).toHaveURL(/\/chat\/0$/);
     await expect(page.getByRole("heading", { name: "Select token" })).toBeVisible();
+  });
+
+  test("authenticated sidebar launches external chat presets with selected token", async ({
+    page,
+  }) => {
+    await mockApi(page);
+    await seedAuthenticatedUser(page);
+    await page.addInitScript(() => {
+      window.__chatPresetOpenedUrls = [];
+      window.open = (url) => {
+        window.__chatPresetOpenedUrls.push(String(url));
+        return null;
+      };
+    });
+
+    await page.goto("/playground");
+
+    const desktopSidebar = page.locator("aside").first();
+    await expect(
+      desktopSidebar.getByRole("button", { name: "Smoke External Chat" })
+    ).toBeVisible();
+    await expect(
+      desktopSidebar.getByRole("link", { name: "Smoke Fluent Chat" })
+    ).toHaveCount(0);
+
+    await desktopSidebar
+      .getByRole("button", { name: "Smoke External Chat" })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Select token" })
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Smoke Sidebar Chat Token" }).click();
+
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.__chatPresetOpenedUrls?.[0] || "")
+      )
+      .toContain("cherry-studio://import?config=");
+
+    const openedUrl = await page.evaluate(
+      () => window.__chatPresetOpenedUrls?.[0] || ""
+    );
+    const encodedConfig = decodeURIComponent(
+      openedUrl.replace("cherry-studio://import?config=", "")
+    );
+    const decodedConfig = JSON.parse(Buffer.from(encodedConfig, "base64").toString());
+    expect(decodedConfig).toEqual({
+      id: "new-api",
+      baseUrl: gatewayAddress,
+      apiKey: "sk-sidebar-chat-smoke-key",
+    });
   });
 });

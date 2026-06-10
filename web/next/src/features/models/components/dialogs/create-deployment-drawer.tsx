@@ -63,6 +63,7 @@ import { deploymentsQueryKeys } from '../../lib'
 
 const BUILTIN_IMAGE = 'ollama/ollama:latest'
 const DEFAULT_TRAFFIC_PORT = 11434
+const OLLAMA_API_KEY_NAME = 'OLLAMA_API_KEY'
 
 const schema = z.object({
   resource_private_name: z.string().min(1),
@@ -89,6 +90,43 @@ type FormValues = z.input<typeof schema>
 function toNumber(value: unknown, fallback: number) {
   const n = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(n) ? n : fallback
+}
+
+function generateOllamaApiKey() {
+  try {
+    const randomUUID = globalThis.crypto?.randomUUID
+    if (typeof randomUUID === 'function') {
+      return `ionet-${randomUUID.call(globalThis.crypto).replace(/-/g, '')}`
+    }
+  } catch {
+    // Fall back below when Web Crypto is unavailable.
+  }
+  return `ionet-${Math.random().toString(36).slice(2)}${Math.random()
+    .toString(36)
+    .slice(2)}`
+}
+
+function withBuiltinOllamaSecret(
+  secretEnvVariables: Record<string, string> | undefined,
+  imageUrl: unknown
+) {
+  const next = secretEnvVariables ? { ...secretEnvVariables } : {}
+  if (
+    typeof imageUrl === 'string' &&
+    imageUrl.trim() === BUILTIN_IMAGE &&
+    !next[OLLAMA_API_KEY_NAME]
+  ) {
+    next[OLLAMA_API_KEY_NAME] = generateOllamaApiKey()
+  }
+  return Object.keys(next).length ? next : undefined
+}
+
+function getDefaultSecretEnvJson() {
+  return JSON.stringify(
+    { [OLLAMA_API_KEY_NAME]: generateOllamaApiKey() },
+    null,
+    2
+  )
 }
 
 export function CreateDeploymentDrawer({
@@ -251,12 +289,16 @@ export function CreateDeploymentDrawer({
             ) as Record<string, string>)
           : undefined
 
-      const secretEnvVariables =
+      const parsedSecretEnvVariables =
         secretEnv && typeof secretEnv === 'object' && !Array.isArray(secretEnv)
           ? (Object.fromEntries(
               Object.entries(secretEnv).map(([k, v]) => [k, String(v)])
             ) as Record<string, string>)
           : undefined
+      const secretEnvVariables = withBuiltinOllamaSecret(
+        parsedSecretEnvVariables,
+        values.image_url
+      )
 
       const gpusPerContainer = Number(values.gpus_per_container)
       const durationHoursVal = Number(values.duration_hours)
@@ -344,7 +386,7 @@ export function CreateDeploymentDrawer({
       replica_count: 1,
       duration_hours: 1,
       env_json: '',
-      secret_env_json: '',
+      secret_env_json: getDefaultSecretEnvJson(),
       entrypoint: '',
       args: '',
       registry_username: '',

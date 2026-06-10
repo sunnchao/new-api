@@ -7,6 +7,7 @@ const nextRoot = path.resolve(scriptDir, "..");
 
 const files = {
   commandMenu: path.join(nextRoot, "src/components/command-menu.tsx"),
+  sidebarNav: path.join(nextRoot, "src/components/layout/sidebar-nav.tsx"),
   channelTestDialog: path.join(
     nextRoot,
     "src/features/channels/components/dialogs/channel-test-dialog.tsx",
@@ -28,8 +29,18 @@ function commandItemUsesPath(text, id, target) {
   ).test(text);
 }
 
+function commandMenuUsesSidebarRoute(commandMenu, sidebarNav, target) {
+  return (
+    /useNavItems/.test(commandMenu) &&
+    /from\s+["']@\/components\/layout\/sidebar-nav["']/.test(commandMenu) &&
+    /onSelect:\s*\(\)\s*=>\s*go\(item\.href\)/.test(commandMenu) &&
+    sidebarNav.includes(`href: "${target}"`)
+  );
+}
+
 export function auditLegacyNavigation() {
   const commandMenu = readFile(files.commandMenu);
+  const sidebarNav = readFile(files.sidebarNav);
   const channelTestDialog = readFile(files.channelTestDialog);
   const playgroundMessageError = readFile(files.playgroundMessageError);
 
@@ -37,28 +48,38 @@ export function auditLegacyNavigation() {
   const checks = [
     {
       name: "command-menu-dashboard-uses-next-route",
-      ok: commandItemUsesPath(commandMenu, "dashboard", "/dashboard"),
+      ok:
+        commandItemUsesPath(commandMenu, "dashboard", "/dashboard") ||
+        commandMenuUsesSidebarRoute(commandMenu, sidebarNav, "/dashboard"),
       message: "Command menu dashboard item should navigate to /dashboard.",
     },
     {
       name: "command-menu-keys-uses-next-route",
-      ok: commandItemUsesPath(commandMenu, "keys", "/keys"),
+      ok:
+        commandItemUsesPath(commandMenu, "keys", "/keys") ||
+        commandMenuUsesSidebarRoute(commandMenu, sidebarNav, "/keys"),
       message: "Command menu API keys item should navigate to /keys.",
     },
     {
       name: "command-menu-channels-uses-next-route",
-      ok: commandItemUsesPath(commandMenu, "channels", "/channels"),
+      ok:
+        commandItemUsesPath(commandMenu, "channels", "/channels") ||
+        commandMenuUsesSidebarRoute(commandMenu, sidebarNav, "/channels"),
       message: "Command menu channels item should navigate to /channels.",
     },
     {
       name: "command-menu-users-uses-next-route",
-      ok: commandItemUsesPath(commandMenu, "users", "/users"),
+      ok:
+        commandItemUsesPath(commandMenu, "users", "/users") ||
+        commandMenuUsesSidebarRoute(commandMenu, sidebarNav, "/users"),
       message:
         "Command menu users item should navigate to /users instead of the unredirected /console/users path.",
     },
     {
       name: "command-menu-playground-uses-next-route",
-      ok: commandItemUsesPath(commandMenu, "playground", "/playground"),
+      ok:
+        commandItemUsesPath(commandMenu, "playground", "/playground") ||
+        commandMenuUsesSidebarRoute(commandMenu, sidebarNav, "/playground"),
       message: "Command menu playground item should navigate to /playground.",
     },
     {

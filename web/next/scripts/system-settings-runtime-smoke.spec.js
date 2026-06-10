@@ -494,6 +494,53 @@ test.describe("system settings production runtime smoke", () => {
     expect(unhandled).toEqual([]);
   });
 
+  test("preserves and saves the Next frontend theme option", async ({
+    page,
+  }) => {
+    optionValues["theme.frontend"] = "next";
+
+    const { requests, unhandled } = await mockApi(page);
+    await authenticate(page);
+
+    await page.goto("/system-settings/site/system-info");
+    await expect(
+      page.getByRole("heading", { name: "System Information" })
+    ).toBeVisible();
+
+    const themeSelect = page.getByRole("combobox", {
+      name: "Frontend Theme",
+    });
+    await expect(themeSelect).toContainText("Next.js Frontend");
+
+    optionValues["theme.frontend"] = "classic";
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: "System Information" })
+    ).toBeVisible();
+    await expect(themeSelect).toContainText("Classic (Legacy Frontend)");
+
+    await themeSelect.click();
+    await page.getByRole("option", { name: "Next.js Frontend" }).click();
+    await page.getByRole("button", { name: "Save Changes" }).click();
+
+    await expect
+      .poll(() =>
+        requestsFor(requests, "PUT", "/api/option/").some(
+          (request) => request.body?.key === "theme.frontend"
+        )
+      )
+      .toBe(true);
+
+    const themeSave = requestsFor(requests, "PUT", "/api/option/").find(
+      (request) => request.body?.key === "theme.frontend"
+    );
+    expect(themeSave?.body).toEqual({
+      key: "theme.frontend",
+      value: "next",
+    });
+    expect(unhandled).toEqual([]);
+  });
+
   test("saves performance options and invokes non-option runtime actions", async ({
     page,
   }) => {
@@ -592,7 +639,7 @@ test.describe("system settings production runtime smoke", () => {
     await expect(
       page.getByRole("heading", { name: "Reset all model prices?" })
     ).toBeVisible();
-    await page.getByRole("button", { name: "Reset" }).click();
+    await page.getByRole("button", { name: "Reset", exact: true }).click();
     await expect(page.getByText("Model prices reset successfully")).toBeVisible();
 
     const modelRatioSave = requestsFor(requests, "PUT", "/api/option/").find(

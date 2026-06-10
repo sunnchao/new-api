@@ -54,6 +54,7 @@ import {
   getLogTypeConfig,
   isPerCallBilling,
 } from '../../lib/utils'
+import { LOG_TYPE_ENUM } from '../../constants'
 import type { LogOtherData } from '../../types'
 import { DetailsDialog } from '../dialogs/details-dialog'
 import { ModelBadge } from '../model-badge'
@@ -95,11 +96,11 @@ function buildDetailSegments(
   other: LogOtherData | null,
   t: (key: string, opts?: Record<string, unknown>) => string
 ): DetailSegment[] {
-  if (log.type === 6) {
+  if (log.type === LOG_TYPE_ENUM.REFUND) {
     return [{ text: t('Async task refund') }]
   }
 
-  if (log.type !== 2) return []
+  if (log.type !== LOG_TYPE_ENUM.CONSUME) return []
 
   const isViolation = isViolationFeeLog(other)
   if (isViolation) {

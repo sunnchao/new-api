@@ -48,6 +48,7 @@ export function LegalDocument({
   const title = t(titleKey);
   const content = data?.data?.trim() ?? "";
   const hasContent = content.length > 0;
+  const success = data?.success ?? false;
   const isUrl = hasContent && isValidHttpUrl(content);
   const isHtml = hasContent && !isUrl && isLikelyHtml(content);
 
@@ -61,7 +62,7 @@ export function LegalDocument({
               <Skeleton key={i} className="h-4 w-full" />
             ))}
           </div>
-        ) : !hasContent ? (
+        ) : !success || !hasContent ? (
           <Card className="border-dashed">
             <CardHeader className="flex flex-row items-center gap-4">
               <div className="rounded-lg bg-[var(--surface)] p-2">

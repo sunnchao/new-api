@@ -83,6 +83,11 @@ async function mockApi(page, options = {}) {
       return;
     }
 
+    if (method === "GET" && url.pathname === "/api/notice") {
+      await fulfill({ success: true, data: "" });
+      return;
+    }
+
     if (method === "GET" && url.pathname === "/api/user/self") {
       await fulfill({ success: true, data: user });
       return;
@@ -139,6 +144,28 @@ async function mockApi(page, options = {}) {
         message: "success",
         data: {
           pay_link: "https://payments.example.test/stripe",
+        },
+      });
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/api/user/creem/pay") {
+      await fulfill({
+        success: true,
+        message: "success",
+        data: {
+          checkout_url: "https://payments.example.test/creem",
+        },
+      });
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/api/user/waffo/pay") {
+      await fulfill({
+        success: true,
+        message: "success",
+        data: {
+          payment_url: "https://payments.example.test/waffo",
         },
       });
       return;
@@ -305,6 +332,107 @@ test.describe("wallet runtime interactions", () => {
       )
       .toBe(true);
 
+    expect(unhandled).toEqual([]);
+  });
+
+  test("opens Creem checkout for configured product payments", async ({ page }) => {
+    const { requests, unhandled } = await mockApi(page, {
+      topupInfo: {
+        enable_online_topup: false,
+        enable_stripe_topup: false,
+        enable_creem_topup: true,
+        pay_methods: [],
+        creem_products: [
+          {
+            name: "Creem Runtime Basic",
+            productId: "creem-runtime-basic",
+            price: 9.99,
+            quota: 1000000,
+            currency: "USD",
+          },
+        ],
+      },
+    });
+    await seedAuthenticatedSession(page);
+    await page.addInitScript(() => {
+      window.open = (url) => {
+        window.__walletRuntimeOpenedWindows = window.__walletRuntimeOpenedWindows || [];
+        window.__walletRuntimeOpenedWindows.push(String(url));
+        return null;
+      };
+    });
+    page.on("popup", (popup) => popup.close());
+
+    await page.goto("/wallet");
+
+    await expect(page.getByText("Creem Payment")).toBeVisible();
+    await page.getByText("Creem Runtime Basic").click();
+    const creemDialog = page.getByRole("dialog");
+    await expect(creemDialog.getByRole("heading", { name: "Confirm Creem Purchase" })).toBeVisible();
+    await expect(creemDialog.getByText("Creem Runtime Basic")).toBeVisible();
+    await creemDialog.getByRole("button", { name: "Confirm Payment" }).click();
+
+    await expect
+      .poll(() =>
+        requests.find(
+          (request) =>
+            request.method === "POST" &&
+            request.pathname === "/api/user/creem/pay" &&
+            request.body?.product_id === "creem-runtime-basic" &&
+            request.body?.payment_method === "creem"
+        )
+      )
+      .toBeTruthy();
+
+    const windowUrls = await page.evaluate(() => window.__walletRuntimeOpenedWindows || []);
+    expect(windowUrls).toContain("https://payments.example.test/creem");
+    expect(unhandled).toEqual([]);
+  });
+
+  test("opens non-Pancake Waffo checkout with selected payment method index", async ({ page }) => {
+    const { requests, unhandled } = await mockApi(page, {
+      topupInfo: {
+        enable_online_topup: false,
+        enable_stripe_topup: false,
+        enable_waffo_topup: true,
+        pay_methods: [],
+        waffo_min_topup: 1,
+        waffo_pay_methods: [
+          { name: "Waffo Wallet", payMethodType: "wallet" },
+          { name: "Waffo Card", payMethodType: "card" },
+        ],
+      },
+    });
+    await seedAuthenticatedSession(page);
+    await page.addInitScript(() => {
+      window.open = (url) => {
+        window.__walletRuntimeOpenedWindows = window.__walletRuntimeOpenedWindows || [];
+        window.__walletRuntimeOpenedWindows.push(String(url));
+        return null;
+      };
+    });
+    page.on("popup", (popup) => popup.close());
+
+    await page.goto("/wallet");
+
+    await expect(page.getByText("Waffo Payment")).toBeVisible();
+    await page.getByLabel("Custom Amount").fill("12");
+    await page.getByRole("button", { name: "Waffo Card" }).click();
+
+    await expect
+      .poll(() =>
+        requests.find(
+          (request) =>
+            request.method === "POST" &&
+            request.pathname === "/api/user/waffo/pay" &&
+            request.body?.amount === 12 &&
+            request.body?.pay_method_index === 1
+        )
+      )
+      .toBeTruthy();
+
+    const windowUrls = await page.evaluate(() => window.__walletRuntimeOpenedWindows || []);
+    expect(windowUrls).toContain("https://payments.example.test/waffo");
     expect(unhandled).toEqual([]);
   });
 

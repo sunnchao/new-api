@@ -53,7 +53,9 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
     enabled: true,
     topup: true,
     invoice: true,
+    ticket: true,
     personal: true,
+    subscriptions: true,
     subscription: true,
   },
   admin: {
@@ -61,10 +63,16 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
     channel: true,
     admin_token: true,
     models: true,
+    deployment: true,
     redemption: true,
+    admin_ticket: true,
     user: true,
+    packages: true,
     setting: true,
     subscription: true,
+    'subscription-overview': true,
+    health: true,
+    performance: true,
   },
 }
 
@@ -109,16 +117,25 @@ const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
   '/usage-logs/task': { section: 'console', module: 'task' },
   '/wallet': { section: 'personal', module: 'topup' },
   '/invoices': { section: 'personal', module: 'invoice' },
+  '/tickets': { section: 'personal', module: 'ticket' },
   '/my-subscriptions': { section: 'personal', module: 'subscription' },
   '/profile': { section: 'personal', module: 'personal' },
   '/channels': { section: 'admin', module: 'channel' },
   '/admin-tokens': { section: 'admin', module: 'admin_token' },
   '/models': { section: 'admin', module: 'models' },
   '/models/metadata': { section: 'admin', module: 'models' },
-  '/models/deployments': { section: 'admin', module: 'models' },
+  '/models/deployments': { section: 'admin', module: 'deployment' },
   '/users': { section: 'admin', module: 'user' },
   '/redemption-codes': { section: 'admin', module: 'redemption' },
+  '/tickets?legacy_admin=1': { section: 'admin', module: 'admin_ticket' },
   '/subscriptions': { section: 'admin', module: 'subscription' },
+  '/subscriptions?tab=all-subscriptions': {
+    section: 'admin',
+    module: 'subscription-overview',
+  },
+  '/admin-packages': { section: 'admin', module: 'packages' },
+  '/health': { section: 'admin', module: 'health' },
+  '/performance-metrics': { section: 'admin', module: 'performance' },
   '/system-settings': { section: 'admin', module: 'setting' },
   '/system-settings/site': { section: 'admin', module: 'setting' },
 }
@@ -138,7 +155,6 @@ function parseSidebarConfig(
     const parsed = JSON.parse(value) as SidebarModulesAdminConfig
     return mergeWithDefaultSidebarModules(parsed)
   } catch {
-    // eslint-disable-next-line no-console
     console.error('Failed to parse sidebar modules configuration')
     return DEFAULT_SIDEBAR_MODULES
   }

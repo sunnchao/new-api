@@ -1,0 +1,8 @@
+{
+  "Choose an enabled token to start the chat session.": "Choose an enabled token to start the chat session.",
+  "Failed to load API key": "Failed to load API key",
+  "No enabled tokens available. Please create or enable a token first.": "No enabled tokens available. Please create or enable a token first.",
+  "Select token": "Select token",
+  "Select token again": "Select token again",
+  "You cancelled token selection.": "You cancelled token selection."
+}

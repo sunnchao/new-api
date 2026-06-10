@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { type Table } from '@tanstack/react-table'
 import { Eye, EyeOff } from 'lucide-react'
@@ -38,7 +38,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { createUrl } from '@/lib/next-url'
-import { LOG_TYPE_ALL_VALUE, LOG_TYPE_FILTERS } from '../constants'
+import {
+  getLogTypeFilters,
+  LOG_TYPE_ALL_VALUE,
+  LOG_TYPE_ENUM,
+  LOG_TYPE_FILTERS,
+} from '../constants'
 import { buildSearchParams } from '../lib/filter'
 import { getDefaultTimeRange } from '../lib/utils'
 import type { CommonLogFilters } from '../types'
@@ -57,6 +62,13 @@ type LogTypeValue = (typeof LOG_TYPE_FILTERS)[number]['value']
 
 function isLogTypeValue(value: string): value is LogTypeValue {
   return (logTypeValues as readonly string[]).includes(value)
+}
+
+function getVisibleLogTypeFilters(isAdmin: boolean) {
+  return [
+    { label: 'All Types', value: LOG_TYPE_ALL_VALUE },
+    ...getLogTypeFilters(isAdmin),
+  ]
 }
 
 function parseSearchDate(value: string | null, fallback: Date): Date {
@@ -80,6 +92,14 @@ export function CommonLogsFilterBar<TData>(
   const isAdmin = useIsAdmin()
   const { sensitiveVisible, setSensitiveVisible } = useUsageLogsContext()
   const fetchingLogs = useIsFetching({ queryKey: ['logs'] })
+  const visibleLogTypeFilters = useMemo(
+    () => getVisibleLogTypeFilters(isAdmin),
+    [isAdmin]
+  )
+  const visibleLogTypeValues = useMemo(
+    () => visibleLogTypeFilters.map((type) => type.value),
+    [visibleLogTypeFilters]
+  )
 
   const [filters, setFilters] = useState<CommonLogFilters>(() => {
     const { start, end } = getDefaultTimeRange()
@@ -112,9 +132,16 @@ export function CommonLogsFilterBar<TData>(
 
     const typeStr = searchParams.get('type')
     setLogType(
-      typeStr && isLogTypeValue(typeStr) ? typeStr : LOG_TYPE_ALL_VALUE
+      typeStr &&
+        isLogTypeValue(typeStr) &&
+        visibleLogTypeValues.includes(typeStr) &&
+        (isAdmin || typeStr !== String(LOG_TYPE_ENUM.ADMIN_ERROR))
+        ? typeStr
+        : LOG_TYPE_ALL_VALUE
     )
   }, [
+    isAdmin,
+    visibleLogTypeValues,
     searchParams.get('startTime'),
     searchParams.get('endTime'),
     searchParams.get('channel'),
@@ -191,7 +218,7 @@ export function CommonLogsFilterBar<TData>(
     filters.upstreamRequestId,
   ].filter(Boolean).length
   const sensitiveType = sensitiveVisible ? 'text' : 'password'
-  const logTypeItems = LOG_TYPE_FILTERS.map((type) => ({
+  const logTypeItems = visibleLogTypeFilters.map((type) => ({
     value: type.value,
     label: t(type.label),
   }))
@@ -271,7 +298,7 @@ export function CommonLogsFilterBar<TData>(
         </SelectTrigger>
         <SelectContent alignItemWithTrigger={false}>
           <SelectGroup>
-            {LOG_TYPE_FILTERS.map((type) => (
+            {visibleLogTypeFilters.map((type) => (
               <SelectItem key={type.value} value={type.value}>
                 {t(type.label)}
               </SelectItem>

@@ -37,7 +37,10 @@ const SITE_SECTIONS = [
       <SystemInfoSection
         defaultValues={{
           theme: {
-            frontend: settings['theme.frontend'] as 'default' | 'classic',
+            frontend: settings['theme.frontend'] as
+              | 'default'
+              | 'classic'
+              | 'next',
           },
           SystemName: settings.SystemName,
           Logo: settings.Logo,

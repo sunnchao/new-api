@@ -221,6 +221,11 @@ async function mockApi(page) {
       return;
     }
 
+    if (method === "GET" && url.pathname === "/api/notice") {
+      await fulfill({ success: true, data: "" });
+      return;
+    }
+
     if (method === "GET" && url.pathname === "/api/user/self") {
       await fulfill({ success: true, data: user });
       return;
@@ -583,7 +588,7 @@ test.describe("admin all-subscriptions runtime surface", () => {
     await page.getByPlaceholder("User Group").fill("default");
     await expect(page.getByText("alice-smoke@example.com")).toBeVisible();
 
-    await page.getByRole("button", { name: "Reset" }).click();
+    await page.getByRole("button", { name: "Reset", exact: true }).click();
     await expect(page.getByText("bob-smoke@example.com")).toBeVisible();
 
     const usernameRequest = requests.find(

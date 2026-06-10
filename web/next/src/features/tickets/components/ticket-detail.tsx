@@ -27,6 +27,7 @@ import {
   closeTicket,
   getTicketCategories,
   getTicketDetail,
+  isTicketActionSuccess,
   sendTicketMessage,
 } from '../api'
 import { TICKET_STATUS, PRIORITY_LABELS } from '../constants'
@@ -65,7 +66,9 @@ export function TicketDetail({ ticketId }: { ticketId: number }) {
 
   const closeMutation = useMutation({
     mutationFn: () => closeTicket(ticketId),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t('Ticket closed successfully'))
       queryClient.invalidateQueries({ queryKey: ['ticket-detail', ticketId] })
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
@@ -75,7 +78,9 @@ export function TicketDetail({ ticketId }: { ticketId: number }) {
   const sendMutation = useMutation({
     mutationFn: (msgData: { content: string; attachment_urls?: string }) =>
       sendTicketMessage(ticketId, msgData),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!isTicketActionSuccess(response)) return
+
       toast.success(t('Reply sent successfully'))
       queryClient.invalidateQueries({ queryKey: ['ticket-detail', ticketId] })
       form.reset()

@@ -52,7 +52,9 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     enabled: true,
     topup: true,
     invoice: true,
+    ticket: true,
     personal: true,
+    subscriptions: true,
     subscription: true,
   },
   admin: {
@@ -60,10 +62,16 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     channel: true,
     admin_token: true,
     models: true,
+    deployment: true,
     redemption: true,
+    admin_ticket: true,
     user: true,
+    packages: true,
     setting: true,
     subscription: true,
+    'subscription-overview': true,
+    health: true,
+    performance: true,
   },
 }
 

@@ -21,6 +21,7 @@ import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useSystemConfig } from '@/hooks/use-system-config'
+import { useStatus } from '@/hooks/use-status'
 
 interface FooterLink {
   text: string
@@ -71,6 +72,52 @@ function FooterLinkItem(props: { link: FooterLink }) {
     >
       {label}
     </Link>
+  )
+}
+
+function LegalLinks(props: { leadingSeparator?: boolean }) {
+  const { t } = useTranslation()
+  const { status } = useStatus()
+  const items: { key: string; label: string; href: string }[] = []
+
+  if (status?.user_agreement_enabled) {
+    items.push({
+      key: 'user-agreement',
+      label: t('User Agreement'),
+      href: '/user-agreement',
+    })
+  }
+
+  if (status?.privacy_policy_enabled) {
+    items.push({
+      key: 'privacy-policy',
+      label: t('Privacy Policy'),
+      href: '/privacy-policy',
+    })
+  }
+
+  if (items.length === 0) {
+    return null
+  }
+
+  return (
+    <>
+      {items.map((item, index) => (
+        <span key={item.key} className='inline-flex items-center gap-3'>
+          {(props.leadingSeparator || index > 0) && (
+            <span aria-hidden='true' className='text-muted-foreground/30'>
+              ·
+            </span>
+          )}
+          <Link
+            href={item.href}
+            className='hover:text-foreground transition-colors duration-200'
+          >
+            {item.label}
+          </Link>
+        </span>
+      ))}
+    </>
   )
 }
 
@@ -182,7 +229,8 @@ export function Footer(props: FooterProps) {
               className='custom-footer text-muted-foreground min-w-0 text-center text-sm sm:text-left'
               dangerouslySetInnerHTML={{ __html: footerHtml }}
             />
-            <div className='border-border/60 w-full border-t pt-4 sm:w-auto sm:border-t-0 sm:border-l sm:pt-0 sm:pl-5'>
+            <div className='border-border/60 text-muted-foreground/45 flex w-full flex-wrap items-center justify-center gap-3 border-t pt-4 text-xs sm:w-auto sm:justify-end sm:border-t-0 sm:border-l sm:pt-0 sm:pl-5'>
+              <LegalLinks />
               <ProjectAttribution currentYear={currentYear} />
             </div>
           </div>
@@ -237,9 +285,10 @@ export function Footer(props: FooterProps) {
 
         {/* Bottom section */}
         <div className='border-border/30 mt-12 flex flex-col items-center justify-between gap-3 border-t pt-6 sm:flex-row'>
-          <p className='text-muted-foreground/40 text-xs'>
+          <p className='text-muted-foreground/40 flex flex-wrap items-center justify-center gap-3 text-xs sm:justify-start'>
             &copy; {currentYear} {displayName}.{' '}
             {props.copyright ?? t('footer.defaultCopyright')}
+            <LegalLinks leadingSeparator />
           </p>
           <ProjectAttribution currentYear={currentYear} />
         </div>

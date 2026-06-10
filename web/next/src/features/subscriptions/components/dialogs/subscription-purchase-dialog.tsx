@@ -20,6 +20,9 @@ import { useState, useEffect } from 'react'
 import { Crown, CalendarClock, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { DEFAULT_CURRENCY_CONFIG } from '@/stores/system-config-store'
+import { formatQuota } from '@/lib/format'
+import { useSystemConfig } from '@/hooks/use-system-config'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -67,10 +70,13 @@ interface Props {
   purchaseCount?: number
   /** Called after a synchronous payment (e.g. balance) succeeds, before the dialog closes. */
   onPaymentSuccess?: () => void
+  userQuota?: number
+  onPurchaseSuccess?: () => void | Promise<void>
 }
 
 export function SubscriptionPurchaseDialog(props: Props) {
   const { t } = useTranslation()
+  const { currency } = useSystemConfig()
   const [paying, setPaying] = useState(false)
   const [selectedEpayMethod, setSelectedEpayMethod] = useState('')
 
@@ -101,6 +107,15 @@ export function SubscriptionPurchaseDialog(props: Props) {
     t('Select payment method')
   const totalAmount = Number(plan.total_amount || 0)
   const price = Number(plan.price_amount || 0).toFixed(2)
+  const quotaPerUnit =
+    currency?.quotaPerUnit && currency.quotaPerUnit > 0
+      ? currency.quotaPerUnit
+      : DEFAULT_CURRENCY_CONFIG.quotaPerUnit
+  const balanceCost = Math.max(
+    0,
+    Math.ceil(Number(plan.price_amount || 0) * quotaPerUnit)
+  )
+  const userQuota = Math.max(0, Number(props.userQuota || 0))
   const limitReached =
     (props.purchaseLimit || 0) > 0 &&
     (props.purchaseCount || 0) >= (props.purchaseLimit || 0)
@@ -157,9 +172,10 @@ export function SubscriptionPurchaseDialog(props: Props) {
     setPaying(true)
     try {
       const res = await paySubscriptionBalance({ plan_id: plan.id })
-      if (res.message === 'success') {
+      if (res.success) {
         toast.success(t('Purchase successful'))
         props.onPaymentSuccess?.()
+        void props.onPurchaseSuccess?.()
         props.onOpenChange(false)
       } else {
         const errMsg =
@@ -315,6 +331,17 @@ export function SubscriptionPurchaseDialog(props: Props) {
               </AlertDescription>
             </Alert>
           )}
+
+          <div className='flex flex-col gap-2 rounded-md border p-3'>
+            <div className='flex items-center justify-between gap-2 text-xs'>
+              <span className='text-muted-foreground'>{t('Required')}</span>
+              <span>{formatQuota(balanceCost)}</span>
+            </div>
+            <div className='flex items-center justify-between gap-2 text-xs'>
+              <span className='text-muted-foreground'>{t('Available')}</span>
+              <span>{formatQuota(userQuota)}</span>
+            </div>
+          </div>
 
           {hasAnyPayment ? (
             <div className='space-y-3'>
