@@ -72,6 +72,7 @@ interface BindingItem {
   icon: React.ReactNode
   value: string
   type: 'builtin' | 'custom'
+  bindingType?: string
   providerId?: string
   isBound: boolean
   isEnabled: boolean
@@ -94,6 +95,7 @@ interface StatusInfo {
 const BUILTIN_BINDINGS: ReadonlyArray<{
   key: string
   field: string
+  bindingType: string
   label: string
   icon: React.ReactNode
   statusKey: keyof StatusInfo | null
@@ -101,6 +103,7 @@ const BUILTIN_BINDINGS: ReadonlyArray<{
   {
     key: 'email',
     field: 'email',
+    bindingType: 'email',
     label: 'Email',
     icon: <Mail className='h-4 w-4' />,
     statusKey: null,
@@ -108,6 +111,7 @@ const BUILTIN_BINDINGS: ReadonlyArray<{
   {
     key: 'github_id',
     field: 'github_id',
+    bindingType: 'github',
     label: 'GitHub',
     icon: <SiGithub className='h-4 w-4' />,
     statusKey: 'github_oauth',
@@ -115,6 +119,7 @@ const BUILTIN_BINDINGS: ReadonlyArray<{
   {
     key: 'discord_id',
     field: 'discord_id',
+    bindingType: 'discord',
     label: 'Discord',
     icon: <SiDiscord className='h-4 w-4' />,
     statusKey: 'discord_oauth',
@@ -122,6 +127,7 @@ const BUILTIN_BINDINGS: ReadonlyArray<{
   {
     key: 'wechat_id',
     field: 'wechat_id',
+    bindingType: 'wechat',
     label: 'WeChat',
     icon: <MessageCircle className='h-4 w-4' />,
     statusKey: 'wechat_login',
@@ -129,6 +135,7 @@ const BUILTIN_BINDINGS: ReadonlyArray<{
   {
     key: 'oidc_id',
     field: 'oidc_id',
+    bindingType: 'oidc',
     label: 'OIDC',
     icon: <Globe className='h-4 w-4' />,
     statusKey: 'oidc_enabled',
@@ -136,6 +143,7 @@ const BUILTIN_BINDINGS: ReadonlyArray<{
   {
     key: 'telegram_id',
     field: 'telegram_id',
+    bindingType: 'telegram',
     label: 'Telegram',
     icon: <Send className='h-4 w-4' />,
     statusKey: 'telegram_oauth',
@@ -143,6 +151,7 @@ const BUILTIN_BINDINGS: ReadonlyArray<{
   {
     key: 'linux_do_id',
     field: 'linux_do_id',
+    bindingType: 'linuxdo',
     label: 'LinuxDO',
     icon: <Globe className='h-4 w-4' />,
     statusKey: 'linuxdo_oauth',
@@ -235,6 +244,7 @@ export function UserBindingDialog(props: Props) {
         icon: field.icon,
         value: isBound ? value : '',
         type: 'builtin',
+        bindingType: field.bindingType,
         isBound,
         isEnabled,
       })
@@ -292,7 +302,10 @@ export function UserBindingDialog(props: Props) {
     try {
       let res
       if (unbindTarget.type === 'builtin') {
-        res = await adminClearUserBinding(props.userId, unbindTarget.key)
+        res = await adminClearUserBinding(
+          props.userId,
+          unbindTarget.bindingType || unbindTarget.key
+        )
       } else if (unbindTarget.providerId) {
         res = await adminUnbindCustomOAuth(
           props.userId,
@@ -416,6 +429,7 @@ export function UserBindingDialog(props: Props) {
                             variant='ghost'
                             size='sm'
                             className='text-destructive hover:text-destructive h-7 w-7 shrink-0 p-0'
+                            aria-label={`${t('Unbind')} ${binding.label}`}
                             onClick={() => setUnbindTarget(binding)}
                           >
                             <Unlink className='h-3.5 w-3.5' />

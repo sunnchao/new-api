@@ -51,18 +51,28 @@ function normalizeViewMode(value: unknown): ViewMode {
 }
 
 export function useFilters(models: PricingModel[]) {
-  const search = useSearchParams()
+  const searchParams = useSearchParams()
   const [filterState, setFilterState] = useState<FilterState>(() => ({
-    search: search.search,
-    sort: search.sort,
-    vendor: search.vendor,
-    group: search.group,
-    quotaType: search.quotaType,
-    endpointType: search.endpointType,
-    tag: search.tag,
-    tokenUnit: search.tokenUnit,
-    view: search.view,
-    rechargePrice: search.rechargePrice,
+    search: searchParams.get('search') ?? undefined,
+    sort: searchParams.get('sort') ?? undefined,
+    vendor: searchParams.get('vendor') ?? undefined,
+    group: searchParams.get('group') ?? undefined,
+    quotaType: searchParams.get('quotaType') ?? undefined,
+    endpointType: searchParams.get('endpointType') ?? undefined,
+    tag: searchParams.get('tag') ?? undefined,
+    tokenUnit:
+      searchParams.get('tokenUnit') === 'K'
+        ? 'K'
+        : searchParams.get('tokenUnit') === 'M'
+          ? 'M'
+          : undefined,
+    view:
+      searchParams.get('view') === VIEW_MODES.TABLE
+        ? VIEW_MODES.TABLE
+        : undefined,
+    rechargePrice:
+      searchParams.get('rechargePrice') === 'true' ||
+      searchParams.get('rechargePrice') === '1',
   }))
 
   const searchInput = filterState.search || ''

@@ -44,6 +44,7 @@ import { DatabaseStep } from './components/database-step'
 import { StepNavigation } from './components/step-navigation'
 import { UsageModeStep } from './components/usage-mode-step'
 import type { SetupFormValues, SetupStatus } from './types'
+import './i18n'
 
 const STEPS = [
   {

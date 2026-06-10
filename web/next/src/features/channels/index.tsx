@@ -22,6 +22,7 @@ import { ChannelsDialogs } from './components/channels-dialogs'
 import { ChannelsPrimaryButtons } from './components/channels-primary-buttons'
 import { ChannelsProvider } from './components/channels-provider'
 import { ChannelsTable } from './components/channels-table'
+import './i18n'
 
 export function Channels() {
   const { t } = useTranslation()

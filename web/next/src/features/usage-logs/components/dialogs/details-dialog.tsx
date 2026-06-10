@@ -54,6 +54,7 @@ import {
   parseAuditLine,
   decodeBillingExprB64,
   getTieredBillingSummary,
+  getMatchedFixedRequestRule,
   hasAnyCacheTokens,
   isViolationFeeLog,
   getFirstResponseTimeColor,
@@ -146,6 +147,7 @@ function BillingBreakdown(props: {
   const isClaude = other.claude === true
   const isTieredExpr = other.billing_mode === 'tiered_expr'
   const tieredSummary = getTieredBillingSummary(other)
+  const matchedFixedRequestRule = getMatchedFixedRequestRule(other)
 
   const rows: Array<{ label: string; value: string }> = []
   const priceOpts = { digitsLarge: 4, digitsSmall: 6, abbreviate: false }
@@ -170,6 +172,15 @@ function BillingBreakdown(props: {
           value: `${fmtPrice(entry.price)}/M`,
         })
       }
+    } else if (matchedFixedRequestRule) {
+      rows.push({
+        label: t('Rule'),
+        value: `#${matchedFixedRequestRule.ruleNumber}`,
+      })
+      rows.push({
+        label: t('Fixed price'),
+        value: `${fmtPrice(matchedFixedRequestRule.fixedPrice)}/${t('request')}`,
+      })
     } else {
       rows.push({
         label: t('Matched Tier'),

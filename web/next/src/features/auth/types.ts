@@ -102,6 +102,7 @@ export interface SystemStatus {
     linuxdo_oauth?: boolean
     linuxdo_client_id?: string
     telegram_oauth?: boolean
+    telegram_bot_name?: string
     passkey_login?: boolean
     wechat_login?: boolean
     wechat_qrcode?: string
@@ -127,6 +128,7 @@ export interface SystemStatus {
     footer_html?: string
     oauth_register_enabled?: boolean
     register_enabled?: boolean
+    password_login_enabled?: boolean
     password_register_enabled?: boolean
     custom_oauth_providers?: CustomOAuthProviderInfo[]
     [key: string]: unknown
@@ -145,6 +147,7 @@ export interface SystemStatus {
   linuxdo_oauth?: boolean
   linuxdo_client_id?: string
   telegram_oauth?: boolean
+  telegram_bot_name?: string
   passkey_login?: boolean
   wechat_login?: boolean
   wechat_qrcode?: string
@@ -170,6 +173,7 @@ export interface SystemStatus {
   footer_html?: string
   oauth_register_enabled?: boolean
   register_enabled?: boolean
+  password_login_enabled?: boolean
   password_register_enabled?: boolean
   custom_oauth_providers?: CustomOAuthProviderInfo[]
   [key: string]: unknown

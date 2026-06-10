@@ -29,12 +29,34 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getAffinityUsageCache } from './api'
+import '../../i18n'
 
 function formatRate(hit: number, total: number): string {
   if (!total || total <= 0) return '-'
   const r = (hit / total) * 100
   if (!Number.isFinite(r)) return '-'
   return `${r.toFixed(2)}%`
+}
+
+function formatTokenRate(numerator: number, denominator: number): string {
+  if (!denominator || denominator <= 0) return '-'
+  const rate = (numerator / denominator) * 100
+  if (!Number.isFinite(rate)) return '-'
+  return `${rate.toFixed(2)}%`
+}
+
+function formatCachedTokenRate(
+  cachedTokens: number,
+  promptTokens: number,
+  mode: string
+): string {
+  if (mode === 'cached_over_prompt_plus_cached') {
+    return formatTokenRate(cachedTokens, promptTokens + cachedTokens)
+  }
+  if (mode === 'cached_over_prompt') {
+    return formatTokenRate(cachedTokens, promptTokens)
+  }
+  return '-'
 }
 
 interface Props {
@@ -83,12 +105,17 @@ export function CacheStatsDialog(props: Props) {
       })
   }, [props.open, props.target, t])
 
-  const rows = useMemo(() => {
-    if (!stats) return []
+  const { rows, supportsTokenStats } = useMemo(() => {
+    if (!stats) return { rows: [], supportsTokenStats: false }
     const s = stats
     const data: { key: string; value: string | number }[] = []
     const hit = Number(s.hit || 0)
     const total = Number(s.total || 0)
+    const cachedTokenRateMode = String(s.cached_token_rate_mode || '').trim()
+    const supportsTokenStats =
+      cachedTokenRateMode === 'cached_over_prompt' ||
+      cachedTokenRateMode === 'cached_over_prompt_plus_cached' ||
+      cachedTokenRateMode === 'mixed'
 
     if (s.rule_name || props.target?.rule_name)
       data.push({
@@ -122,18 +149,34 @@ export function CacheStatsDialog(props: Props) {
 
     const promptTokens = Number(s.prompt_tokens || 0)
     const cachedTokens = Number(s.cached_tokens || 0)
+    const promptCacheHitTokens = Number(s.prompt_cache_hit_tokens || 0)
     const completionTokens = Number(s.completion_tokens || 0)
     const totalTokens = Number(s.total_tokens || 0)
 
-    if (promptTokens > 0)
-      data.push({ key: 'Prompt tokens', value: promptTokens })
-    if (cachedTokens > 0)
-      data.push({ key: 'Cached tokens', value: cachedTokens })
-    if (completionTokens > 0)
-      data.push({ key: 'Completion tokens', value: completionTokens })
-    if (totalTokens > 0) data.push({ key: 'Total tokens', value: totalTokens })
+    if (supportsTokenStats) {
+      if (promptTokens > 0)
+        data.push({ key: t('Prompt tokens'), value: promptTokens })
+      if (promptTokens > 0 || cachedTokens > 0)
+        data.push({
+          key: t('Cached tokens'),
+          value: `${cachedTokens} (${formatCachedTokenRate(
+            cachedTokens,
+            promptTokens,
+            cachedTokenRateMode
+          )})`,
+        })
+      if (promptCacheHitTokens > 0)
+        data.push({
+          key: t('Prompt cache hit tokens'),
+          value: promptCacheHitTokens,
+        })
+      if (completionTokens > 0)
+        data.push({ key: t('Completion tokens'), value: completionTokens })
+      if (totalTokens > 0)
+        data.push({ key: t('Total tokens'), value: totalTokens })
+    }
 
-    return data
+    return { rows: data, supportsTokenStats }
   }, [stats, props.target, t])
 
   return (
@@ -146,6 +189,14 @@ export function CacheStatsDialog(props: Props) {
           {t(
             'Hit criteria: If cached tokens exist in usage, it counts as a hit.'
           )}
+          {' '}
+          {t('Cached token rates use the backend rate mode.')}
+          {stats && !supportsTokenStats ? (
+            <>
+              {' '}
+              {t('This record does not include a supported token statistics mode.')}
+            </>
+          ) : null}
         </p>
         {loading ? (
           <div className='text-muted-foreground py-8 text-center text-sm'>

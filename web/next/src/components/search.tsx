@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Search as SearchIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useCommandMenu } from "@/components/command-menu";
 
@@ -19,6 +20,7 @@ function getShortcutLabel(): string {
 }
 
 export function Search({ className, placeholder = "Search..." }: SearchProps) {
+  const { t } = useTranslation();
   const { setOpen } = useCommandMenu();
   const [shortcut, setShortcut] = React.useState<string>("");
 
@@ -30,7 +32,7 @@ export function Search({ className, placeholder = "Search..." }: SearchProps) {
     <button
       type="button"
       onClick={() => setOpen(true)}
-      aria-label="Open command menu"
+      aria-label={t("Open command menu")}
       className={cn(
         "inline-flex h-9 w-full min-w-[12rem] max-w-xs items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)]/50 px-3 text-sm text-[var(--muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
         className

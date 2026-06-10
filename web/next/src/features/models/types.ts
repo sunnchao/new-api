@@ -26,8 +26,9 @@ import { z } from 'zod'
  * Bound channel information
  */
 export interface BoundChannel {
+  id?: number
   name: string
-  type: number
+  type?: number
 }
 
 /**

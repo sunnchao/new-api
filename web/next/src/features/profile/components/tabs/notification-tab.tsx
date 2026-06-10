@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useEffect, useCallback } from 'react'
-import { Bell, Loader2, Mail, Server, Webhook } from 'lucide-react'
+import { Bell, Loader2, Mail, Send, Server, Webhook } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ROLE } from '@/lib/roles'
@@ -27,7 +27,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { PasswordInput } from '@/components/password-input'
-import { updateUserSettings } from '../../api'
+import { testUserNotification, updateUserSettings } from '../../api'
 import {
   DEFAULT_QUOTA_WARNING_THRESHOLD,
   NOTIFICATION_METHODS,
@@ -55,6 +55,7 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
   const { t } = useTranslation()
   const isAdmin = (profile?.role ?? 0) >= ROLE.ADMIN
   const [loading, setLoading] = useState(false)
+  const [testingWebhook, setTestingWebhook] = useState(false)
   const [settings, setSettings] = useState<UserSettings>({
     notify_type: 'email',
     quota_warning_threshold: DEFAULT_QUOTA_WARNING_THRESHOLD,
@@ -116,6 +117,27 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
       toast.error(t('Failed to update settings'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleTestWebhook = async () => {
+    try {
+      setTestingWebhook(true)
+      const response = await testUserNotification({
+        notify_type: 'webhook',
+        webhook_url: settings.webhook_url,
+        webhook_secret: settings.webhook_secret,
+      })
+
+      if (response.success) {
+        toast.success(t('Test notification sent'))
+      } else {
+        toast.error(response.message || t('Failed to send test notification'))
+      }
+    } catch (_error) {
+      toast.error(t('Failed to send test notification'))
+    } finally {
+      setTestingWebhook(false)
     }
   }
 
@@ -214,6 +236,23 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
               onChange={(e) => updateField('webhook_secret', e.target.value)}
               placeholder={t('Enter secret key')}
             />
+          </div>
+          <div className='flex justify-end'>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={handleTestWebhook}
+              disabled={testingWebhook}
+            >
+              {testingWebhook ? (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              ) : (
+                <Send className='mr-2 h-4 w-4' />
+              )}
+              {testingWebhook
+                ? t('Sending test...')
+                : t('Send test notification')}
+            </Button>
           </div>
         </>
       )}

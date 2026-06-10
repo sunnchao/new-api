@@ -47,9 +47,10 @@ import { PlanDrawer } from './plan-drawer'
 
 const DURATION_UNIT_LABEL: Record<string, string> = {
   day: 'days',
-  week: 'weeks',
   month: 'months',
-  quarter: 'Quarter',
+  year: 'year',
+  hour: 'hours',
+  custom: 'Custom (seconds)',
 }
 
 function formatQuotaLimit(value: number | undefined, unlimitedLabel: string) {
@@ -224,7 +225,9 @@ export function PlansTab() {
         confirmText={t('Delete')}
         cancelText={t('Cancel')}
         isLoading={deleteMutation.isPending}
-        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget.id)
+        }}
       />
     </div>
   )

@@ -28,21 +28,13 @@ import {
 import { DataTableColumnHeader } from '@/components/data-table/column-header'
 import { GroupBadge } from '@/components/group-badge'
 import { DEFAULT_TOKEN_UNIT, QUOTA_TYPE_VALUES } from '../constants'
-import {
-  getDynamicDisplayGroupRatio,
-  getDynamicPricingSummary,
-} from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
 import {
-    formatModelListTokenPrice,
-    getModelListPricingContext,
+  formatModelListTokenPrice,
+  getModelListPricingContext,
 } from '../lib/model-list-price'
 import { isTokenBasedModel } from '../lib/model-helpers'
-import {
-  formatPrice,
-  formatRequestPrice,
-  stripTrailingZeros,
-} from '../lib/price'
+import { formatRequestPrice, stripTrailingZeros } from '../lib/price'
 import type { PricingModel, TokenUnit } from '../types'
 
 // ----------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@/styles/theme-presets.css";
 import { Providers } from "./providers";
 
 export const dynamic = "force-dynamic";

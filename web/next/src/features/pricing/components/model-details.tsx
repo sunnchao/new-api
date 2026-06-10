@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Code2, HeartPulse, Info, Timer } from 'lucide-react'
@@ -45,6 +45,7 @@ import { CopyButton } from '@/components/copy-button'
 import { GroupBadge } from '@/components/group-badge'
 import { PublicLayout } from '@/components/layout'
 import { getPerfMetrics } from '@/features/performance-metrics/api'
+import { createUrlFromSearchParams, getBooleanSearchParam } from '@/lib/next-url'
 import {
   formatLatency,
   formatThroughput,
@@ -205,6 +206,15 @@ function OverviewMetric(props: {
       </div>
     </div>
   )
+}
+
+function decodeModelRouteParam(value?: string | null): string | null {
+  if (!value) return null
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
 }
 
 function OverviewSummaryGrid(props: { model: PricingModel }) {
@@ -1112,8 +1122,10 @@ export function ModelDetailsDrawer(props: ModelDetailsDrawerProps) {
 
 export function ModelDetails() {
   const { t } = useTranslation()
-  const { modelId } = useParams({ from: '/pricing/$modelId/' })
-  const search = useSearchParams()
+  const params = useParams<{ modelId: string }>()
+  const modelId = params.modelId
+  const decodedModelId = useMemo(() => decodeModelRouteParam(modelId), [modelId])
+  const searchParams = useSearchParams()
   const router = useRouter()
 
   const {
@@ -1128,15 +1140,19 @@ export function ModelDetails() {
   } = usePricingData()
 
   const tokenUnit: TokenUnit =
-    search.tokenUnit === 'K' ? 'K' : DEFAULT_TOKEN_UNIT
+    searchParams.get('tokenUnit') === 'K' ? 'K' : DEFAULT_TOKEN_UNIT
 
   const model = useMemo(() => {
-    if (!models || !modelId) return null
-    return models.find((m) => m.model_name === modelId) || null
-  }, [models, modelId])
+    if (!models || !decodedModelId) return null
+    return (
+      models.find(
+        (m) => m.model_name === decodedModelId || m.model_name === modelId
+      ) || null
+    )
+  }, [models, decodedModelId, modelId])
 
   const handleBack = () => {
-    router.push({ to: '/pricing', search })
+    router.push(createUrlFromSearchParams('/pricing', searchParams))
   }
 
   if (isLoading) {
@@ -1203,7 +1219,7 @@ export function ModelDetails() {
           priceRate={priceRate ?? 1}
           usdExchangeRate={usdExchangeRate ?? 1}
           tokenUnit={tokenUnit}
-          showRechargePrice={search.rechargePrice ?? false}
+          showRechargePrice={getBooleanSearchParam(searchParams, 'rechargePrice')}
           endpointMap={
             (endpointMap as Record<
               string,

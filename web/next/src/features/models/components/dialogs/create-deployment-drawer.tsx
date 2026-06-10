@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -100,6 +100,7 @@ export function CreateDeploymentDrawer({
 }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const sheetContentRef = useRef<HTMLDivElement | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -375,7 +376,10 @@ export function CreateDeploymentDrawer({
         }
       }}
     >
-      <SheetContent className='flex w-full flex-col sm:max-w-[600px]'>
+      <SheetContent
+        ref={sheetContentRef}
+        className='flex w-full flex-col sm:max-w-[600px]'
+      >
         <SheetHeader className='text-start'>
           <SheetTitle>{t('Create deployment')}</SheetTitle>
           <SheetDescription>
@@ -466,7 +470,10 @@ export function CreateDeploymentDrawer({
                             <SelectValue placeholder={t('Select')} />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent alignItemWithTrigger={false}>
+                        <SelectContent
+                          alignItemWithTrigger={false}
+                          container={sheetContentRef}
+                        >
                           <SelectGroup>
                             {hardwareOptions.map((opt) => (
                               <SelectItem key={opt.value} value={opt.value}>
@@ -632,7 +639,10 @@ export function CreateDeploymentDrawer({
                           <SelectValue placeholder={t('Select')} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent alignItemWithTrigger={false}>
+                      <SelectContent
+                        alignItemWithTrigger={false}
+                        container={sheetContentRef}
+                      >
                         <SelectGroup>
                           <SelectItem value='usdc'>USDC</SelectItem>
                           <SelectItem value='iocoin'>IOCOIN</SelectItem>

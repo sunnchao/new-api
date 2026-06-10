@@ -43,9 +43,6 @@ type ResolveTieredDisplayPricingResult = {
   // matched=true means it will definitely apply; matched=false means it
   // depends on runtime token values (unknown conditions like `tokens`).
   prices: { modelPrice: number; certain: boolean }[]
-} | {
-  effectiveQuotaType: 'multiplier_only'
-  multiplier: number
 }
 
 type GroupPriceDisplayInput = {
@@ -378,12 +375,6 @@ export function getGroupPriceDisplay({
       }
     }
 
-    const effectiveModel: PricingModel = {
-      ...model,
-      quota_type: resolvedPricing.effectiveQuotaType,
-      model_price: resolvedPricing.prices[0].modelPrice,
-    }
-
     const items: GroupPriceItem[] = resolvedPricing.prices.map((p, i) => {
       const effectiveModelForPrice: PricingModel = {
         ...model,
@@ -401,7 +392,9 @@ export function getGroupPriceDisplay({
           usdExchangeRate,
           { [group]: ratio }
         ),
-        suffixKey: p.certain ? 'per request' : 'per request (if extra conditions met)',
+        suffixKey: p.certain
+          ? 'per request'
+          : 'per request (if extra conditions met)',
       }
     })
 

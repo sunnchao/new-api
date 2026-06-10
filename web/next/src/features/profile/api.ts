@@ -17,6 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
+import type { ApiRequestOptions } from '@/lib/api-options'
+import type { TelegramAuthData } from '@/features/auth/lib/telegram'
 import type {
   ApiResponse,
   UserProfile,
@@ -56,6 +58,16 @@ export async function updateUserSettings(
   data: UpdateUserSettingsRequest
 ): Promise<ApiResponse> {
   const res = await api.put('/api/user/setting', data)
+  return res.data
+}
+
+/**
+ * Send a test notification using current user notification settings
+ */
+export async function testUserNotification(
+  data?: Partial<UpdateUserSettingsRequest>
+): Promise<ApiResponse> {
+  const res = await api.post('/api/user/setting/test_notify', data)
   return res.data
 }
 
@@ -124,8 +136,26 @@ export async function bindEmail(
  * Bind WeChat account
  */
 export async function bindWeChat(code: string): Promise<ApiResponse> {
-  const res = await api.get(`/api/oauth/wechat/bind?code=${code}`)
+  const res = await api.post('/api/oauth/wechat/bind', { code })
   return res.data
+}
+
+/**
+ * Bind Telegram account
+ */
+export async function bindTelegram(
+  data: TelegramAuthData
+): Promise<ApiResponse> {
+  const res = await api.get<ApiResponse | string>('/api/oauth/telegram/bind', {
+    params: data,
+    skipBusinessError: true,
+  } as ApiRequestOptions)
+
+  if (res.data && typeof res.data === 'object' && 'success' in res.data) {
+    return res.data
+  }
+
+  return { success: true, message: 'Telegram account bound' }
 }
 
 // ============================================================================
@@ -133,7 +163,7 @@ export async function bindWeChat(code: string): Promise<ApiResponse> {
 // ============================================================================
 
 export interface CustomOAuthBinding {
-  provider_id: string
+  provider_id: string | number
   provider_name: string
   external_id?: string
 }
@@ -152,7 +182,7 @@ export async function getSelfOAuthBindings(): Promise<
  * Unbind a custom OAuth provider for current user
  */
 export async function unbindCustomOAuth(
-  providerId: string
+  providerId: string | number
 ): Promise<ApiResponse> {
   const res = await api.delete(`/api/user/oauth/bindings/${providerId}`)
   return res.data

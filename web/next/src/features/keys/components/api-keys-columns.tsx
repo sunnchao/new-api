@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getUserGroups } from '@/lib/api'
 import { formatQuota, formatTimestampToDate } from '@/lib/format'
@@ -77,7 +78,8 @@ function useGroupRatios(): Record<string, number> {
 export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
   const { t } = useTranslation()
   const groupRatios = useGroupRatios()
-  return [
+  return useMemo<ColumnDef<ApiKey>[]>(
+    () => [
     {
       id: 'select',
       header: ({ table }) => (
@@ -350,5 +352,7 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
       meta: { label: t('Actions') },
       size: 88,
     },
-  ]
+    ],
+    [groupRatios, t]
+  )
 }

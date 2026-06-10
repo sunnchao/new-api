@@ -21,8 +21,6 @@ import { getChannels } from '@/features/channels/api'
 import type { Channel } from '@/features/channels/types'
 import { getModels } from '@/features/models/api'
 import type { Model } from '@/features/models/types'
-import { getPerfMetrics } from '@/features/performance-metrics/api'
-import type { PerformanceMetricsData } from '@/features/performance-metrics/types'
 
 /**
  * Fetch all models. Health is derived from model -> bound channel data, so we
@@ -40,14 +38,4 @@ export async function getAllHealthModels(): Promise<Model[]> {
 export async function getAllHealthChannels(): Promise<Channel[]> {
   const res = await getChannels({ p: 0, page_size: 9999 })
   return res.data?.items ?? []
-}
-
-/**
- * Performance trend detail for a single model (re-exported for the trend chart).
- */
-export async function getModelPerfDetail(
-  modelName: string,
-  hours = 24
-): Promise<PerformanceMetricsData> {
-  return getPerfMetrics(modelName, hours)
 }

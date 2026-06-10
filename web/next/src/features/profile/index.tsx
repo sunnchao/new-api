@@ -32,6 +32,7 @@ import { ProfileSettingsCard } from './components/profile-settings-card'
 import { SidebarModulesCard } from './components/sidebar-modules-card'
 import { TwoFACard } from './components/two-fa-card'
 import { useProfile } from './hooks'
+import './i18n'
 
 export function Profile() {
   const { profile, loading, refreshProfile } = useProfile()

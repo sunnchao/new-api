@@ -73,6 +73,7 @@ func TestBuildTopUpRedemptionResponseReturnsSubscriptionPayload(t *testing.T) {
 
 func TestTopUpReturnsSpecificRedeemErrorMessage(t *testing.T) {
 	setupRedemptionTopUpControllerTestDB(t)
+	confirmPaymentComplianceForTest(t)
 
 	require.NoError(t, model.DB.Create(&model.User{
 		Id:       904,

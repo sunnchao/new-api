@@ -53,30 +53,29 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { createPlan, updatePlan, getUserGroups } from '../api'
 import type { AdminPlan, AdminPlanPayload } from '../types'
 
-const DURATION_UNITS = ['day', 'week', 'month', 'quarter', 'year'] as const
+const DURATION_UNITS = ['day', 'month', 'year', 'hour', 'custom'] as const
 
 const planFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   type: z.string().min(1, 'Type is required'),
   description: z.string().optional(),
   price: z.string().min(1, 'Price is required'),
-  currency: z.string().default('USD'),
-  total_quota: z.string().default('0'),
-  is_unlimited_time: z.boolean().default(false),
-  duration_value: z.string().default('1'),
-  duration_unit: z.string().default('month'),
-  daily_quota_per_plan: z.string().default('0'),
-  weekly_quota_per_plan: z.string().default('0'),
-  monthly_quota_per_plan: z.string().default('0'),
-  reset_quota_limit: z.string().default('0'),
-  deduction_group: z.array(z.string()).default([]),
-  is_active: z.boolean().default(true),
-  show_in_portal: z.boolean().default(true),
+  currency: z.string(),
+  total_quota: z.string(),
+  duration_value: z.string(),
+  duration_unit: z.enum(DURATION_UNITS),
+  custom_seconds: z.string(),
+  daily_quota_per_plan: z.string(),
+  weekly_quota_per_plan: z.string(),
+  monthly_quota_per_plan: z.string(),
+  reset_quota_limit: z.string(),
+  deduction_group: z.array(z.string()),
+  is_active: z.boolean(),
+  show_in_portal: z.boolean(),
 })
 
 type PlanFormValues = z.infer<typeof planFormSchema>
@@ -123,9 +122,9 @@ export function PlanDrawer({ open, onOpenChange, editingPlan }: Props) {
       price: '0',
       currency: 'USD',
       total_quota: '0',
-      is_unlimited_time: false,
       duration_value: '1',
       duration_unit: 'month',
+      custom_seconds: '3600',
       daily_quota_per_plan: '0',
       weekly_quota_per_plan: '0',
       monthly_quota_per_plan: '0',
@@ -146,9 +145,13 @@ export function PlanDrawer({ open, onOpenChange, editingPlan }: Props) {
         price: String(editingPlan.price ?? 0),
         currency: editingPlan.currency || 'USD',
         total_quota: String(editingPlan.total_quota ?? 0),
-        is_unlimited_time: editingPlan.is_unlimited_time ?? false,
         duration_value: String(editingPlan.duration_value ?? 1),
-        duration_unit: editingPlan.duration_unit || 'month',
+        duration_unit: DURATION_UNITS.includes(
+          editingPlan.duration_unit as (typeof DURATION_UNITS)[number]
+        )
+          ? (editingPlan.duration_unit as (typeof DURATION_UNITS)[number])
+          : 'month',
+        custom_seconds: String(editingPlan.custom_seconds ?? 3600),
         daily_quota_per_plan: String(editingPlan.daily_quota_per_plan ?? 0),
         weekly_quota_per_plan: String(editingPlan.weekly_quota_per_plan ?? 0),
         monthly_quota_per_plan: String(editingPlan.monthly_quota_per_plan ?? 0),
@@ -189,9 +192,10 @@ export function PlanDrawer({ open, onOpenChange, editingPlan }: Props) {
       price: toDecimalNumber(values.price),
       currency: values.currency,
       total_quota: toDecimalNumber(values.total_quota),
-      is_unlimited_time: values.is_unlimited_time,
-      duration_value: values.is_unlimited_time ? 0 : Number(values.duration_value) || 0,
+      is_unlimited_time: false,
+      duration_value: values.duration_unit === 'custom' ? 0 : Number(values.duration_value) || 1,
       duration_unit: values.duration_unit,
+      custom_seconds: values.duration_unit === 'custom' ? Number(values.custom_seconds) || 3600 : 0,
       daily_quota_per_plan: toDecimalNumber(values.daily_quota_per_plan),
       weekly_quota_per_plan: toDecimalNumber(values.weekly_quota_per_plan),
       monthly_quota_per_plan: toDecimalNumber(values.monthly_quota_per_plan),
@@ -203,7 +207,7 @@ export function PlanDrawer({ open, onOpenChange, editingPlan }: Props) {
     mutation.mutate(payload)
   }
 
-  const isUnlimited = form.watch('is_unlimited_time')
+  const durationUnit = form.watch('duration_unit')
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -290,20 +294,7 @@ export function PlanDrawer({ open, onOpenChange, editingPlan }: Props) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name='is_unlimited_time'
-              render={({ field }) => (
-                <FormItem className='flex items-center justify-between rounded-lg border p-3'>
-                  <FormLabel className='mb-0'>{t('Unlimited Duration')}</FormLabel>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            {!isUnlimited && (
-              <div className='grid grid-cols-2 gap-3'>
+            <div className='grid grid-cols-2 gap-3'>
                 <FormField
                   control={form.control}
                   name='duration_value'
@@ -339,7 +330,20 @@ export function PlanDrawer({ open, onOpenChange, editingPlan }: Props) {
                     </FormItem>
                   )}
                 />
-              </div>
+            </div>
+            {durationUnit === 'custom' && (
+              <FormField
+                control={form.control}
+                name='custom_seconds'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Custom Seconds')}</FormLabel>
+                    <FormControl>
+                      <Input {...field} type='number' min={1} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             )}
             <div className='grid grid-cols-3 gap-3'>
               <FormField

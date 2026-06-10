@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useMemo } from 'react'
-import { VChart } from '@visactor/react-vchart'
+import { VChart, type VChartProps } from '@visactor/react-vchart'
 import { useTranslation } from 'react-i18next'
 import { useThemeRadiusPx } from '@/lib/theme-radius'
 import { useChartTheme } from '@/lib/use-chart-theme'
@@ -133,8 +133,8 @@ export function LatencyTrendChart(props: {
             ...spec,
             theme: resolvedTheme === 'dark' ? 'dark' : 'light',
             background: 'transparent',
-          }}
-          option={VCHART_OPTION}
+          } as unknown as VChartProps['spec']}
+          options={VCHART_OPTION}
         />
       )}
     </div>
@@ -248,8 +248,8 @@ export function UptimeTrendChart(props: {
             ...spec,
             theme: resolvedTheme === 'dark' ? 'dark' : 'light',
             background: 'transparent',
-          }}
-          option={VCHART_OPTION}
+          } as unknown as VChartProps['spec']}
+          options={VCHART_OPTION}
         />
       )}
     </div>
@@ -337,8 +337,8 @@ export function ThroughputBarChart(props: {
             ...spec,
             theme: resolvedTheme === 'dark' ? 'dark' : 'light',
             background: 'transparent',
-          }}
-          option={VCHART_OPTION}
+          } as unknown as VChartProps['spec']}
+          options={VCHART_OPTION}
         />
       )}
     </div>

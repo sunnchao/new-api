@@ -37,6 +37,7 @@ export const subscriptionPlanSchema = z.object({
   enabled: z.boolean(),
   show_on_home: z.boolean().optional(),
   sort_order: z.number(),
+  allow_balance_pay: z.boolean().optional().default(true),
   max_purchase_per_user: z.number(),
   total_amount: z.number(),
   upgrade_group: z.string().optional(),
@@ -44,6 +45,7 @@ export const subscriptionPlanSchema = z.object({
   billing_mode: z.enum(['quota', 'request']).optional(),
   stripe_price_id: z.string().optional(),
   creem_product_id: z.string().optional(),
+  waffo_pancake_product_id: z.string().optional(),
   // Rate limits
   hourly_limit_amount: z.number().optional(),
   hourly_limit_hours: z.number().optional(),
@@ -140,6 +142,10 @@ export interface SubscriptionPayRequest {
   payment_method?: string
 }
 
+export interface RenewPayRequest {
+  user_subscription_id: number
+}
+
 export interface SubscriptionPayResponse {
   success: boolean
   message?: string
@@ -228,4 +234,8 @@ export interface AdminAllSubscriptionsParams {
 // Dialog Types
 // ============================================================================
 
-export type SubscriptionsDialogType = 'create' | 'update' | 'toggle-status'
+export type SubscriptionsDialogType =
+  | 'create'
+  | 'update'
+  | 'toggle-status'
+  | 'delete'

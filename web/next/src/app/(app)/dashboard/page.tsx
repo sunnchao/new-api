@@ -1,5 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
+import { DASHBOARD_DEFAULT_SECTION } from "@/features/dashboard/section-registry";
 
-import { Dashboard } from "@/features/dashboard";
-
-export default Dashboard;
+export default function DashboardRootPage() {
+  redirect(`/dashboard/${DASHBOARD_DEFAULT_SECTION}`);
+}

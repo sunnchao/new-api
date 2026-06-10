@@ -1,3 +1,5 @@
+import i18n from '@/i18n/config'
+
 export const subscriptionsI18nResources = {
   en: {
     translation: {
@@ -20,6 +22,7 @@ export const subscriptionsI18nResources = {
       'All Status': 'All Status',
       'All Subscriptions': 'All Subscriptions',
       'Allowed Groups': 'Allowed Groups',
+      'Allow balance redemption': 'Allow balance redemption',
       'Amount Due': 'Amount Due',
       Anchor: 'Anchor',
       'Anchor mode resets from subscription start':
@@ -48,7 +51,10 @@ export const subscriptionsI18nResources = {
       Deleted: 'Deleted',
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         'Deleting will permanently remove this subscription record (including benefit details). Continue?',
+      'This will permanently delete the disabled subscription plan. Continue?':
+        'This will permanently delete the disabled subscription plan. Continue?',
       Disable: 'Disable',
+      'Disable before deleting': 'Disable before deleting',
       'Duration Settings': 'Duration Settings',
       'Duration Unit': 'Duration Unit',
       'Duration Value': 'Duration Value',
@@ -122,6 +128,21 @@ export const subscriptionsI18nResources = {
       'Purchase Subscription': 'Purchase Subscription',
       'Purchase limit reached': 'Purchase limit reached',
       'Purchase successful': 'Purchase successful',
+      Renew: 'Renew',
+      'Renew Subscription': 'Renew Subscription',
+      'Renewal successful': 'Renewal successful',
+      'No payment method available': 'No payment method available',
+      Pending: 'Pending',
+      pending: 'pending',
+      'Activate Now': 'Activate Now',
+      'Activate subscription now': 'Activate subscription now',
+      'After activation, the new subscription will start immediately. The existing active subscription keeps running in parallel until its natural expiry. Continue?':
+        'After activation, the new subscription will start immediately. The existing active subscription keeps running in parallel until its natural expiry. Continue?',
+      'Subscription activated': 'Subscription activated',
+      'Activation failed': 'Activation failed',
+      'Scheduled to activate at': 'Scheduled to activate at',
+      'Estimated expiry': 'Estimated expiry',
+      'Subscription ID': 'Subscription ID',
       Quota: 'Quota',
       'Quota Amount': 'Quota Amount',
       'Quota Limits': 'Quota Limits',
@@ -150,6 +171,8 @@ export const subscriptionsI18nResources = {
       'Stripe/Creem requires creating products on the third-party platform and entering the ID':
         'Stripe/Creem requires creating products on the third-party platform and entering the ID',
       'Subscription Management': 'Subscription Management',
+      'This plan does not allow balance redemption':
+        'This plan does not allow balance redemption',
       'Third-party Payment Config': 'Third-party Payment Config',
       'Total Quota': 'Total Quota',
       Unlimited: 'Unlimited',
@@ -174,6 +197,22 @@ export const subscriptionsI18nResources = {
       seconds: 'seconds',
       times: 'times',
       years: 'years',
+      Hourly: 'Hourly',
+      'Get Started': 'Get Started',
+      'Models available for {{plan}}': 'Models available for {{plan}}',
+      'No enabled models match these groups yet.':
+        'No enabled models match these groups yet.',
+      'No supported models found': 'No supported models found',
+      'Open Model Square': 'Open Model Square',
+      'Please refresh the page and try again.':
+        'Please refresh the page and try again.',
+      Recommended: 'Recommended',
+      'Sign in to subscribe': 'Sign in to subscribe',
+      'Subscribe Now': 'Subscribe Now',
+      'Supported Models': 'Supported Models',
+      'Unable to load supported models': 'Unable to load supported models',
+      'View all models': 'View all models',
+      'View in Model Square': 'View in Model Square',
     },
   },
   zh: {
@@ -197,6 +236,7 @@ export const subscriptionsI18nResources = {
       'All Status': '全部状态',
       'All Subscriptions': '全部订阅',
       'Allowed Groups': '允许分组',
+      'Allow balance redemption': '允许余额兑换',
       'Amount Due': '应付金额',
       Anchor: '锚定周期',
       'Anchor mode resets from subscription start':
@@ -225,7 +265,10 @@ export const subscriptionsI18nResources = {
       Deleted: '已删除',
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         '删除将永久移除该订阅记录（包含权益详情）。确认继续？',
+      'This will permanently delete the disabled subscription plan. Continue?':
+        '这将删除已禁用的订阅套餐。是否继续？',
       Disable: '禁用',
+      'Disable before deleting': '请先禁用再删除',
       'Duration Settings': '时长设置',
       'Duration Unit': '时长单位',
       'Duration Value': '时长数值',
@@ -298,6 +341,21 @@ export const subscriptionsI18nResources = {
       'Purchase Subscription': '购买订阅',
       'Purchase limit reached': '已达购买上限',
       'Purchase successful': '购买成功',
+      Renew: '续费',
+      'Renew Subscription': '续费订阅',
+      'Renewal successful': '续费成功',
+      'No payment method available': '暂无可用支付方式',
+      Pending: '待生效',
+      pending: '待生效',
+      'Activate Now': '立即生效',
+      'Activate subscription now': '立即激活订阅',
+      'After activation, the new subscription will start immediately. The existing active subscription keeps running in parallel until its natural expiry. Continue?':
+        '激活后新订阅将立即开始计时，现有生效中的订阅继续并行运行至自然到期。是否继续？',
+      'Subscription activated': '订阅已激活',
+      'Activation failed': '激活失败',
+      'Scheduled to activate at': '预计生效时间',
+      'Estimated expiry': '预计到期',
+      'Subscription ID': '订阅 ID',
       Quota: '额度',
       'Quota Amount': '额度数量',
       'Quota Limits': '额度限制',
@@ -326,6 +384,7 @@ export const subscriptionsI18nResources = {
       'Stripe/Creem requires creating products on the third-party platform and entering the ID':
         'Stripe/Creem 需在第三方平台创建产品并填入 ID',
       'Subscription Management': '订阅管理',
+      'This plan does not allow balance redemption': '该套餐不允许余额兑换',
       'Third-party Payment Config': '第三方支付配置',
       'Total Quota': '总额度',
       Unlimited: '无限制',
@@ -350,6 +409,20 @@ export const subscriptionsI18nResources = {
       seconds: '秒',
       times: '次',
       years: '年',
+      Hourly: '每小时',
+      'Get Started': '开始使用',
+      'Models available for {{plan}}': '{{plan}} 可用的模型',
+      'No enabled models match these groups yet.': '暂无启用模型匹配这些分组。',
+      'No supported models found': '未找到支持的模型',
+      'Open Model Square': '打开模型广场',
+      'Please refresh the page and try again.': '请刷新页面后重试。',
+      Recommended: '推荐',
+      'Sign in to subscribe': '登录后订阅',
+      'Subscribe Now': '立即订阅',
+      'Supported Models': '支持的模型',
+      'Unable to load supported models': '无法加载支持的模型',
+      'View all models': '查看所有模型',
+      'View in Model Square': '在模型广场查看',
     },
   },
   fr: {
@@ -373,6 +446,7 @@ export const subscriptionsI18nResources = {
       'All Status': 'Tous les statuts',
       'All Subscriptions': 'Tous les abonnements',
       'Allowed Groups': 'Groupes autorisés',
+      'Allow balance redemption': 'Autoriser le paiement par solde',
       'Amount Due': 'Montant dû',
       Anchor: 'Ancrage',
       'Anchor mode resets from subscription start':
@@ -402,7 +476,10 @@ export const subscriptionsI18nResources = {
       Deleted: 'Supprimé',
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         "La suppression effacera définitivement cet enregistrement d'abonnement (y compris les détails des avantages). Continuer ?",
+      'This will permanently delete the disabled subscription plan. Continue?':
+        "Cela supprimera le forfait d'abonnement désactivé. Continuer ?",
       Disable: 'Désactiver',
+      'Disable before deleting': 'Désactiver avant de supprimer',
       'Duration Settings': 'Paramètres de durée',
       'Duration Unit': 'Unité de durée',
       'Duration Value': 'Valeur de durée',
@@ -476,6 +553,21 @@ export const subscriptionsI18nResources = {
       'Purchase Subscription': "Acheter un abonnement",
       'Purchase limit reached': "Limite d'achat atteinte",
       'Purchase successful': 'Achat réussi',
+      Renew: 'Renouveler',
+      'Renew Subscription': "Renouveler l'abonnement",
+      'Renewal successful': 'Renouvellement réussi',
+      'No payment method available': 'Aucun mode de paiement disponible',
+      Pending: 'En attente',
+      pending: 'en attente',
+      'Activate Now': 'Activer maintenant',
+      'Activate subscription now': "Activer l'abonnement maintenant",
+      'After activation, the new subscription will start immediately. The existing active subscription keeps running in parallel until its natural expiry. Continue?':
+        "Après l'activation, le nouvel abonnement démarrera immédiatement. L'abonnement actif existant continue en parallèle jusqu'à son expiration naturelle. Continuer ?",
+      'Subscription activated': 'Abonnement activé',
+      'Activation failed': "Échec de l'activation",
+      'Scheduled to activate at': 'Activation prévue à',
+      'Estimated expiry': 'Expiration estimée',
+      'Subscription ID': "ID d'abonnement",
       Quota: 'Quota',
       'Quota Amount': 'Quantité de quota',
       'Quota Limits': 'Limites de quota',
@@ -505,6 +597,8 @@ export const subscriptionsI18nResources = {
       'Stripe/Creem requires creating products on the third-party platform and entering the ID':
         "Stripe/Creem nécessite la création de produits sur la plateforme tierce et la saisie de l'ID",
       'Subscription Management': 'Gestion des abonnements',
+      'This plan does not allow balance redemption':
+        'Ce plan ne permet pas le paiement par solde',
       'Third-party Payment Config': 'Configuration de paiement tiers',
       'Total Quota': 'Quota total',
       Unlimited: 'Illimité',
@@ -529,6 +623,23 @@ export const subscriptionsI18nResources = {
       seconds: 'secondes',
       times: 'fois',
       years: 'ans',
+      Hourly: 'Toutes les heures',
+      'Get Started': 'Commencer',
+      'Models available for {{plan}}': 'Modèles disponibles pour {{plan}}',
+      'No enabled models match these groups yet.':
+        'Aucun modèle activé ne correspond encore à ces groupes.',
+      'No supported models found': 'Aucun modèle pris en charge trouvé',
+      'Open Model Square': 'Ouvrir la place des modèles',
+      'Please refresh the page and try again.':
+        'Veuillez actualiser la page puis réessayer.',
+      Recommended: 'Recommandé',
+      'Sign in to subscribe': 'Se connecter pour s’abonner',
+      'Subscribe Now': "S'abonner maintenant",
+      'Supported Models': 'Modèles pris en charge',
+      'Unable to load supported models':
+        'Impossible de charger les modèles pris en charge',
+      'View all models': 'Voir tous les modèles',
+      'View in Model Square': 'Voir dans la place des modèles',
     },
   },
   ja: {
@@ -552,6 +663,7 @@ export const subscriptionsI18nResources = {
       'All Status': 'すべてのステータス',
       'All Subscriptions': 'すべてのサブスクリプション',
       'Allowed Groups': '許可グループ',
+      'Allow balance redemption': '残高での支払いを許可',
       'Amount Due': '支払金額',
       Anchor: 'アンカー',
       'Anchor mode resets from subscription start':
@@ -580,7 +692,10 @@ export const subscriptionsI18nResources = {
       Deleted: '削除しました',
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         '削除するとこのサブスクリプションレコード（特典詳細を含む）が完全に削除されます。続行しますか？',
+      'This will permanently delete the disabled subscription plan. Continue?':
+        '無効化されたサブスクリプションプランを削除します。続行しますか？',
       Disable: '無効化',
+      'Disable before deleting': '削除前に無効化してください',
       'Duration Settings': '期間設定',
       'Duration Unit': '期間単位',
       'Duration Value': '期間値',
@@ -656,6 +771,21 @@ export const subscriptionsI18nResources = {
       'Purchase Subscription': 'サブスクリプションを購入',
       'Purchase limit reached': '購入上限に達しました',
       'Purchase successful': '購入しました',
+      Renew: '更新',
+      'Renew Subscription': 'サブスクリプションを更新',
+      'Renewal successful': '更新しました',
+      'No payment method available': '利用可能な支払い方法がありません',
+      Pending: '保留中',
+      pending: '保留中',
+      'Activate Now': '今すぐ有効化',
+      'Activate subscription now': '今すぐサブスクリプションを有効化',
+      'After activation, the new subscription will start immediately. The existing active subscription keeps running in parallel until its natural expiry. Continue?':
+        '有効化すると新しいサブスクリプションが直ちに開始され、既存の有効なサブスクリプションは自然期限まで並行して継続します。続行しますか？',
+      'Subscription activated': 'サブスクリプションを有効化しました',
+      'Activation failed': '有効化に失敗しました',
+      'Scheduled to activate at': '有効化予定時刻',
+      'Estimated expiry': '予定終了時刻',
+      'Subscription ID': 'サブスクリプション ID',
       Quota: 'クォータ',
       'Quota Amount': 'クォータ量',
       'Quota Limits': 'クォータ制限',
@@ -684,6 +814,8 @@ export const subscriptionsI18nResources = {
       'Stripe/Creem requires creating products on the third-party platform and entering the ID':
         'Stripe/Creem はサードパーティプラットフォームで製品を作成し、IDを入力する必要があります',
       'Subscription Management': 'サブスクリプション管理',
+      'This plan does not allow balance redemption':
+        'このプランでは残高での支払いはできません',
       'Third-party Payment Config': 'サードパーティ決済設定',
       'Total Quota': '合計クォータ',
       Unlimited: '無制限',
@@ -708,6 +840,22 @@ export const subscriptionsI18nResources = {
       seconds: '秒',
       times: '回',
       years: '年',
+      Hourly: '毎時',
+      'Get Started': '開始する',
+      'Models available for {{plan}}': '{{plan}} で利用できるモデル',
+      'No enabled models match these groups yet.':
+        'これらのグループに一致する有効なモデルはまだありません。',
+      'No supported models found': '対応モデルが見つかりません',
+      'Open Model Square': 'モデル広場を開く',
+      'Please refresh the page and try again.':
+        'ページを更新してもう一度お試しください。',
+      Recommended: 'おすすめ',
+      'Sign in to subscribe': 'ログインして登録',
+      'Subscribe Now': '今すぐ購読',
+      'Supported Models': '対応モデル',
+      'Unable to load supported models': '対応モデルを読み込めません',
+      'View all models': 'すべてのモデルを表示',
+      'View in Model Square': 'モデル広場で表示',
     },
   },
   ru: {
@@ -731,6 +879,7 @@ export const subscriptionsI18nResources = {
       'All Status': 'Все статусы',
       'All Subscriptions': 'Все подписки',
       'Allowed Groups': 'Разрешённые группы',
+      'Allow balance redemption': 'Разрешить оплату балансом',
       'Amount Due': 'Сумма к оплате',
       Anchor: 'От начала подписки',
       'Anchor mode resets from subscription start':
@@ -760,7 +909,10 @@ export const subscriptionsI18nResources = {
       Deleted: 'Удалено',
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         'Удаление навсегда удалит эту запись подписки (включая детали льгот). Продолжить?',
+      'This will permanently delete the disabled subscription plan. Continue?':
+        'Отключенный тариф подписки будет удален. Продолжить?',
       Disable: 'Отключить',
+      'Disable before deleting': 'Сначала отключите',
       'Duration Settings': 'Настройки длительности',
       'Duration Unit': 'Единица длительности',
       'Duration Value': 'Значение длительности',
@@ -836,6 +988,21 @@ export const subscriptionsI18nResources = {
       'Purchase Subscription': 'Купить подписку',
       'Purchase limit reached': 'Достигнут лимит покупок',
       'Purchase successful': 'Покупка выполнена',
+      Renew: 'Продлить',
+      'Renew Subscription': 'Продлить подписку',
+      'Renewal successful': 'Продление выполнено',
+      'No payment method available': 'Нет доступных способов оплаты',
+      Pending: 'Ожидает',
+      pending: 'ожидает',
+      'Activate Now': 'Активировать сейчас',
+      'Activate subscription now': 'Активировать подписку сейчас',
+      'After activation, the new subscription will start immediately. The existing active subscription keeps running in parallel until its natural expiry. Continue?':
+        'После активации новая подписка начнётся немедленно. Существующая активная подписка продолжит работать параллельно до её естественного окончания. Продолжить?',
+      'Subscription activated': 'Подписка активирована',
+      'Activation failed': 'Ошибка активации',
+      'Scheduled to activate at': 'Запланировано на',
+      'Estimated expiry': 'Ожидаемое окончание',
+      'Subscription ID': 'ID подписки',
       Quota: 'Квота',
       'Quota Amount': 'Размер квоты',
       'Quota Limits': 'Лимиты квоты',
@@ -864,6 +1031,8 @@ export const subscriptionsI18nResources = {
       'Stripe/Creem requires creating products on the third-party platform and entering the ID':
         'Stripe/Creem требует создания продуктов на сторонней платформе и ввода ID',
       'Subscription Management': 'Управление подписками',
+      'This plan does not allow balance redemption':
+        'Этот план не разрешает оплату балансом',
       'Third-party Payment Config': 'Настройка сторонней оплаты',
       'Total Quota': 'Общая квота',
       Unlimited: 'Без ограничений',
@@ -888,6 +1057,23 @@ export const subscriptionsI18nResources = {
       seconds: 'секунд',
       times: 'раз',
       years: 'лет',
+      Hourly: 'Ежечасно',
+      'Get Started': 'Начать',
+      'Models available for {{plan}}': 'Модели, доступные для {{plan}}',
+      'No enabled models match these groups yet.':
+        'Пока нет включенных моделей, соответствующих этим группам.',
+      'No supported models found': 'Поддерживаемые модели не найдены',
+      'Open Model Square': 'Открыть витрину моделей',
+      'Please refresh the page and try again.':
+        'Обновите страницу и повторите попытку.',
+      Recommended: 'Рекомендуемый',
+      'Sign in to subscribe': 'Войдите, чтобы оформить подписку',
+      'Subscribe Now': 'Подписаться сейчас',
+      'Supported Models': 'Поддерживаемые модели',
+      'Unable to load supported models':
+        'Не удалось загрузить поддерживаемые модели',
+      'View all models': 'Посмотреть все модели',
+      'View in Model Square': 'Посмотреть в витрине моделей',
     },
   },
   vi: {
@@ -911,6 +1097,7 @@ export const subscriptionsI18nResources = {
       'All Status': 'Tất cả trạng thái',
       'All Subscriptions': 'Tất cả đăng ký',
       'Allowed Groups': 'Nhóm được phép',
+      'Allow balance redemption': 'Cho phép thanh toán bằng số dư',
       'Amount Due': 'Số tiền cần thanh toán',
       Anchor: 'Neo theo ngày bắt đầu',
       'Anchor mode resets from subscription start':
@@ -940,7 +1127,10 @@ export const subscriptionsI18nResources = {
       Deleted: 'Đã xóa',
       'Deleting will permanently remove this subscription record (including benefit details). Continue?':
         'Xóa sẽ xóa vĩnh viễn bản ghi đăng ký này (bao gồm chi tiết quyền lợi). Tiếp tục?',
+      'This will permanently delete the disabled subscription plan. Continue?':
+        'Thao tác này sẽ xóa gói đăng ký đã bị vô hiệu hóa. Tiếp tục?',
       Disable: 'Vô hiệu hóa',
+      'Disable before deleting': 'Vô hiệu hóa trước khi xóa',
       'Duration Settings': 'Cài đặt thời hạn',
       'Duration Unit': 'Đơn vị thời hạn',
       'Duration Value': 'Giá trị thời hạn',
@@ -1014,6 +1204,21 @@ export const subscriptionsI18nResources = {
       'Purchase Subscription': 'Mua đăng ký',
       'Purchase limit reached': 'Đã đạt giới hạn mua',
       'Purchase successful': 'Mua thành công',
+      Renew: 'Gia hạn',
+      'Renew Subscription': 'Gia hạn đăng ký',
+      'Renewal successful': 'Gia hạn thành công',
+      'No payment method available': 'Không có phương thức thanh toán nào',
+      Pending: 'Đang chờ',
+      pending: 'đang chờ',
+      'Activate Now': 'Kích hoạt ngay',
+      'Activate subscription now': 'Kích hoạt đăng ký ngay',
+      'After activation, the new subscription will start immediately. The existing active subscription keeps running in parallel until its natural expiry. Continue?':
+        'Sau khi kích hoạt, đăng ký mới sẽ bắt đầu ngay lập tức. Đăng ký đang hoạt động vẫn tiếp tục song song đến khi hết hạn tự nhiên. Tiếp tục?',
+      'Subscription activated': 'Đã kích hoạt đăng ký',
+      'Activation failed': 'Kích hoạt thất bại',
+      'Scheduled to activate at': 'Dự kiến kích hoạt lúc',
+      'Estimated expiry': 'Hết hạn dự kiến',
+      'Subscription ID': 'ID đăng ký',
       Quota: 'Hạn mức',
       'Quota Amount': 'Lượng hạn mức',
       'Quota Limits': 'Giới hạn hạn mức',
@@ -1042,6 +1247,8 @@ export const subscriptionsI18nResources = {
       'Stripe/Creem requires creating products on the third-party platform and entering the ID':
         'Stripe/Creem yêu cầu tạo sản phẩm trên nền tảng bên thứ ba và nhập ID',
       'Subscription Management': 'Quản lý đăng ký',
+      'This plan does not allow balance redemption':
+        'Gói này không cho phép thanh toán bằng số dư',
       'Third-party Payment Config': 'Cấu hình thanh toán bên thứ ba',
       'Total Quota': 'Tổng hạn mức',
       Unlimited: 'Không giới hạn',
@@ -1066,6 +1273,32 @@ export const subscriptionsI18nResources = {
       seconds: 'giây',
       times: 'lần',
       years: 'năm',
+      Hourly: 'Hàng giờ',
+      'Get Started': 'Bắt đầu',
+      'Models available for {{plan}}': 'Mô hình có sẵn cho {{plan}}',
+      'No enabled models match these groups yet.':
+        'Chưa có mô hình đã bật nào khớp với các nhóm này.',
+      'No supported models found': 'Không tìm thấy mô hình được hỗ trợ',
+      'Open Model Square': 'Mở Quảng trường mô hình',
+      'Please refresh the page and try again.':
+        'Vui lòng làm mới trang rồi thử lại.',
+      Recommended: 'Đề xuất',
+      'Sign in to subscribe': 'Đăng nhập để đăng ký',
+      'Subscribe Now': 'Đăng ký ngay',
+      'Supported Models': 'Mô hình được hỗ trợ',
+      'Unable to load supported models': 'Không thể tải mô hình được hỗ trợ',
+      'View all models': 'Xem tất cả mô hình',
+      'View in Model Square': 'Xem trong Quảng trường mô hình',
     },
   },
 } as const
+
+for (const [language, resource] of Object.entries(subscriptionsI18nResources)) {
+  i18n.addResourceBundle(
+    language,
+    'translation',
+    resource.translation,
+    true,
+    true
+  )
+}

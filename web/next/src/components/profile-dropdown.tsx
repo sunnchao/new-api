@@ -7,6 +7,7 @@ import { LogOut, User, Wallet, Globe, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { saveLanguagePreference } from "@/i18n/language";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,9 +63,7 @@ export function ProfileDropdown({
   const changeLanguage = async (code: string) => {
     try {
       await i18n.changeLanguage(code);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("i18nextLng", code);
-      }
+      saveLanguagePreference(code);
       const { default: api } = await import("@/lib/api");
       await api.put("/api/user/self", { language: code });
     } catch {

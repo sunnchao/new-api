@@ -54,6 +54,7 @@ type GroupFormValues = {
   GroupRatio: string
   TopupGroupRatio: string
   UserUsableGroups: string
+  UserUnselectableGroups: string
   GroupGroupRatio: string
   AutoGroups: string
   DefaultUseAutoGroup: boolean
@@ -120,6 +121,7 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               groupRatio={form.watch('GroupRatio')}
               topupGroupRatio={form.watch('TopupGroupRatio')}
               userUsableGroups={form.watch('UserUsableGroups')}
+              userUnselectableGroups={form.watch('UserUnselectableGroups')}
               groupGroupRatio={form.watch('GroupGroupRatio')}
               autoGroups={form.watch('AutoGroups')}
               onChange={(field, value) =>
@@ -216,6 +218,25 @@ export const GroupRatioForm = memo(function GroupRatioForm({
                   <FormDescription>
                     {t(
                       'JSON map of group → description exposed when users create API keys.'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='UserUnselectableGroups'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Hidden groups')}</FormLabel>
+                  <FormControl>
+                    <Textarea rows={6} {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'JSON map of group → description for groups that exist but are hidden from users.'
                     )}
                   </FormDescription>
                   <FormMessage />

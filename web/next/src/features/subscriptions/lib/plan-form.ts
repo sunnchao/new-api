@@ -41,6 +41,7 @@ export function getPlanFormSchema(t: TFunction) {
     enabled: z.boolean(),
     show_on_home: z.boolean().optional(),
     sort_order: z.coerce.number(),
+    allow_balance_pay: z.boolean(),
     max_purchase_per_user: z.coerce.number().min(0),
     total_amount: z.coerce.number().min(0),
     upgrade_group: z.string().optional(),
@@ -48,6 +49,7 @@ export function getPlanFormSchema(t: TFunction) {
     billing_mode: z.enum(['quota', 'request']).optional(),
     stripe_price_id: z.string().optional(),
     creem_product_id: z.string().optional(),
+    waffo_pancake_product_id: z.string().optional(),
     // Rate limits
     hourly_limit_amount: z.coerce.number().min(0).optional(),
     hourly_limit_hours: z.coerce.number().min(1).max(24).optional(),
@@ -82,6 +84,7 @@ export const PLAN_FORM_DEFAULTS: PlanFormValues = {
   enabled: true,
   show_on_home: false,
   sort_order: 0,
+  allow_balance_pay: true,
   max_purchase_per_user: 0,
   total_amount: 0,
   upgrade_group: '',
@@ -89,6 +92,7 @@ export const PLAN_FORM_DEFAULTS: PlanFormValues = {
   billing_mode: 'quota',
   stripe_price_id: '',
   creem_product_id: '',
+  waffo_pancake_product_id: '',
   // Rate limits
   hourly_limit_amount: 0,
   hourly_limit_hours: 1,
@@ -146,6 +150,7 @@ export function planToFormValues(plan: SubscriptionPlan): PlanFormValues {
     enabled: plan.enabled !== false,
     show_on_home: plan.show_on_home || false,
     sort_order: Number(plan.sort_order || 0),
+    allow_balance_pay: plan.allow_balance_pay !== false,
     max_purchase_per_user: Number(plan.max_purchase_per_user || 0),
     total_amount: planAmountToFormValue(plan.total_amount, billingMode),
     upgrade_group: plan.upgrade_group || '',
@@ -153,6 +158,7 @@ export function planToFormValues(plan: SubscriptionPlan): PlanFormValues {
     billing_mode: billingMode,
     stripe_price_id: plan.stripe_price_id || '',
     creem_product_id: plan.creem_product_id || '',
+    waffo_pancake_product_id: plan.waffo_pancake_product_id || '',
     // Rate limits
     hourly_limit_amount: planAmountToFormValue(
       plan.hourly_limit_amount,

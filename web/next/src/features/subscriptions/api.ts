@@ -25,6 +25,7 @@ import type {
   CreateUserSubscriptionRequest,
   SubscriptionPayResponse,
   SubscriptionPayRequest,
+  RenewPayRequest,
   SelfSubscriptionData,
   AdminAllSubscriptionsParams,
   AdminAllSubscriptionsResponse,
@@ -173,21 +174,21 @@ export async function paySubscriptionBalance(
 }
 
 export async function renewPayBalance(
-  data: SubscriptionPayRequest
+  data: RenewPayRequest
 ): Promise<SubscriptionPayResponse> {
   const res = await api.post('/api/subscription/renew/balance/pay', data)
   return res.data
 }
 
 export async function renewPayStripe(
-  data: SubscriptionPayRequest
+  data: RenewPayRequest
 ): Promise<SubscriptionPayResponse> {
   const res = await api.post('/api/subscription/renew/stripe/pay', data)
   return res.data
 }
 
 export async function renewPayCreem(
-  data: SubscriptionPayRequest
+  data: RenewPayRequest
 ): Promise<SubscriptionPayResponse> {
   const res = await api.post('/api/subscription/renew/creem/pay', data)
   return res.data

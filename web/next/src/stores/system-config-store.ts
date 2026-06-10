@@ -74,7 +74,7 @@ export const useSystemConfigStore = create<SystemConfigState>()(
       setLoading: (loading) => set({ loading }),
       getSystemName: () => get().config.systemName || "New API",
       getLogo: () => get().config.logo || get().loadedLogoUrl,
-      getFooterHtml: () => get().config.footerHtml,
+      getFooterHtml: () => get().config.footerHtml || "",
     }),
     {
       name: "system-config-storage",

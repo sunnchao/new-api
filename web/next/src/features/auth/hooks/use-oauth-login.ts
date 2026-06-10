@@ -22,13 +22,17 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
 import { api } from '@/lib/api'
-import { getOAuthState } from '../api'
+import { getOAuthState, telegramLoginByData } from '../api'
+import { useAuthRedirect } from './use-auth-redirect'
 import {
   buildGitHubOAuthUrl,
   buildDiscordOAuthUrl,
   buildOIDCOAuthUrl,
   buildLinuxDOOAuthUrl,
+  buildCustomOAuthUrl,
+  saveOAuthRedirectForState,
 } from '../lib/oauth'
+import { startTelegramAuth } from '../lib/telegram'
 import type { SystemStatus, CustomOAuthProviderInfo } from '../types'
 
 type LogoutRequestConfig = AxiosRequestConfig & {
@@ -38,13 +42,14 @@ type LogoutRequestConfig = AxiosRequestConfig & {
 /**
  * Hook for managing OAuth login
  */
-export function useOAuthLogin(status: SystemStatus | null) {
+export function useOAuthLogin(status: SystemStatus | null, redirectTo?: string) {
   const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const [githubButtonText, setGithubButtonText] = useState('')
   const [githubButtonDisabled, setGithubButtonDisabled] = useState(false)
   const githubTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { auth } = useAuthStore()
+  const { handleLoginSuccess } = useAuthRedirect()
 
   useEffect(() => {
     setGithubButtonText(t('Continue with GitHub'))
@@ -105,6 +110,7 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
+      saveOAuthRedirectForState(state, redirectTo)
       const url = buildGitHubOAuthUrl(status.github_client_id, state)
       window.open(url, '_self')
     } catch (_error) {
@@ -130,6 +136,7 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
+      saveOAuthRedirectForState(state, redirectTo)
       const url = buildDiscordOAuthUrl(status.discord_client_id, state)
       window.open(url, '_self')
     } catch (_error) {
@@ -151,6 +158,7 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
+      saveOAuthRedirectForState(state, redirectTo)
       const url = buildOIDCOAuthUrl(
         status.oidc_authorization_endpoint,
         status.oidc_client_id,
@@ -176,6 +184,7 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
+      saveOAuthRedirectForState(state, redirectTo)
       const url = buildLinuxDOOAuthUrl(status.linuxdo_client_id, state)
       window.open(url, '_self')
     } catch (_error) {
@@ -185,8 +194,26 @@ export function useOAuthLogin(status: SystemStatus | null) {
     }
   }
 
-  const handleTelegramLogin = () => {
-    toast.info(t('Telegram login requires widget integration; coming soon'))
+  const handleTelegramLogin = async () => {
+    const botName = status?.telegram_bot_name || status?.data?.telegram_bot_name
+    if (typeof botName !== 'string' || !botName.trim()) return
+
+    setIsLoading(true)
+    try {
+      await resetSession()
+      const authData = await startTelegramAuth(botName.trim())
+      const res = await telegramLoginByData(authData)
+      if (res?.success) {
+        await handleLoginSuccess(res.data as { id?: number } | null, redirectTo)
+        toast.success(t('Signed in successfully!'))
+      } else {
+        toast.error(res?.message || t('Login failed'))
+      }
+    } catch (_error) {
+      toast.error(t('Login failed'))
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleCustomOAuthLogin = async (provider: CustomOAuthProviderInfo) => {
@@ -201,17 +228,8 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
-      const redirectUri = `${window.location.origin}/oauth/${provider.slug}`
-      const url = new URL(provider.authorization_endpoint)
-      url.searchParams.set('client_id', provider.client_id)
-      url.searchParams.set('redirect_uri', redirectUri)
-      url.searchParams.set('response_type', 'code')
-      url.searchParams.set('state', state)
-      if (provider.scopes) {
-        url.searchParams.set('scope', provider.scopes)
-      }
-
-      window.open(url.toString(), '_self')
+      saveOAuthRedirectForState(state, redirectTo)
+      window.open(buildCustomOAuthUrl(provider, state), '_self')
     } catch (_error) {
       toast.error(
         t('Failed to start {{provider}} login', { provider: provider.name })

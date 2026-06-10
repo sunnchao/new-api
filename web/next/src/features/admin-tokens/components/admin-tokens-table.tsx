@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
@@ -19,6 +19,7 @@ import { formatQuota, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { useNextTableUrlState } from '@/hooks/use-table-url-state'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import {
   Tooltip,
@@ -36,7 +37,6 @@ import { StatusBadge } from '@/components/status-badge'
 import {
   API_KEY_STATUS,
   API_KEY_STATUSES,
-  API_KEY_STATUS_OPTIONS,
   ERROR_MESSAGES,
 } from '@/features/keys/constants'
 import { getAdminTokens, searchAdminTokens } from '../api'
@@ -337,6 +337,8 @@ export function AdminTokensTable() {
   const [rowSelection, setRowSelection] = useState({})
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const tokenFilter = (searchParams.get('token') ?? '').trim()
+  const searchParamString = searchParams.toString()
 
   const {
     globalFilter,
@@ -349,8 +351,28 @@ export function AdminTokensTable() {
   } = useNextTableUrlState({ searchParams, router,
     pagination: { defaultPage: 1, defaultPageSize: 20 },
     globalFilter: { enabled: true, key: 'filter' },
-    columnFilters: [{ columnId: 'status', searchKey: 'status', type: 'array' }],
+    columnFilters: [],
   })
+
+  const updateTokenFilter = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParamString)
+      const next = value.trim()
+      if (next) params.set('token', next)
+      else params.delete('token')
+      params.delete('page')
+      router.push(`?${params.toString()}`)
+    },
+    [router, searchParamString]
+  )
+
+  const resetTokenFilter = useCallback(() => {
+    const params = new URLSearchParams(searchParamString)
+    params.delete('filter')
+    params.delete('token')
+    params.delete('page')
+    router.push(`?${params.toString()}`)
+  }, [router, searchParamString])
 
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const { data, isLoading, isFetching } = useQuery({
@@ -359,13 +381,16 @@ export function AdminTokensTable() {
       pagination.pageIndex + 1,
       pagination.pageSize,
       globalFilter,
+      tokenFilter,
       refreshTrigger,
     ],
     queryFn: async () => {
       const keyword = globalFilter?.trim() ?? ''
-      const result = keyword
+      const shouldSearch = Boolean(keyword || tokenFilter)
+      const result = shouldSearch
         ? await searchAdminTokens({
             keyword,
+            token: tokenFilter,
             p: pagination.pageIndex + 1,
             page_size: pagination.pageSize,
           })
@@ -378,7 +403,7 @@ export function AdminTokensTable() {
         toast.error(
           result.message ||
             t(
-              keyword
+              shouldSearch
                 ? ERROR_MESSAGES.SEARCH_FAILED
                 : ERROR_MESSAGES.LOAD_FAILED
             )
@@ -420,8 +445,6 @@ export function AdminTokensTable() {
 
       return (
         token.name.toLowerCase().includes(value) ||
-        token.key.toLowerCase().includes(value) ||
-        String(token.user_id).includes(value) ||
         (token.user_name || '').toLowerCase().includes(value)
       )
     },
@@ -453,13 +476,17 @@ export function AdminTokensTable() {
       skeletonKeyPrefix='admin-tokens-skeleton'
       toolbarProps={{
         searchPlaceholder: t('Filter by token name'),
-        filters: [
-          {
-            columnId: 'status',
-            title: t('Status'),
-            options: API_KEY_STATUS_OPTIONS,
-          },
-        ],
+        additionalSearch: (
+          <Input
+            aria-label={t('Filter by API key')}
+            placeholder={t('Filter by API key')}
+            value={tokenFilter}
+            onChange={(event) => updateTokenFilter(event.target.value)}
+            className='w-full sm:w-[200px] lg:w-[240px]'
+          />
+        ),
+        hasAdditionalFilters: Boolean(tokenFilter),
+        onReset: resetTokenFilter,
       }}
       getRowClassName={(row, ctx) =>
         isDisabledAdminTokenRow(row.original)

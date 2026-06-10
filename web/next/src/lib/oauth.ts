@@ -22,17 +22,65 @@ import { api } from './api'
 // OAuth URL Builders
 // ============================================================================
 
+export interface CustomOAuthProviderConfig {
+  slug: string
+  client_id: string
+  authorization_endpoint: string
+  scopes?: string | null
+}
+
+const OAUTH_REDIRECT_STORAGE_PREFIX = 'oauth:redirect:'
+
+export function saveOAuthRedirectForState(
+  state: string,
+  redirectTo?: string
+): void {
+  if (!state || !redirectTo) return
+  try {
+    window.localStorage.setItem(
+      `${OAUTH_REDIRECT_STORAGE_PREFIX}${state}`,
+      redirectTo
+    )
+  } catch {
+    // Ignore storage write failures; OAuth login can still fall back to default.
+  }
+}
+
+export function consumeOAuthRedirectForState(
+  state?: string | null
+): string | undefined {
+  if (!state) return undefined
+  const key = `${OAUTH_REDIRECT_STORAGE_PREFIX}${state}`
+  try {
+    const redirectTo = window.localStorage.getItem(key) ?? undefined
+    window.localStorage.removeItem(key)
+    return redirectTo
+  } catch {
+    return undefined
+  }
+}
+
 /**
  * Build GitHub OAuth URL
  */
-export function buildGitHubOAuthUrl(clientId: string, state: string): string {
-  return `https://github.com/login/oauth/authorize?client_id=${clientId}&state=${state}&scope=user:email`
+export function buildGitHubOAuthUrl(
+  clientId: string,
+  state: string
+): string {
+  const url = new URL('https://github.com/login/oauth/authorize')
+  url.searchParams.set('client_id', clientId)
+  url.searchParams.set('state', state)
+  url.searchParams.set('scope', 'user:email')
+  return url.toString()
 }
 
 /**
  * Build Discord OAuth URL
  */
-export function buildDiscordOAuthUrl(clientId: string, state: string): string {
+export function buildDiscordOAuthUrl(
+  clientId: string,
+  state: string
+): string {
   const url = new URL('https://discord.com/oauth2/authorize')
   url.searchParams.set('client_id', clientId)
   url.searchParams.set(
@@ -67,6 +115,27 @@ export function buildOIDCOAuthUrl(
  */
 export function buildLinuxDOOAuthUrl(clientId: string, state: string): string {
   return `https://connect.linux.do/oauth2/authorize?response_type=code&client_id=${clientId}&state=${state}`
+}
+
+/**
+ * Build custom OAuth URL
+ */
+export function buildCustomOAuthUrl(
+  provider: CustomOAuthProviderConfig,
+  state: string
+): string {
+  const url = new URL(provider.authorization_endpoint)
+  url.searchParams.set('client_id', provider.client_id)
+  url.searchParams.set(
+    'redirect_uri',
+    `${window.location.origin}/oauth/${provider.slug}`
+  )
+  url.searchParams.set('response_type', 'code')
+  if (provider.scopes) {
+    url.searchParams.set('scope', provider.scopes)
+  }
+  url.searchParams.set('state', state)
+  return url.toString()
 }
 
 // ============================================================================
@@ -141,4 +210,19 @@ export async function handleLinuxDOOAuth(clientId: string): Promise<void> {
 
   const url = buildLinuxDOOAuthUrl(clientId, state)
   window.open(url, '_blank')
+}
+
+/**
+ * Handle custom OAuth binding/login
+ */
+export async function handleCustomOAuth(
+  provider: CustomOAuthProviderConfig,
+  target = '_blank'
+): Promise<boolean> {
+  const state = await getOAuthState()
+  if (!state) return false
+
+  const url = buildCustomOAuthUrl(provider, state)
+  window.open(url, target)
+  return true
 }

@@ -47,9 +47,12 @@ export function formatTimestamp(timestamp: number | null | undefined): string {
   return new Date(timestamp * 1000).toLocaleString();
 }
 
-export function formatTimestampToDate(timestamp: number | null | undefined): string {
+export function formatTimestampToDate(
+  timestamp: number | null | undefined,
+  unit: "seconds" | "milliseconds" = "seconds",
+): string {
   if (!timestamp || timestamp <= 0) return "-";
-  return new Date(timestamp * 1000).toLocaleString();
+  return new Date(unit === "milliseconds" ? timestamp : timestamp * 1000).toLocaleString();
 }
 
 export function formatTimestampToDateOnly(timestamp: number | null | undefined): string {

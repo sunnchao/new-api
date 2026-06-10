@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
+import { formatQuota } from '@/lib/format'
 import {
   getAdminPlans,
   getUserSubscriptions,
@@ -53,8 +54,13 @@ import {
   invalidateUserSubscription,
   deleteUserSubscription,
 } from '../../api'
-import { formatTimestamp } from '../../lib'
+import {
+  formatSubscriptionAmountValue,
+  formatTimestamp,
+  parseAllowedGroups,
+} from '../../lib'
 import type { PlanRecord, UserSubscriptionRecord } from '../../types'
+import '../../i18n'
 
 interface Props {
   open: boolean
@@ -93,6 +99,36 @@ function SubscriptionStatusBadge(props: {
       variant='neutral'
       copyable={false}
     />
+  )
+}
+
+function AllowedGroupsCell(props: {
+  allowedGroups?: string
+  t: (key: string) => string
+}) {
+  const groups = parseAllowedGroups(props.allowedGroups)
+
+  if (groups.length === 0) {
+    return (
+      <StatusBadge
+        variant='success'
+        copyable={false}
+        label={props.t('All Groups')}
+      />
+    )
+  }
+
+  return (
+    <div className='flex min-w-28 flex-wrap justify-end gap-1 sm:justify-start'>
+      {groups.map((group) => (
+        <StatusBadge
+          key={group}
+          variant='info'
+          copyable={false}
+          label={group}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -239,8 +275,8 @@ export function UserSubscriptionsDialog(props: Props) {
               </Button>
             </div>
 
-            <div className='rounded-md border'>
-              <Table>
+            <div className='overflow-x-auto rounded-md border'>
+              <Table className='min-w-[760px]'>
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
@@ -248,20 +284,21 @@ export function UserSubscriptionsDialog(props: Props) {
                     <TableHead>{t('Status')}</TableHead>
                     <TableHead>{t('Validity')}</TableHead>
                     <TableHead>{t('Total Quota')}</TableHead>
+                    <TableHead>{t('Allowed Groups')}</TableHead>
                     <TableHead className='text-right'>{t('Actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className='py-8 text-center'>
+                      <TableCell colSpan={7} className='py-8 text-center'>
                         {t('Loading...')}
                       </TableCell>
                     </TableRow>
                   ) : subs.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={7}
                         className='text-muted-foreground py-8 text-center'
                       >
                         {t('No subscription records')}
@@ -276,6 +313,23 @@ export function UserSubscriptionsDialog(props: Props) {
                       const isActive = sub.status === 'active' && !isExpired
                       const total = Number(sub.amount_total || 0)
                       const used = Number(sub.amount_used || 0)
+                      const totalQuotaText =
+                        total > 0
+                          ? `${formatSubscriptionAmountValue(
+                              used,
+                              sub,
+                              t,
+                              formatQuota
+                            )}/${formatSubscriptionAmountValue(
+                              total,
+                              sub,
+                              t,
+                              formatQuota,
+                              {
+                                approximateTimes: sub.approximate_times,
+                              }
+                            )}`
+                          : t('Unlimited')
 
                       return (
                         <TableRow key={sub.id}>
@@ -304,8 +358,12 @@ export function UserSubscriptionsDialog(props: Props) {
                               </div>
                             </div>
                           </TableCell>
+                          <TableCell>{totalQuotaText}</TableCell>
                           <TableCell>
-                            {total > 0 ? `${used}/${total}` : t('Unlimited')}
+                            <AllowedGroupsCell
+                              allowedGroups={sub.allowed_groups}
+                              t={t}
+                            />
                           </TableCell>
                           <TableCell className='text-right'>
                             <div className='flex justify-end gap-1'>

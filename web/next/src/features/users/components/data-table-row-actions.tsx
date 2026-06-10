@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { type Row } from '@tanstack/react-table'
 import {
   MoreHorizontal,
@@ -67,7 +67,9 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const [resetPasskeyOpen, setResetPasskeyOpen] = useState(false)
   const [resetTwoFAOpen, setResetTwoFAOpen] = useState(false)
   const [bindingDialogOpen, setBindingDialogOpen] = useState(false)
+  const bindingDirtyRef = useRef(false)
   const [subscriptionsDialogOpen, setSubscriptionsDialogOpen] = useState(false)
+  const subscriptionsDirtyRef = useRef(false)
 
   const handleEdit = () => {
     setCurrentRow(user)
@@ -125,6 +127,38 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     } finally {
       setResetTwoFAOpen(false)
     }
+  }
+
+  const handleBindingDialogOpenChange = (open: boolean) => {
+    setBindingDialogOpen(open)
+    if (open) {
+      return
+    }
+
+    if (bindingDirtyRef.current) {
+      bindingDirtyRef.current = false
+      triggerRefresh()
+    }
+  }
+
+  const handleBindingChanged = () => {
+    bindingDirtyRef.current = true
+  }
+
+  const handleSubscriptionsDialogOpenChange = (open: boolean) => {
+    setSubscriptionsDialogOpen(open)
+    if (open) {
+      return
+    }
+
+    if (subscriptionsDirtyRef.current) {
+      subscriptionsDirtyRef.current = false
+      triggerRefresh()
+    }
+  }
+
+  const handleSubscriptionsChanged = () => {
+    subscriptionsDirtyRef.current = true
   }
 
   const isDisabled = user.status === USER_STATUS.DISABLED
@@ -199,6 +233,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           <DropdownMenuItem
             onClick={(event) => {
               event.preventDefault()
+              bindingDirtyRef.current = false
               setBindingDialogOpen(true)
             }}
           >
@@ -211,6 +246,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           <DropdownMenuItem
             onClick={(event) => {
               event.preventDefault()
+              subscriptionsDirtyRef.current = false
               setSubscriptionsDialogOpen(true)
             }}
           >
@@ -267,8 +303,11 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         open={resetPasskeyOpen}
         onOpenChange={setResetPasskeyOpen}
         title={t('Reset Passkey')}
-        desc={`Reset Passkey for ${user.username}? The user will need to register a new Passkey before using passwordless login.`}
-        confirmText='Reset Passkey'
+        desc={t(
+          'Reset Passkey for {{username}}? The user will need to register a new Passkey before using passwordless login.',
+          { username: user.username }
+        )}
+        confirmText={t('Reset Passkey')}
         handleConfirm={handleResetPasskey}
       />
 
@@ -276,23 +315,26 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         open={resetTwoFAOpen}
         onOpenChange={setResetTwoFAOpen}
         title={t('Reset Two-Factor Authentication')}
-        desc={`Reset 2FA for ${user.username}? The user must set up 2FA again to continue using it.`}
-        confirmText='Reset 2FA'
+        desc={t(
+          'Reset 2FA for {{username}}? The user must set up 2FA again to continue using it.',
+          { username: user.username }
+        )}
+        confirmText={t('Reset 2FA')}
         handleConfirm={handleResetTwoFA}
       />
 
       <UserBindingDialog
         open={bindingDialogOpen}
-        onOpenChange={setBindingDialogOpen}
+        onOpenChange={handleBindingDialogOpenChange}
         userId={user.id}
-        onUnbindSuccess={triggerRefresh}
+        onUnbindSuccess={handleBindingChanged}
       />
 
       <UserSubscriptionsDialog
         open={subscriptionsDialogOpen}
-        onOpenChange={setSubscriptionsDialogOpen}
+        onOpenChange={handleSubscriptionsDialogOpenChange}
         user={{ id: user.id, username: user.username }}
-        onSuccess={triggerRefresh}
+        onSuccess={handleSubscriptionsChanged}
       />
     </>
   )

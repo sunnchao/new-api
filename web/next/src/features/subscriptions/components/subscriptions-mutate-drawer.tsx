@@ -427,6 +427,24 @@ export function SubscriptionsMutateDrawer({
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name='allow_balance_pay'
+                  render={({ field }) => (
+                    <FormItem className='flex flex-row items-center gap-2 pt-8'>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className='!mt-0'>
+                        {t('Allow balance redemption')}
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
               </div>
             </div>
 
@@ -1145,6 +1163,20 @@ export function SubscriptionsMutateDrawer({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Creem Product ID</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder='prod_...' />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='waffo_pancake_product_id'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Waffo Pancake Product ID</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder='prod_...' />
                     </FormControl>

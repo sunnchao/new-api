@@ -16,20 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export type HeaderNavAccessConfig = {
-  enabled: boolean
-  requireAuth: boolean
-}
-
-export type HeaderNavModulesConfig = {
-  home: boolean
-  console: boolean
-  pricing: HeaderNavAccessConfig
-  rankings: HeaderNavAccessConfig
-  docs: boolean
-  about: boolean
-  [key: string]: boolean | HeaderNavAccessConfig
-}
+export type {
+  HeaderNavAccessConfig,
+  HeaderNavModulesConfig,
+} from '@/lib/nav-modules'
+export {
+  HEADER_NAV_DEFAULT,
+  parseHeaderNavBoolean,
+  parseHeaderNavModules,
+  serializeHeaderNavModules,
+} from '@/lib/nav-modules'
 
 export type SidebarSectionConfig = {
   enabled: boolean
@@ -37,21 +33,6 @@ export type SidebarSectionConfig = {
 }
 
 export type SidebarModulesAdminConfig = Record<string, SidebarSectionConfig>
-
-export const HEADER_NAV_DEFAULT: HeaderNavModulesConfig = {
-  home: true,
-  console: true,
-  pricing: {
-    enabled: true,
-    requireAuth: false,
-  },
-  rankings: {
-    enabled: false,
-    requireAuth: false,
-  },
-  docs: true,
-  about: true,
-}
 
 export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
   chat: {
@@ -97,36 +78,6 @@ const toBoolean = (value: unknown, fallback: boolean): boolean => {
   return fallback
 }
 
-const cloneHeaderNavDefault = (): HeaderNavModulesConfig => ({
-  ...HEADER_NAV_DEFAULT,
-  pricing: { ...HEADER_NAV_DEFAULT.pricing },
-  rankings: { ...HEADER_NAV_DEFAULT.rankings },
-})
-
-const parseAccessModule = (
-  raw: unknown,
-  fallback: HeaderNavAccessConfig
-): HeaderNavAccessConfig => {
-  if (
-    typeof raw === 'boolean' ||
-    typeof raw === 'string' ||
-    typeof raw === 'number'
-  ) {
-    return {
-      enabled: toBoolean(raw, fallback.enabled),
-      requireAuth: fallback.requireAuth,
-    }
-  }
-  if (raw && typeof raw === 'object') {
-    const record = raw as Record<string, unknown>
-    return {
-      enabled: toBoolean(record.enabled, fallback.enabled),
-      requireAuth: toBoolean(record.requireAuth, fallback.requireAuth),
-    }
-  }
-  return { ...fallback }
-}
-
 const cloneSidebarDefault = (): SidebarModulesAdminConfig =>
   Object.entries(SIDEBAR_MODULES_DEFAULT).reduce<SidebarModulesAdminConfig>(
     (acc, [section, config]) => {
@@ -135,53 +86,6 @@ const cloneSidebarDefault = (): SidebarModulesAdminConfig =>
     },
     {}
   )
-
-export function parseHeaderNavModules(
-  value: string | null | undefined
-): HeaderNavModulesConfig {
-  const base = cloneHeaderNavDefault()
-  if (!value) {
-    return base
-  }
-  try {
-    const parsed = JSON.parse(value) as Record<string, unknown>
-    const result: HeaderNavModulesConfig = {
-      ...base,
-      pricing: { ...base.pricing },
-      rankings: { ...base.rankings },
-    }
-
-    Object.entries(parsed).forEach(([key, raw]) => {
-      if (key === 'pricing') {
-        result.pricing = parseAccessModule(raw, base.pricing)
-        return
-      }
-      if (key === 'rankings') {
-        result.rankings = parseAccessModule(raw, base.rankings)
-        return
-      }
-
-      if (typeof raw === 'boolean') {
-        result[key] = raw
-        return
-      }
-      if (typeof raw === 'string' || typeof raw === 'number') {
-        result[key] = toBoolean(raw, Boolean(base[key]))
-        return
-      }
-    })
-
-    return result
-  } catch {
-    return base
-  }
-}
-
-export function serializeHeaderNavModules(
-  config: HeaderNavModulesConfig
-): string {
-  return JSON.stringify(config)
-}
 
 export function parseSidebarModulesAdmin(
   value: string | null | undefined

@@ -7,6 +7,7 @@ const resources = {
         'Choose default drawing mode for Midjourney requests.',
       'Drawing Mode': 'Drawing Mode',
       Fast: 'Fast',
+      'Filter by API key': 'Filter by API key',
       'Owner User ID': 'Owner User ID',
       'Owner cannot be changed after creation.':
         'Owner cannot be changed after creation.',
@@ -22,6 +23,7 @@ const resources = {
         '为 Midjourney 请求选择默认绘图模式。',
       'Drawing Mode': '绘图模式',
       Fast: '快速',
+      'Filter by API key': '按 API 密钥筛选',
       'Owner User ID': '归属用户 ID',
       'Owner cannot be changed after creation.': '创建后不能修改归属用户。',
       'Please enter a valid user ID': '请输入有效的用户 ID',
@@ -36,6 +38,7 @@ const resources = {
         'Choisissez le mode de dessin par défaut pour les requêtes Midjourney.',
       'Drawing Mode': 'Mode de dessin',
       Fast: 'Rapide',
+      'Filter by API key': 'Filtrer par clé API',
       'Owner User ID': 'ID utilisateur propriétaire',
       'Owner cannot be changed after creation.':
         'Le propriétaire ne peut pas être modifié après la création.',
@@ -53,6 +56,7 @@ const resources = {
         'Midjourney リクエストの既定の描画モードを選択します。',
       'Drawing Mode': '描画モード',
       Fast: '高速',
+      'Filter by API key': 'API キーで絞り込み',
       'Owner User ID': '所有者ユーザー ID',
       'Owner cannot be changed after creation.':
         '作成後に所有者を変更することはできません。',
@@ -68,6 +72,7 @@ const resources = {
         'Выберите режим рисования по умолчанию для запросов Midjourney.',
       'Drawing Mode': 'Режим рисования',
       Fast: 'Быстрый',
+      'Filter by API key': 'Фильтр по ключу API',
       'Owner User ID': 'ID пользователя-владельца',
       'Owner cannot be changed after creation.':
         'Владельца нельзя изменить после создания.',
@@ -84,6 +89,7 @@ const resources = {
         'Chọn chế độ vẽ mặc định cho yêu cầu Midjourney.',
       'Drawing Mode': 'Chế độ vẽ',
       Fast: 'Nhanh',
+      'Filter by API key': 'Lọc theo khóa API',
       'Owner User ID': 'ID người dùng sở hữu',
       'Owner cannot be changed after creation.':
         'Không thể đổi người sở hữu sau khi tạo.',

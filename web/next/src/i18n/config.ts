@@ -26,16 +26,14 @@ i18n
     fallbackLng: "en",
     // Always init with the fallback so the server render and the first client
     // render agree. The persisted/detected language is applied after mount via
-    // I18nLanguageProvider to avoid a hydration mismatch. Setting `lng`
-    // explicitly skips LanguageDetector at init; it is still used to cache
-    // language changes to localStorage.
+    // I18nLanguageProvider to avoid a hydration mismatch.
     lng: "en",
     load: "languageOnly",
     interpolation: { escapeValue: false },
     nsSeparator: false,
     detection: {
       order: ["localStorage", "navigator"],
-      caches: ["localStorage"],
+      caches: [],
     },
   });
 

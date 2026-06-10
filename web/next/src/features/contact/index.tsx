@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ElementType } from "react";
+import Image from "next/image";
 import { ExternalLink, Mail, MessageCircle, QrCode } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import "./i18n";
@@ -42,6 +43,11 @@ type ContactMethod = {
 export function ContactPage() {
   const { t } = useTranslation();
   const [qrCodeMethod, setQrCodeMethod] = useState<ContactMethod | null>(null);
+  const qqGroup = {
+    value: "924076327",
+    qrCodeSrc: "/qq-group-qrcode.jpg",
+    quickJoinHref: "https://qm.qq.com/q/GJeiqkSsQA",
+  };
 
   const contactMethods: ContactMethod[] = [
     {
@@ -56,8 +62,8 @@ export function ContactPage() {
     {
       title: t("QQ group"),
       description: t("User updates and community help."),
-      value: "924076327",
-      qrCodeSrc: "/qq-group-qrcode.jpg",
+      value: qqGroup.value,
+      qrCodeSrc: qqGroup.qrCodeSrc,
       icon: MessageCircle,
       toneClassName:
         "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-300",
@@ -73,97 +79,164 @@ export function ContactPage() {
           </h1>
         </section>
 
-        <section className="mx-auto mt-10 grid w-full max-w-3xl gap-4 md:grid-cols-2">
-          {contactMethods.map((method) => {
-            const Icon = method.icon;
+        <section className="mx-auto mt-10 grid w-full max-w-5xl gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
+            {contactMethods.map((method) => {
+              const Icon = method.icon;
 
-            return (
-              <Card key={method.title} className="rounded-lg">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div
-                      className={cn(
-                        "flex size-11 shrink-0 items-center justify-center rounded-lg ring-1",
-                        method.toneClassName
-                      )}
-                    >
-                      <Icon className="size-5" />
+              return (
+                <Card key={method.title} className="rounded-lg">
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div
+                        className={cn(
+                          "flex size-11 shrink-0 items-center justify-center rounded-lg ring-1",
+                          method.toneClassName
+                        )}
+                      >
+                        <Icon className="size-5" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {method.qrCodeSrc ? (
+                          <>
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setQrCodeMethod(method)}
+                                    aria-label={t("View QR code")}
+                                  >
+                                    <QrCode className="size-4" />
+                                  </Button>
+                                }
+                              />
+                              <TooltipContent>
+                                <p>{t("View QR code")}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    render={
+                                      <a
+                                        href={qqGroup.quickJoinHref}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      />
+                                    }
+                                    aria-label={t("Quick join")}
+                                  >
+                                    <ExternalLink className="size-4" />
+                                  </Button>
+                                }
+                              />
+                              <TooltipContent>
+                                <p>{t("Quick join")}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </>
+                        ) : null}
+                        <CopyButton
+                          value={method.value}
+                          tooltip={t("Copy contact")}
+                          successTooltip={t("Copied!")}
+                          aria-label={t("Copy contact")}
+                        />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      {method.qrCodeSrc ? (
-                        <>
-                          <Tooltip>
-                            <TooltipTrigger
-                              render={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setQrCodeMethod(method)}
-                                  aria-label={t("View QR code")}
-                                >
-                                  <QrCode className="size-4" />
-                                </Button>
-                              }
-                            />
-                            <TooltipContent>
-                              <p>{t("View QR code")}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger
-                              render={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  render={
-                                    <a
-                                      href="https://qm.qq.com/q/GJeiqkSsQA"
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                    />
-                                  }
-                                  aria-label={t("Quick join")}
-                                >
-                                  <ExternalLink className="size-4" />
-                                </Button>
-                              }
-                            />
-                            <TooltipContent>
-                              <p>{t("Quick join")}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </>
-                      ) : null}
-                      <CopyButton
-                        value={method.value}
-                        tooltip={t("Copy contact")}
-                        successTooltip={t("Copied!")}
-                        aria-label={t("Copy contact")}
-                      />
-                    </div>
-                  </div>
-                  <CardTitle>{method.title}</CardTitle>
-                  <CardDescription>{method.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="mt-auto space-y-4">
-                  {method.href ? (
-                    <a
-                      href={method.href}
-                      target={method.external ? "_blank" : undefined}
-                      rel={method.external ? "noopener noreferrer" : undefined}
-                      className="bg-[var(--surface)] hover:bg-[var(--surface-hover)] flex min-h-10 items-center justify-between gap-3 rounded-md px-3 py-2 font-mono text-sm break-all transition-colors"
-                    >
-                      <span>{method.value}</span>
-                    </a>
-                  ) : (
-                    <p className="bg-[var(--surface)] min-h-10 rounded-md px-3 py-2 font-mono text-sm break-all">
-                      {method.value}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                    <CardTitle>{method.title}</CardTitle>
+                    <CardDescription>{method.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="mt-auto space-y-4">
+                    {method.href ? (
+                      <a
+                        href={method.href}
+                        target={method.external ? "_blank" : undefined}
+                        rel={method.external ? "noopener noreferrer" : undefined}
+                        className="bg-[var(--surface)] hover:bg-[var(--surface-hover)] flex min-h-10 items-center justify-between gap-3 rounded-md px-3 py-2 font-mono text-sm break-all transition-colors"
+                      >
+                        <span>{method.value}</span>
+                      </a>
+                    ) : (
+                      <p className="bg-[var(--surface)] min-h-10 rounded-md px-3 py-2 font-mono text-sm break-all">
+                        {method.value}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <Card className="rounded-lg">
+            <CardHeader>
+              <CardTitle>{t("Scan to join the QQ group")}</CardTitle>
+              <CardDescription>
+                {t(
+                  "Scan to join the group, or copy the group ID and search manually."
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <button
+                type="button"
+                onClick={() =>
+                  setQrCodeMethod({
+                    title: t("QQ group"),
+                    description: t("User updates and community help."),
+                    value: qqGroup.value,
+                    qrCodeSrc: qqGroup.qrCodeSrc,
+                    icon: MessageCircle,
+                    toneClassName:
+                      "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-300",
+                  })
+                }
+                className="flex w-full cursor-zoom-in items-center justify-center rounded-lg border border-[var(--border)] bg-white p-3 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                aria-label={t("View QR code")}
+              >
+                <Image
+                  src={qqGroup.qrCodeSrc}
+                  alt={t("QQ group QR code")}
+                  width={1284}
+                  height={2289}
+                  className="max-h-[380px] w-full rounded-md object-contain"
+                />
+              </button>
+              <div className="bg-[var(--surface)] flex min-h-10 items-center gap-2 rounded-md px-3 py-2">
+                <span className="text-[var(--muted)] text-xs font-medium">
+                  {t("Group ID")}
+                </span>
+                <span className="min-w-0 flex-1 font-mono text-sm break-all">
+                  {qqGroup.value}
+                </span>
+                <CopyButton
+                  value={qqGroup.value}
+                  tooltip={t("Copy contact")}
+                  successTooltip={t("Copied!")}
+                  aria-label={t("Copy contact")}
+                />
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                render={
+                  <a
+                    href={qqGroup.quickJoinHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  />
+                }
+              >
+                <ExternalLink className="size-4" />
+                {t("Quick join")}
+              </Button>
+            </CardContent>
+          </Card>
         </section>
 
         <Dialog
@@ -181,9 +254,11 @@ export function ContactPage() {
             </DialogHeader>
             <div className="bg-[var(--surface)] rounded-lg p-3">
               {qrCodeMethod?.qrCodeSrc ? (
-                <img
+                <Image
                   src={qrCodeMethod.qrCodeSrc}
                   alt={t("QQ group QR code")}
+                  width={1284}
+                  height={2289}
                   className="mx-auto max-h-[76vh] w-full rounded-md object-contain"
                 />
               ) : null}
@@ -192,7 +267,7 @@ export function ContactPage() {
               {qrCodeMethod?.value}
             </p>
             <a
-              href="https://qm.qq.com/q/GJeiqkSsQA"
+              href={qqGroup.quickJoinHref}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 dark:text-emerald-300"

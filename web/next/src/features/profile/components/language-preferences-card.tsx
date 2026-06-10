@@ -21,6 +21,7 @@ import { Languages, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
+import { saveLanguagePreference } from '@/i18n/language'
 import {
   Select,
   SelectContent,
@@ -82,6 +83,7 @@ export function LanguagePreferencesCard(props: LanguagePreferencesCardProps) {
     setCurrentLanguage(nextLanguage)
     setSaving(true)
     await i18n.changeLanguage(nextLanguage)
+    saveLanguagePreference(nextLanguage)
 
     try {
       const response = await updateUserLanguage(nextLanguage)
@@ -108,6 +110,7 @@ export function LanguagePreferencesCard(props: LanguagePreferencesCardProps) {
     } catch (_error) {
       setCurrentLanguage(previousLanguage)
       await i18n.changeLanguage(previousLanguage)
+      saveLanguagePreference(previousLanguage)
       toast.error(t('Failed to update settings'))
     } finally {
       setSaving(false)

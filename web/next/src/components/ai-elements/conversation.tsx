@@ -61,7 +61,7 @@ const Conversation = React.forwardRef<HTMLDivElement, ConversationProps>(
 );
 Conversation.displayName = "Conversation";
 
-export interface ConversationItemProps extends React.HTMLAttributes<HTMLDivElement> {}
+export type ConversationItemProps = React.HTMLAttributes<HTMLDivElement>;
 
 const ConversationItem = React.forwardRef<HTMLDivElement, ConversationItemProps>(
   ({ className, ...props }, ref) => (

@@ -18,14 +18,35 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { migrateConsoleSetting } from '../api'
 import { getOptionValue, useSystemOptions } from '../hooks/use-system-options'
 import type { ContentSettings } from '../types'
 import {
   CONTENT_DEFAULT_SECTION,
   getContentSectionContent,
 } from './section-registry'
+
+const legacyKeys = [
+  'ApiInfo',
+  'Announcements',
+  'FAQ',
+  'UptimeKumaUrl',
+  'UptimeKumaSlug',
+] as const
 
 const defaultContentSettings: ContentSettings = {
   'console_setting.api_info': '[]',
@@ -50,14 +71,26 @@ const defaultContentSettings: ContentSettings = {
 
 export function ContentSettings({ sectionId }: { sectionId?: string }) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const { data, isLoading } = useSystemOptions()
+  const [showMigrationDialog, setShowMigrationDialog] = useState(false)
+
+  const optionMap = useMemo(
+    () => new Map((data?.data ?? []).map((item) => [item.key, item.value])),
+    [data?.data]
+  )
+
+  const hasLegacyData = useMemo(
+    () => legacyKeys.some((key) => Boolean(optionMap.get(key))),
+    [optionMap]
+  )
+
+  const migrationMutation = useMutation({
+    mutationFn: migrateConsoleSetting,
+  })
 
   const settings = useMemo(() => {
     const resolved = getOptionValue(data?.data, defaultContentSettings)
-
-    const optionMap = new Map(
-      (data?.data ?? []).map((item) => [item.key, item.value])
-    )
 
     if (!optionMap.has('console_setting.announcements')) {
       const legacy = optionMap.get('Announcements')
@@ -96,7 +129,32 @@ export function ContentSettings({ sectionId }: { sectionId?: string }) {
     }
 
     return resolved
-  }, [data?.data])
+  }, [data?.data, optionMap])
+
+  useEffect(() => {
+    if (hasLegacyData) {
+      setShowMigrationDialog(true)
+    }
+  }, [hasLegacyData])
+
+  const handleMigrate = async () => {
+    try {
+      const result = await migrationMutation.mutateAsync()
+      if (result.success) {
+        await queryClient.invalidateQueries({ queryKey: ['system-options'] })
+        toast.success(t('Legacy settings migrated successfully'))
+        setShowMigrationDialog(false)
+      } else {
+        toast.error(result.message || t('Failed to migrate legacy settings'))
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t('Failed to migrate legacy settings')
+      )
+    }
+  }
 
   if (isLoading) {
     return (
@@ -119,10 +177,62 @@ export function ContentSettings({ sectionId }: { sectionId?: string }) {
   const sectionContent = getContentSectionContent(activeSection, settings)
 
   return (
-    <div className='flex h-full w-full flex-1 flex-col'>
-      <div className='faded-bottom h-full w-full overflow-y-auto scroll-smooth pe-4 pb-12'>
-        <div className='space-y-4'>{sectionContent}</div>
+    <>
+      <Dialog
+        open={showMigrationDialog}
+        onOpenChange={(open) => {
+          if (!migrationMutation.isPending) {
+            setShowMigrationDialog(open)
+          }
+        }}
+      >
+        <DialogContent showCloseButton={!migrationMutation.isPending}>
+          <DialogHeader>
+            <DialogTitle>{t('Legacy dashboard settings detected')}</DialogTitle>
+            <DialogDescription>
+              {t(
+                'Detected legacy dashboard content settings. Migrate them to the new console_setting format before editing these sections.'
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className='rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-[var(--foreground)]'>
+            {t(
+              'The migration converts API addresses, announcements, FAQ, and Uptime Kuma settings, then clears the old option keys. Back up the legacy option values before continuing.'
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type='button'
+              variant='outline'
+              disabled={migrationMutation.isPending}
+              onClick={() => setShowMigrationDialog(false)}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              type='button'
+              disabled={migrationMutation.isPending}
+              onClick={handleMigrate}
+            >
+              <RefreshCw
+                aria-hidden='true'
+                className={`h-4 w-4 ${migrationMutation.isPending ? 'animate-spin' : ''}`}
+              />
+              {migrationMutation.isPending
+                ? t('Migrating...')
+                : t('Migrate settings')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className='flex h-full w-full flex-1 flex-col'>
+        <div className='faded-bottom h-full w-full overflow-y-auto scroll-smooth pe-4 pb-12'>
+          <div className='space-y-4'>{sectionContent}</div>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

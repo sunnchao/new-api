@@ -24,7 +24,7 @@ import {
   useCallback,
   useRef,
 } from 'react'
-import { useForm } from 'react-hook-form'
+import { type SubmitErrorHandler, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -144,6 +144,7 @@ import {
   hasModelConfigChanged,
   findMissingModelsInMapping,
   validateModelMappingJson,
+  hasAdvancedSettingsErrors,
 } from '../../lib'
 import {
   collectInvalidStatusCodeEntries,
@@ -166,6 +167,8 @@ type ChannelMutateDrawerProps = {
   onOpenChange: (open: boolean) => void
   currentRow?: Channel | null
 }
+
+const DEPRECATED_DOUBAO_CODING_PLAN_BASE_URL = 'doubao-coding-plan'
 
 type ModelMappingGuardrail = {
   invalidJson: boolean
@@ -238,6 +241,7 @@ function hasAdvancedSettingsValues(values: ChannelFormValues): boolean {
     values.force_format ||
     values.thinking_to_content ||
     values.pass_through_body_enabled ||
+    values.pass_through_header_enabled ||
     values.system_prompt_override ||
     values.claude_beta_query ||
     values.upstream_model_update_check_enabled ||
@@ -301,13 +305,13 @@ export function ChannelMutateDrawer({
   const { setOpen } = useChannels()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [customModel, setCustomModel] = useState('')
-  const [isFetchingModels, setIsFetchingModels] = useState(false)
   const [fetchModelsDialogOpen, setFetchModelsDialogOpen] = useState(false)
   const [channelKey, setChannelKey] = useState<string | null>(null)
   const [isChannelKeyLoading, setIsChannelKeyLoading] = useState(false)
   const [codexOAuthDialogOpen, setCodexOAuthDialogOpen] = useState(false)
   const [isCodexCredentialRefreshing, setIsCodexCredentialRefreshing] =
     useState(false)
+  const initialBaseUrlRef = useRef<string>('')
   const initialModelsRef = useRef<string[]>([])
   const initialModelMappingRef = useRef<string>('')
   const initialStatusCodeMappingRef = useRef<string>('')
@@ -392,6 +396,7 @@ export function ChannelMutateDrawer({
   const keyMode = form.watch('key_mode')
   const currentGroups = form.watch('group')
   const currentType = form.watch('type')
+  const currentName = form.watch('name')
   const currentBaseUrl = form.watch('base_url')
   const currentModels = form.watch('models')
   const currentModelMapping = form.watch('model_mapping')
@@ -400,6 +405,8 @@ export function ChannelMutateDrawer({
     'upstream_model_update_check_enabled'
   )
   const currentSettings = form.watch('settings')
+  const canKeepDeprecatedDoubaoCodingPlan =
+    initialBaseUrlRef.current === DEPRECATED_DOUBAO_CODING_PLAN_BASE_URL
   const {
     unlocked: doubaoApiEditUnlocked,
     handleClick: handleApiConfigSecretClick,
@@ -614,9 +621,11 @@ export function ChannelMutateDrawer({
       initialModelMappingRef.current = channelData.data.model_mapping || ''
       initialStatusCodeMappingRef.current =
         channelData.data.status_code_mapping || ''
+      initialBaseUrlRef.current = channelData.data.base_url || ''
     } else if (!isEditing) {
       form.reset(CHANNEL_FORM_DEFAULT_VALUES)
       setAdvancedSettingsOpen(false)
+      initialBaseUrlRef.current = ''
       initialModelsRef.current = []
       initialModelMappingRef.current = ''
       initialStatusCodeMappingRef.current = ''
@@ -767,43 +776,29 @@ export function ChannelMutateDrawer({
       return
     }
 
-    // For editing mode, open FetchModelsDialog to let user select
-    if (isEditing && currentRow) {
-      setFetchModelsDialogOpen(true)
-      return
-    }
-
-    // For creation mode, fetch and fill all models
-    const key = form.getValues('key')
-    if (!key?.trim()) {
-      toast.error(t('Please enter API key first'))
-      return
-    }
-
-    setIsFetchingModels(true)
-    try {
-      const response = await fetchModels({
-        type,
-        key,
-        base_url: form.getValues('base_url') || '',
-      })
-
-      if (response.success && response.data) {
-        updateModels(response.data, true)
-        toast.success(
-          t('Fetched {{count}} model(s) from upstream', {
-            count: response.data.length,
-          })
-        )
-      } else {
-        toast.error(t('No models fetched from upstream'))
+    // For creation mode, validate key before opening dialog
+    if (!isEditing) {
+      const key = form.getValues('key')
+      if (!key?.trim()) {
+        toast.error(t('Please enter API key first'))
+        return
       }
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error) || t('Failed to fetch models'))
-    } finally {
-      setIsFetchingModels(false)
     }
-  }, [isEditing, currentRow, form, t, updateModels])
+
+    setFetchModelsDialogOpen(true)
+  }, [isEditing, form, t])
+
+  const createModeFetcher = useCallback(async (): Promise<string[]> => {
+    const response = await fetchModels({
+      type: form.getValues('type'),
+      key: form.getValues('key'),
+      base_url: form.getValues('base_url') || '',
+    })
+    if (response.success && response.data) {
+      return response.data
+    }
+    throw new Error(response.message || 'No models fetched from upstream')
+  }, [form])
 
   // Handle adding custom models
   const handleAddCustomModels = useCallback(() => {
@@ -1045,6 +1040,9 @@ export function ChannelMutateDrawer({
             currentRow.id,
             payloadWithKeyMode
           )
+          if (!response.success) {
+            throw new Error(response.message || t(ERROR_MESSAGES.UPDATE_FAILED))
+          }
           if (response.success) {
             toast.success(t(SUCCESS_MESSAGES.UPDATED))
             handleSuccess()
@@ -1053,6 +1051,9 @@ export function ChannelMutateDrawer({
           // Create new channel(s)
           const payload = transformFormDataToCreatePayload(data)
           const response = await createChannel(payload)
+          if (!response.success) {
+            throw new Error(response.message || t(ERROR_MESSAGES.CREATE_FAILED))
+          }
           if (response.success) {
             toast.success(t(SUCCESS_MESSAGES.CREATED))
             handleSuccess()
@@ -1098,6 +1099,16 @@ export function ChannelMutateDrawer({
     }
   }, [])
 
+  const onInvalid: SubmitErrorHandler<ChannelFormValues> = useCallback(
+    (errors) => {
+      if (hasAdvancedSettingsErrors(errors)) {
+        handleAdvancedSettingsOpenChange(true)
+      }
+      toast.error(t('Please fix the highlighted fields before saving'))
+    },
+    [handleAdvancedSettingsOpenChange, t]
+  )
+
   return (
     <>
       <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -1128,7 +1139,7 @@ export function ChannelMutateDrawer({
           <Form {...form}>
             <form
               id='channel-form'
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={form.handleSubmit(onSubmit, onInvalid)}
               className='flex-1 space-y-4 overflow-y-auto px-3 py-3 pb-4 sm:space-y-5 sm:px-4'
             >
               {/* ── Basic Information ── */}
@@ -1673,7 +1684,7 @@ export function ChannelMutateDrawer({
                           <FormControl>
                             <Textarea
                               placeholder={t(
-                                'e.g., us-central1 or JSON format for model-specific regions'
+                                'JSON format, e.g. {"default": "us-central1"}'
                               )}
                               rows={3}
                               {...field}
@@ -1720,7 +1731,7 @@ export function ChannelMutateDrawer({
                               ),
                             },
                             {
-                              value: 'doubao-coding-plan',
+                              value: DEPRECATED_DOUBAO_CODING_PLAN_BASE_URL,
                               label: t('Doubao Coding Plan'),
                             },
                           ]}
@@ -1742,7 +1753,10 @@ export function ChannelMutateDrawer({
                               <SelectItem value='https://ark.ap-southeast.bytepluses.com'>
                                 {t('https://ark.ap-southeast.bytepluses.com')}
                               </SelectItem>
-                              <SelectItem value='doubao-coding-plan'>
+                              <SelectItem
+                                value={DEPRECATED_DOUBAO_CODING_PLAN_BASE_URL}
+                                disabled={!canKeepDeprecatedDoubaoCodingPlan}
+                              >
                                 {t('Doubao Coding Plan')}
                               </SelectItem>
                             </SelectGroup>
@@ -2234,13 +2248,8 @@ export function ChannelMutateDrawer({
                                 variant='outline'
                                 size='sm'
                                 onClick={handleFetchModels}
-                                disabled={isFetchingModels}
                               >
-                                {isFetchingModels ? (
-                                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                                ) : (
-                                  <Sparkles className='mr-2 h-4 w-4' />
-                                )}
+                                <Sparkles className='mr-2 h-4 w-4' />
                                 {t('Fetch from Upstream')}
                               </Button>
                             )}
@@ -2379,6 +2388,10 @@ export function ChannelMutateDrawer({
                           value={field.value || ''}
                           onChange={field.onChange}
                           disabled={isSubmitting}
+                          sourceModelOptions={currentModelsArray}
+                          targetModelOptions={modelOptions.map(
+                            (option) => option.value
+                          )}
                         />
                       </FormControl>
                       <FormDescription>
@@ -3166,6 +3179,29 @@ export function ChannelMutateDrawer({
                           </FormItem>
                         )}
                       />
+
+                      <FormField
+                        control={form.control}
+                        name='pass_through_header_enabled'
+                        render={({ field }) => (
+                          <FormItem className='flex items-center justify-between px-4 py-3'>
+                            <div className='space-y-0.5'>
+                              <FormLabel>
+                                {t('Pass Through Headers')}
+                              </FormLabel>
+                              <FormDescription>
+                                {t('Pass request headers directly to upstream')}
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
                     <FormField
@@ -3390,19 +3426,23 @@ export function ChannelMutateDrawer({
         />
       )}
 
-      {/* Fetch Models Dialog (for editing mode) */}
-      {isEditing && currentRow && (
-        <FetchModelsDialog
-          open={fetchModelsDialogOpen}
-          onOpenChange={setFetchModelsDialogOpen}
-          onModelsSelected={(models) => {
-            // Fill selected models to form
-            form.setValue('models', formatModelsArray(models))
-          }}
-          redirectModels={redirectModelList}
-          redirectSourceModels={redirectModelKeyList}
-        />
-      )}
+      {/* Fetch Models Dialog */}
+      <FetchModelsDialog
+        open={fetchModelsDialogOpen}
+        onOpenChange={setFetchModelsDialogOpen}
+        onModelsSelected={(models) => {
+          form.setValue('models', formatModelsArray(models))
+        }}
+        redirectModels={redirectModelList}
+        redirectSourceModels={redirectModelKeyList}
+        customFetcher={!isEditing ? createModeFetcher : undefined}
+        channelName={!isEditing ? currentName?.trim() : undefined}
+        existingModelsOverride={
+          !isEditing
+            ? parseModelsString(form.getValues('models') || '')
+            : undefined
+        }
+      />
 
       <SecureVerificationDialog
         open={verificationOpen}

@@ -1,107 +1,174 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { Link2, Copy } from "lucide-react";
-import { buildChatLink, encodeChatLinkPayload, writeChatSession } from "./lib";
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { ChatTokenPickerDialog } from '@/features/chat/components/chat-token-picker-dialog'
+import {
+  useChatTokenKey,
+  useEnabledChatTokens,
+} from '@/features/chat/hooks/use-active-chat-key'
+import { useChatPresets } from '@/features/chat/hooks/use-chat-presets'
+import {
+  chatLinkRequiresApiKey,
+  resolveChatUrl,
+} from '@/features/chat/lib/chat-links'
 
 export default function Chat2LinkPage() {
-  const { t } = useTranslation();
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [generated, setGenerated] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { t } = useTranslation()
+  const router = useRouter()
+  const { chatPresets, serverAddress } = useChatPresets()
 
-  const handleGenerate = async () => {
-    if (!content.trim()) {
-      toast.error("Please enter chat content");
-      return;
+  const firstWebPreset = useMemo(
+    () => chatPresets.find((preset) => preset.type === 'web'),
+    [chatPresets]
+  )
+
+  const needsToken = useMemo(
+    () =>
+      Boolean(firstWebPreset && chatLinkRequiresApiKey(firstWebPreset.url)),
+    [firstWebPreset]
+  )
+
+  const [selectedTokenId, setSelectedTokenId] = useState<number | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [cancelled, setCancelled] = useState(false)
+  const presetKey = firstWebPreset?.id ?? null
+  const [resetKey, setResetKey] = useState<string | null>(null)
+  const nextResetKey = needsToken ? presetKey : null
+
+  if (resetKey !== nextResetKey) {
+    setResetKey(nextResetKey)
+    setSelectedTokenId(null)
+    setCancelled(false)
+    setPickerOpen(Boolean(nextResetKey))
+  }
+
+  const {
+    data: tokens = [],
+    isLoading: tokensLoading,
+    error: tokensError,
+  } = useEnabledChatTokens(needsToken && pickerOpen)
+
+  const {
+    data: activeKey,
+    error: keyError,
+  } = useChatTokenKey(needsToken ? selectedTokenId : null)
+
+  useEffect(() => {
+    if (!firstWebPreset) {
+      if (chatPresets.length > 0) {
+        toast.error(t('No available Web chat links'))
+      }
+      return
     }
-    setLoading(true);
-    try {
-      // Encode chat content into a sharable link
-      const id = encodeChatLinkPayload({ title, content, created: Date.now() });
-      const link = buildChatLink(id);
 
-      writeChatSession(id, {
-        id,
-        title: title || "Shared chat",
-        messages: [{ role: "system", content }],
-      });
-
-      setGenerated(link);
-      toast.success("Link generated");
-    } catch {
-      toast.error("Failed to generate link");
-    } finally {
-      setLoading(false);
+    if (needsToken) {
+      if (selectedTokenId == null) return
+      if (activeKey === undefined && !keyError) return
+      if (keyError || !activeKey) {
+        const message =
+          keyError instanceof Error
+            ? keyError.message
+            : t('No enabled tokens available')
+        toast.error(message)
+        router.push('/keys')
+        return
+      }
     }
-  };
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(generated);
-    toast.success(t("common.copied"));
-  };
+    const url = resolveChatUrl({
+      template: firstWebPreset.url,
+      apiKey: needsToken ? activeKey : undefined,
+      serverAddress,
+    })
+
+    if (url) {
+      window.location.href = url
+    }
+  }, [
+    firstWebPreset,
+    needsToken,
+    selectedTokenId,
+    activeKey,
+    keyError,
+    serverAddress,
+    chatPresets.length,
+    router,
+    t,
+  ])
+
+  const picker = (
+    <ChatTokenPickerDialog
+      open={pickerOpen}
+      onOpenChange={(open) => {
+        setPickerOpen(open)
+        if (!open && selectedTokenId == null) {
+          setCancelled(true)
+        }
+      }}
+      tokens={tokens}
+      isLoading={tokensLoading}
+      error={tokensError as Error | null}
+      onSelect={(tokenId) => {
+        setSelectedTokenId(tokenId)
+        setPickerOpen(false)
+        setCancelled(false)
+      }}
+    />
+  )
+
+  if (needsToken && cancelled && selectedTokenId == null) {
+    return (
+      <>
+        {picker}
+        <div className='flex h-full flex-col items-center justify-center gap-4 p-6 text-center'>
+          <p className='text-muted-foreground text-sm'>
+            {t('You cancelled token selection.')}
+          </p>
+          <Button
+            onClick={() => {
+              setCancelled(false)
+              setPickerOpen(true)
+            }}
+          >
+            {t('Select token again')}
+          </Button>
+        </div>
+      </>
+    )
+  }
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div className="flex items-center gap-3">
-        <Link2 className="h-6 w-6 text-[var(--accent)]" />
-        <h1 className="text-2xl font-bold">Chat to Link</h1>
+    <>
+      {picker}
+      <div className='flex h-full flex-col items-center justify-center gap-3'>
+        <Loader2 className='text-muted-foreground h-8 w-8 animate-spin' />
+        <p className='text-muted-foreground text-sm'>
+          {t('Redirecting to chat page...')}
+        </p>
       </div>
-
-      <p className="text-[var(--muted)] text-sm">
-        Convert your chat content into a shareable link that others can open.
-      </p>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Create shareable chat link</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Title (optional)</Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="My shared chat"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Chat content</Label>
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={8}
-              placeholder="Paste chat content or system prompt..."
-            />
-          </div>
-          <Button onClick={handleGenerate} disabled={loading}>
-            {loading ? t("common.loading") : "Generate link"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {generated && (
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-2">
-              <Badge variant="success">Ready</Badge>
-              <code className="text-xs flex-1 truncate font-mono">{generated}</code>
-              <Button variant="ghost" size="icon" onClick={copyLink}>
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
+    </>
+  )
 }

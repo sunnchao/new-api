@@ -24,7 +24,11 @@ import { Pencil } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
-import { formatQuota, parseQuotaFromDollars } from '@/lib/format'
+import {
+  formatQuota,
+  parseQuotaFromDollars,
+  quotaUnitsToDollars,
+} from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -155,7 +159,7 @@ export function UsersMutateDrawer({
     if (!currentRow) return
     const result = await getUser(currentRow.id)
     if (result.success && result.data) {
-      form.reset(transformUserToFormDefaults(result.data))
+      form.setValue('quota_dollars', quotaUnitsToDollars(result.data.quota))
     }
     triggerRefresh()
   }

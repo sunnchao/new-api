@@ -16,10 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
+  type ColumnFiltersState,
   type SortingState,
   type VisibilityState,
   getCoreRowModel,
@@ -55,6 +56,19 @@ function isDisabledUserRow(user: User) {
   return isUserDeleted(user) || user.status === USER_STATUS.DISABLED
 }
 
+function getFirstColumnFilterValue(
+  columnFilters: ColumnFiltersState,
+  columnId: string
+) {
+  const value = columnFilters.find((filter) => filter.id === columnId)?.value
+  if (Array.isArray(value)) return value[0] === undefined ? '' : String(value[0])
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  return ''
+}
+
 export function UsersTable() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -84,6 +98,15 @@ export function UsersTable() {
     ],
   })
 
+  const userSearchFilters = useMemo(
+    () => ({
+      status: getFirstColumnFilterValue(columnFilters, 'status'),
+      role: getFirstColumnFilterValue(columnFilters, 'role'),
+      group: getFirstColumnFilterValue(columnFilters, 'group'),
+    }),
+    [columnFilters]
+  )
+
   // Fetch data with React Query
   const { data, isLoading, isFetching } = useQuery({
     queryKey: [
@@ -91,22 +114,29 @@ export function UsersTable() {
       pagination.pageIndex + 1,
       pagination.pageSize,
       globalFilter,
+      userSearchFilters,
       refreshTrigger,
     ],
     queryFn: async () => {
-      const hasFilter = globalFilter?.trim()
+      const keyword = globalFilter?.trim() ?? ''
+      const hasServerFilter =
+        Boolean(keyword) ||
+        Boolean(userSearchFilters.status) ||
+        Boolean(userSearchFilters.role) ||
+        Boolean(userSearchFilters.group)
       const params = {
         p: pagination.pageIndex + 1,
         page_size: pagination.pageSize,
       }
 
-      const result = hasFilter
-        ? await searchUsers({ ...params, keyword: globalFilter })
+      const result = hasServerFilter
+        ? await searchUsers({ ...params, keyword, ...userSearchFilters })
         : await getUsers(params)
 
       if (!result.success) {
         toast.error(
-          result.message || `Failed to ${hasFilter ? 'search' : 'load'} users`
+          result.message ||
+            `Failed to ${hasServerFilter ? 'search' : 'load'} users`
         )
         return { items: [], total: 0 }
       }
@@ -158,7 +188,7 @@ export function UsersTable() {
     onPaginationChange,
     onGlobalFilterChange,
     onColumnFiltersChange,
-    manualPagination: !globalFilter,
+    manualPagination: true,
     pageCount: Math.ceil((data?.total || 0) / pagination.pageSize),
   })
 

@@ -59,6 +59,7 @@ type GroupRatioVisualEditorProps = {
   groupRatio: string
   topupGroupRatio: string
   userUsableGroups: string
+  userUnselectableGroups: string
   groupGroupRatio: string
   autoGroups: string
   onChange: (field: string, value: string) => void
@@ -74,6 +75,7 @@ type GroupPricingRow = {
   name: string
   ratio: number
   selectable: boolean
+  hidden: boolean
   description: string
 }
 
@@ -99,7 +101,8 @@ function normalizeRatio(value: unknown): number {
 
 function buildGroupPricingRows(
   groupRatio: string,
-  userUsableGroups: string
+  userUsableGroups: string,
+  userUnselectableGroups: string
 ): GroupPricingRow[] {
   const ratioMap = safeJsonParse<Record<string, number>>(groupRatio, {
     fallback: {},
@@ -109,20 +112,33 @@ function buildGroupPricingRows(
     fallback: {},
     context: 'user usable groups',
   })
-  const names = new Set([...Object.keys(ratioMap), ...Object.keys(usableMap)])
+  const unselectableMap = safeJsonParse<Record<string, string>>(
+    userUnselectableGroups,
+    {
+      fallback: {},
+      context: 'user unselectable groups',
+    }
+  )
+  const names = new Set([
+    ...Object.keys(ratioMap),
+    ...Object.keys(usableMap),
+    ...Object.keys(unselectableMap),
+  ])
 
   return Array.from(names).map((name) => ({
     _id: createGroupPricingId(),
     name,
     ratio: normalizeRatio(ratioMap[name]),
     selectable: Object.prototype.hasOwnProperty.call(usableMap, name),
-    description: String(usableMap[name] ?? ''),
+    hidden: Object.prototype.hasOwnProperty.call(unselectableMap, name),
+    description: String(usableMap[name] ?? unselectableMap[name] ?? ''),
   }))
 }
 
 function serializeGroupPricingRows(rows: GroupPricingRow[]) {
   const groupRatio: Record<string, number> = {}
   const userUsableGroups: Record<string, string> = {}
+  const userUnselectableGroups: Record<string, string> = {}
 
   for (const row of rows) {
     const name = row.name.trim()
@@ -130,12 +146,15 @@ function serializeGroupPricingRows(rows: GroupPricingRow[]) {
     groupRatio[name] = normalizeRatio(row.ratio)
     if (row.selectable) {
       userUsableGroups[name] = row.description
+    } else if (row.hidden) {
+      userUnselectableGroups[name] = row.description || name
     }
   }
 
   return {
     GroupRatio: JSON.stringify(groupRatio, null, 2),
     UserUsableGroups: JSON.stringify(userUsableGroups, null, 2),
+    UserUnselectableGroups: JSON.stringify(userUnselectableGroups, null, 2),
   }
 }
 
@@ -150,16 +169,28 @@ function groupPricingSignature(rows: GroupPricingRow[]): string {
       fallback: {},
       silent: true,
     }),
+    userUnselectableGroups: safeJsonParse(
+      serialized.UserUnselectableGroups,
+      {
+        fallback: {},
+        silent: true,
+      }
+    ),
   })
 }
 
 function sourceGroupPricingSignature(
   groupRatio: string,
-  userUsableGroups: string
+  userUsableGroups: string,
+  userUnselectableGroups: string
 ): string {
   return JSON.stringify({
     groupRatio: safeJsonParse(groupRatio, { fallback: {}, silent: true }),
     userUsableGroups: safeJsonParse(userUsableGroups, {
+      fallback: {},
+      silent: true,
+    }),
+    userUnselectableGroups: safeJsonParse(userUnselectableGroups, {
       fallback: {},
       silent: true,
     }),
@@ -170,6 +201,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
   groupRatio,
   topupGroupRatio,
   userUsableGroups,
+  userUnselectableGroups,
   groupGroupRatio,
   autoGroups,
   onChange,
@@ -415,6 +447,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
       <GroupPricingTable
         groupRatio={groupRatio}
         userUsableGroups={userUsableGroups}
+        userUnselectableGroups={userUnselectableGroups}
         onChange={onChange}
       />
 
@@ -755,31 +788,38 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
 type GroupPricingTableProps = {
   groupRatio: string
   userUsableGroups: string
+  userUnselectableGroups: string
   onChange: (field: string, value: string) => void
 }
 
 function GroupPricingTable({
   groupRatio,
   userUsableGroups,
+  userUnselectableGroups,
   onChange,
 }: GroupPricingTableProps) {
   const { t } = useTranslation()
   const [rows, setRows] = useState<GroupPricingRow[]>(() =>
-    buildGroupPricingRows(groupRatio, userUsableGroups)
+    buildGroupPricingRows(groupRatio, userUsableGroups, userUnselectableGroups)
   )
 
   useEffect(() => {
     const incomingSignature = sourceGroupPricingSignature(
       groupRatio,
-      userUsableGroups
+      userUsableGroups,
+      userUnselectableGroups
     )
     setRows((currentRows) => {
       if (groupPricingSignature(currentRows) === incomingSignature) {
         return currentRows
       }
-      return buildGroupPricingRows(groupRatio, userUsableGroups)
+      return buildGroupPricingRows(
+        groupRatio,
+        userUsableGroups,
+        userUnselectableGroups
+      )
     })
-  }, [groupRatio, userUsableGroups])
+  }, [groupRatio, userUsableGroups, userUnselectableGroups])
 
   const emitRows = useCallback(
     (nextRows: GroupPricingRow[]) => {
@@ -787,6 +827,7 @@ function GroupPricingTable({
       const serialized = serializeGroupPricingRows(nextRows)
       onChange('GroupRatio', serialized.GroupRatio)
       onChange('UserUsableGroups', serialized.UserUsableGroups)
+      onChange('UserUnselectableGroups', serialized.UserUnselectableGroups)
     },
     [onChange]
   )
@@ -819,6 +860,7 @@ function GroupPricingTable({
         name,
         ratio: 1,
         selectable: true,
+        hidden: false,
         description: '',
       },
     ])
@@ -872,6 +914,9 @@ function GroupPricingTable({
                   <TableHead className='w-28 text-center'>
                     {t('User selectable')}
                   </TableHead>
+                  <TableHead className='w-28 text-center'>
+                    {t('Hidden group')}
+                  </TableHead>
                   <TableHead className='min-w-56'>{t('Description')}</TableHead>
                   <TableHead className='w-16 text-right'>
                     {t('Actions')}
@@ -882,7 +927,7 @@ function GroupPricingTable({
                 {rows.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className='text-muted-foreground h-20 text-center text-sm'
                     >
                       {t('No groups yet. Add a group to get started.')}
@@ -921,15 +966,34 @@ function GroupPricingTable({
                         <div className='flex justify-center'>
                           <Checkbox
                             checked={row.selectable}
-                            onCheckedChange={(checked) =>
-                              updateRow(row._id, 'selectable', checked === true)
-                            }
+                            onCheckedChange={(checked) => {
+                              const isSelectable = checked === true
+                              updateRow(row._id, 'selectable', isSelectable)
+                              if (isSelectable && row.hidden) {
+                                updateRow(row._id, 'hidden', false)
+                              }
+                            }}
                             aria-label={t('User selectable')}
                           />
                         </div>
                       </TableCell>
                       <TableCell>
-                        {row.selectable ? (
+                        <div className='flex justify-center'>
+                          <Checkbox
+                            checked={row.hidden}
+                            onCheckedChange={(checked) => {
+                              const isHidden = checked === true
+                              updateRow(row._id, 'hidden', isHidden)
+                              if (isHidden && row.selectable) {
+                                updateRow(row._id, 'selectable', false)
+                              }
+                            }}
+                            aria-label={t('Hidden group')}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {row.selectable || row.hidden ? (
                           <Input
                             value={row.description}
                             placeholder={t('Group description')}

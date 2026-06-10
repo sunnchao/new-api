@@ -1,3 +1,5 @@
+"use client"
+
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -16,15 +18,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useRouter } from 'next/navigation';
-import { useParams } from 'next/navigation';
-import { useCallback, useMemo } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSidebarConfig } from '@/hooks/use-sidebar-config'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SectionPageLayout } from '@/components/layout'
 import type { NavGroup } from '@/components/layout/types'
 import { CacheStatsDialog } from '@/features/system-settings/general/channel-affinity/cache-stats-dialog'
+import { createUrlFromSearchParams } from '@/lib/next-url'
 import { UserInfoDialog } from './components/dialogs/user-info-dialog'
 import {
   UsageLogsProvider,
@@ -36,6 +38,7 @@ import {
   USAGE_LOGS_DEFAULT_SECTION,
   type UsageLogsSectionId,
 } from './section-registry'
+import './i18n'
 
 const TASK_LOG_SECTIONS = ['drawing', 'task'] as const
 
@@ -60,10 +63,15 @@ const SECTION_META: Record<
 function UsageLogsContent() {
   const { t } = useTranslation()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const searchKey = searchParams.toString()
   const params = useParams()
+  const sectionParam = Array.isArray(params.section)
+    ? params.section[0]
+    : params.section
   const activeCategory: UsageLogsSectionId =
-    params.section && isUsageLogsSectionId(params.section)
-      ? params.section
+    sectionParam && isUsageLogsSectionId(sectionParam)
+      ? sectionParam
       : USAGE_LOGS_DEFAULT_SECTION
   const {
     selectedUserId,
@@ -101,10 +109,7 @@ function UsageLogsContent() {
 
   const handleSectionChange = useCallback(
     (section: string) => {
-      void router.push({
-        to: '/usage-logs/$section',
-        params: { section: section as UsageLogsSectionId },
-      })
+      void router.push(`/usage-logs/${section as UsageLogsSectionId}`)
     },
     [router]
   )
@@ -113,6 +118,16 @@ function UsageLogsContent() {
     activeCategory === 'common' ? SECTION_META.common : SECTION_META.task
   const showTaskSwitcher =
     activeCategory !== 'common' && visibleSections.length > 1
+
+  useEffect(() => {
+    if (activeCategory === 'common' || !searchParams.has('type')) return
+
+    router.replace(
+      createUrlFromSearchParams(`/usage-logs/${activeCategory}`, searchParams, {
+        type: undefined,
+      })
+    )
+  }, [activeCategory, router, searchKey, searchParams])
 
   return (
     <>

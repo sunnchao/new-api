@@ -1,3 +1,5 @@
+import i18n from '@/i18n/config'
+
 export const pricingI18nResources = {
   en: {
     translation: {
@@ -56,3 +58,7 @@ export const pricingI18nResources = {
     },
   },
 } as const
+
+for (const [language, resource] of Object.entries(pricingI18nResources)) {
+  i18n.addResourceBundle(language, 'translation', resource.translation, true, true)
+}

@@ -17,13 +17,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Crown, RefreshCw, Sparkles, Check } from 'lucide-react'
+import { Crown, RefreshCw, Sparkles, Check, ListTree } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { formatCurrencyUSD, formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Progress } from '@/components/ui/progress'
 import {
   Select,
@@ -48,11 +50,14 @@ import {
   type StatusVariant,
 } from '@/components/status-badge'
 import {
+  activateScheduledSubscription,
   getPublicPlans,
   getSelfSubscriptionFull,
   updateBillingPreference,
 } from '@/features/subscriptions/api'
+import { PublicPlanModelsDialog } from '@/features/subscriptions/components/public-plan-models-dialog'
 import { SubscriptionPurchaseDialog } from '@/features/subscriptions/components/dialogs/subscription-purchase-dialog'
+import { SubscriptionRenewDialog } from '@/features/subscriptions/components/dialogs/subscription-renew-dialog'
 import {
   formatDuration,
   formatResetPeriod,
@@ -60,6 +65,7 @@ import {
   formatSubscriptionAmountValue,
   formatTimestamp,
   getSubscriptionQuotaLimitItems,
+  parseAllowedGroups,
 } from '@/features/subscriptions/lib'
 import type {
   PlanRecord,
@@ -182,6 +188,8 @@ export function SubscriptionPlansCard({
   onAvailabilityChange,
 }: SubscriptionPlansCardProps) {
   const { t } = useTranslation()
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [plans, setPlans] = useState<PlanRecord[]>([])
   const [activeSubscriptions, setActiveSubscriptions] = useState<
@@ -197,9 +205,18 @@ export function SubscriptionPlansCard({
 
   const [purchaseOpen, setPurchaseOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<PlanRecord | null>(null)
+  const [modelsPlan, setModelsPlan] = useState<PlanRecord | null>(null)
+  const [renewOpen, setRenewOpen] = useState(false)
+  const [selectedRenewSub, setSelectedRenewSub] =
+    useState<UserSubscriptionRecord | null>(null)
+  const [activateConfirmSubId, setActivateConfirmSubId] = useState<
+    number | null
+  >(null)
+  const [activating, setActivating] = useState(false)
 
   const enableStripe = !!topupInfo?.enable_stripe_topup
   const enableCreem = !!topupInfo?.enable_creem_topup
+  const enableWaffoPancake = !!topupInfo?.enable_waffo_pancake_topup
   const enableOnlineTopUp = !!topupInfo?.enable_online_topup
   const epayMethods = useMemo(
     () => getEpayMethods(topupInfo?.pay_methods),
@@ -271,6 +288,13 @@ export function SubscriptionPlansCard({
 
   const hasActive = activeSubscriptions.length > 0
   const hasAny = allSubscriptions.length > 0
+  const scheduledSubscriptions = useMemo(
+    () =>
+      allSubscriptions.filter(
+        (sub) => sub?.subscription?.status === 'scheduled'
+      ),
+    [allSubscriptions]
+  )
   const isAvailable = loading || plans.length > 0 || hasAny
   const disablePref = !hasActive
   const isSubPref =
@@ -289,15 +313,66 @@ export function SubscriptionPlansCard({
     return map
   }, [allSubscriptions])
 
+  const modelsPlanGroups = useMemo(
+    () => parseAllowedGroups(modelsPlan?.plan?.allowed_groups),
+    [modelsPlan?.plan?.allowed_groups]
+  )
+
+  const handleActivateScheduled = async (subId: number) => {
+    setActivating(true)
+    try {
+      const res = await activateScheduledSubscription(subId)
+      if (res.success) {
+        toast.success(t('Subscription activated'))
+        await fetchSelfSubscription()
+      } else {
+        toast.error(res.message || t('Activation failed'))
+      }
+    } catch {
+      toast.error(t('Activation failed'))
+    } finally {
+      setActivating(false)
+      setActivateConfirmSubId(null)
+    }
+  }
+
   useEffect(() => {
     onAvailabilityChange?.(isAvailable)
   }, [isAvailable, onAvailabilityChange])
+
+  useEffect(() => {
+    if (loading || purchaseOpen || plans.length === 0) return
+
+    const rawPlanId =
+      searchParams.get('plan_id') || searchParams.get('subscribe_plan')
+    if (!rawPlanId) return
+
+    const planId = Number(rawPlanId)
+    const target = plans.find((item) => item?.plan?.id === planId)
+
+    router.replace('/my-subscriptions', { scroll: false })
+
+    if (!Number.isFinite(planId) || !target) return
+
+    setSelectedPlan(target)
+    setPurchaseOpen(true)
+  }, [loading, plans, purchaseOpen, router, searchParams])
 
   const planTitleMap = useMemo(() => {
     const map = new Map<number, string>()
     for (const p of plans) {
       if (p?.plan?.id) {
         map.set(p.plan.id, p.plan.title || '')
+      }
+    }
+    return map
+  }, [plans])
+
+  const planRecordMap = useMemo(() => {
+    const map = new Map<number, PlanRecord>()
+    for (const p of plans) {
+      if (p?.plan?.id) {
+        map.set(p.plan.id, p)
       }
     }
     return map
@@ -394,11 +469,24 @@ export function SubscriptionPlansCard({
                     {t('No Active')}
                   </span>
                 )}
-                {allSubscriptions.length > activeSubscriptions.length && (
+                {scheduledSubscriptions.length > 0 && (
                   <>
                     <span className='text-muted-foreground/30'>·</span>
                     <span className='text-muted-foreground'>
-                      {allSubscriptions.length - activeSubscriptions.length}{' '}
+                      {scheduledSubscriptions.length} {t('pending')}
+                    </span>
+                  </>
+                )}
+                {allSubscriptions.length -
+                  activeSubscriptions.length -
+                  scheduledSubscriptions.length >
+                  0 && (
+                  <>
+                    <span className='text-muted-foreground/30'>·</span>
+                    <span className='text-muted-foreground'>
+                      {allSubscriptions.length -
+                        activeSubscriptions.length -
+                        scheduledSubscriptions.length}{' '}
                       {t('expired')}
                     </span>
                   </>
@@ -511,7 +599,9 @@ export function SubscriptionPlansCard({
                   const remainDays = getRemainingDays(sub)
                   const usagePercent = getUsagePercent(sub)
                   const now = Date.now() / 1000
-                  const isExpired = (subscription?.end_time || 0) < now
+                  const isScheduled = subscription?.status === 'scheduled'
+                  const isExpired =
+                    !isScheduled && (subscription?.end_time || 0) < now
                   const isCancelled = subscription?.status === 'cancelled'
                   const isActive =
                     subscription?.status === 'active' && !isExpired
@@ -521,9 +611,9 @@ export function SubscriptionPlansCard({
                       key={subscription?.id}
                       className='bg-background rounded-md border p-3 text-xs'
                     >
-                      <div className='flex items-center justify-between'>
-                        <div className='flex items-center gap-2'>
-                          <span className='font-medium'>
+                      <div className='flex flex-wrap items-start justify-between gap-2'>
+                        <div className='flex min-w-0 flex-wrap items-center gap-2'>
+                          <span className='min-w-0 font-medium'>
                             {planTitle
                               ? `${planTitle} · ${t('Subscription')} #${subscription?.id}`
                               : `${t('Subscription')} #${subscription?.id}`}
@@ -532,6 +622,12 @@ export function SubscriptionPlansCard({
                             <StatusBadge
                               label={t('Active')}
                               variant='success'
+                              copyable={false}
+                            />
+                          ) : isScheduled ? (
+                            <StatusBadge
+                              label={t('Pending')}
+                              variant='warning'
                               copyable={false}
                             />
                           ) : isCancelled ? (
@@ -547,44 +643,84 @@ export function SubscriptionPlansCard({
                               copyable={false}
                             />
                           )}
-                            <StatusBadge
-                                label={formatBillingMode(
-                                    subscription?.billing_mode,
-                                    t
-                                )}
-                                variant='neutral'
-                                copyable={false}
-                            />
-                            {subscription?.source && (
-                                <StatusBadge
-                                    label={
-                                        subscription.source === 'admin'
-                                            ? t('Admin Assigned')
-                                            : t('Self Purchased')
-                                    }
-                                    variant='neutral'
-                                    copyable={false}
-                                />
+                          <StatusBadge
+                            label={formatBillingMode(
+                              subscription?.billing_mode,
+                              t
                             )}
+                            variant='neutral'
+                            copyable={false}
+                          />
+                          {subscription?.source && (
+                            <StatusBadge
+                              label={
+                                subscription.source === 'admin'
+                                  ? t('Admin Assigned')
+                                  : t('Self Purchased')
+                              }
+                              variant='neutral'
+                              copyable={false}
+                            />
+                          )}
                         </div>
-                        {isActive && (
-                          <span className='text-muted-foreground'>
-                            {t('{{count}} days remaining', {
-                              count: remainDays,
-                            })}
-                          </span>
-                        )}
+                        <div className='flex shrink-0 flex-wrap items-center justify-end gap-2'>
+                          {isActive && (
+                            <span className='text-muted-foreground'>
+                              {t('{{count}} days remaining', {
+                                count: remainDays,
+                              })}
+                            </span>
+                          )}
+                          {isActive && (
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='h-6 px-2 text-xs'
+                              onClick={() => {
+                                setSelectedRenewSub(sub)
+                                setRenewOpen(true)
+                              }}
+                            >
+                              {t('Renew')}
+                            </Button>
+                          )}
+                          {isScheduled && (
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              className='h-6 px-2 text-xs'
+                              disabled={activating}
+                              onClick={() =>
+                                setActivateConfirmSubId(subscription!.id)
+                              }
+                            >
+                              {t('Activate Now')}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       <div className='text-muted-foreground mt-1.5'>
-                        {isActive
+                        {isScheduled
+                          ? t('Scheduled to activate at')
+                          : isActive
                           ? t('Until')
                           : isCancelled
                             ? t('Cancelled at')
                             : t('Expired at')}{' '}
                         {new Date(
-                          (subscription?.end_time || 0) * 1000
+                          ((isScheduled
+                            ? subscription?.start_time
+                            : subscription?.end_time) || 0) * 1000
                         ).toLocaleString()}
                       </div>
+                      {isScheduled && (
+                        <div className='text-muted-foreground mt-1'>
+                          {t('Estimated expiry')}:{' '}
+                          {new Date(
+                            (subscription?.end_time || 0) * 1000
+                          ).toLocaleString()}
+                        </div>
+                      )}
                       {isActive && (subscription?.next_reset_time ?? 0) > 0 && (
                         <div className='text-muted-foreground mt-1'>
                           {t('Next reset')}:{' '}
@@ -651,10 +787,7 @@ export function SubscriptionPlansCard({
               const count = planPurchaseCountMap.get(plan.id) || 0
               const reached = limit > 0 && count >= limit
 
-            const allowedGroups = plan.allowed_groups
-                ?.split(',')
-                .map((g) => g.trim())
-                .filter(Boolean)
+              const allowedGroups = parseAllowedGroups(plan.allowed_groups)
 
             const isRequestPlan = plan.billing_mode === 'request'
             const fmtPlanAmount = (v: number) =>
@@ -759,6 +892,18 @@ export function SubscriptionPlansCard({
                           <span>{label}</span>
                         </div>
                       ))}
+                      {allowedGroups.length > 0 && (
+                        <Button
+                          type='button'
+                          variant='outline'
+                          size='sm'
+                          className='mt-2 w-fit'
+                          onClick={() => setModelsPlan(p)}
+                        >
+                          <ListTree className='size-3.5' />
+                          {t('View all models')}
+                        </Button>
+                      )}
                     </div>
 
                     <Separator className='mb-3' />
@@ -810,6 +955,7 @@ export function SubscriptionPlansCard({
         plan={selectedPlan}
         enableStripe={enableStripe}
         enableCreem={enableCreem}
+        enableWaffoPancake={enableWaffoPancake}
         enableOnlineTopUp={enableOnlineTopUp}
         epayMethods={epayMethods}
         purchaseLimit={
@@ -823,6 +969,48 @@ export function SubscriptionPlansCard({
             : undefined
         }
       />
+
+      {modelsPlan && modelsPlanGroups.length > 0 && (
+        <PublicPlanModelsDialog
+          open
+          onOpenChange={(open) => !open && setModelsPlan(null)}
+          title={modelsPlan.plan?.title || t('Plan')}
+          groups={modelsPlanGroups}
+        />
+      )}
+
+      <SubscriptionRenewDialog
+        open={renewOpen}
+        onOpenChange={(open) => {
+          setRenewOpen(open)
+          if (!open) {
+            setSelectedRenewSub(null)
+            fetchSelfSubscription()
+          }
+        }}
+        onRenewSuccess={fetchSelfSubscription}
+        subscription={selectedRenewSub}
+        plan={
+          selectedRenewSub?.subscription?.plan_id
+            ? planRecordMap.get(selectedRenewSub.subscription.plan_id) || null
+            : null
+        }
+        enableStripe={enableStripe}
+        enableCreem={enableCreem}
+      />
+
+      {activateConfirmSubId !== null && (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setActivateConfirmSubId(null)}
+          title={t('Activate subscription now')}
+          desc={t(
+            'After activation, the new subscription will start immediately. The existing active subscription keeps running in parallel until its natural expiry. Continue?'
+          )}
+          confirmText={t('Activate Now')}
+          handleConfirm={() => handleActivateScheduled(activateConfirmSubId)}
+        />
+      )}
     </>
   )
 }

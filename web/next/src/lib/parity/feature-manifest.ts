@@ -1,11 +1,14 @@
 export const featureDomains = [
   "about",
+  "admin-packages",
   "admin-tokens",
   "auth",
   "channels",
   "chat",
+  "contact",
   "dashboard",
   "errors",
+  "health",
   "home",
   "invoices",
   "keys",
@@ -18,10 +21,13 @@ export const featureDomains = [
   "rankings",
   "redemption-codes",
   "setup",
+  "subscription-plans",
   "subscriptions",
   "system-settings",
+  "tickets",
   "usage-logs",
   "users",
+  "vibecoding",
   "wallet",
 ] as const;
 

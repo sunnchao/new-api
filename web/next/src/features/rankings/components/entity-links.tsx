@@ -41,8 +41,7 @@ type ModelLinkProps = EntityLinkBaseProps & {
 export function ModelLink(props: ModelLinkProps) {
   return (
     <Link
-      to='/pricing/$modelId'
-      params={{ modelId: props.modelName }}
+      href={`/pricing/${encodeURIComponent(props.modelName)}`}
       className={cn(
         'decoration-foreground/30 hover:decoration-foreground underline decoration-1 underline-offset-4 transition-colors',
         props.className
@@ -68,8 +67,7 @@ type VendorLinkProps = EntityLinkBaseProps & {
 export function VendorLink(props: VendorLinkProps) {
   return (
     <Link
-      to='/pricing'
-      search={{ vendor: props.vendor }}
+      href={`/pricing?vendor=${encodeURIComponent(props.vendor)}`}
       className={cn(
         'hover:text-foreground underline decoration-current/40 decoration-1 underline-offset-2 transition-colors hover:decoration-current',
         props.className

@@ -41,16 +41,21 @@ import {
   type HeaderNavModulesConfig,
   serializeHeaderNavModules,
 } from './config'
+import '../i18n'
 
 const headerNavSchema = z.object({
   home: z.boolean(),
   console: z.boolean(),
   pricingEnabled: z.boolean(),
   pricingRequireAuth: z.boolean(),
+  subscriptionsEnabled: z.boolean(),
+  subscriptionsRequireAuth: z.boolean(),
   rankingsEnabled: z.boolean(),
   rankingsRequireAuth: z.boolean(),
+  vibecoding: z.boolean(),
   docs: z.boolean(),
   about: z.boolean(),
+  contact: z.boolean(),
 })
 
 type HeaderNavFormValues = z.infer<typeof headerNavSchema>
@@ -75,6 +80,14 @@ const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
     config.pricing?.requireAuth === undefined
       ? HEADER_NAV_DEFAULT.pricing.requireAuth
       : Boolean(config.pricing.requireAuth),
+  subscriptionsEnabled:
+    config.subscriptions?.enabled === undefined
+      ? HEADER_NAV_DEFAULT.subscriptions.enabled
+      : Boolean(config.subscriptions.enabled),
+  subscriptionsRequireAuth:
+    config.subscriptions?.requireAuth === undefined
+      ? HEADER_NAV_DEFAULT.subscriptions.requireAuth
+      : Boolean(config.subscriptions.requireAuth),
   rankingsEnabled:
     config.rankings?.enabled === undefined
       ? HEADER_NAV_DEFAULT.rankings.enabled
@@ -83,12 +96,20 @@ const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
     config.rankings?.requireAuth === undefined
       ? HEADER_NAV_DEFAULT.rankings.requireAuth
       : Boolean(config.rankings.requireAuth),
+  vibecoding:
+    config.vibecoding === undefined
+      ? HEADER_NAV_DEFAULT.vibecoding
+      : Boolean(config.vibecoding),
   docs:
     config.docs === undefined ? HEADER_NAV_DEFAULT.docs : Boolean(config.docs),
   about:
     config.about === undefined
       ? HEADER_NAV_DEFAULT.about
       : Boolean(config.about),
+  contact:
+    config.contact === undefined
+      ? HEADER_NAV_DEFAULT.contact
+      : Boolean(config.contact),
 })
 
 export function HeaderNavigationSection({
@@ -115,10 +136,17 @@ export function HeaderNavigationSection({
       console: values.console,
       docs: values.docs,
       about: values.about,
+      contact: values.contact,
+      vibecoding: values.vibecoding,
       pricing: {
         ...(config.pricing ?? HEADER_NAV_DEFAULT.pricing),
         enabled: values.pricingEnabled,
         requireAuth: values.pricingRequireAuth,
+      },
+      subscriptions: {
+        ...(config.subscriptions ?? HEADER_NAV_DEFAULT.subscriptions),
+        enabled: values.subscriptionsEnabled,
+        requireAuth: values.subscriptionsRequireAuth,
       },
       rankings: {
         ...(config.rankings ?? HEADER_NAV_DEFAULT.rankings),
@@ -163,16 +191,29 @@ export function HeaderNavigationSection({
       description: t('Documentation or external knowledge base.'),
     },
     {
+      key: 'vibecoding',
+      title: 'VibeCoding',
+      description: t('AI coding documentation and tool guides.'),
+    },
+    {
       key: 'about',
       title: t('About'),
       description: t('Static page describing the platform.'),
+    },
+    {
+      key: 'contact',
+      title: t('nav.contact', 'Contact us'),
+      description: t('Public page with support contact information.'),
     },
   ]
 
   const accessModules: Array<{
     enabledKey: keyof HeaderNavFormValues
     requireAuthKey: keyof HeaderNavFormValues
-    requireAuthDependsOn: 'pricingEnabled' | 'rankingsEnabled'
+    requireAuthDependsOn:
+      | 'pricingEnabled'
+      | 'subscriptionsEnabled'
+      | 'rankingsEnabled'
     title: string
     description: string
     requireAuthTitle: string
@@ -187,6 +228,17 @@ export function HeaderNavigationSection({
       requireAuthTitle: t('Require login to view models'),
       requireAuthDescription: t(
         'Visitors must authenticate before accessing the pricing directory.'
+      ),
+    },
+    {
+      enabledKey: 'subscriptionsEnabled',
+      requireAuthKey: 'subscriptionsRequireAuth',
+      requireAuthDependsOn: 'subscriptionsEnabled',
+      title: t('nav.subscriptionPlans', 'Subscription Plans'),
+      description: t('Public subscription plan catalog.'),
+      requireAuthTitle: t('Require login to view subscription plans'),
+      requireAuthDescription: t(
+        'Visitors must authenticate before accessing subscription plans.'
       ),
     },
     {

@@ -27,6 +27,7 @@ import {
   handleOIDCOAuth,
   handleDiscordOAuth,
   handleLinuxDOOAuth,
+  handleCustomOAuth,
 } from '@/lib/oauth'
 import { useDialogs } from '@/hooks/use-dialog'
 import { useStatus } from '@/hooks/use-status'
@@ -40,6 +41,7 @@ import {
   unbindCustomOAuth,
   type CustomOAuthBinding,
 } from '../../api'
+import type { CustomOAuthProviderInfo } from '@/features/auth/types'
 import type { UserProfile, BindingItem } from '../../types'
 import { EmailBindDialog } from '../dialogs/email-bind-dialog'
 import { TelegramBindDialog } from '../dialogs/telegram-bind-dialog'
@@ -70,8 +72,34 @@ export function AccountBindingsTab({
   const [unbinding, setUnbinding] = useState(false)
 
   const customProviders = status?.custom_oauth_providers as
-    | Array<{ id: string; name: string }>
+    | CustomOAuthProviderInfo[]
     | undefined
+  const weChatQrCodeUrl = useMemo(() => {
+    const statusData =
+      status?.data && typeof status.data === 'object'
+        ? (status.data as Record<string, unknown>)
+        : undefined
+    const candidates = [
+      status?.wechat_qrcode,
+      status?.wechat_qr_code,
+      status?.wechat_qrcode_image_url,
+      status?.wechat_qr_code_image_url,
+      status?.wechat_account_qrcode_image_url,
+      status?.WeChatAccountQRCodeImageURL,
+      statusData?.wechat_qrcode,
+      statusData?.wechat_qr_code,
+      statusData?.wechat_qrcode_image_url,
+      statusData?.wechat_qr_code_image_url,
+      statusData?.wechat_account_qrcode_image_url,
+      statusData?.WeChatAccountQRCodeImageURL,
+    ]
+
+    return (
+      candidates
+        .map((value) => (typeof value === 'string' ? value.trim() : ''))
+        .find(Boolean) ?? ''
+    )
+  }, [status])
 
   const fetchCustomBindings = useCallback(async () => {
     if (!customProviders || customProviders.length === 0) return
@@ -113,9 +141,19 @@ export function AccountBindingsTab({
     }
   }
 
-  const handleBindCustomOAuth = (provider: { id: string; name: string }) => {
-    const redirectUrl = `${window.location.origin}/oauth/${provider.id}?bind=true`
-    window.location.href = `/api/oauth/${provider.id}?redirect=${encodeURIComponent(redirectUrl)}`
+  const handleBindCustomOAuth = async (provider: CustomOAuthProviderInfo) => {
+    try {
+      const started = await handleCustomOAuth(provider)
+      if (!started) {
+        toast.error(
+          t('Failed to start {{provider}} login', { provider: provider.name })
+        )
+      }
+    } catch {
+      toast.error(
+        t('Failed to start {{provider}} login', { provider: provider.name })
+      )
+    }
   }
 
   useEffect(() => {
@@ -150,6 +188,9 @@ export function AccountBindingsTab({
   const bindings: BindingItem[] = useMemo(() => {
     if (!profile || !status) return []
 
+    const wechatId =
+      typeof profile.wechat_id === 'string' ? profile.wechat_id : undefined
+
     return [
       {
         id: 'email',
@@ -164,10 +205,8 @@ export function AccountBindingsTab({
         id: 'wechat',
         label: t('WeChat'),
         icon: SiWechat as React.ComponentType<{ className?: string }>,
-        value: undefined,
-        isBound: Boolean(
-          (profile as unknown as Record<string, unknown>).wechat_id
-        ),
+        value: wechatId,
+        isBound: Boolean(wechatId),
         isEnabled: status?.wechat_login || false,
         onBind: () => dialogs.open('wechat'),
       },
@@ -315,13 +354,14 @@ export function AccountBindingsTab({
           </p>
           <div className='grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3'>
             {customProviders.map((provider) => {
+              const providerId = String(provider.id)
               const binding = customBindings.find(
-                (b) => b.provider_id === provider.id
+                (b) => String(b.provider_id) === providerId
               )
               const isBound = !!binding
               return (
                 <div
-                  key={provider.id}
+                  key={providerId}
                   className='flex items-center justify-between gap-2.5 rounded-lg border p-2.5 sm:gap-3 sm:p-3'
                 >
                   <div className='flex min-w-0 items-center gap-2.5 sm:gap-3'>
@@ -406,6 +446,7 @@ export function AccountBindingsTab({
         onOpenChange={(open) =>
           open ? dialogs.open('wechat') : dialogs.close('wechat')
         }
+        qrCodeUrl={weChatQrCodeUrl}
         onSuccess={onUpdate}
       />
 

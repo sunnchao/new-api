@@ -104,10 +104,13 @@ func GetUserTickets(userId int, status int, page int, pageSize int) (tickets []*
 }
 
 // SearchUserTickets 用户搜索自己的工单
-func SearchUserTickets(userId int, keyword string, page int, pageSize int) (tickets []*Ticket, total int64, err error) {
+func SearchUserTickets(userId int, keyword string, status int, page int, pageSize int) (tickets []*Ticket, total int64, err error) {
 	tx := DB.Model(&Ticket{}).Where("user_id = ?", userId)
 	if keyword != "" {
 		tx = tx.Where("title LIKE ? OR description LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	if status > 0 {
+		tx = tx.Where("status = ?", status)
 	}
 	err = tx.Count(&total).Error
 	if err != nil {

@@ -16,8 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState } from 'react'
 import { Info } from 'lucide-react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -30,7 +30,28 @@ import { SubscriptionsTable } from './components/subscriptions-table'
 
 export function Subscriptions() {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState('plans')
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const activeTab =
+    searchParams.get('tab') === 'all-subscriptions'
+      ? 'all-subscriptions'
+      : 'plans'
+
+  function handleTabChange(value: string) {
+    const params = new URLSearchParams(searchParams.toString())
+
+    if (value === 'all-subscriptions') {
+      params.set('tab', value)
+    } else {
+      params.delete('tab')
+    }
+
+    const query = params.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    })
+  }
 
   return (
     <SubscriptionsProvider>
@@ -57,7 +78,7 @@ export function Subscriptions() {
           )}
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList>
               <TabsTrigger value='plans'>{t('Plans')}</TabsTrigger>
               <TabsTrigger value='all-subscriptions'>

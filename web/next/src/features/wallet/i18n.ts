@@ -21,35 +21,59 @@ import i18n from '@/i18n/config'
 const resources = {
   en: {
     translation: {
+      'Redemption codes are disabled until the administrator confirms compliance terms.':
+        'Redemption codes are disabled until the administrator confirms compliance terms.',
+      'Referral reward transfer is disabled until the administrator confirms compliance terms.':
+        'Referral reward transfer is disabled until the administrator confirms compliance terms.',
       'Successfully redeemed subscription: {{plan}}':
         'Successfully redeemed subscription: {{plan}}',
     },
   },
   zh: {
     translation: {
+      'Redemption codes are disabled until the administrator confirms compliance terms.':
+        '管理员确认合规条款之前，兑换码功能不可用。',
+      'Referral reward transfer is disabled until the administrator confirms compliance terms.':
+        '管理员确认合规条款之前，推荐奖励转账功能不可用。',
       'Successfully redeemed subscription: {{plan}}': '订阅兑换成功：{{plan}}',
     },
   },
   fr: {
     translation: {
+      'Redemption codes are disabled until the administrator confirms compliance terms.':
+        "Les codes d'utilisation sont désactivés jusqu'à ce que l'administrateur confirme les conditions de conformité.",
+      'Referral reward transfer is disabled until the administrator confirms compliance terms.':
+        "Le transfert des récompenses de parrainage est désactivé jusqu'à ce que l'administrateur confirme les conditions de conformité.",
       'Successfully redeemed subscription: {{plan}}':
         'Abonnement utilisé avec succès : {{plan}}',
     },
   },
   ja: {
     translation: {
+      'Redemption codes are disabled until the administrator confirms compliance terms.':
+        '管理者がコンプライアンス条件を確認するまで、引換コードは無効です。',
+      'Referral reward transfer is disabled until the administrator confirms compliance terms.':
+        '管理者がコンプライアンス条件を確認するまで、紹介報酬の振替は無効です。',
       'Successfully redeemed subscription: {{plan}}':
         'サブスクリプションを交換しました: {{plan}}',
     },
   },
   ru: {
     translation: {
+      'Redemption codes are disabled until the administrator confirms compliance terms.':
+        'Коды пополнения отключены, пока администратор не подтвердит условия соответствия.',
+      'Referral reward transfer is disabled until the administrator confirms compliance terms.':
+        'Перевод реферальных вознаграждений отключен, пока администратор не подтвердит условия соответствия.',
       'Successfully redeemed subscription: {{plan}}':
         'Подписка успешно активирована: {{plan}}',
     },
   },
   vi: {
     translation: {
+      'Redemption codes are disabled until the administrator confirms compliance terms.':
+        'Mã đổi thưởng bị tắt cho đến khi quản trị viên xác nhận điều khoản tuân thủ.',
+      'Referral reward transfer is disabled until the administrator confirms compliance terms.':
+        'Chuyển thưởng giới thiệu bị tắt cho đến khi quản trị viên xác nhận điều khoản tuân thủ.',
       'Successfully redeemed subscription: {{plan}}':
         'Đổi gói đăng ký thành công: {{plan}}',
     },

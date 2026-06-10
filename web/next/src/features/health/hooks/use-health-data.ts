@@ -129,15 +129,36 @@ export function useHealthData(
     [query.data]
   )
 
-  // bound_channels from backend only carry { name, type } — match live status
-  // and response times from the channel list by name (+ type fallback).
-  const channelByName = useMemo(() => {
-    const map = new Map<string, Channel>()
+  const channelLookup = useMemo(() => {
+    const byId = new Map<number, Channel>()
+    const byNameAndType = new Map<string, Channel>()
+    const byName = new Map<string, Channel[]>()
     for (const ch of channels) {
-      if (!map.has(ch.name)) map.set(ch.name, ch)
+      byId.set(ch.id, ch)
+      byNameAndType.set(`${ch.name}::${ch.type}`, ch)
+      const sameName = byName.get(ch.name) ?? []
+      sameName.push(ch)
+      byName.set(ch.name, sameName)
     }
-    return map
+    return { byId, byNameAndType, byName }
   }, [channels])
+
+  const findBoundChannel = useMemo(() => {
+    return (bc: NonNullable<Model['bound_channels']>[number]) => {
+      if (typeof bc.id === 'number') {
+        const byId = channelLookup.byId.get(bc.id)
+        if (byId) return byId
+      }
+
+      if (typeof bc.type === 'number') {
+        const byType = channelLookup.byNameAndType.get(`${bc.name}::${bc.type}`)
+        if (byType) return byType
+      }
+
+      const sameName = channelLookup.byName.get(bc.name) ?? []
+      return sameName.length === 1 ? sameName[0] : null
+    }
+  }, [channelLookup])
 
   const modelHealthList = useMemo<ModelHealth[]>(() => {
     return models
@@ -145,7 +166,7 @@ export function useHealthData(
       .map((model) => {
         const boundChannels: ChannelHealth[] = (model.bound_channels || [])
           .map((bc) => {
-            const ch = channelByName.get(bc.name)
+            const ch = findBoundChannel(bc)
             if (!ch) return null
             return toChannelHealth(ch)
           })
@@ -169,7 +190,7 @@ export function useHealthData(
           channels: boundChannels,
         }
       })
-  }, [models, channelByName])
+  }, [models, findBoundChannel])
 
   const stats = useMemo<HealthStats>(() => {
     const unknown = models.filter(

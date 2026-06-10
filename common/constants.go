@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	//"os"
 	//"strconv"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -30,20 +31,29 @@ func GetTheme() string {
 }
 
 // SetTheme updates the frontend theme atomically.
-// Only "default" and "classic" are accepted; other values are silently ignored.
+// Only supported frontend themes are accepted; other values are silently ignored.
 func SetTheme(t string) {
-	if t == "default" || t == "classic" {
+	if t == "default" || t == "classic" || t == "next" {
 		themeValue.Store(t)
 	}
 }
 
+func GetNextFrontendBaseURL() string {
+	for _, key := range []string{"NEXT_FRONTEND_BASE_URL", "FRONTEND_NEXT_BASE_URL"} {
+		value := strings.TrimSpace(os.Getenv(key))
+		if value != "" {
+			return strings.TrimRight(value, "/")
+		}
+	}
+	return ""
+}
+
 // ThemeAwarePath rewrites legacy /console/* paths to the default-theme
-// equivalents when the active theme is "default".  For "classic" (or any
-// other theme) the path is returned unchanged.  The function only touches
-// known prefixes so it is safe to call with arbitrary suffixes and query
-// strings.
+// equivalents when the active theme is "default" or "next". For "classic" the
+// path is returned unchanged. The function only touches known prefixes so it is
+// safe to call with arbitrary suffixes and query strings.
 func ThemeAwarePath(suffix string) string {
-	if GetTheme() != "default" {
+	if GetTheme() != "default" && GetTheme() != "next" {
 		return suffix
 	}
 	switch {

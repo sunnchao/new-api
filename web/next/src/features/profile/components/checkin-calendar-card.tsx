@@ -146,7 +146,9 @@ export function CheckinCalendarCard({
         const res = await performCheckin(token)
         if (res.success && res.data) {
           toast.success(
-            `${t('Check-in successful! Received')} ${formatQuotaWithCurrency(res.data.quota_awarded)}`
+            t('Check-in successful! Received {{q}}', {
+              q: formatQuotaWithCurrency(res.data.quota_awarded),
+            })
           )
           refetch()
           setTurnstileModalVisible(false)

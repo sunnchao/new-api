@@ -22,11 +22,6 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Branch,
-  BranchMessages,
-  BranchNext,
-  BranchPage,
-  BranchPrevious,
-  BranchSelector,
 } from '@/components/ai-elements/branch'
 import {
   Conversation,
@@ -35,19 +30,9 @@ import {
 } from '@/components/ai-elements/conversation'
 import { Loader } from '@/components/ai-elements/loader'
 import { Message, MessageContent } from '@/components/ai-elements/message'
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from '@/components/ai-elements/reasoning'
+import { Reasoning } from '@/components/ai-elements/reasoning'
 import { Response } from '@/components/ai-elements/response'
-import { Shimmer } from '@/components/ai-elements/shimmer'
-import {
-  Source,
-  Sources,
-  SourcesContent,
-  SourcesTrigger,
-} from '@/components/ai-elements/sources'
+import { Sources } from '@/components/ai-elements/sources'
 import { MESSAGE_ROLES } from '../constants'
 import { getMessageContentStyles } from '../lib/message-styles'
 import { parseThinkTags } from '../lib/message-utils'
@@ -110,12 +95,11 @@ export function PlaygroundChat({
               messageIndex === messages.length - 1 &&
               message.from === MESSAGE_ROLES.ASSISTANT
             return (
-              <Branch defaultBranch={0} key={message.key}>
-                <BranchMessages>
+              <div key={message.key} className='space-y-2'>
                   {versions.map((version, versionIndex) => (
                     <Message
-                      className='group flex-row-reverse'
-                      from={message.from}
+                      className='group'
+                      role={message.from}
                       key={`${message.key}-${version.id}-${versionIndex}`}
                     >
                       <div className='w-full min-w-0 flex-1 basis-full py-1'>
@@ -197,34 +181,22 @@ export function PlaygroundChat({
                                 <>
                                   {/* Sources */}
                                   {hasSources && (
-                                    <Sources>
-                                      <SourcesTrigger
-                                        count={message.sources!.length}
-                                      />
-                                      <SourcesContent>
-                                        {message.sources!.map(
-                                          (source, sourceIndex) => (
-                                            <Source
-                                              href={source.href}
-                                              key={`${message.key}-source-${sourceIndex}`}
-                                              title={source.title}
-                                            />
-                                          )
-                                        )}
-                                      </SourcesContent>
-                                    </Sources>
+                                    <Sources
+                                      sources={message.sources!.map((source) => ({
+                                        title: source.title,
+                                        url: source.href,
+                                      }))}
+                                    />
                                   )}
 
                                   {/* Reasoning */}
                                   {showReasoning && (
                                     <Reasoning
                                       defaultOpen={true}
-                                      isStreaming={message.isReasoningStreaming}
+                                      streaming={message.isReasoningStreaming}
+                                      duration={message.reasoning?.duration}
                                     >
-                                      <ReasoningTrigger />
-                                      <ReasoningContent>
-                                        {message.reasoning!.content}
-                                      </ReasoningContent>
+                                      {message.reasoning!.content}
                                     </Reasoning>
                                   )}
 
@@ -232,9 +204,9 @@ export function PlaygroundChat({
                                   {showLoader && (
                                     <div className='flex items-center gap-2 py-2'>
                                       <Loader />
-                                      <Shimmer className='text-sm' duration={1}>
+                                      <span className='text-sm text-[var(--muted)]'>
                                         Responding...
-                                      </Shimmer>
+                                      </span>
                                     </div>
                                   )}
 
@@ -251,12 +223,11 @@ export function PlaygroundChat({
                                     showMessageContent && (
                                       <>
                                         <MessageContent
-                                          variant='flat'
                                           className={cn(
                                             getMessageContentStyles()
                                           )}
                                         >
-                                          <Response>{displayContent}</Response>
+                                          <Response content={displayContent} />
                                         </MessageContent>
                                         {actions}
                                       </>
@@ -267,20 +238,17 @@ export function PlaygroundChat({
                             })()}
                           </>
                         )}
+                        {versions.length > 1 && (
+                          <Branch
+                            className='mt-2'
+                            current={versionIndex + 1}
+                            total={versions.length}
+                          />
+                        )}
                       </div>
                     </Message>
                   ))}
-                </BranchMessages>
-
-                {/* Branch selector for multiple versions */}
-                {versions.length > 1 && (
-                  <BranchSelector className='px-0' from={message.from}>
-                    <BranchPrevious />
-                    <BranchPage />
-                    <BranchNext />
-                  </BranchSelector>
-                )}
-              </Branch>
+              </div>
             )
           })}
         </div>

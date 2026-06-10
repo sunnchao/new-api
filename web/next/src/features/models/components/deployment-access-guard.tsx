@@ -105,10 +105,7 @@ export function DeploymentAccessGuard({
   const router = useRouter()
 
   const handleGoToSettings = () => {
-    router.push({
-      to: '/system-settings/models/$section',
-      params: { section: 'model-deployment' },
-    })
+    router.push('/system-settings/models/model-deployment')
   }
 
   // Combined loading state with step indicator

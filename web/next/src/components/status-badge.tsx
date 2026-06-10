@@ -112,6 +112,7 @@ export interface StatusBadgeProps
   copyText?: string;
   size?: "sm" | "md" | "lg" | null;
   autoColor?: string;
+  icon?: React.ElementType | React.ReactElement | null;
 }
 
 export function StatusBadge({
@@ -125,6 +126,7 @@ export function StatusBadge({
   copyText,
   size = "sm",
   autoColor,
+  icon,
   onClick,
   ...props
 }: StatusBadgeProps) {
@@ -161,6 +163,7 @@ export function StatusBadge({
 
   const content =
     children ?? (label ? <span className="truncate">{label}</span> : cfg?.label);
+  const Icon = typeof icon === "function" ? icon : null;
 
   return (
     <span
@@ -184,6 +187,11 @@ export function StatusBadge({
           aria-hidden="true"
         />
       )}
+      {Icon ? <Icon className="size-3.5 shrink-0" aria-hidden="true" /> : React.isValidElement(icon) ? (
+        <span className="inline-flex shrink-0" aria-hidden="true">
+          {icon}
+        </span>
+      ) : null}
       {content}
     </span>
   );

@@ -34,20 +34,21 @@ import {
 } from "@/components/ui/table";
 import {
   getClaudeCodeAdminSubscriptions,
+  getClaudeCodePlans,
   grantClaudeCodeSubscription,
   cancelClaudeCodeSubscription,
 } from "../api";
-import type { VibeCodingSubscription } from "../api";
+import type { VibeCodingPlan, VibeCodingSubscription } from "../api";
 
 export function ClaudeCodeAdmin() {
   const { t } = useTranslation();
   const [subscriptions, setSubscriptions] = useState<VibeCodingSubscription[]>([]);
+  const [plans, setPlans] = useState<VibeCodingPlan[]>([]);
   const [loading, setLoading] = useState(false);
   const [showGrantDialog, setShowGrantDialog] = useState(false);
   const [grantForm, setGrantForm] = useState({
     user_id: "",
-    plan_type: "monthly",
-    duration_days: "30",
+    plan_id: "",
   });
 
   const loadSubscriptions = async () => {
@@ -64,12 +65,27 @@ export function ClaudeCodeAdmin() {
     }
   };
 
+  const loadPlans = async () => {
+    try {
+      const res = await getClaudeCodePlans();
+      if (res.success) {
+        const nextPlans = res.data || [];
+        setPlans(nextPlans);
+        setGrantForm((form) => ({
+          ...form,
+          plan_id: form.plan_id || (nextPlans[0]?.id ? String(nextPlans[0].id) : ""),
+        }));
+      }
+    } catch {
+      toast.error(t("Failed to load plans"));
+    }
+  };
+
   const handleGrant = async () => {
     try {
       const res = await grantClaudeCodeSubscription({
         user_id: Number(grantForm.user_id),
-        plan_type: grantForm.plan_type,
-        duration_days: Number(grantForm.duration_days),
+        plan_id: Number(grantForm.plan_id),
       });
       if (res.success) {
         toast.success(t("Subscription granted successfully"));
@@ -99,6 +115,7 @@ export function ClaudeCodeAdmin() {
 
   useEffect(() => {
     loadSubscriptions();
+    loadPlans();
   }, []);
 
   const statusColor = (status: string) => {
@@ -216,40 +233,36 @@ export function ClaudeCodeAdmin() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t("Plan Type")}</Label>
+              <Label>{t("Plan")}</Label>
               <Select
-                value={grantForm.plan_type}
+                value={grantForm.plan_id}
                 onValueChange={(v) =>
-                  setGrantForm((f) => ({ ...f, plan_type: v }))
+                  setGrantForm((f) => ({ ...f, plan_id: v }))
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={t("Select a plan")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="monthly">{t("Monthly")}</SelectItem>
-                  <SelectItem value="yearly">{t("Yearly")}</SelectItem>
-                  <SelectItem value="lifetime">{t("Lifetime")}</SelectItem>
+                  {plans.map((plan) => (
+                    <SelectItem key={plan.id} value={String(plan.id)}>
+                      {plan.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>{t("Duration (days)")}</Label>
-              <Input
-                type="number"
-                min={1}
-                value={grantForm.duration_days}
-                onChange={(e) =>
-                  setGrantForm((f) => ({ ...f, duration_days: e.target.value }))
-                }
-              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowGrantDialog(false)}>
               {t("Cancel")}
             </Button>
-            <Button onClick={handleGrant}>{t("Confirm")}</Button>
+            <Button
+              disabled={!grantForm.user_id || !grantForm.plan_id}
+              onClick={handleGrant}
+            >
+              {t("Confirm")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

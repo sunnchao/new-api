@@ -23,7 +23,7 @@ export interface AuthUser {
   linux_do_id?: string;
   setting?: Record<string, unknown> | string;
   stripe_customer?: string;
-  sidebar_modules?: string[];
+  sidebar_modules?: string;
   permissions?: {
     sidebar_settings?: boolean;
     sidebar_modules?: string[];
@@ -45,9 +45,9 @@ interface AuthState {
 
 export const ROLE = {
   GUEST: 0,
-  USER: 10,
-  ADMIN: 100,
-  ROOT: 1000,
+  USER: 1,
+  ADMIN: 10,
+  ROOT: 100,
 } as const;
 
 function getInitialUser(): AuthUser | null {

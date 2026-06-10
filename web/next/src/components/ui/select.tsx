@@ -37,11 +37,44 @@ type SelectRootProps = Omit<
   onValueChange?: (value: string) => void
 }
 
+function collectSelectItems(
+  children: React.ReactNode,
+  items: { label: React.ReactNode; value: string }[] = []
+) {
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement(child)) return
+
+    if (child.type === SelectItem) {
+      const props = child.props as SelectPrimitive.Item.Props & {
+        children?: React.ReactNode
+      }
+      if (typeof props.value === 'string') {
+        items.push({ value: props.value, label: props.children })
+      }
+      return
+    }
+
+    const props = child.props as { children?: React.ReactNode }
+    if (props.children) {
+      collectSelectItems(props.children, items)
+    }
+  })
+
+  return items
+}
+
 function Select(props: SelectRootProps) {
-  const { onValueChange, ...rest } = props
+  const { children, items, onValueChange, modal = false, ...rest } = props
+  const inferredItems = React.useMemo(
+    () => items ?? collectSelectItems(children),
+    [children, items]
+  )
+
   return (
     <SelectPrimitive.Root
       {...(rest as SelectPrimitive.Root.Props<string, false>)}
+      items={inferredItems}
+      modal={modal}
       onValueChange={
         onValueChange
           ? (value: string | null) => {
@@ -51,7 +84,9 @@ function Select(props: SelectRootProps) {
             }
           : undefined
       }
-    />
+    >
+      {children}
+    </SelectPrimitive.Root>
   )
 }
 
@@ -71,23 +106,11 @@ function SelectValue({
   children,
   ...props
 }: SelectPrimitive.Value.Props & { placeholder?: React.ReactNode }) {
-  // Base UI SelectValue uses children-as-function for placeholder rendering.
-  // We adapt the Radix-style `placeholder` prop to Base UI's pattern.
-  if (placeholder && !children) {
-    return (
-      <SelectPrimitive.Value
-        data-slot='select-value'
-        className={cn('flex flex-1 text-left', className)}
-        {...props}
-      >
-        {(value: string | null) => (value != null ? value : placeholder)}
-      </SelectPrimitive.Value>
-    )
-  }
   return (
     <SelectPrimitive.Value
       data-slot='select-value'
       className={cn('flex flex-1 text-left', className)}
+      placeholder={placeholder}
       {...props}
     >
       {children}
@@ -130,6 +153,7 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
+  container,
   side = 'bottom',
   sideOffset = 4,
   align = 'center',
@@ -140,16 +164,18 @@ function SelectContent({
   Pick<
     SelectPrimitive.Positioner.Props,
     'align' | 'alignOffset' | 'side' | 'sideOffset' | 'alignItemWithTrigger'
-  >) {
+  > & {
+    container?: React.ComponentProps<typeof SelectPrimitive.Portal>['container']
+  }) {
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={container}>
       <SelectPrimitive.Positioner
         side={side}
         sideOffset={sideOffset}
         align={align}
         alignOffset={alignOffset}
         alignItemWithTrigger={alignItemWithTrigger}
-        className='isolate z-50'
+        className='isolate z-[60]'
       >
         <SelectPrimitive.Popup
           data-slot='select-content'

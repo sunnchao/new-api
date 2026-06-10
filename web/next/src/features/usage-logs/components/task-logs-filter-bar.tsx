@@ -16,18 +16,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect, useCallback } from 'react'
 import { useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { type Table } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 import { useIsAdmin } from '@/hooks/use-admin'
-import { Input } from '@/components/ui/input'
-import { DataTableToolbar } from '@/components/data-table'
+import { createUrl } from '@/lib/next-url'
 import { buildSearchParams } from '../lib/filter'
 import { getDefaultTimeRange } from '../lib/utils'
 import type { DrawingLogFilters, LogCategory, TaskLogFilters } from '../types'
 import { CompactDateTimeRangePicker } from './compact-date-time-range-picker'
+import {
+  LogsFilterField,
+  LogsFilterInput,
+  LogsFilterToolbar,
+} from './logs-filter-toolbar'
 
 
 type TaskLikeLogCategory = Extract<LogCategory, 'drawing' | 'task'>
@@ -59,6 +63,13 @@ function setFilterValue(
   return { ...filters, taskId: value }
 }
 
+function parseSearchDate(value: string | null, fallback: Date): Date {
+  if (!value) return fallback
+  const timestamp = Number(value)
+  const date = Number.isFinite(timestamp) ? new Date(timestamp) : new Date(value)
+  return Number.isNaN(date.getTime()) ? fallback : date
+}
+
 export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
   const { t } = useTranslation()
   const router = useRouter()
@@ -74,24 +85,24 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
 
   useEffect(() => {
     const { start, end } = getDefaultTimeRange()
+    const startTime = searchParams.get('startTime')
+    const endTime = searchParams.get('endTime')
+    const channel = searchParams.get('channel')
+    const filter = searchParams.get('filter')
     const baseFilters = {
-      startTime: searchParams.get('startTime')
-        ? new Date(searchParams.get('startTime'))
-        : start,
-      endTime: searchParams.get('endTime') ? new Date(searchParams.get('endTime')) : end,
-      ...(searchParams.get('channel')
-        ? { channel: String(searchParams.get('channel')) }
-        : {}),
+      startTime: parseSearchDate(startTime, start),
+      endTime: parseSearchDate(endTime, end),
+      ...(channel ? { channel } : {}),
     }
     const next: TaskLogsFilters =
       props.logCategory === 'drawing'
         ? {
             ...baseFilters,
-            ...(searchParams.get('filter') ? { mjId: searchParams.get('filter') } : {}),
+            ...(filter ? { mjId: filter } : {}),
           }
         : {
             ...baseFilters,
-            ...(searchParams.get('filter') ? { taskId: searchParams.get('filter') } : {}),
+            ...(filter ? { taskId: filter } : {}),
           }
 
     setFilters(next)
@@ -112,14 +123,12 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
 
   const handleApply = useCallback(() => {
     const filterParams = buildSearchParams(filters, props.logCategory)
-    router.push({
-      to: '/usage-logs/$section',
-      params: { section: props.logCategory },
-      search: {
+    router.push(
+      createUrl(`/usage-logs/${props.logCategory}`, {
         ...filterParams,
         page: 1,
-      },
-    })
+      })
+    )
     queryClient.invalidateQueries({ queryKey: ['logs'] })
   }, [filters, router.push, props.logCategory, queryClient])
 
@@ -128,15 +137,13 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
     const resetFilters: TaskLogsFilters = { startTime: start, endTime: end }
     setFilters(resetFilters)
 
-    router.push({
-      to: '/usage-logs/$section',
-      params: { section: props.logCategory },
-      search: {
+    router.push(
+      createUrl(`/usage-logs/${props.logCategory}`, {
         page: 1,
         startTime: start.getTime(),
         endTime: end.getTime(),
-      },
-    })
+      })
+    )
     queryClient.invalidateQueries({ queryKey: ['logs'] })
   }, [router.push, props.logCategory, queryClient])
 
@@ -159,45 +166,60 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
     props.logCategory === 'drawing'
       ? t('Filter by Midjourney task ID')
       : t('Filter by task ID')
-  const inputClass = 'w-full sm:w-[180px] lg:w-[200px]'
   const hasAdditionalFilters = !!filterValue || !!filters.channel
+  const dateRangeFilter = (
+    <LogsFilterField wide>
+      <CompactDateTimeRangePicker
+        start={filters.startTime}
+        end={filters.endTime}
+        onChange={({ start, end }) => {
+          handleChange('startTime', start)
+          handleChange('endTime', end)
+        }}
+      />
+    </LogsFilterField>
+  )
+  const taskIdFilter = (
+    <LogsFilterField>
+      <LogsFilterInput
+        aria-label={t('Task ID')}
+        placeholder={placeholder}
+        value={filterValue}
+        onChange={(e) => handleFilterChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+    </LogsFilterField>
+  )
+  const channelFilter = isAdmin ? (
+    <LogsFilterField>
+      <LogsFilterInput
+        placeholder={t('Channel ID')}
+        value={filters.channel || ''}
+        onChange={(e) => handleChange('channel', e.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+    </LogsFilterField>
+  ) : null
 
   return (
-    <DataTableToolbar
+    <LogsFilterToolbar
       table={props.table}
-      customSearch={
-        <CompactDateTimeRangePicker
-          start={filters.startTime}
-          end={filters.endTime}
-          onChange={({ start, end }) => {
-            handleChange('startTime', start)
-            handleChange('endTime', end)
-          }}
-          className='w-full sm:w-[340px]'
-        />
-      }
-      additionalSearch={
+      primaryFilters={
         <>
-          <Input
-            aria-label={t('Task ID')}
-            placeholder={placeholder}
-            value={filterValue}
-            onChange={(e) => handleFilterChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className={inputClass}
-          />
-          {isAdmin && (
-            <Input
-              placeholder={t('Channel ID')}
-              value={filters.channel || ''}
-              onChange={(e) => handleChange('channel', e.target.value)}
-              onKeyDown={handleKeyDown}
-              className={inputClass}
-            />
-          )}
+          {dateRangeFilter}
+          {taskIdFilter}
+          {channelFilter}
         </>
       }
-      hasAdditionalFilters={hasAdditionalFilters}
+      mobilePinnedFilters={dateRangeFilter}
+      mobileFilters={
+        <>
+          {taskIdFilter}
+          {channelFilter}
+        </>
+      }
+      mobileFilterCount={[filterValue, filters.channel].filter(Boolean).length}
+      hasActiveFilters={hasAdditionalFilters}
       onSearch={handleApply}
       searchLoading={fetchingLogs > 0}
       onReset={handleReset}

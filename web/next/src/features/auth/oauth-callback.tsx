@@ -27,6 +27,7 @@ import { api, getSelf } from '@/lib/api'
 import type { ApiRequestOptions } from '@/lib/api-options'
 import { OAuthCallbackScreen } from './components/oauth-callback-screen'
 import { OAUTH_BIND_STORAGE_KEY } from './constants'
+import { consumeOAuthRedirectForState } from './lib/oauth'
 import { saveUserId } from './lib/storage'
 import { wechatLoginByCode } from './api'
 
@@ -35,6 +36,15 @@ function setAuthenticatedUser(user: AuthUser) {
   if (user.id != null) {
     saveUserId(user.id)
   }
+}
+
+function isOAuthBindPayload(value: unknown): boolean {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    'action' in value &&
+    (value as { action?: unknown }).action === 'bind'
+  )
 }
 
 function OAuthLoginCallback() {
@@ -101,7 +111,10 @@ function ProviderCallback({ provider }: { provider: string }) {
 
       const code = searchParams.get('code')
       const state = searchParams.get('state') ?? undefined
-      const redirect = searchParams.get('redirect') || '/dashboard'
+      const redirect =
+        searchParams.get('redirect') ||
+        consumeOAuthRedirectForState(state) ||
+        '/dashboard'
 
       if (!code) {
         toast.error(i18next.t('Missing code'))
@@ -180,9 +193,14 @@ function ProviderCallback({ provider }: { provider: string }) {
 
         if (res?.data?.success) {
           const { message } = res.data
-          const loginUser = (res.data?.data ?? null) as AuthUser | null
+          const responseData = res.data?.data ?? null
+          const isBindResponse =
+            message === 'bind' || isOAuthBindPayload(responseData)
+          const loginUser = isBindResponse
+            ? null
+            : ((responseData ?? null) as AuthUser | null)
 
-          if (message === 'bind') {
+          if (isBindResponse) {
             toast.success(i18next.t('Binding successful!'))
             notifyBindingResult('success')
             if (isBindingFlow) {

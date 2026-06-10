@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect, useCallback } from 'react'
 import { useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { type Table } from '@tanstack/react-table'
@@ -24,7 +24,6 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useIsAdmin } from '@/hooks/use-admin'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -38,21 +37,33 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { DataTableToolbar } from '@/components/data-table'
-import { LOG_TYPES } from '../constants'
+import { createUrl } from '@/lib/next-url'
+import { LOG_TYPE_ALL_VALUE, LOG_TYPE_FILTERS } from '../constants'
 import { buildSearchParams } from '../lib/filter'
 import { getDefaultTimeRange } from '../lib/utils'
 import type { CommonLogFilters } from '../types'
 import { CommonLogsStats } from './common-logs-stats'
 import { CompactDateTimeRangePicker } from './compact-date-time-range-picker'
+import {
+  LogsFilterField,
+  LogsFilterInput,
+  LogsFilterToolbar,
+} from './logs-filter-toolbar'
 import { useUsageLogsContext } from './usage-logs-provider'
 
-const logTypeValues = ['0', '1', '2', '3', '4', '5', '6'] as const
+const logTypeValues = LOG_TYPE_FILTERS.map((type) => type.value)
 
-type LogTypeValue = (typeof logTypeValues)[number]
+type LogTypeValue = (typeof LOG_TYPE_FILTERS)[number]['value']
 
 function isLogTypeValue(value: string): value is LogTypeValue {
   return (logTypeValues as readonly string[]).includes(value)
+}
+
+function parseSearchDate(value: string | null, fallback: Date): Date {
+  if (!value) return fallback
+  const timestamp = Number(value)
+  const date = Number.isFinite(timestamp) ? new Date(timestamp) : new Date(value)
+  return Number.isNaN(date.getTime()) ? fallback : date
 }
 
 interface CommonLogsFilterBarProps<TData> {
@@ -74,30 +85,35 @@ export function CommonLogsFilterBar<TData>(
     const { start, end } = getDefaultTimeRange()
     return { startTime: start, endTime: end }
   })
-  const [logType, setLogType] = useState<LogTypeValue | ''>('')
+  const [logType, setLogType] = useState<LogTypeValue>(LOG_TYPE_ALL_VALUE)
 
   useEffect(() => {
-    const next: Partial<CommonLogFilters> = {}
-    if (searchParams.get('startTime'))
-      next.startTime = new Date(searchParams.get('startTime'))
-    if (searchParams.get('endTime')) next.endTime = new Date(searchParams.get('endTime'))
-    if (searchParams.get('channel')) next.channel = String(searchParams.get('channel'))
-    if (searchParams.get('model')) next.model = searchParams.get('model')
-    if (searchParams.get('token')) next.token = searchParams.get('token')
-    if (searchParams.get('group')) next.group = searchParams.get('group')
-    if (searchParams.get('username')) next.username = searchParams.get('username')
-    if (searchParams.get('requestId')) next.requestId = searchParams.get('requestId')
-    if (searchParams.get('upstreamRequestId'))
-      next.upstreamRequestId = searchParams.get('upstreamRequestId')
-
-    if (Object.keys(next).length > 0) {
-      setFilters((prev) => ({ ...prev, ...next }))
-    }
+    const { start, end } = getDefaultTimeRange()
+    const startTime = searchParams.get('startTime')
+    const endTime = searchParams.get('endTime')
+    const channel = searchParams.get('channel')
+    const model = searchParams.get('model')
+    const token = searchParams.get('token')
+    const group = searchParams.get('group')
+    const username = searchParams.get('username')
+    const requestId = searchParams.get('requestId')
+    const upstreamRequestId = searchParams.get('upstreamRequestId')
+    setFilters({
+      startTime: parseSearchDate(startTime, start),
+      endTime: parseSearchDate(endTime, end),
+      channel: channel || undefined,
+      model: model || undefined,
+      token: token || undefined,
+      group: group || undefined,
+      username: username || undefined,
+      requestId: requestId || undefined,
+      upstreamRequestId: upstreamRequestId || undefined,
+    })
 
     const typeStr = searchParams.get('type')
-    if (typeStr && typeStr.length === 1) {
-      setLogType(typeStr[0])
-    }
+    setLogType(
+      typeStr && isLogTypeValue(typeStr) ? typeStr : LOG_TYPE_ALL_VALUE
+    )
   }, [
     searchParams.get('startTime'),
     searchParams.get('endTime'),
@@ -120,15 +136,13 @@ export function CommonLogsFilterBar<TData>(
 
   const handleApply = useCallback(() => {
     const filterParams = buildSearchParams(filters, 'common')
-    router.push({
-      to: '/usage-logs/$section',
-      params: { section: 'common' },
-      search: {
+    router.push(
+      createUrl('/usage-logs/common', {
         ...filterParams,
-        ...(logType ? { type: [logType] } : {}),
+        type: logType,
         page: 1,
-      },
-    })
+      })
+    )
     queryClient.invalidateQueries({ queryKey: ['logs'] })
     queryClient.invalidateQueries({ queryKey: ['usage-logs-stats'] })
   }, [filters, logType, router.push, queryClient])
@@ -137,17 +151,16 @@ export function CommonLogsFilterBar<TData>(
     const { start, end } = getDefaultTimeRange()
     const resetFilters: CommonLogFilters = { startTime: start, endTime: end }
     setFilters(resetFilters)
-    setLogType('')
+    setLogType(LOG_TYPE_ALL_VALUE)
 
-    router.push({
-      to: '/usage-logs/$section',
-      params: { section: 'common' },
-      search: {
+    router.push(
+      createUrl('/usage-logs/common', {
         page: 1,
+        type: LOG_TYPE_ALL_VALUE,
         startTime: start.getTime(),
         endTime: end.getTime(),
-      },
-    })
+      })
+    )
     queryClient.invalidateQueries({ queryKey: ['logs'] })
     queryClient.invalidateQueries({ queryKey: ['usage-logs-stats'] })
   }, [router.push, queryClient])
@@ -166,11 +179,24 @@ export function CommonLogsFilterBar<TData>(
     !!filters.requestId ||
     !!filters.upstreamRequestId
 
+  const hasTypeFilter = logType !== LOG_TYPE_ALL_VALUE
   const hasAdditionalFilters =
-    !!filters.model || !!filters.group || !!logType || hasExpandedFilters
+    !!filters.model || !!filters.group || hasTypeFilter || hasExpandedFilters
 
-  const inputClass = 'w-full sm:w-[140px] lg:w-[160px]'
+  const expandedFilterCount = [
+    filters.token,
+    isAdmin ? filters.username : undefined,
+    isAdmin ? filters.channel : undefined,
+    filters.requestId,
+    filters.upstreamRequestId,
+  ].filter(Boolean).length
   const sensitiveType = sensitiveVisible ? 'text' : 'password'
+  const logTypeItems = LOG_TYPE_FILTERS.map((type) => ({
+    value: type.value,
+    label: t(type.label),
+  }))
+  const logTypeLabel =
+    logTypeItems.find((type) => type.value === logType)?.label ?? t('All Types')
 
   const statsBar = (
     <div className='flex flex-wrap items-center gap-2'>
@@ -196,116 +222,147 @@ export function CommonLogsFilterBar<TData>(
     </div>
   )
 
-  return (
-    <DataTableToolbar
-      table={props.table}
-      leftActions={statsBar}
-      customSearch={
-        <CompactDateTimeRangePicker
-          start={filters.startTime}
-          end={filters.endTime}
-          onChange={({ start, end }) => {
-            handleChange('startTime', start)
-            handleChange('endTime', end)
-          }}
-          className='w-full sm:w-[340px]'
+  const dateRangeFilter = (
+    <LogsFilterField wide>
+      <CompactDateTimeRangePicker
+        start={filters.startTime}
+        end={filters.endTime}
+        onChange={({ start, end }) => {
+          handleChange('startTime', start)
+          handleChange('endTime', end)
+        }}
+      />
+    </LogsFilterField>
+  )
+  const modelFilter = (
+    <LogsFilterField>
+      <LogsFilterInput
+        placeholder={t('Model Name')}
+        value={filters.model || ''}
+        onChange={(e) => handleChange('model', e.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+    </LogsFilterField>
+  )
+  const groupFilter = (
+    <LogsFilterField>
+      <LogsFilterInput
+        placeholder={t('Group')}
+        type={sensitiveType}
+        value={filters.group || ''}
+        onChange={(e) => handleChange('group', e.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+    </LogsFilterField>
+  )
+  const typeFilter = (
+    <LogsFilterField>
+      <Select
+        items={logTypeItems}
+        value={logType}
+        onValueChange={(value) => {
+          setLogType(
+            value !== null && isLogTypeValue(value) ? value : LOG_TYPE_ALL_VALUE
+          )
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue>{logTypeLabel}</SelectValue>
+        </SelectTrigger>
+        <SelectContent alignItemWithTrigger={false}>
+          <SelectGroup>
+            {LOG_TYPE_FILTERS.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                {t(type.label)}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    </LogsFilterField>
+  )
+  const advancedFilters = (
+    <>
+      <LogsFilterField>
+        <LogsFilterInput
+          placeholder={t('Token Name')}
+          type={sensitiveType}
+          value={filters.token || ''}
+          onChange={(e) => handleChange('token', e.target.value)}
+          onKeyDown={handleKeyDown}
         />
-      }
-      additionalSearch={
-        <>
-          <Input
-            placeholder={t('Model Name')}
-            value={filters.model || ''}
-            onChange={(e) => handleChange('model', e.target.value)}
-            onKeyDown={handleKeyDown}
-            className={inputClass}
-          />
-          <Input
-            placeholder={t('Group')}
+      </LogsFilterField>
+      {isAdmin && (
+        <LogsFilterField>
+          <LogsFilterInput
+            placeholder={t('Username')}
             type={sensitiveType}
-            value={filters.group || ''}
-            onChange={(e) => handleChange('group', e.target.value)}
+            value={filters.username || ''}
+            onChange={(e) => handleChange('username', e.target.value)}
             onKeyDown={handleKeyDown}
-            className={inputClass}
           />
-          <Select
-            items={[
-              { value: 'all', label: t('All Types') },
-              ...LOG_TYPES.map((type) => ({
-                value: String(type.value),
-                label: t(type.label),
-              })),
-            ]}
-            value={logType}
-            onValueChange={(value) => {
-              setLogType(value !== null && isLogTypeValue(value) ? value : '')
-            }}
-          >
-            <SelectTrigger className={inputClass}>
-              <SelectValue placeholder={t('All Types')} />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              <SelectGroup>
-                <SelectItem value='all'>{t('All Types')}</SelectItem>
-                {LOG_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={String(type.value)}>
-                    {t(type.label)}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+        </LogsFilterField>
+      )}
+      {isAdmin && (
+        <LogsFilterField>
+          <LogsFilterInput
+            placeholder={t('Channel ID')}
+            value={filters.channel || ''}
+            onChange={(e) => handleChange('channel', e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        </LogsFilterField>
+      )}
+      <LogsFilterField>
+        <LogsFilterInput
+          placeholder={t('Request ID')}
+          value={filters.requestId || ''}
+          onChange={(e) => handleChange('requestId', e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+      </LogsFilterField>
+      <LogsFilterField>
+        <LogsFilterInput
+          placeholder={t('Upstream Request ID')}
+          value={filters.upstreamRequestId || ''}
+          onChange={(e) =>
+            handleChange('upstreamRequestId', e.target.value)
+          }
+          onKeyDown={handleKeyDown}
+        />
+      </LogsFilterField>
+    </>
+  )
+
+  return (
+    <LogsFilterToolbar
+      table={props.table}
+      stats={statsBar}
+      primaryFilters={
+        <>
+          {dateRangeFilter}
+          {modelFilter}
+          {groupFilter}
+          {typeFilter}
         </>
       }
-      expandable={
+      advancedFilters={advancedFilters}
+      mobilePinnedFilters={dateRangeFilter}
+      mobileFilters={
         <>
-          <Input
-            placeholder={t('Token Name')}
-            type={sensitiveType}
-            value={filters.token || ''}
-            onChange={(e) => handleChange('token', e.target.value)}
-            onKeyDown={handleKeyDown}
-            className={inputClass}
-          />
-          {isAdmin && (
-            <Input
-              placeholder={t('Username')}
-              type={sensitiveType}
-              value={filters.username || ''}
-              onChange={(e) => handleChange('username', e.target.value)}
-              onKeyDown={handleKeyDown}
-              className={inputClass}
-            />
-          )}
-          {isAdmin && (
-            <Input
-              placeholder={t('Channel ID')}
-              value={filters.channel || ''}
-              onChange={(e) => handleChange('channel', e.target.value)}
-              onKeyDown={handleKeyDown}
-              className={inputClass}
-            />
-          )}
-          <Input
-            placeholder={t('Request ID')}
-            value={filters.requestId || ''}
-            onChange={(e) => handleChange('requestId', e.target.value)}
-            onKeyDown={handleKeyDown}
-            className={inputClass}
-          />
-          <Input
-            placeholder={t('Upstream Request ID')}
-            value={filters.upstreamRequestId || ''}
-            onChange={(e) =>
-              handleChange('upstreamRequestId', e.target.value)
-            }
-            onKeyDown={handleKeyDown}
-            className={inputClass}
-          />
+          {modelFilter}
+          {groupFilter}
+          {typeFilter}
+          {advancedFilters}
         </>
       }
-      hasExpandedActiveFilters={hasExpandedFilters}
-      hasAdditionalFilters={hasAdditionalFilters}
+      mobileFilterCount={
+        [filters.model, filters.group, hasTypeFilter].filter(Boolean).length +
+        expandedFilterCount
+      }
+      hasAdvancedActiveFilters={hasExpandedFilters}
+      advancedFilterCount={expandedFilterCount}
+      hasActiveFilters={hasAdditionalFilters}
       onSearch={handleApply}
       searchLoading={fetchingLogs > 0}
       onReset={handleReset}

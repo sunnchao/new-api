@@ -1,6 +1,7 @@
 "use client";
 
 import i18n from "@/i18n/config";
+import { normalizeLanguage } from "@/i18n/language";
 import { ThemeProvider } from "@/context/theme-provider";
 import { ThemeCustomizationProvider } from "@/context/theme-customization-provider";
 import { QueryProvider } from "@/context/query-provider";
@@ -10,15 +11,14 @@ import { useSystemConfigStore, type QuotaDisplayType } from "@/stores/system-con
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { CommandMenu } from "@/components/command-menu";
 
 function I18nLanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem("i18nextLng");
-      const detected = stored || window.navigator.language;
-      const lang = detected?.split("-")[0];
-      const supported = ["en", "zh", "fr", "ru", "ja", "vi"];
-      if (lang && supported.includes(lang) && i18n.language !== lang) {
+      const lang = normalizeLanguage(stored || window.navigator.language);
+      if (lang && i18n.language !== lang) {
         i18n.changeLanguage(lang);
       }
     } catch {
@@ -186,6 +186,7 @@ export function Providers({ children }: { children: ReactNode }) {
                 <SystemConfigProvider>
                   <TooltipProvider delayDuration={150}>
                     {children}
+                    <CommandMenu />
                   </TooltipProvider>
                   <Toaster richColors position="top-right" />
                 </SystemConfigProvider>

@@ -35,6 +35,7 @@ export interface AdminPlan {
   is_unlimited_time?: boolean
   duration_value?: number
   duration_unit?: string
+  custom_seconds?: number
   daily_quota_per_plan?: number
   weekly_quota_per_plan?: number
   monthly_quota_per_plan?: number
@@ -93,8 +94,7 @@ export interface AdminSubscriptionsResponse {
 
 export interface GrantSubscriptionRequest {
   user_id: number
-  plan_type: string
-  allow_stack: boolean
+  plan_id: number
 }
 
 export interface UpdateResetLimitRequest {

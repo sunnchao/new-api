@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal, Search, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Search, Trash2, UserPlus } from 'lucide-react'
 import dayjs from 'dayjs'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -46,7 +46,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { SectionPageLayout } from '@/components/layout'
-import { getAllTickets, searchTickets, updateTicketStatus, deleteTicket } from '../api'
+import {
+  assignTicket,
+  deleteTicket,
+  getAllTickets,
+  getTicketCategories,
+  searchTickets,
+  updateTicketStatus,
+} from '../api'
+import { useAuthStore } from '@/stores/auth-store'
 import {
   TICKET_STATUS,
   TICKET_PRIORITY,
@@ -55,30 +63,50 @@ import {
   STATUS_LABELS,
   SUCCESS_MESSAGES,
 } from '../constants'
-import type { Ticket } from '../types'
+import type { Ticket, TicketCategory } from '../types'
 import { TicketStatusBadge } from './ticket-status-badge'
 
 const STATUS_KEYS = ['Pending', 'In Progress', 'Replied', 'Closed']
 const PRIORITY_KEYS = ['Low', 'Medium', 'High']
+const ALL_CATEGORIES = '__all__'
 
 export function AdminTicketList() {
   const { t } = useTranslation()
   const router = useRouter()
   const queryClient = useQueryClient()
+  const currentAdminId = useAuthStore((state) => state.auth.user?.id) || 0
   const [statusFilter, setStatusFilter] = useState<number>(0)
+  const [categoryFilter, setCategoryFilter] = useState(ALL_CATEGORIES)
   const [priorityFilter, setPriorityFilter] = useState<number>(0)
   const [page, setPage] = useState(1)
   const [searchKeyword, setSearchKeyword] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null)
 
+  const { data: categoriesData } = useQuery({
+    queryKey: ['ticket-categories'],
+    queryFn: getTicketCategories,
+  })
+  const categories: TicketCategory[] = categoriesData?.data || []
+  const categoryLabel = (value: string) =>
+    categories.find((category) => category.value === value)?.label || value
+
   const listQuery = useQuery({
-    queryKey: ['tickets', 'admin', page, statusFilter, priorityFilter],
+    queryKey: [
+      'tickets',
+      'admin',
+      page,
+      statusFilter,
+      categoryFilter,
+      priorityFilter,
+    ],
     queryFn: () =>
       getAllTickets({
         p: page,
         page_size: 10,
         status: statusFilter || undefined,
+        category:
+          categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter,
         priority: priorityFilter || undefined,
       }),
     enabled: !isSearching,
@@ -100,6 +128,13 @@ export function AdminTicketList() {
   const isLoading = isSearching ? searchQuery.isLoading : listQuery.isLoading
   const tickets: Ticket[] = data?.data?.items || []
   const total: number = data?.data?.total || 0
+  const statusCounts = tickets.reduce(
+    (acc, ticket) => {
+      acc[ticket.status] = (acc[ticket.status] || 0) + 1
+      return acc
+    },
+    {} as Record<number, number>
+  )
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: number }) =>
@@ -125,6 +160,15 @@ export function AdminTicketList() {
       toast.success(t(SUCCESS_MESSAGES.TICKET_DELETED))
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
       setDeleteTarget(null)
+    },
+  })
+
+  const assignToMeMutation = useMutation({
+    mutationFn: (id: number) =>
+      assignTicket(id, { admin_id: currentAdminId }),
+    onSuccess: () => {
+      toast.success(t(SUCCESS_MESSAGES.TICKET_ASSIGNED))
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
     },
   })
 
@@ -181,7 +225,7 @@ export function AdminTicketList() {
                     {t(PRIORITY_LABELS[ticket.priority] || 'Unknown')}
                   </Badge>
                 </TableCell>
-                <TableCell>{ticket.category}</TableCell>
+                <TableCell>{categoryLabel(ticket.category)}</TableCell>
                 <TableCell className='text-muted-foreground text-sm'>
                   {ticket.assigned_admin_id > 0
                     ? `#${ticket.assigned_admin_id}`
@@ -201,6 +245,12 @@ export function AdminTicketList() {
                     }
                     onDelete={() => setDeleteTarget(ticket)}
                     onView={() => router.push(`/tickets/${ticket.id}`)}
+                    canAssignToMe={
+                      !!currentAdminId &&
+                      ticket.status !== TICKET_STATUS.CLOSED &&
+                      ticket.assigned_admin_id !== currentAdminId
+                    }
+                    onAssignToMe={() => assignToMeMutation.mutate(ticket.id)}
                   />
                 </TableCell>
               </TableRow>
@@ -216,6 +266,14 @@ export function AdminTicketList() {
       <SectionPageLayout.Title>{t('Ticket Management')}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <div className='space-y-4'>
+          <div className='flex flex-wrap gap-3 text-sm'>
+            {Object.entries(TICKET_STATUS).map(([key, value]) => (
+              <span key={key} className='text-muted-foreground'>
+                {t(STATUS_KEYS[value - 1])}: {statusCounts[value] || 0}
+              </span>
+            ))}
+          </div>
+
           {/* Filters */}
           <div className='flex flex-wrap items-center gap-3'>
             <div className='relative w-[240px]'>
@@ -261,6 +319,27 @@ export function AdminTicketList() {
                 {Object.entries(TICKET_PRIORITY).map(([key, value]) => (
                   <SelectItem key={key} value={String(value)}>
                     {t(PRIORITY_KEYS[value - 1])}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={categoryFilter}
+              onValueChange={(v) => {
+                setCategoryFilter(v)
+                setPage(1)
+              }}
+            >
+              <SelectTrigger className='w-[150px]'>
+                <SelectValue placeholder={t('All Categories')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_CATEGORIES}>
+                  {t('All Categories')}
+                </SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.value} value={category.value}>
+                    {category.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -329,12 +408,16 @@ function RowActions({
   onChangePriority,
   onDelete,
   onView,
+  canAssignToMe,
+  onAssignToMe,
 }: {
   ticket: Ticket
   onChangeStatus: (status: number) => void
   onChangePriority: (priority: number) => void
   onDelete: () => void
   onView: () => void
+  canAssignToMe: boolean
+  onAssignToMe: () => void
 }) {
   const { t } = useTranslation()
 
@@ -349,6 +432,12 @@ function RowActions({
         <DropdownMenuItem onClick={onView}>
           {t('View Detail')}
         </DropdownMenuItem>
+        {canAssignToMe && (
+          <DropdownMenuItem onClick={onAssignToMe}>
+            <UserPlus className='mr-2 size-4' />
+            {t('Assign to me')}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>{t('Change Status')}</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>

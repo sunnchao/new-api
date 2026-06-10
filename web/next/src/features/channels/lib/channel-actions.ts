@@ -37,7 +37,7 @@ import {
   updateChannelBalance,
 } from '../api'
 import { CHANNEL_STATUS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
-import type { CopyChannelParams } from '../types'
+import type { ChannelTestResponse, CopyChannelParams } from '../types'
 
 // ============================================================================
 // Query Keys
@@ -50,6 +50,16 @@ export const channelsQueryKeys = {
     [...channelsQueryKeys.lists(), params] as const,
   details: () => [...channelsQueryKeys.all, 'detail'] as const,
   detail: (id: number) => [...channelsQueryKeys.details(), id] as const,
+}
+
+function getChannelTestResponseTime(response: ChannelTestResponse) {
+  if (typeof response.data?.response_time === 'number') {
+    return response.data.response_time
+  }
+  if (typeof response.time === 'number') {
+    return Math.round(response.time * 1000)
+  }
+  return undefined
 }
 
 // ============================================================================
@@ -228,7 +238,7 @@ export async function handleTestChannel(
     const response = await testChannel(id, payload)
     if (response.success) {
       toast.success(i18next.t(SUCCESS_MESSAGES.TESTED))
-      onTestComplete?.(true, response.data?.response_time)
+      onTestComplete?.(true, getChannelTestResponseTime(response))
     } else {
       toast.error(response.message || i18next.t(ERROR_MESSAGES.TEST_FAILED))
       onTestComplete?.(false, undefined, response.message, response.error_code)

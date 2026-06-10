@@ -3,6 +3,8 @@ package router
 import (
 	"embed"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -29,6 +31,7 @@ func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.GlobalWebRateLimit())
 	router.Use(middleware.Cache())
+	router.Use(proxyNextFrontendWhenSelected())
 	router.Static("/uploads/tickets", "./uploads/tickets")
 	router.Use(static.Serve("/", themeFS))
 	router.NoRoute(func(c *gin.Context) {
@@ -44,4 +47,45 @@ func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 			c.Data(http.StatusOK, "text/html; charset=utf-8", assets.DefaultIndexPage)
 		}
 	})
+}
+
+func proxyNextFrontendWhenSelected() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if common.GetTheme() != "next" || isBackendWebRoute(c.Request.URL.Path) {
+			c.Next()
+			return
+		}
+
+		targetBaseURL := common.GetNextFrontendBaseURL()
+		if targetBaseURL == "" {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+				"success": false,
+				"message": "NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL is required when theme.frontend is next",
+			})
+			return
+		}
+
+		target, err := url.Parse(targetBaseURL)
+		if err != nil || target.Scheme == "" || target.Host == "" {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+				"success": false,
+				"message": "NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL is invalid",
+			})
+			return
+		}
+
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		proxy.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
+			http.Error(rw, http.StatusText(http.StatusBadGateway), http.StatusBadGateway)
+		}
+		proxy.ServeHTTP(c.Writer, c.Request)
+		c.Abort()
+	}
+}
+
+func isBackendWebRoute(path string) bool {
+	return strings.HasPrefix(path, "/api") ||
+		strings.HasPrefix(path, "/v1") ||
+		strings.HasPrefix(path, "/assets") ||
+		strings.HasPrefix(path, "/uploads/tickets")
 }

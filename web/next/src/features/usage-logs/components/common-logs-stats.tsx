@@ -16,11 +16,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { formatLogQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { searchParamsToApiRecord } from '@/lib/next-url'
 import { useIsAdmin } from '@/hooks/use-admin'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getLogStats, getUserLogStats } from '../api'
@@ -57,7 +58,7 @@ export function CommonLogsStats() {
       const params = buildApiParams({
         page: 1,
         pageSize: 1,
-        searchParams,
+        searchParams: searchParamsToApiRecord(searchParams),
         columnFilters: [],
         isAdmin,
       })

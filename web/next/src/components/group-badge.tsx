@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 export interface GroupBadgeProps {
   group: string;
+  label?: string;
   ratio?: number | string | null;
   className?: string;
   size?: "sm" | "md" | "lg" | null;
@@ -35,7 +36,7 @@ function hashString(s: string): number {
   return Math.abs(h);
 }
 
-export function GroupBadge({ group, ratio, className, size, onClick }: GroupBadgeProps) {
+export function GroupBadge({ group, label, ratio, className, size, onClick }: GroupBadgeProps) {
   const color = PALETTE[hashString(group || "") % PALETTE.length];
   return (
     <span
@@ -52,7 +53,7 @@ export function GroupBadge({ group, ratio, className, size, onClick }: GroupBadg
       }}
       onClick={onClick}
     >
-      <span className="truncate">{group || "-"}</span>
+      <span className="truncate">{label || group || "-"}</span>
       {ratio !== undefined && ratio !== null && ratio !== "" ? (
         <span className="ml-1 opacity-70">{ratio}x</span>
       ) : null}

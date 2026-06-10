@@ -40,6 +40,7 @@ import type {
   InvoiceType,
   PageResponse,
 } from './types'
+import './i18n'
 
 const emptyRecordsPage: PageResponse<InvoiceableRecord> = {
   page: 1,
@@ -93,11 +94,9 @@ function getConfiguredRealNameProvider(
   status: Record<string, unknown> | null,
   realNameStatus: Record<string, unknown> | null
 ) {
-  const env = import.meta.env as unknown as Record<string, unknown>
-  const envProvider =
-    typeof env.VITE_REALNAME_PROVIDER === 'string'
-      ? normalizeProviderName(env.VITE_REALNAME_PROVIDER)
-      : ''
+  const envProvider = normalizeProviderName(
+    process.env.NEXT_PUBLIC_REALNAME_PROVIDER || ''
+  )
 
   const providerKeys = [
     'realname_provider',

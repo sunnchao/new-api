@@ -20,6 +20,46 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth-store'
 import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
 import { API_KEY_STATUS } from '@/features/keys/constants'
+import type { ApiKey } from '@/features/keys/types'
+
+export function useEnabledChatTokens(enabled: boolean) {
+  const userId = useAuthStore((state) => state.auth.user?.id)
+
+  return useQuery<ApiKey[]>({
+    queryKey: ['chat-enabled-tokens', userId],
+    queryFn: async () => {
+      const result = await getApiKeys({ p: 1, size: 50 })
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to load API keys')
+      }
+
+      const items = result.data?.items ?? []
+      return items.filter((item) => item.status === API_KEY_STATUS.ENABLED)
+    },
+    enabled: enabled && Boolean(userId),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  })
+}
+
+export function useChatTokenKey(tokenId: number | null) {
+  const userId = useAuthStore((state) => state.auth.user?.id)
+
+  return useQuery<string>({
+    queryKey: ['chat-token-key', userId, tokenId],
+    queryFn: async () => {
+      if (tokenId == null) throw new Error('No token selected')
+      const keyResult = await fetchTokenKey(tokenId)
+      if (!keyResult.success || !keyResult.data?.key) {
+        throw new Error(keyResult.message || 'Failed to load API key')
+      }
+      return `sk-${keyResult.data.key}`
+    },
+    enabled: tokenId != null && Boolean(userId),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  })
+}
 
 export async function fetchActiveChatKey() {
   const result = await getApiKeys({ p: 1, size: 50 })

@@ -43,13 +43,46 @@ const behaviorSchema = z.object({
   DefaultCollapseSidebar: z.boolean(),
   DemoSiteEnabled: z.boolean(),
   SelfUseModeEnabled: z.boolean(),
+  token_setting: z.object({
+    max_user_tokens: z.coerce.number().int().min(1),
+  }),
 })
 
 type BehaviorFormValues = z.infer<typeof behaviorSchema>
 
-type SystemBehaviorSectionProps = {
-  defaultValues: BehaviorFormValues
+type FlatBehaviorDefaults = {
+  RetryTimes: number
+  DefaultCollapseSidebar: boolean
+  DemoSiteEnabled: boolean
+  SelfUseModeEnabled: boolean
+  'token_setting.max_user_tokens': number
 }
+
+type SystemBehaviorSectionProps = {
+  defaultValues: FlatBehaviorDefaults
+}
+
+const buildFormDefaults = (
+  defaults: FlatBehaviorDefaults
+): BehaviorFormValues => ({
+  RetryTimes: defaults.RetryTimes,
+  DefaultCollapseSidebar: defaults.DefaultCollapseSidebar,
+  DemoSiteEnabled: defaults.DemoSiteEnabled,
+  SelfUseModeEnabled: defaults.SelfUseModeEnabled,
+  token_setting: {
+    max_user_tokens: defaults['token_setting.max_user_tokens'],
+  },
+})
+
+const normalizeFormValues = (
+  values: BehaviorFormValues
+): FlatBehaviorDefaults => ({
+  RetryTimes: values.RetryTimes,
+  DefaultCollapseSidebar: values.DefaultCollapseSidebar,
+  DemoSiteEnabled: values.DemoSiteEnabled,
+  SelfUseModeEnabled: values.SelfUseModeEnabled,
+  'token_setting.max_user_tokens': values.token_setting.max_user_tokens,
+})
 
 export function SystemBehaviorSection({
   defaultValues,
@@ -57,16 +90,21 @@ export function SystemBehaviorSection({
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
 
-  const form = useForm({
-    resolver: zodResolver(behaviorSchema),
-    defaultValues,
+  const formDefaults = buildFormDefaults(defaultValues)
+
+  const form = useForm<BehaviorFormValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(behaviorSchema) as any,
+    defaultValues: formDefaults,
   })
 
-  useResetForm(form, defaultValues)
+  useResetForm(form, formDefaults)
 
   const onSubmit = async (data: BehaviorFormValues) => {
-    const updates = Object.entries(data).filter(
-      ([key, value]) => value !== defaultValues[key as keyof BehaviorFormValues]
+    const normalized = normalizeFormValues(data)
+    const updates = Object.entries(normalized).filter(
+      ([key, value]) =>
+        value !== defaultValues[key as keyof FlatBehaviorDefaults]
     )
 
     for (const [key, value] of updates) {
@@ -172,6 +210,34 @@ export function SystemBehaviorSection({
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='token_setting.max_user_tokens'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Maximum Tokens per User')}</FormLabel>
+                <FormControl>
+                  <Input
+                    type='number'
+                    min='1'
+                    step='1'
+                    value={field.value as number}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    name={field.name}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {t(
+                    'Maximum number of API keys each user can create. Default is 1000; very large values may affect performance.'
+                  )}
+                </FormDescription>
+                <FormMessage />
               </FormItem>
             )}
           />

@@ -25,6 +25,7 @@ import type {
   RegisterPayload,
   ApiResponse,
 } from './types'
+import type { TelegramAuthData } from './lib/telegram'
 
 // ============================================================================
 // Authentication APIs
@@ -70,7 +71,8 @@ export async function sendPasswordResetEmail(
 ): Promise<ApiResponse> {
   const res = await api.get('/api/reset_password', {
     params: { email, turnstile },
-  })
+    skipBusinessError: true,
+  } as Record<string, unknown>)
   return res.data
 }
 
@@ -96,6 +98,14 @@ export async function getOAuthState(): Promise<string> {
 // WeChat login by authorization code
 export async function wechatLoginByCode(code: string): Promise<ApiResponse> {
   const res = await api.get('/api/oauth/wechat', { params: { code } })
+  return res.data
+}
+
+// Telegram login by signed Telegram authorization data
+export async function telegramLoginByData(
+  data: TelegramAuthData
+): Promise<ApiResponse> {
+  const res = await api.get('/api/oauth/telegram/login', { params: data })
   return res.data
 }
 

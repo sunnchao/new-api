@@ -25,7 +25,6 @@ import { MoreHorizontal, RefreshCw, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatQuota, formatTimestamp } from '@/lib/format'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge, type StatusVariant } from '@/components/status-badge'
 import {
@@ -36,12 +35,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -54,11 +53,11 @@ import {
   getAdminSubscriptions,
   cancelSubscription,
   deleteSubscription,
-  updateResetLimit,
 } from '../api'
 import type { AdminSubscription } from '../types'
 import { GrantSubscriptionDialog } from './grant-subscription-dialog'
 
+const ALL_STATUS = '__all__'
 const PAGE_SIZE = 10
 
 const STATUS_VARIANT: Record<string, StatusVariant> = {
@@ -98,14 +97,18 @@ export function SubscriptionsTab() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState(ALL_STATUS)
   const [grantOpen, setGrantOpen] = useState(false)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
-  const [resetTarget, setResetTarget] = useState<AdminSubscription | null>(null)
-  const [resetValue, setResetValue] = useState('0')
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['admin-packages', 'subscriptions', page],
-    queryFn: () => getAdminSubscriptions({ page, page_size: PAGE_SIZE }),
+    queryKey: ['admin-packages', 'subscriptions', page, statusFilter],
+    queryFn: () =>
+      getAdminSubscriptions({
+        page,
+        page_size: PAGE_SIZE,
+        status: statusFilter === ALL_STATUS ? undefined : statusFilter,
+      }),
   })
 
   const subscriptions: AdminSubscription[] =
@@ -151,24 +154,6 @@ export function SubscriptionsTab() {
     },
   })
 
-  const resetMutation = useMutation({
-    mutationFn: ({ id, value }: { id: number; value: number }) =>
-      updateResetLimit(id, { reset_quota_limit: value }),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.success(res.message || t('Reset limit updated successfully'))
-        invalidate()
-      } else {
-        toast.error(res.message || t('Failed to update reset limit'))
-      }
-      setResetTarget(null)
-    },
-    onError: () => {
-      toast.error(t('Failed to update reset limit'))
-      setResetTarget(null)
-    },
-  })
-
   const handleConfirm = () => {
     if (!confirmAction) return
     if (confirmAction.type === 'cancel') {
@@ -178,9 +163,9 @@ export function SubscriptionsTab() {
     }
   }
 
-  const openReset = (row: AdminSubscription) => {
-    setResetTarget(row)
-    setResetValue(String(row.reset_quota_limit ?? 0))
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value)
+    setPage(1)
   }
 
   let body
@@ -243,9 +228,6 @@ export function SubscriptionsTab() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align='end'>
-                        <DropdownMenuItem onClick={() => openReset(row)}>
-                          {t('Update Reset Limit')}
-                        </DropdownMenuItem>
                         <DropdownMenuItem
                           disabled={isClosed}
                           onClick={() =>
@@ -278,15 +260,33 @@ export function SubscriptionsTab() {
   return (
     <div className='space-y-4'>
       <div className='flex items-center justify-between gap-2'>
-        <Button
-          variant='outline'
-          size='sm'
-          disabled={isFetching}
-          onClick={() => invalidate()}
-        >
-          <RefreshCw className='mr-2 size-4' />
-          {t('Refresh')}
-        </Button>
+        <div className='flex items-center gap-2'>
+          <Select
+            value={statusFilter}
+            onValueChange={handleStatusFilterChange}
+          >
+            <SelectTrigger className='h-8 w-[140px]'>
+              <SelectValue placeholder={t('Status')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_STATUS}>{t('All Status')}</SelectItem>
+              <SelectItem value='active'>{t('Active')}</SelectItem>
+              <SelectItem value='expired'>{t('Expired')}</SelectItem>
+              <SelectItem value='cancelled'>{t('Cancelled')}</SelectItem>
+              <SelectItem value='exhausted'>{t('Exhausted')}</SelectItem>
+              <SelectItem value='pending'>{t('Pending')}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant='outline'
+            size='sm'
+            disabled={isFetching}
+            onClick={() => invalidate()}
+          >
+            <RefreshCw className='mr-2 size-4' />
+            {t('Refresh')}
+          </Button>
+        </div>
         <Button size='sm' onClick={() => setGrantOpen(true)}>
           <Plus className='mr-2 size-4' />
           {t('Grant Subscription')}
@@ -345,44 +345,6 @@ export function SubscriptionsTab() {
         onConfirm={handleConfirm}
       />
 
-      <Dialog
-        open={!!resetTarget}
-        onOpenChange={(open) => !open && setResetTarget(null)}
-      >
-        <DialogContent className='sm:max-w-sm'>
-          <DialogHeader>
-            <DialogTitle>{t('Update Reset Limit')}</DialogTitle>
-          </DialogHeader>
-          <div className='space-y-2'>
-            <label className='text-sm font-medium'>
-              {t('Resettable Count')}
-            </label>
-            <Input
-              type='number'
-              min={0}
-              value={resetValue}
-              onChange={(e) => setResetValue(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setResetTarget(null)}>
-              {t('Cancel')}
-            </Button>
-            <Button
-              disabled={resetMutation.isPending}
-              onClick={() =>
-                resetTarget &&
-                resetMutation.mutate({
-                  id: resetTarget.id,
-                  value: Math.max(Number(resetValue || 0), 0),
-                })
-              }
-            >
-              {t('Save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

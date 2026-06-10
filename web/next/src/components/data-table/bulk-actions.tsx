@@ -5,6 +5,11 @@ import { Download, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
+type BulkActionsTable = {
+  getFilteredSelectedRowModel: () => { rows: unknown[] };
+  resetRowSelection: () => void;
+};
+
 export interface BulkActionsProps extends React.HTMLAttributes<HTMLDivElement> {
   selectedCount?: number;
   onDelete?: () => void;
@@ -24,11 +29,19 @@ export const BulkActions = React.forwardRef<HTMLDivElement, BulkActionsProps>(
       onClearSelection,
       children,
       className,
+      table,
+      entityName: _entityName,
       ...props
     },
     ref
   ) => {
-    if (!selectedCount || selectedCount <= 0) return null;
+    const tableApi = isBulkActionsTable(table) ? table : null;
+    const resolvedSelectedCount =
+      selectedCount ?? tableApi?.getFilteredSelectedRowModel().rows.length ?? 0;
+    const resolvedOnClearSelection =
+      onClearSelection ?? tableApi?.resetRowSelection.bind(tableApi);
+
+    if (resolvedSelectedCount <= 0) return null;
 
     return (
       <div
@@ -49,7 +62,7 @@ export const BulkActions = React.forwardRef<HTMLDivElement, BulkActionsProps>(
         >
           <div className="flex items-center gap-2 pl-3 pr-1 text-xs text-[var(--foreground)]">
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[10px] font-medium text-[var(--accent-foreground)]">
-              {selectedCount}
+              {resolvedSelectedCount}
             </span>
             <span className="text-[var(--muted)]">selected</span>
           </div>
@@ -88,7 +101,7 @@ export const BulkActions = React.forwardRef<HTMLDivElement, BulkActionsProps>(
             variant="ghost"
             size="icon"
             className="h-8 w-8 rounded-full"
-            onClick={onClearSelection}
+            onClick={resolvedOnClearSelection}
             aria-label="Clear selection"
           >
             <X className="h-3.5 w-3.5" />
@@ -99,3 +112,12 @@ export const BulkActions = React.forwardRef<HTMLDivElement, BulkActionsProps>(
   }
 );
 BulkActions.displayName = "BulkActions";
+
+function isBulkActionsTable(table: unknown): table is BulkActionsTable {
+  if (!table || typeof table !== "object") return false;
+  const candidate = table as Partial<BulkActionsTable>;
+  return (
+    typeof candidate.getFilteredSelectedRowModel === "function" &&
+    typeof candidate.resetRowSelection === "function"
+  );
+}

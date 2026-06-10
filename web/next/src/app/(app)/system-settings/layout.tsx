@@ -1,10 +1,14 @@
 "use client";
 
+import "@/features/system-settings/i18n";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { cn } from "@/lib/utils";
+import { ROLE } from "@/lib/roles";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   Globe,
   ShieldCheck,
@@ -89,6 +93,19 @@ export default function SystemSettingsLayout({
 }) {
   const { t } = useTranslation();
   const pathname = usePathname() ?? "";
+  const router = useRouter();
+  const user = useAuthStore((s) => s.auth.user);
+  const isRoot = user?.role === ROLE.SUPER_ADMIN;
+
+  useEffect(() => {
+    if (!isRoot) {
+      router.replace("/403");
+    }
+  }, [isRoot, router]);
+
+  if (!isRoot) {
+    return null;
+  }
 
   const activeCategory = (() => {
     const match = pathname.match(/^\/system-settings\/([^/]+)/);

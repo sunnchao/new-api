@@ -46,6 +46,7 @@ export function ResetPasswordConfirm({
   const { t } = useTranslation()
   const router = useRouter()
   const [newPassword, setNewPassword] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const {
@@ -64,6 +65,7 @@ export function ResetPasswordConfirm({
 
     startCountdown()
     setLoading(true)
+    setErrorMessage('')
     try {
       const res = await api.post('/api/user/reset', { email, token }, {
         skipBusinessError: true,
@@ -82,9 +84,24 @@ export function ResetPasswordConfirm({
         } else {
           toast.success(t('Password reset: {{password}}', { password }))
         }
+      } else {
+        const message =
+          res?.data?.message || t('auth.resetPasswordConfirm.failure')
+        setErrorMessage(message)
+        toast.error(message)
       }
-    } catch {
-      // Errors handled by global interceptor
+    } catch (error) {
+      const message = String(
+        (error &&
+          typeof error === 'object' &&
+          'response' in error &&
+          (error as { response?: { data?: { message?: string } } }).response
+            ?.data?.message) ||
+          (error instanceof Error ? error.message : undefined) ||
+          t('auth.resetPasswordConfirm.failure')
+      )
+      setErrorMessage(message)
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -114,8 +131,8 @@ export function ResetPasswordConfirm({
           </h2>
           <p className='text-muted-foreground text-left text-sm sm:text-base'>
             {newPassword
-              ? 'Your password has been reset successfully'
-              : 'Confirm the reset request to generate a new password.'}
+              ? t('auth.resetPasswordConfirm.success')
+              : t('auth.resetPasswordConfirm.description')}
           </p>
         </div>
 
@@ -125,6 +142,12 @@ export function ResetPasswordConfirm({
               <AlertDescription>
                 {t('Invalid reset link, please request a new password reset.')}
               </AlertDescription>
+            </Alert>
+          )}
+
+          {isValidResetLink && errorMessage && (
+            <Alert variant='destructive'>
+              <AlertDescription>{errorMessage}</AlertDescription>
             </Alert>
           )}
 
@@ -180,10 +203,12 @@ export function ResetPasswordConfirm({
             }
           >
             {newPassword
-              ? 'Return to login'
+              ? t('auth.resetPasswordConfirm.backToLogin')
               : isActive
-                ? `Retry (${secondsLeft}s)`
-                : 'Confirm reset password'}
+                ? t('auth.resetPasswordConfirm.retry', {
+                    seconds: secondsLeft,
+                  })
+                : t('auth.resetPasswordConfirm.confirm')}
           </Button>
 
           {!newPassword && (

@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Send } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Dialog,
@@ -26,6 +27,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { TelegramAuthButton } from '@/features/auth/components/telegram-auth-button'
+import type { TelegramAuthData } from '@/features/auth/lib/telegram'
+import { bindTelegram } from '../../api'
 
 // ============================================================================
 // Telegram Bind Dialog Component
@@ -42,8 +46,25 @@ export function TelegramBindDialog({
   open,
   onOpenChange,
   botName,
+  onSuccess,
 }: TelegramBindDialogProps) {
   const { t } = useTranslation()
+
+  const handleTelegramAuth = async (data: TelegramAuthData) => {
+    const response = await bindTelegram(data)
+    if (response.success) {
+      toast.success(response.message || t('Telegram account bound'))
+      onOpenChange(false)
+      onSuccess()
+    } else {
+      toast.error(response.message || t('Telegram binding failed'))
+    }
+  }
+
+  const handleTelegramError = () => {
+    toast.error(t('Telegram binding failed'))
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='sm:max-w-md'>
@@ -81,13 +102,12 @@ export function TelegramBindDialog({
               </p>
             </div>
 
-            {/* Telegram Login Widget will be injected here by react-telegram-login */}
-            <div id='telegram-login-widget' className='flex justify-center'>
-              {/* This would require the react-telegram-login library */}
-              <div className='text-muted-foreground rounded-lg border border-dashed px-6 py-3 text-sm'>
-                {t('Telegram Login Widget')}
-              </div>
-            </div>
+            <TelegramAuthButton
+              botName={botName}
+              label={t('Bind Telegram')}
+              onAuth={handleTelegramAuth}
+              onError={handleTelegramError}
+            />
           </div>
 
           <p className='text-muted-foreground text-center text-xs'>

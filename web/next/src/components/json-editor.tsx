@@ -74,6 +74,35 @@ export function JsonEditor({
   const [jsonValue, setJsonValue] = useState(value);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  const parseJsonToRows = (json: string) => {
+    try {
+      if (!json.trim()) {
+        setRows([]);
+        return;
+      }
+      const parsed = JSON.parse(json);
+      const newRows: EditorRow[] = Object.entries(parsed).map(
+        ([key, val], index) => ({
+          id: `${Date.now()}-${index}`,
+          key,
+          value: typeof val === "object" ? JSON.stringify(val) : String(val),
+        })
+      );
+      setRows(newRows);
+    } catch (_error) {
+      // Invalid JSON, keep current rows
+    }
+  };
+
+  useEffect(() => {
+    if (!hasVisualProps) return;
+    if (value !== jsonValue) {
+      setJsonValue(value);
+      parseJsonToRows(value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, hasVisualProps]);
+
   // Simple mode (original web/next API)
   if (!hasVisualProps) {
     const handleBlur = () => {
@@ -118,34 +147,6 @@ export function JsonEditor({
   }
 
   // Visual/JSON mode editor (default theme API)
-  const parseJsonToRows = (json: string) => {
-    try {
-      if (!json.trim()) {
-        setRows([]);
-        return;
-      }
-      const parsed = JSON.parse(json);
-      const newRows: EditorRow[] = Object.entries(parsed).map(
-        ([key, val], index) => ({
-          id: `${Date.now()}-${index}`,
-          key,
-          value: typeof val === "object" ? JSON.stringify(val) : String(val),
-        })
-      );
-      setRows(newRows);
-    } catch (_error) {
-      // Invalid JSON, keep current rows
-    }
-  };
-
-  useEffect(() => {
-    if (value !== jsonValue) {
-      setJsonValue(value);
-      parseJsonToRows(value);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
-
   const convertRowsToJson = (updatedRows: EditorRow[]): string => {
     if (updatedRows.length === 0) {
       return "";

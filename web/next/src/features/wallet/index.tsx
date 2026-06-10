@@ -44,6 +44,7 @@ import {
   getMinTopupAmount,
   isWaffoPancakePayment,
 } from './lib'
+import './i18n'
 import type {
   UserWalletData,
   PaymentMethod,
@@ -311,6 +312,9 @@ export function Wallet(props: WalletProps) {
               user={user}
               affiliateLink={affiliateLink}
               onTransfer={() => setTransferDialogOpen(true)}
+              complianceConfirmed={
+                topupInfo?.payment_compliance_confirmed !== false
+              }
               loading={affiliateLoading}
             />
           </div>

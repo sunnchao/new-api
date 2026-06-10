@@ -42,14 +42,10 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   PromptInput,
-  PromptInputButton,
-  PromptInputFooter,
-  PromptInputTextarea,
-  PromptInputTools,
-  type PromptInputMessage,
 } from '@/components/ai-elements/prompt-input'
 import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion'
 import { ModelGroupSelector } from '@/components/model-group-selector'
+import { Button } from '@/components/ui/button'
 import type { ModelOption, GroupOption } from '../types'
 
 interface PlaygroundInputProps {
@@ -95,9 +91,10 @@ export function PlaygroundInput({
     disabled || isModelLoading || models.length === 0
   const isGroupSelectDisabled = disabled || groups.length === 0
 
-  const handleSubmit = (message: PromptInputMessage) => {
-    if (!message.text?.trim() || disabled) return
-    onSubmit(message.text)
+  const handleSubmit = (value: string) => {
+    const next = value.trim()
+    if (!next || disabled) return
+    onSubmit(next)
     setText('')
   }
 
@@ -112,35 +109,40 @@ export function PlaygroundInput({
   }
 
   return (
-    <div className='grid shrink-0 gap-4 px-1 md:pb-4'>
-      <PromptInput groupClassName='rounded-xl' onSubmit={handleSubmit}>
-        <PromptInputTextarea
-          autoComplete='off'
-          autoCorrect='off'
-          autoCapitalize='off'
-          spellCheck={false}
-          className='px-5 md:text-base'
-          disabled={disabled}
-          onChange={(event) => setText(event.target.value)}
-          placeholder={t('Ask anything')}
-          value={text}
-        />
+    <div className='grid shrink-0 gap-3 px-1 md:pb-4'>
+      <PromptInput
+        autoComplete='off'
+        autoCorrect='off'
+        autoCapitalize='off'
+        spellCheck={false}
+        className='rounded-xl'
+        disabled={disabled}
+        loading={isGenerating}
+        maxRows={8}
+        model={modelValue}
+        onAttach={() => handleFileAction('upload-file')}
+        onChange={setText}
+        onStop={onStop}
+        onSubmit={handleSubmit}
+        placeholder={t('Ask anything')}
+        value={text}
+      />
 
-        <PromptInputFooter className='p-2.5'>
-          <PromptInputTools>
+      <div className='flex flex-wrap items-center justify-between gap-2'>
+        <div className='flex items-center gap-1'>
             <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <PromptInputButton
-                    className='border font-medium'
-                    disabled={disabled}
-                    variant='outline'
-                  />
-                }
-              >
-                <PaperclipIcon size={16} />
-                <span className='hidden sm:inline'>{t('Attach')}</span>
-                <span className='sr-only sm:hidden'>{t('Attach')}</span>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className='h-8 gap-1.5 border font-medium'
+                  disabled={disabled}
+                  size='sm'
+                  type='button'
+                  variant='outline'
+                >
+                  <PaperclipIcon size={16} />
+                  <span className='hidden sm:inline'>{t('Attach')}</span>
+                  <span className='sr-only sm:hidden'>{t('Attach')}</span>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align='start'>
                 <DropdownMenuItem
@@ -170,19 +172,21 @@ export function PlaygroundInput({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <PromptInputButton
-              className='border font-medium'
+            <Button
+              className='h-8 gap-1.5 border font-medium'
               disabled={disabled}
               onClick={() => toast.info(t('Search feature in development'))}
+              size='sm'
+              type='button'
               variant='outline'
             >
               <GlobeIcon size={16} />
               <span className='hidden sm:inline'>{t('Search')}</span>
               <span className='sr-only sm:hidden'>{t('Search')}</span>
-            </PromptInputButton>
-          </PromptInputTools>
+            </Button>
+        </div>
 
-          <div className='flex items-center gap-1.5 md:gap-2'>
+        <div className='flex items-center gap-1.5 md:gap-2'>
             <ModelGroupSelector
               selectedModel={modelValue}
               models={models}
@@ -194,42 +198,41 @@ export function PlaygroundInput({
             />
 
             {isGenerating && onStop ? (
-              <PromptInputButton
-                className='text-foreground font-medium'
+              <Button
+                className='h-8 gap-1.5 text-foreground font-medium'
                 onClick={onStop}
+                size='sm'
+                type='button'
                 variant='secondary'
               >
                 <SquareIcon className='fill-current' size={16} />
                 <span className='hidden sm:inline'>{t('Stop')}</span>
                 <span className='sr-only sm:hidden'>{t('Stop')}</span>
-              </PromptInputButton>
+              </Button>
             ) : (
-              <PromptInputButton
-                className='text-foreground font-medium'
+              <Button
+                className='h-8 gap-1.5 text-foreground font-medium'
                 disabled={disabled || !text.trim()}
-                type='submit'
+                onClick={() => handleSubmit(text)}
+                size='sm'
+                type='button'
                 variant='secondary'
               >
                 <SendIcon size={16} />
                 <span className='hidden sm:inline'>{t('Send')}</span>
                 <span className='sr-only sm:hidden'>{t('Send')}</span>
-              </PromptInputButton>
+              </Button>
             )}
-          </div>
-        </PromptInputFooter>
-      </PromptInput>
+        </div>
+      </div>
 
       <Suggestions>
         {suggestions.map(({ icon: Icon, text, color }) => (
           <Suggestion
-            className={`text-xs font-normal sm:text-sm ${
-              text === 'More' ? 'hidden sm:flex' : ''
-            }`}
             key={text}
-            onClick={() => handleSuggestionClick(text)}
-            suggestion={text}
+            onSelect={() => handleSuggestionClick(text)}
           >
-            {Icon && <Icon size={16} style={{ color }} />}
+            {Icon && <Icon className='mr-1.5 inline size-4 align-text-bottom' style={{ color }} />}
             {text}
           </Suggestion>
         ))}

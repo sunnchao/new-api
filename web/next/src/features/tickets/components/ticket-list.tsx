@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { Plus, RotateCcw, Search } from 'lucide-react'
 import dayjs from 'dayjs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -24,9 +25,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { SectionPageLayout } from '@/components/layout'
-import { getUserTickets } from '../api'
+import { getTicketCategories, getUserTickets, searchUserTickets } from '../api'
 import { TICKET_STATUS, PRIORITY_LABELS, PRIORITY_VARIANTS } from '../constants'
-import type { Ticket } from '../types'
+import type { Ticket, TicketCategory } from '../types'
 import { TicketStatusBadge } from './ticket-status-badge'
 import { CreateTicketDialog } from './create-ticket-dialog'
 
@@ -37,16 +38,38 @@ export function TicketList() {
   const router = useRouter()
   const [statusFilter, setStatusFilter] = useState<number>(0)
   const [page, setPage] = useState(1)
+  const [keyword, setKeyword] = useState('')
+  const [searchKeyword, setSearchKeyword] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+  const normalizedSearchKeyword = searchKeyword.trim()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['tickets', 'user', page, statusFilter],
+    queryKey: ['tickets', 'user', page, statusFilter, normalizedSearchKeyword],
     queryFn: () =>
-      getUserTickets({ p: page, page_size: 10, status: statusFilter || undefined }),
+      normalizedSearchKeyword
+        ? searchUserTickets({
+            keyword: normalizedSearchKeyword,
+            status: statusFilter || undefined,
+            p: page,
+            page_size: 10,
+          })
+        : getUserTickets({
+            p: page,
+            page_size: 10,
+            status: statusFilter || undefined,
+          }),
+  })
+
+  const { data: categoriesData } = useQuery({
+    queryKey: ['ticket-categories'],
+    queryFn: getTicketCategories,
   })
 
   const tickets: Ticket[] = data?.data?.items || []
   const total: number = data?.data?.total || 0
+  const categories: TicketCategory[] = categoriesData?.data || []
+  const categoryLabel = (value: string) =>
+    categories.find((category) => category.value === value)?.label || value
 
   // Summary stats
   const statusCounts = tickets.reduce(
@@ -56,6 +79,18 @@ export function TicketList() {
     },
     {} as Record<number, number>
   )
+
+  const handleSearch = () => {
+    setSearchKeyword(keyword.trim())
+    setPage(1)
+  }
+
+  const handleReset = () => {
+    setKeyword('')
+    setSearchKeyword('')
+    setStatusFilter(0)
+    setPage(1)
+  }
 
   let listContent
   if (isLoading) {
@@ -93,7 +128,7 @@ export function TicketList() {
               >
                 <TableCell className='font-mono'>#{ticket.id}</TableCell>
                 <TableCell className='font-medium'>{ticket.title}</TableCell>
-                <TableCell>{ticket.category}</TableCell>
+                <TableCell>{categoryLabel(ticket.category)}</TableCell>
                 <TableCell>
                   <Badge variant={PRIORITY_VARIANTS[ticket.priority] || 'outline'}>
                     {t(PRIORITY_LABELS[ticket.priority] || 'Unknown')}
@@ -133,8 +168,28 @@ export function TicketList() {
             ))}
           </div>
 
-          {/* Status filter */}
+          {/* Filters */}
           <div className='flex flex-wrap items-center gap-3'>
+            <div className='relative w-full sm:w-[240px]'>
+              <Search className='text-muted-foreground absolute left-2.5 top-2.5 size-4' />
+              <Input
+                placeholder={t('Search tickets')}
+                className='pl-9'
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSearch()
+                }}
+              />
+            </div>
+            <Button variant='secondary' onClick={handleSearch}>
+              <Search className='size-4' />
+              {t('Search')}
+            </Button>
+            <Button variant='ghost' onClick={handleReset}>
+              <RotateCcw className='size-4' />
+              {t('Reset')}
+            </Button>
             <Select
               value={String(statusFilter)}
               onValueChange={(v) => {

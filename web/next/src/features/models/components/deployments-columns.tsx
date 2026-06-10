@@ -51,13 +51,9 @@ export function useDeploymentsColumns(opts: {
       cell: ({ row }) => {
         const id = row.original.id
         return (
-          <StatusBadge
-            label={String(id)}
-            variant='neutral'
-            copyText={String(id)}
-            size='sm'
-            className='font-mono'
-          />
+          <span className='text-muted-foreground inline-block font-mono tabular-nums'>
+            {id}
+          </span>
         )
       },
       size: 120,

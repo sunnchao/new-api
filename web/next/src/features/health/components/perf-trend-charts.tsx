@@ -23,8 +23,8 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Area,
-  AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Line,
   LineChart,
@@ -35,16 +35,11 @@ import {
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getModelPerfDetail } from '../api'
-
-function formatHourLabel(ts: number): string {
-  const d = new Date(ts * 1000)
-  return `${String(d.getHours()).padStart(2, '0')}:00`
-}
+import { getPerfMetricsSummary } from '@/features/performance-metrics/api'
 
 interface TrendPoint {
   label: string
-  ttft: number | null
+  latency: number | null
   successRate: number | null
 }
 
@@ -63,51 +58,23 @@ export function PerfTrendCharts({
 
   const query = useQuery({
     queryKey: ['health', 'perf-trend', hours],
-    // Empty model name aggregates across all models on the backend.
-    queryFn: () => getModelPerfDetail('', hours),
+    queryFn: () => getPerfMetricsSummary(hours),
     refetchInterval: refreshInterval && refreshInterval > 0 ? refreshInterval : false,
   })
 
   const points = useMemo<TrendPoint[]>(() => {
-    const groups = query.data?.data?.groups ?? []
-    if (groups.length === 0) return []
-
-    // Aggregate every series point across all model groups by timestamp.
-    const ttftByTs = new Map<number, number[]>()
-    const successByTs = new Map<number, number[]>()
-    for (const group of groups) {
-      for (const point of group.series ?? []) {
-        if (point.avg_ttft_ms > 0) {
-          const bucket = ttftByTs.get(point.ts) ?? []
-          bucket.push(point.avg_ttft_ms)
-          ttftByTs.set(point.ts, bucket)
-        }
-        if (Number.isFinite(point.success_rate)) {
-          const bucket = successByTs.get(point.ts) ?? []
-          bucket.push(point.success_rate)
-          successByTs.set(point.ts, bucket)
-        }
-      }
-    }
-
-    const allTs = new Set<number>([
-      ...ttftByTs.keys(),
-      ...successByTs.keys(),
-    ])
-    const sortedTs = Array.from(allTs).sort((a, b) => a - b)
-
-    const avg = (vals: number[] | undefined): number | null => {
-      if (!vals || vals.length === 0) return null
-      return vals.reduce((s, v) => s + v, 0) / vals.length
-    }
-
-    return sortedTs.map((ts) => {
-      const ttft = avg(ttftByTs.get(ts))
-      const rate = avg(successByTs.get(ts))
+    const models = query.data?.data?.models ?? []
+    return models.slice(0, 10).map((model) => {
       return {
-        label: formatHourLabel(ts),
-        ttft: ttft == null ? null : Math.round(ttft),
-        successRate: rate == null ? null : Math.round(rate * 100) / 100,
+        label:
+          model.model_name.length > 20
+            ? `${model.model_name.slice(0, 17)}...`
+            : model.model_name,
+        latency:
+          model.avg_latency_ms > 0 ? Math.round(model.avg_latency_ms) : null,
+        successRate: Number.isFinite(model.success_rate)
+          ? Math.round(model.success_rate * 100) / 100
+          : null,
       }
     })
   }, [query.data])
@@ -136,7 +103,7 @@ export function PerfTrendCharts({
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={256}>
-              <AreaChart data={points}>
+              <BarChart data={points}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis
                   dataKey="label"
@@ -149,19 +116,18 @@ export function PerfTrendCharts({
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(value: number) => [`${value} ms`, t('health.trend.ttft')]}
+                  formatter={(value) => {
+                    const numeric = typeof value === 'number' ? value : Number(value ?? 0)
+                    return [`${numeric} ms`, t('health.trend.ttft')]
+                  }}
                 />
-                <Area
-                  type="monotone"
-                  dataKey="ttft"
-                  stroke="var(--accent)"
+                <Bar
+                  dataKey="latency"
                   fill="var(--accent)"
-                  fillOpacity={0.08}
-                  strokeWidth={2}
-                  connectNulls
+                  radius={[4, 4, 0, 0]}
                   name={t('health.trend.ttft')}
                 />
-              </AreaChart>
+              </BarChart>
             </ResponsiveContainer>
           )}
         </CardContent>
@@ -196,10 +162,13 @@ export function PerfTrendCharts({
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(value: number) => [
-                    `${value.toFixed(2)}%`,
-                    t('health.trend.successRate'),
-                  ]}
+                  formatter={(value) => {
+                    const numeric = typeof value === 'number' ? value : Number(value ?? 0)
+                    return [
+                      `${numeric.toFixed(2)}%`,
+                      t('health.trend.successRate'),
+                    ]
+                  }}
                 />
                 <Line
                   type="monotone"

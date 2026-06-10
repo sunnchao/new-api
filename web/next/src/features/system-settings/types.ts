@@ -21,6 +21,55 @@ export type UpdateOptionResponse = {
   message: string
 }
 
+export type ConfirmPaymentComplianceResponse = {
+  success: boolean
+  message: string
+  data?: {
+    confirmed: boolean
+    terms_version: string
+    confirmed_at: number
+    confirmed_by: number
+  }
+}
+
+export interface WaffoPancakeCatalogProduct {
+  id: string
+  name: string
+  status: string
+}
+
+export interface WaffoPancakeCatalogStore {
+  id: string
+  name: string
+  status: string
+  prodEnabled: boolean
+  onetimeProducts: WaffoPancakeCatalogProduct[]
+}
+
+export interface WaffoPancakePairResult {
+  store_id: string
+  store_name: string
+  product_id: string
+  product_name: string
+}
+
+export interface WaffoPancakeBackendBody<T> {
+  message?: string
+  data?: T | string
+}
+
+export type WaffoPancakeCatalogResponse = WaffoPancakeBackendBody<{
+  stores: WaffoPancakeCatalogStore[]
+}>
+
+export type WaffoPancakePairResponse =
+  WaffoPancakeBackendBody<WaffoPancakePairResult>
+
+export type WaffoPancakeSaveResponse = WaffoPancakeBackendBody<{
+  product_id: string
+  store_id: string
+}>
+
 export type DeleteLogsResponse = {
   success: boolean
   message: string
@@ -141,12 +190,14 @@ export type ModelSettings = {
   TopupGroupRatio: string
   GroupRatio: string
   UserUsableGroups: string
+  UserUnselectableGroups: string
   GroupGroupRatio: string
   AutoGroups: string
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string
   'channel_affinity_setting.enabled': boolean
   'channel_affinity_setting.switch_on_success': boolean
+  'channel_affinity_setting.keep_on_channel_disabled': boolean
   'channel_affinity_setting.max_entries': number
   'channel_affinity_setting.default_ttl_seconds': number
   'channel_affinity_setting.rules': string
@@ -184,6 +235,7 @@ export type BillingSettings = {
   TopupGroupRatio: string
   GroupRatio: string
   UserUsableGroups: string
+  UserUnselectableGroups: string
   GroupGroupRatio: string
   AutoGroups: string
   DefaultUseAutoGroup: boolean
@@ -197,6 +249,11 @@ export type BillingSettings = {
   PayMethods: string
   'payment_setting.amount_options': string
   'payment_setting.amount_discount': string
+  'payment_setting.compliance_confirmed': boolean
+  'payment_setting.compliance_terms_version': string
+  'payment_setting.compliance_confirmed_at': number
+  'payment_setting.compliance_confirmed_by': number
+  'payment_setting.compliance_confirmed_ip': string
   InvoiceAllowSubscriptionRecordsEnabled: boolean
   StripeApiSecret: string
   StripeWebhookSecret: string
@@ -223,16 +280,11 @@ export type BillingSettings = {
   WaffoNotifyUrl: string
   WaffoReturnUrl: string
   WaffoPayMethods: string
-  WaffoPancakeEnabled: boolean
-  WaffoPancakeSandbox: boolean
   WaffoPancakeMerchantID: string
   WaffoPancakePrivateKey: string
-  WaffoPancakeWebhookPublicKey: string
-  WaffoPancakeWebhookTestKey: string
   WaffoPancakeStoreID: string
   WaffoPancakeProductID: string
   WaffoPancakeReturnURL: string
-  WaffoPancakeCurrency: string
   WaffoPancakeUnitPrice: number
   WaffoPancakeMinTopUp: number
   'checkin_setting.enabled': boolean
@@ -245,6 +297,7 @@ export type OperationsSettings = {
   DefaultCollapseSidebar: boolean
   DemoSiteEnabled: boolean
   SelfUseModeEnabled: boolean
+  'token_setting.max_user_tokens': number
   ChannelDisableThreshold: string
   QuotaRemindThreshold: string
   AutomaticDisableChannelEnabled: boolean

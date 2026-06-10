@@ -84,6 +84,43 @@ type UseTableUrlStateReturn = {
   ) => void
 }
 
+function parsePositiveNumber(value: unknown, fallback: number): number {
+  const raw = Array.isArray(value) ? value[0] : value
+  const parsed =
+    typeof raw === 'number'
+      ? raw
+      : typeof raw === 'string'
+        ? Number(raw)
+        : Number.NaN
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function parseArrayFilterValue(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value.filter((item) => item !== '')
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+  return []
+}
+
+function serializeArrayFilterValue(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    const serialized = value
+      .map((item) => String(item).trim())
+      .filter(Boolean)
+      .join(',')
+    return serialized || undefined
+  }
+  if (typeof value === 'string') return value.trim() || undefined
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  return undefined
+}
+
 export function useTableUrlState(
   params: UseTableUrlStateParams
 ): UseTableUrlStateReturn {
@@ -118,8 +155,8 @@ export function useTableUrlState(
         }
       } else {
         // default to array type
-        const value = (deserialize(raw) as unknown[]) ?? []
-        if (Array.isArray(value) && value.length > 0) {
+        const value = parseArrayFilterValue(deserialize(raw))
+        if (value.length > 0) {
           collected.push({ id: cfg.columnId, value })
         }
       }
@@ -131,9 +168,8 @@ export function useTableUrlState(
   const pagination: PaginationState = useMemo(() => {
     const rawPage = (search as SearchRecord)[pageKey]
     const rawPageSize = (search as SearchRecord)[pageSizeKey]
-    const pageNum = typeof rawPage === 'number' ? rawPage : defaultPage
-    const pageSizeNum =
-      typeof rawPageSize === 'number' ? rawPageSize : defaultPageSize
+    const pageNum = parsePositiveNumber(rawPage, defaultPage)
+    const pageSizeNum = parsePositiveNumber(rawPageSize, defaultPageSize)
     return { pageIndex: Math.max(0, pageNum - 1), pageSize: pageSizeNum }
   }, [search, pageKey, pageSizeKey, defaultPage, defaultPageSize])
 
@@ -194,7 +230,10 @@ export function useTableUrlState(
         const value = Array.isArray(found?.value)
           ? (found!.value as unknown[])
           : []
-        patch[cfg.searchKey] = value.length > 0 ? serialize(value) : undefined
+        patch[cfg.searchKey] =
+          value.length > 0
+            ? serializeArrayFilterValue(serialize(value))
+            : undefined
       }
     }
 
@@ -213,8 +252,7 @@ export function useTableUrlState(
       opts: { resetTo?: 'first' | 'last' } = { resetTo: 'first' }
     ) => {
       const currentPage = (search as SearchRecord)[pageKey]
-      const pageNum =
-        typeof currentPage === 'number' ? currentPage : defaultPage
+      const pageNum = parsePositiveNumber(currentPage, defaultPage)
       if (pageCount > 0 && pageNum > pageCount) {
         navigate({
           replace: true,

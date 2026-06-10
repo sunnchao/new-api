@@ -499,7 +499,7 @@ function tryParseRequestCondition(expr: string): RequestCondition | null {
 }
 
 function tryParseRuleGroupFactor(part: string): RequestRuleGroup | null {
-  const m = part.match(/^\((.+) \? ([\d.eE+-]+) : 1\)$/s)
+  const m = part.match(/^\(([\s\S]+) \? ([\d.eE+-]+) : 1\)$/)
   if (!m) return null
 
   const conditionStr = m[1]

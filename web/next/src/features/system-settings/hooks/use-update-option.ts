@@ -53,6 +53,11 @@ export function useUpdateOption() {
         // If updating frontend-display-related config, also refresh status
         if (STATUS_RELATED_KEYS.includes(variables.key)) {
           queryClient.invalidateQueries({ queryKey: ['status'] })
+          try {
+            window.localStorage.removeItem('status')
+          } catch {
+            /* ignore storage access errors */
+          }
         }
 
         toast.success(i18next.t('Setting updated successfully'))

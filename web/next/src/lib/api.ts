@@ -169,13 +169,29 @@ export async function getNotice(): Promise<ApiResponse<string>> {
   return res.data;
 }
 
-export async function get2FAStatus(): Promise<ApiResponse<{ enabled?: boolean }>> {
-  const res = await api.get<ApiResponse<{ enabled?: boolean }>>("/api/user/2fa/status");
+export interface TwoFAStatus {
+  enabled: boolean;
+  locked: boolean;
+  backup_codes_remaining: number;
+}
+
+export interface TwoFASetupData {
+  secret: string;
+  qr_code_data: string;
+  backup_codes: string[];
+}
+
+export interface TwoFABackupCodesData {
+  backup_codes: string[];
+}
+
+export async function get2FAStatus(): Promise<ApiResponse<TwoFAStatus>> {
+  const res = await api.get<ApiResponse<TwoFAStatus>>("/api/user/2fa/status");
   return res.data;
 }
 
-export async function setup2FA(): Promise<ApiResponse> {
-  const res = await api.post<ApiResponse>("/api/user/2fa/setup");
+export async function setup2FA(): Promise<ApiResponse<TwoFASetupData>> {
+  const res = await api.post<ApiResponse<TwoFASetupData>>("/api/user/2fa/setup");
   return res.data;
 }
 
@@ -189,8 +205,13 @@ export async function disable2FA(code: string): Promise<ApiResponse> {
   return res.data;
 }
 
-export async function regenerate2FABackupCodes(code: string): Promise<ApiResponse> {
-  const res = await api.post<ApiResponse>("/api/user/2fa/backup_codes", { code });
+export async function regenerate2FABackupCodes(
+  code: string,
+): Promise<ApiResponse<TwoFABackupCodesData>> {
+  const res = await api.post<ApiResponse<TwoFABackupCodesData>>(
+    "/api/user/2fa/backup_codes",
+    { code },
+  );
   return res.data;
 }
 
@@ -201,11 +222,6 @@ export async function getSetupStatus(): Promise<ApiResponse<{ required?: boolean
 
 export async function checkSetupRequired(): Promise<boolean> {
   try {
-    if (typeof window !== "undefined") {
-      const cached = window.localStorage.getItem("setup_required");
-      if (cached === "false") return false;
-    }
-
     const res = await getSetupStatus();
     const data = res.data as { required?: boolean; status?: boolean } | undefined;
     const required =
@@ -221,6 +237,14 @@ export async function checkSetupRequired(): Promise<boolean> {
 
     return required;
   } catch {
+    try {
+      if (typeof window !== "undefined") {
+        const cached = window.localStorage.getItem("setup_required");
+        if (cached === "true") return true;
+      }
+    } catch {
+      // Storage can be unavailable in restricted browser contexts.
+    }
     return false;
   }
 }

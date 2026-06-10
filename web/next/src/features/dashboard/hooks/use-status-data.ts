@@ -27,8 +27,9 @@ export function useStatusData<T = unknown>(
   dataKey: string
 ): { items: T[]; loading: boolean } {
   const { status, loading } = useStatus()
-  const enabled = status?.[enabledKey] ?? false
-  const items = (enabled ? status?.[dataKey] || [] : []) as T[]
+  const enabled = status ? status[enabledKey] !== false : false
+  const data = status?.[dataKey]
+  const items = enabled && Array.isArray(data) ? (data as T[]) : []
 
   return { items, loading }
 }

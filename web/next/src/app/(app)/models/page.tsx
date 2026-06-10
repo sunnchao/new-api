@@ -1,5 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
+import { MODELS_DEFAULT_SECTION } from "@/features/models/section-registry";
 
-import { Models } from "@/features/models";
-
-export default Models;
+export default function ModelsRootPage() {
+  redirect(`/models/${MODELS_DEFAULT_SECTION}`);
+}

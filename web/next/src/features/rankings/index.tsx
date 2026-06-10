@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
+import { createUrlFromSearchParams } from '@/lib/next-url'
 import {
   MarketShareSection,
   ModelsSection,
@@ -28,29 +29,28 @@ import {
   RankingsHero,
 } from './components'
 import { useRankings } from './hooks/use-rankings'
+import './i18n'
 import type { RankingPeriod } from './types'
 
 const VALID_PERIODS: RankingPeriod[] = ['today', 'week', 'month', 'year', 'all']
 
 export function Rankings() {
   const { t } = useTranslation()
-  const search = useSearchParams()
+  const searchParams = useSearchParams()
   const router = useRouter()
 
+  const periodParam = searchParams.get('period')
   const period: RankingPeriod = VALID_PERIODS.includes(
-    search.period as RankingPeriod
+    periodParam as RankingPeriod
   )
-    ? (search.period as RankingPeriod)
+    ? (periodParam as RankingPeriod)
     : 'week'
 
   const rankingsQuery = useRankings(period)
   const snapshot = rankingsQuery.data?.data
 
   const handlePeriodChange = (next: RankingPeriod) => {
-    router.push({
-      to: '/rankings',
-      search: (prev) => ({ ...prev, period: next }),
-    })
+    router.push(createUrlFromSearchParams('/rankings', searchParams, { period: next }))
   }
 
   return (

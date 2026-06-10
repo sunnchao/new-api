@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
   KeyRound,
@@ -56,6 +57,7 @@ export interface CommandMenuProps {
 }
 
 export function CommandMenu({ items = [] }: CommandMenuProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { open, setOpen } = useCommandMenu();
 
@@ -78,56 +80,56 @@ export function CommandMenu({ items = [] }: CommandMenuProps) {
   const defaultItems: CommandMenuItem[] = [
     {
       id: "dashboard",
-      label: "Dashboard",
+      label: t("nav.dashboard"),
       icon: LayoutDashboard,
-      group: "Navigate",
+      group: t("Navigate"),
       shortcut: "G D",
-      onSelect: () => go("/console"),
+      onSelect: () => go("/dashboard"),
     },
     {
       id: "keys",
-      label: "API Keys",
+      label: t("nav.keys"),
       icon: KeyRound,
-      group: "Navigate",
+      group: t("Navigate"),
       shortcut: "G K",
-      onSelect: () => go("/console/token"),
+      onSelect: () => go("/keys"),
     },
     {
       id: "channels",
-      label: "Channels",
+      label: t("nav.channels"),
       icon: Network,
-      group: "Navigate",
+      group: t("Navigate"),
       shortcut: "G C",
-      onSelect: () => go("/console/channel"),
+      onSelect: () => go("/channels"),
     },
     {
       id: "users",
-      label: "Users",
+      label: t("nav.users"),
       icon: Users,
-      group: "Navigate",
+      group: t("Navigate"),
       shortcut: "G U",
-      onSelect: () => go("/console/users"),
+      onSelect: () => go("/users"),
     },
     {
       id: "profile",
-      label: "Profile",
+      label: t("nav.profile"),
       icon: User,
-      group: "Account",
+      group: t("Account"),
       onSelect: () => go("/profile"),
     },
     {
       id: "wallet",
-      label: "Wallet",
+      label: t("nav.wallet"),
       icon: Wallet,
-      group: "Account",
+      group: t("Account"),
       onSelect: () => go("/wallet"),
     },
     {
       id: "playground",
-      label: "Playground",
+      label: t("nav.playground"),
       icon: PlayCircle,
-      group: "Tools",
-      onSelect: () => go("/console/playground"),
+      group: t("Tools"),
+      onSelect: () => go("/playground"),
     },
   ];
 
@@ -138,9 +140,9 @@ export function CommandMenu({ items = [] }: CommandMenuProps) {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Type a command or search..." />
+      <CommandInput placeholder={t("Type a command or search...")} />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>{t("common.noResults")}</CommandEmpty>
         {groups.map((group, idx) => {
           const groupItems = allItems.filter(
             (i) => (i.group ?? "General") === group

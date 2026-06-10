@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
 import { Code, Table, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
@@ -28,6 +28,8 @@ type ModelMappingEditorProps = {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
+  sourceModelOptions?: string[]
+  targetModelOptions?: string[]
 }
 
 type MappingRow = {
@@ -40,8 +42,12 @@ export function ModelMappingEditor({
   value,
   onChange,
   disabled = false,
+  sourceModelOptions,
+  targetModelOptions,
 }: ModelMappingEditorProps) {
   const { t } = useTranslation()
+  const sourceListId = useId()
+  const targetListId = useId()
   const [mode, setMode] = useState<'visual' | 'json'>('visual')
   const [rows, setRows] = useState<MappingRow[]>([])
   const [jsonValue, setJsonValue] = useState(value)
@@ -206,6 +212,7 @@ export function ModelMappingEditor({
                     }
                     placeholder='gpt-3.5-turbo'
                     disabled={disabled}
+                    list={sourceListId}
                   />
                   <Input
                     value={row.to}
@@ -214,6 +221,7 @@ export function ModelMappingEditor({
                     }
                     placeholder='gpt-3.5-turbo-0125'
                     disabled={disabled}
+                    list={targetListId}
                   />
                   <Button
                     type='button'
@@ -256,6 +264,21 @@ export function ModelMappingEditor({
           rows={8}
           className={cn('font-mono text-sm')}
         />
+      )}
+
+      {sourceModelOptions && sourceModelOptions.length > 0 && (
+        <datalist id={sourceListId}>
+          {sourceModelOptions.map((model) => (
+            <option key={model} value={model} />
+          ))}
+        </datalist>
+      )}
+      {targetModelOptions && targetModelOptions.length > 0 && (
+        <datalist id={targetListId}>
+          {targetModelOptions.map((model) => (
+            <option key={model} value={model} />
+          ))}
+        </datalist>
       )}
     </div>
   )

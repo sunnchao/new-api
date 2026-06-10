@@ -4,6 +4,7 @@ import type {
   AffinityUsageCacheQuery,
   ApiResponse,
   CacheStats,
+  ConfirmPaymentComplianceResponse,
   CustomOAuthProvider,
   DeleteLogsResponse,
   DiscoveryResponse,
@@ -16,6 +17,9 @@ import type {
   UpdateOptionResponse,
   UpstreamChannelsResponse,
   UpstreamRatiosResponse,
+  WaffoPancakeCatalogResponse,
+  WaffoPancakePairResponse,
+  WaffoPancakeSaveResponse,
 } from "./types";
 
 export async function getSystemStatus(): Promise<Record<string, unknown>> {
@@ -37,6 +41,66 @@ export async function updateSystemOption(
   request: UpdateOptionRequest,
 ): Promise<UpdateOptionResponse> {
   const res = await api.put("/api/option/", request);
+  return res.data;
+}
+
+export async function migrateConsoleSetting(): Promise<UpdateOptionResponse> {
+  const res = await api.post("/api/option/migrate_console_setting");
+  return res.data;
+}
+
+export async function confirmPaymentCompliance(): Promise<ConfirmPaymentComplianceResponse> {
+  const res = await api.post<ConfirmPaymentComplianceResponse>(
+    "/api/option/payment_compliance",
+    { confirmed: true },
+  );
+  return res.data;
+}
+
+export async function listWaffoPancakeCatalog(
+  merchantID: string,
+  privateKey: string,
+): Promise<WaffoPancakeCatalogResponse> {
+  const res = await api.post<WaffoPancakeCatalogResponse>(
+    "/api/option/waffo-pancake/catalog",
+    { merchant_id: merchantID, private_key: privateKey },
+  );
+  return res.data;
+}
+
+export async function createWaffoPancakePair(params: {
+  merchantID: string
+  privateKey: string
+  returnURL: string
+}): Promise<WaffoPancakePairResponse> {
+  const res = await api.post<WaffoPancakePairResponse>(
+    "/api/option/waffo-pancake/pair",
+    {
+      merchant_id: params.merchantID,
+      private_key: params.privateKey,
+      return_url: params.returnURL,
+    },
+  );
+  return res.data;
+}
+
+export async function saveWaffoPancakeConfig(params: {
+  merchantID: string
+  privateKey: string
+  returnURL: string
+  storeID: string
+  productID: string
+}): Promise<WaffoPancakeSaveResponse> {
+  const res = await api.post<WaffoPancakeSaveResponse>(
+    "/api/option/waffo-pancake/save",
+    {
+      merchant_id: params.merchantID,
+      private_key: params.privateKey,
+      return_url: params.returnURL,
+      store_id: params.storeID,
+      product_id: params.productID,
+    },
+  );
   return res.data;
 }
 

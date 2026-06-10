@@ -13,8 +13,12 @@ const resources = {
       'Copied!': 'Copied!',
       'Quick join': 'Quick join',
       'QQ group QR code': 'QQ group QR code',
+      'Scan to join the QQ group': 'Scan to join the QQ group',
       'Scan the QR code to join the QQ group.':
         'Scan the QR code to join the QQ group.',
+      'Scan to join the group, or copy the group ID and search manually.':
+        'Scan to join the group, or copy the group ID and search manually.',
+      'Group ID': 'Group ID',
     },
   },
   zh: {
@@ -29,7 +33,11 @@ const resources = {
       'Copied!': '已复制！',
       'Quick join': '一键加群',
       'QQ group QR code': 'QQ 群二维码',
+      'Scan to join the QQ group': '扫码加入 QQ 群',
       'Scan the QR code to join the QQ group.': '扫描二维码加入 QQ 群。',
+      'Scan to join the group, or copy the group ID and search manually.':
+        '扫码加入群聊，或复制群号手动搜索。',
+      'Group ID': '群号',
     },
   },
   fr: {
@@ -45,8 +53,12 @@ const resources = {
       'Copied!': 'Copié !',
       'Quick join': 'Rejoindre',
       'QQ group QR code': 'QR code du groupe QQ',
+      'Scan to join the QQ group': 'Scannez pour rejoindre le groupe QQ',
       'Scan the QR code to join the QQ group.':
         'Scannez le QR code pour rejoindre le groupe QQ.',
+      'Scan to join the group, or copy the group ID and search manually.':
+        "Scannez pour rejoindre le groupe, ou copiez l'ID et recherchez-le manuellement.",
+      'Group ID': 'ID du groupe',
     },
   },
   ja: {
@@ -62,8 +74,12 @@ const resources = {
       'Copied!': 'コピーしました！',
       'Quick join': '参加する',
       'QQ group QR code': 'QQグループのQRコード',
+      'Scan to join the QQ group': 'スキャンしてQQグループに参加',
       'Scan the QR code to join the QQ group.':
         'QRコードをスキャンしてQQグループに参加。',
+      'Scan to join the group, or copy the group ID and search manually.':
+        'QRコードをスキャンするか、グループIDをコピーして手動で検索できます。',
+      'Group ID': 'グループID',
     },
   },
   ru: {
@@ -79,8 +95,12 @@ const resources = {
       'Copied!': 'Скопировано!',
       'Quick join': 'Присоединиться',
       'QQ group QR code': 'QR-код группы QQ',
+      'Scan to join the QQ group': 'Сканируйте, чтобы вступить в группу QQ',
       'Scan the QR code to join the QQ group.':
         'Отсканируйте QR-код, чтобы присоединиться к группе QQ.',
+      'Scan to join the group, or copy the group ID and search manually.':
+        'Отсканируйте код, чтобы вступить в группу, или скопируйте ID и найдите ее вручную.',
+      'Group ID': 'ID группы',
     },
   },
   vi: {
@@ -96,8 +116,12 @@ const resources = {
       'Copied!': 'Đã sao chép!',
       'Quick join': 'Tham gia ngay',
       'QQ group QR code': 'Mã QR nhóm QQ',
+      'Scan to join the QQ group': 'Quét để tham gia nhóm QQ',
       'Scan the QR code to join the QQ group.':
         'Quét mã QR để tham gia nhóm QQ.',
+      'Scan to join the group, or copy the group ID and search manually.':
+        'Quét để tham gia nhóm, hoặc sao chép ID nhóm và tìm thủ công.',
+      'Group ID': 'ID nhóm',
     },
   },
 } as const

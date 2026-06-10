@@ -5,6 +5,7 @@ import { Globe, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { saveLanguagePreference } from "@/i18n/language";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,16 +32,14 @@ export function LanguageSwitcher({
   className,
   align = "end",
 }: LanguageSwitcherProps) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const user = useAuthStore((s) => s.auth.user);
   const current = (i18n.resolvedLanguage || i18n.language || "en").slice(0, 2);
 
   const changeLanguage = async (code: string) => {
     try {
       await i18n.changeLanguage(code);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("i18nextLng", code);
-      }
+      saveLanguagePreference(code);
     } catch {
       // ignore
     }
@@ -61,7 +60,7 @@ export function LanguageSwitcher({
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Switch language"
+          aria-label={t("Switch language")}
           className={cn("text-[var(--muted)]", className)}
         >
           <Globe className="h-4 w-4" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { Palette, Ruler, Type, RotateCcw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   useThemeCustomization,
   type ThemePreset,
@@ -41,7 +42,14 @@ const SCALES: { value: ThemeScale; label: string }[] = [
 ];
 
 export function ThemeCustomizer({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const { customization, setPreset, setRadius, setScale, reset } = useThemeCustomization();
+  const currentPreset =
+    PRESETS.find((p) => p.value === customization.preset) ?? PRESETS[0];
+  const currentRadius =
+    RADII.find((r) => r.value === customization.radius) ?? RADII[2];
+  const currentScale =
+    SCALES.find((s) => s.value === customization.scale) ?? SCALES[1];
 
   return (
     <div
@@ -53,20 +61,25 @@ export function ThemeCustomizer({ className }: { className?: string }) {
       {/* Preset */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t("Color preset")}
+            className="gap-2"
+          >
             <Palette className="h-4 w-4" />
             <span className="hidden sm:inline">
-              {PRESETS.find((p) => p.value === customization.preset)?.label ?? "Default"}
+              {t(currentPreset.label)}
             </span>
             <span
               aria-hidden
               className="h-3 w-3 rounded-full border border-[var(--border)]"
-              style={{ background: PRESETS.find((p) => p.value === customization.preset)?.swatch }}
+              style={{ background: currentPreset.swatch }}
             />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44">
-          <DropdownMenuLabel>Color preset</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("Color preset")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {PRESETS.map((p) => (
             <DropdownMenuItem
@@ -83,10 +96,10 @@ export function ThemeCustomizer({ className }: { className?: string }) {
                   className="h-3 w-3 rounded-full border border-[var(--border)]"
                   style={{ background: p.swatch }}
                 />
-                {p.label}
+                {t(p.label)}
               </span>
               {customization.preset === p.value && (
-                <span className="text-xs text-[var(--muted-foreground)]">Active</span>
+                <span className="text-xs text-[var(--muted-foreground)]">{t("Active")}</span>
               )}
             </DropdownMenuItem>
           ))}
@@ -96,13 +109,18 @@ export function ThemeCustomizer({ className }: { className?: string }) {
       {/* Radius */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t("Corner radius")}
+            className="gap-2"
+          >
             <Ruler className="h-4 w-4" />
-            <span className="hidden sm:inline capitalize">{customization.radius}</span>
+            <span className="hidden sm:inline">{t(currentRadius.label)}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-36">
-          <DropdownMenuLabel>Corner radius</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("Corner radius")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {RADII.map((r) => (
             <DropdownMenuItem
@@ -110,7 +128,7 @@ export function ThemeCustomizer({ className }: { className?: string }) {
               onSelect={() => setRadius(r.value)}
               className={cn(customization.radius === r.value && "bg-[var(--surface-hover)]")}
             >
-              {r.label}
+              {t(r.label)}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -119,13 +137,18 @@ export function ThemeCustomizer({ className }: { className?: string }) {
       {/* Scale */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t("UI scale")}
+            className="gap-2"
+          >
             <Type className="h-4 w-4" />
-            <span className="hidden sm:inline capitalize">{customization.scale}</span>
+            <span className="hidden sm:inline">{t(currentScale.label)}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuLabel>UI scale</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("UI scale")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {SCALES.map((s) => (
             <DropdownMenuItem
@@ -133,7 +156,7 @@ export function ThemeCustomizer({ className }: { className?: string }) {
               onSelect={() => setScale(s.value)}
               className={cn(customization.scale === s.value && "bg-[var(--surface-hover)]")}
             >
-              {s.label}
+              {t(s.label)}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -144,8 +167,8 @@ export function ThemeCustomizer({ className }: { className?: string }) {
         variant="ghost"
         size="icon"
         onClick={reset}
-        aria-label="Reset theme customization"
-        title="Reset"
+        aria-label={t("Reset theme customization")}
+        title={t("Reset theme customization")}
       >
         <RotateCcw className="h-4 w-4" />
       </Button>

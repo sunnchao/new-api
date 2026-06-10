@@ -1,4 +1,5 @@
 import { api } from '@/lib/api'
+import type { ApiRequestOptions } from '@/lib/api-options'
 import type {
   TicketCategory,
   TicketDetailResponse,
@@ -27,13 +28,18 @@ export async function getUserTickets(
 
 export async function searchUserTickets(params: {
   keyword?: string
+  status?: number
   p?: number
   page_size?: number
 }) {
-  const { keyword = '', p = 1, page_size = 10 } = params
-  const res = await api.get(
-    `/api/ticket/self/search?keyword=${keyword}&p=${p}&page_size=${page_size}`
-  )
+  const { keyword = '', status, p = 1, page_size = 10 } = params
+  const query = new URLSearchParams({
+    keyword,
+    p: String(p),
+    page_size: String(page_size),
+  })
+  if (status) query.set('status', String(status))
+  const res = await api.get(`/api/ticket/self/search?${query}`)
   return res.data
 }
 
@@ -63,7 +69,7 @@ export async function uploadTicketAttachment(file: File) {
   const res = await api.post('/api/ticket/attachments', formData, {
     skipBusinessError: true,
     skipErrorHandler: true,
-  })
+  } as ApiRequestOptions)
   return res.data
 }
 
@@ -134,5 +140,10 @@ export async function getTicketCategories(): Promise<{
   data?: TicketCategory[]
 }> {
   const res = await api.get('/api/ticket/categories')
+  return res.data
+}
+
+export async function updateTicketCategories(categories: TicketCategory[]) {
+  const res = await api.put('/api/ticket/categories', categories)
   return res.data
 }

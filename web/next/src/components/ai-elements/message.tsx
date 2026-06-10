@@ -62,7 +62,7 @@ const Message = React.forwardRef<HTMLDivElement, MessageProps>(
 );
 Message.displayName = "Message";
 
-export interface MessageContentProps extends React.HTMLAttributes<HTMLDivElement> {}
+export type MessageContentProps = React.HTMLAttributes<HTMLDivElement>;
 
 const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
   ({ className, ...props }, ref) => (

@@ -119,7 +119,7 @@ function InputGroupButton({
       variant,
       className: cn(inputGroupButtonVariants({ size }), className),
       ...props,
-    } as any)
+    })
   }
   return (
     <Button
@@ -160,7 +160,7 @@ function InputGroupInput({
         className
       ),
       ...props,
-    } as any)
+    })
   }
   return (
     <Input

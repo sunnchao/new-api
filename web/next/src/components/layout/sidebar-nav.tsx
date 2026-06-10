@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
@@ -22,10 +23,14 @@ import {
   TicketCheck,
   HeartPulse,
   Package,
+  ListTodo,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSidebarConfig } from "@/hooks/use-sidebar-config";
 import { useAuthStore, ROLE } from "@/stores/auth-store";
+import { useChatPresets } from "@/features/chat/hooks/use-chat-presets";
+import type { NavGroup } from "@/components/layout/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface NavItem {
@@ -33,19 +38,41 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  requiredRole?: number;
+  configUrls?: string[];
 }
 
 export function useNavItems(): NavItem[] {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.auth.user);
-  const isAdmin = (user?.role ?? 0) >= ROLE.ADMIN;
+  const userRole = user?.role ?? ROLE.GUEST;
+  const isAdmin = userRole >= ROLE.ADMIN;
+  const { chatPresets } = useChatPresets();
 
-  const items: NavItem[] = [
+  const chatPresetItems = useMemo<NavItem[]>(
+    () =>
+      chatPresets
+        .filter((preset) => preset.type === "web")
+        .map((preset) => ({
+          title: preset.name,
+          href: `/chat/${preset.id}`,
+          icon: MessageSquare,
+        })),
+    [chatPresets]
+  );
+
+  const items = useMemo<NavItem[]>(() => [
     { title: t("nav.playground"), href: "/playground", icon: MessageSquare },
     { title: t("nav.dashboard"), href: "/dashboard", icon: LayoutDashboard },
     { title: t("nav.keys"), href: "/keys", icon: Key },
     { title: t("nav.tickets"), href: "/tickets", icon: TicketCheck },
     { title: t("nav.usageLogs"), href: "/usage-logs", icon: BarChart3 },
+    {
+      title: t("Task Logs"),
+      href: "/usage-logs/task",
+      icon: ListTodo,
+      configUrls: ["/usage-logs/drawing", "/usage-logs/task"],
+    },
     { title: t("nav.wallet"), href: "/wallet", icon: Wallet },
     { title: t("nav.subscriptions"), href: "/my-subscriptions", icon: Crown },
     { title: t("nav.invoices"), href: "/invoices", icon: FileText },
@@ -60,10 +87,82 @@ export function useNavItems(): NavItem[] {
     { title: t("nav.adminTokens"), href: "/admin-tokens", icon: ShieldCheck, adminOnly: true },
     { title: t("nav.health"), href: "/health", icon: HeartPulse, adminOnly: true },
     { title: t("nav.performance"), href: "/performance-metrics", icon: Gauge, adminOnly: true },
-    { title: t("nav.systemSettings"), href: "/system-settings", icon: Settings, adminOnly: true },
-  ];
+    { title: t("nav.systemSettings"), href: "/system-settings", icon: Settings, adminOnly: true, requiredRole: ROLE.ROOT },
+  ], [t]);
 
-  return items.filter((item) => !item.adminOnly || isAdmin);
+  const roleFilteredItems = useMemo(
+    () =>
+      items.filter((item) => {
+        if (item.requiredRole !== undefined) {
+          return userRole >= item.requiredRole;
+        }
+        return !item.adminOnly || isAdmin;
+      }),
+    [items, isAdmin, userRole]
+  );
+
+  const navGroups = useMemo<NavGroup[]>(
+    () => [
+      {
+        title: "Sidebar",
+        items: [
+          ...roleFilteredItems.map((item) => ({
+            title: item.title,
+            url: item.href,
+            icon: item.icon,
+            configUrls: item.configUrls,
+          })),
+          {
+            title: t("Chat"),
+            icon: MessageSquare,
+            type: "chat-presets" as const,
+          },
+        ],
+      },
+    ],
+    [roleFilteredItems, t]
+  );
+  const filteredNavGroups = useSidebarConfig(navGroups);
+  const filteredItems = useMemo(
+    () => filteredNavGroups[0]?.items ?? [],
+    [filteredNavGroups]
+  );
+  const visibleHrefs = useMemo(
+    () =>
+      new Set(
+        filteredItems
+          .map((item) => ("url" in item ? item.url : null))
+          .filter((url): url is string => typeof url === "string")
+      ),
+    [filteredItems]
+  );
+  const chatPresetsVisible = useMemo(
+    () =>
+      filteredItems.some(
+        (item) => "type" in item && item.type === "chat-presets"
+      ),
+    [filteredItems]
+  );
+
+  const visibleItems = roleFilteredItems.filter((item) =>
+    visibleHrefs.has(item.href)
+  );
+  if (!chatPresetsVisible || chatPresetItems.length === 0) {
+    return visibleItems;
+  }
+
+  const playgroundIndex = visibleItems.findIndex(
+    (item) => item.href === "/playground"
+  );
+  if (playgroundIndex === -1) {
+    return [...chatPresetItems, ...visibleItems];
+  }
+
+  return [
+    ...visibleItems.slice(0, playgroundIndex + 1),
+    ...chatPresetItems,
+    ...visibleItems.slice(playgroundIndex + 1),
+  ];
 }
 
 interface SidebarNavProps {
@@ -75,14 +174,8 @@ export function SidebarNav({ collapsed, onNavigate }: SidebarNavProps) {
   const pathname = usePathname();
   const items = useNavItems();
 
-  const userItems = items.filter((i) => ![
-    "/channels", "/models", "/users", "/redemption-codes", "/subscriptions",
-    "/admin-packages", "/admin-tokens", "/health", "/performance-metrics", "/system-settings"
-  ].includes(i.href));
-  const adminItems = items.filter((i) => [
-    "/channels", "/models", "/users", "/redemption-codes", "/subscriptions",
-    "/admin-packages", "/admin-tokens", "/health", "/performance-metrics", "/system-settings"
-  ].includes(i.href));
+  const userItems = items.filter((i) => !i.adminOnly);
+  const adminItems = items.filter((i) => i.adminOnly);
 
   const renderItems = (navItems: NavItem[]) =>
     navItems.map((item) => {

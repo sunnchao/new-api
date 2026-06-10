@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation'
 import i18n from 'i18next'
 import { useAuthStore } from '@/stores/auth-store'
 import { getSelf } from '@/lib/api'
+import { saveLanguagePreference } from '@/i18n/language'
 import type { AuthUser } from '@/stores/auth-store'
 import { saveUserId } from '../lib/storage'
 
@@ -84,6 +85,7 @@ export function useAuthRedirect() {
         const savedLang = getSavedLanguage(user)
         if (savedLang && savedLang !== i18n.language) {
           i18n.changeLanguage(savedLang)
+          saveLanguagePreference(savedLang)
         }
       }
     } catch (error) {

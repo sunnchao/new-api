@@ -20,10 +20,14 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import * as React from 'react'
 import * as z from 'zod'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Code2, Eye } from 'lucide-react'
+import { Code2, Eye, ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { RiskAcknowledgementDialog } from '@/components/risk-acknowledgement-dialog'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -39,6 +43,7 @@ import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { SettingsSection } from '../components/settings-section'
+import { confirmPaymentCompliance } from '../api'
 import { useUpdateOption } from '../hooks/use-update-option'
 import { AmountDiscountVisualEditor } from './amount-discount-visual-editor'
 import { AmountOptionsVisualEditor } from './amount-options-visual-editor'
@@ -128,18 +133,30 @@ const paymentSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentSchema>
 
+const CURRENT_COMPLIANCE_TERMS_VERSION = 'v1'
+
+type PaymentComplianceDefaults = {
+  confirmed: boolean
+  termsVersion: string
+  confirmedAt: number
+  confirmedBy: number
+}
+
 type PaymentSettingsSectionProps = {
   defaultValues: PaymentFormValues
   waffoDefaultValues: WaffoSettingsValues
   waffoPancakeDefaultValues: WaffoPancakeSettingsValues
+  complianceDefaults: PaymentComplianceDefaults
 }
 
 export function PaymentSettingsSection({
   defaultValues,
   waffoDefaultValues,
   waffoPancakeDefaultValues,
+  complianceDefaults,
 }: PaymentSettingsSectionProps) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const updateOption = useUpdateOption()
   const initialRef = React.useRef(defaultValues)
   const defaultsSignature = React.useMemo(
@@ -154,6 +171,55 @@ export function PaymentSettingsSection({
     React.useState(true)
   const [creemProductsVisualMode, setCreemProductsVisualMode] =
     React.useState(true)
+  const [showComplianceDialog, setShowComplianceDialog] = React.useState(false)
+
+  const complianceStatements = React.useMemo(
+    () => [
+      t(
+        'You have legally obtained authorization for the connected model APIs, accounts, keys, and quotas.'
+      ),
+      t(
+        'You commit to using upstream APIs, accounts, keys, quotas, and service capabilities only within the scope of lawful authorization obtained from upstream service providers, model service providers, or relevant rights holders, and will not conduct unauthorized resale, trafficking, distribution, or other non-compliant commercialization.'
+      ),
+      t(
+        'If you provide generative AI services to the public in mainland China, you will fulfill legal obligations including filing, security assessment, content safety, complaint handling, generated content labeling, log retention, and personal information protection.'
+      ),
+      t(
+        'You commit not to use this system to implement, assist with, or indirectly implement acts that violate applicable laws and regulations, regulatory requirements, platform rules, public interests, or the lawful rights and interests of third parties.'
+      ),
+      t(
+        'You understand and independently bear legal responsibility arising from deployment, operation, and charging behavior.'
+      ),
+      t(
+        'You understand this compliance reminder is only for risk notice and does not constitute legal advice, a compliance review conclusion, or a guarantee of the legality of your use of this system; you should consult professional legal or compliance advisors based on your actual business scenario.'
+      ),
+    ],
+    [t]
+  )
+
+  const complianceRequiredText = t(
+    'I have read and understood the above compliance reminder, acknowledge the related legal risks, and confirm that I bear legal responsibility arising from deployment, operation, and charging behavior.'
+  )
+
+  const complianceConfirmed =
+    complianceDefaults.confirmed &&
+    complianceDefaults.termsVersion === CURRENT_COMPLIANCE_TERMS_VERSION
+
+  const confirmComplianceMutation = useMutation({
+    mutationFn: confirmPaymentCompliance,
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success(t('Compliance confirmed successfully'))
+        setShowComplianceDialog(false)
+        queryClient.invalidateQueries({ queryKey: ['system-options'] })
+      } else {
+        toast.error(data.message || t('Failed to confirm compliance'))
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || t('Failed to confirm compliance'))
+    },
+  })
 
   const form = useForm({
     resolver: zodResolver(paymentSchema),
@@ -593,13 +659,77 @@ export function PaymentSettingsSection({
         'Configure recharge pricing and payment gateway integrations'
       )}
     >
-      {/* eslint-disable react-hooks/refs */}
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className='space-y-8'
-          data-no-autosubmit='true'
-        >
+      {!complianceConfirmed ? (
+        <Alert variant='destructive'>
+          <ShieldAlert className='h-4 w-4' />
+          <AlertTitle>{t('Compliance confirmation required')}</AlertTitle>
+          <AlertDescription>
+            <div className='space-y-3'>
+              <p>
+                {t(
+                  'Payment, redemption codes, subscription plans, and invitation rewards are locked until the root administrator confirms the compliance terms.'
+                )}
+              </p>
+              <ol className='list-decimal space-y-1 pl-5'>
+                {complianceStatements.map((statement) => (
+                  <li key={statement}>{statement}</li>
+                ))}
+              </ol>
+              <Button
+                type='button'
+                size='sm'
+                variant='destructive'
+                onClick={() => setShowComplianceDialog(true)}
+              >
+                {t('Confirm compliance')}
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert>
+          <AlertTitle>{t('Compliance confirmed')}</AlertTitle>
+          <AlertDescription>
+            {t('Confirmed at {{time}} by user #{{userId}}', {
+              time: complianceDefaults.confirmedAt
+                ? new Date(
+                    complianceDefaults.confirmedAt * 1000
+                  ).toLocaleString()
+                : '-',
+              userId: complianceDefaults.confirmedBy || '-',
+            })}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <RiskAcknowledgementDialog
+        open={showComplianceDialog}
+        onOpenChange={setShowComplianceDialog}
+        title={t('Confirm compliance terms')}
+        description={t(
+          'This confirmation unlocks payment, redemption code, subscription plan, and invitation reward features. Please read the statements carefully.'
+        )}
+        items={complianceStatements}
+        requiredText={complianceRequiredText}
+        inputPrompt={t('Please type the following text to confirm:')}
+        inputPlaceholder={t('Type the confirmation text here')}
+        mismatchHint={t('The entered text does not match the required text.')}
+        confirmText={t('Confirm and enable')}
+        isLoading={confirmComplianceMutation.isPending}
+        onConfirm={() => confirmComplianceMutation.mutate()}
+      />
+
+      <div
+        data-testid='payment-settings-fields'
+        className={!complianceConfirmed ? 'pointer-events-none opacity-40' : undefined}
+      >
+        {/* eslint-disable react-hooks/refs */}
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className='space-y-8'
+            data-no-autosubmit='true'
+          >
           <div className='space-y-4'>
             <div>
               <h3 className='text-lg font-medium'>{t('General Settings')}</h3>
@@ -1355,17 +1485,18 @@ export function PaymentSettingsSection({
           <Button type='submit' disabled={updateOption.isPending}>
             {updateOption.isPending ? t('Saving...') : t('Save all settings')}
           </Button>
-        </form>
-      </Form>
+          </form>
+        </Form>
 
-      <Separator />
+        <Separator />
 
-      <WaffoSettingsSection defaultValues={waffoDefaultValues} />
+        <WaffoSettingsSection defaultValues={waffoDefaultValues} />
 
-      <Separator />
+        <Separator />
 
-      <WaffoPancakeSettingsSection defaultValues={waffoPancakeDefaultValues} />
-      {/* eslint-enable react-hooks/refs */}
+        <WaffoPancakeSettingsSection defaultValues={waffoPancakeDefaultValues} />
+        {/* eslint-enable react-hooks/refs */}
+      </div>
     </SettingsSection>
   )
 }

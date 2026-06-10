@@ -18,26 +18,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { Check, CreditCard, RefreshCw, Sparkles } from 'lucide-react'
+import { CreditCard, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { formatCurrencyUSD, formatQuota } from '@/lib/format'
+import { formatCurrencyUSD } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth-store'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/empty-state'
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
-import {
-  formatDuration,
-  formatResetPeriod,
-  formatBillingMode,
-} from '@/features/subscriptions/lib'
 import type { PlanRecord } from '@/features/subscriptions/types'
 import { getPublicSubscriptionPlans } from './api'
+import { SubscriptionPlanCard } from './components/plan-card'
 import './i18n'
 
 function SubscriptionPlansLoading() {
@@ -47,100 +41,6 @@ function SubscriptionPlansLoading() {
         <Skeleton key={index} className="h-[420px] rounded-lg" />
       ))}
     </div>
-  )
-}
-
-interface PlanCardProps {
-  record: PlanRecord
-  isAuthenticated: boolean
-  featured: boolean
-  onSubscribe: () => void
-}
-
-function PlanCard({ record, isAuthenticated, featured, onSubscribe }: PlanCardProps) {
-  const { t } = useTranslation()
-  const plan = record.plan
-  const totalAmount = Number(plan.total_amount || 0)
-  const isRequestPlan = plan.billing_mode === 'request'
-
-  const fmtPlanAmount = (v: number) =>
-    isRequestPlan ? `${v.toLocaleString()} ${t('times')}` : formatQuota(v)
-
-  const benefits = [
-    `${t('Validity Period')}: ${formatDuration(plan, t)}`,
-    `${t('Billing Mode')}: ${formatBillingMode(plan.billing_mode, t)}`,
-    formatResetPeriod(plan, t) !== t('No Reset')
-      ? `${t('Quota Reset')}: ${formatResetPeriod(plan, t)}`
-      : null,
-    totalAmount > 0
-      ? `${t('Total Quota')}: ${fmtPlanAmount(totalAmount)}`
-      : `${t('Total Quota')}: ${t('Unlimited')}`,
-    plan.allowed_groups
-      ? `${t('Allowed Groups')}: ${plan.allowed_groups.split(',').map((g) => g.trim()).filter(Boolean).join(', ')}`
-      : `${t('Allowed Groups')}: ${t('All Groups')}`,
-    plan.max_purchase_per_user > 0
-      ? `${t('Purchase Limit')}: ${plan.max_purchase_per_user}`
-      : null,
-  ].filter(Boolean) as string[]
-
-  return (
-    <Card
-      className={cn(
-        'transition-shadow hover:shadow-md',
-        featured && 'border-[var(--accent)] shadow-sm'
-      )}
-    >
-      <CardContent className="flex h-full flex-col p-4 sm:p-5">
-        <div className="mb-2 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="truncate text-lg font-semibold">
-              {plan.title || t('Subscription Plans')}
-            </h3>
-            {plan.subtitle && (
-              <p className="truncate text-sm text-[var(--muted)]">
-                {plan.subtitle}
-              </p>
-            )}
-          </div>
-          {featured && (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-xs font-medium text-[var(--accent)]">
-              <Sparkles className="h-3 w-3" />
-              {t('Recommended')}
-            </span>
-          )}
-        </div>
-
-        <div className="py-3">
-          <span className="text-2xl font-bold text-[var(--accent)]">
-            {formatCurrencyUSD(Number(plan.price_amount || 0))}
-          </span>
-        </div>
-
-        <div className="flex-1 space-y-2 pb-4">
-          {benefits.map((label) => (
-            <div
-              key={label}
-              className="flex items-center gap-2 text-sm text-[var(--muted)]"
-            >
-              <Check className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
-              <span>{label}</span>
-            </div>
-          ))}
-        </div>
-
-        <Separator className="mb-4" />
-
-        {isAuthenticated ? (
-          <Button className="w-full" onClick={onSubscribe}>
-            {t('Subscribe Now')}
-          </Button>
-        ) : (
-          <Button variant="outline" className="w-full" onClick={onSubscribe}>
-            {t('Sign in to subscribe')}
-          </Button>
-        )}
-      </CardContent>
-    </Card>
   )
 }
 
@@ -163,10 +63,14 @@ export function SubscriptionPlansPage() {
       : null
 
   const handleSubscribe = (record: PlanRecord) => {
+    const purchasePath = `/my-subscriptions?plan_id=${encodeURIComponent(
+      String(record.plan.id)
+    )}`
+
     if (isAuthenticated) {
-      router.push('/wallet')
+      router.push(purchasePath)
     } else {
-      router.push(`/sign-in?next=${encodeURIComponent('/subscription-plans')}`)
+      router.push(`/sign-in?redirect=${encodeURIComponent(purchasePath)}`)
     }
   }
 
@@ -239,12 +143,17 @@ export function SubscriptionPlansPage() {
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {plans.map((record, index) => (
-                <PlanCard
+                <SubscriptionPlanCard
                   key={record.plan.id}
                   record={record}
                   isAuthenticated={isAuthenticated}
                   featured={index === 0 && plans.length > 1}
-                  onSubscribe={() => handleSubscribe(record)}
+                  actionOverride={{
+                    labelKey: isAuthenticated
+                      ? 'Subscribe Now'
+                      : 'Sign in to subscribe',
+                    onClick: () => handleSubscribe(record),
+                  }}
                 />
               ))}
             </div>

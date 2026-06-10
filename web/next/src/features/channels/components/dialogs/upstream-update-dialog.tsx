@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -56,6 +56,17 @@ export function UpstreamUpdateDialog(props: UpstreamUpdateDialogProps) {
     () => new Set(props.removeModels)
   )
   const [partialConfirmOpen, setPartialConfirmOpen] = useState(false)
+
+  useEffect(() => {
+    if (!props.open) return
+
+    setActiveTab(props.preferredTab)
+    setSearchAdd('')
+    setSearchRemove('')
+    setSelectedAdd(new Set(props.addModels))
+    setSelectedRemove(new Set(props.removeModels))
+    setPartialConfirmOpen(false)
+  }, [props.open, props.preferredTab, props.addModels, props.removeModels])
 
   const filteredAdd = useMemo(
     () =>

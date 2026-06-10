@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
@@ -80,6 +80,7 @@ export function RedemptionsMutateDrawer({
   const { t } = useTranslation()
   const isUpdate = !!currentRow
   const { triggerRefresh } = useRedemptions()
+  const sheetContentRef = useRef<HTMLDivElement | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [plans, setPlans] = useState<PlanRecord[]>([])
 
@@ -187,7 +188,10 @@ export function RedemptionsMutateDrawer({
         }
       }}
     >
-      <SheetContent className='flex h-dvh w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[600px]'>
+      <SheetContent
+        ref={sheetContentRef}
+        className='flex h-dvh w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[600px]'
+      >
         <SheetHeader className='border-b px-4 py-3 text-start sm:px-6 sm:py-4'>
           <SheetTitle>
             {isUpdate
@@ -255,7 +259,10 @@ export function RedemptionsMutateDrawer({
                         <SelectValue placeholder={t('Select content type')} />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent alignItemWithTrigger={false}>
+                    <SelectContent
+                      alignItemWithTrigger={false}
+                      container={sheetContentRef}
+                    >
                       <SelectGroup>
                         <SelectItem value={REDEMPTION_TYPES.QUOTA}>
                           {t('Quota')}
@@ -304,6 +311,7 @@ export function RedemptionsMutateDrawer({
                       <SelectContent
                         align='start'
                         alignItemWithTrigger={false}
+                        container={sheetContentRef}
                         className='w-max max-w-[calc(100vw-2rem)] min-w-(--anchor-width) overflow-x-auto'
                       >
                         <SelectGroup>

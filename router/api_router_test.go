@@ -303,8 +303,10 @@ func TestPricingIncludesAnonymousOptionSubset(t *testing.T) {
 	common.OptionMapRWMutex.Lock()
 	originalOptionMap := common.OptionMap
 	common.OptionMap = map[string]string{
-		"GroupModelBilling": `{"vip":{"gpt-4":{"quota_type":1}}}`,
-		"SystemSecret":      "should-not-leak",
+		"GroupModelBilling":            `{"vip":{"gpt-4":{"quota_type":1}}}`,
+		"billing_setting.billing_mode": `{"gpt-4":"tiered_expr"}`,
+		"billing_setting.billing_expr": `{"gpt-4":"tier(\"base\", p * 1 + c * 2)"}`,
+		"SystemSecret":                 "should-not-leak",
 	}
 	common.OptionMapRWMutex.Unlock()
 	t.Cleanup(func() {
@@ -342,6 +344,12 @@ func TestPricingIncludesAnonymousOptionSubset(t *testing.T) {
 
 	if optionsByKey["GroupModelBilling"] != `{"vip":{"gpt-4":{"quota_type":1}}}` {
 		t.Fatalf("expected GroupModelBilling option to be returned")
+	}
+	if optionsByKey["billing_setting.billing_mode"] != `{"gpt-4":"tiered_expr"}` {
+		t.Fatalf("expected billing_setting.billing_mode option to be returned")
+	}
+	if optionsByKey["billing_setting.billing_expr"] != `{"gpt-4":"tier(\"base\", p * 1 + c * 2)"}` {
+		t.Fatalf("expected billing_setting.billing_expr option to be returned")
 	}
 	if _, ok := optionsByKey["SystemSecret"]; ok {
 		t.Fatalf("expected non-pricing options to stay hidden")

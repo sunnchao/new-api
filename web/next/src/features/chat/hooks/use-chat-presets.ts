@@ -37,6 +37,25 @@ function getStoredStatusChats(): RawChatConfig {
   }
 }
 
+function getStoredStatusServerAddress(): string | undefined {
+  if (typeof window === 'undefined') return undefined
+  try {
+    const raw = window.localStorage.getItem('status')
+    if (!raw) return undefined
+    const parsed = JSON.parse(raw)
+    const serverAddress =
+      parsed?.server_address ??
+      parsed?.serverAddress ??
+      parsed?.data?.server_address ??
+      parsed?.data?.serverAddress
+    return typeof serverAddress === 'string' && serverAddress
+      ? serverAddress
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
 function extractServerAddress(status: SystemStatus | null) {
   const fromStatus =
     (status?.server_address as string | undefined) ??
@@ -46,6 +65,11 @@ function extractServerAddress(status: SystemStatus | null) {
 
   if (fromStatus && typeof fromStatus === 'string') {
     return fromStatus
+  }
+
+  const fromStoredStatus = getStoredStatusServerAddress()
+  if (fromStoredStatus) {
+    return fromStoredStatus
   }
 
   if (typeof window !== 'undefined') {

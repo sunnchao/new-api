@@ -180,19 +180,31 @@ export function buildApiParams(config: {
 }): GetLogsParams {
   const { page, pageSize, searchParams, columnFilters = [], isAdmin } = config
 
-  // Helper to process type parameter (single value from array)
-  const processType = (value: unknown) => {
+  // Helper to process type parameter (single value from URL/search state)
+  const processType = (value: unknown): number | undefined => {
+    const parseType = (raw: unknown) => {
+      const type = Number(raw)
+      return Number.isFinite(type) ? type : undefined
+    }
+
     if (Array.isArray(value) && value.length === 1) {
-      return Number(value[0])
+      return parseType(value[0])
+    }
+    if (
+      (typeof value === 'string' && value !== '') ||
+      typeof value === 'number'
+    ) {
+      return parseType(value)
     }
     return undefined
   }
+  const searchType = processType(searchParams.type)
 
   // Build base params from search params
   const params: GetLogsParams = {
     p: page,
     page_size: pageSize,
-    ...(searchParams.type ? { type: processType(searchParams.type) } : {}),
+    ...(searchType !== undefined ? { type: searchType } : {}),
     ...(searchParams.model ? { model_name: String(searchParams.model) } : {}),
     ...(searchParams.token ? { token_name: String(searchParams.token) } : {}),
     ...(searchParams.group ? { group: String(searchParams.group) } : {}),

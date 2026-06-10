@@ -180,6 +180,7 @@ export function ModelMutateDrawer({
       TopupGroupRatio: '',
       GroupRatio: '',
       UserUsableGroups: '',
+      UserUnselectableGroups: '',
       GroupGroupRatio: '',
       AutoGroups: '',
       DefaultUseAutoGroup: false,
@@ -189,6 +190,7 @@ export function ModelMutateDrawer({
       'grok.violation_deduction_amount': 0,
       'channel_affinity_setting.enabled': false,
       'channel_affinity_setting.switch_on_success': true,
+      'channel_affinity_setting.keep_on_channel_disabled': false,
       'channel_affinity_setting.max_entries': 100000,
       'channel_affinity_setting.default_ttl_seconds': 3600,
       'channel_affinity_setting.rules': '[]',
@@ -830,16 +832,14 @@ export function ModelMutateDrawer({
             <div className='space-y-4'>
               <div className='flex items-center justify-between'>
                 <h3 className='text-sm font-semibold'>{t('Endpoints')}</h3>
-                <Select<string>
+                <Select
                   items={[
                     ...Object.keys(ENDPOINT_TEMPLATES).map((key) => ({
                       value: key,
                       label: key,
                     })),
                   ]}
-                  onValueChange={(v) =>
-                    v !== null && handleFillEndpointTemplate(v)
-                  }
+                  onValueChange={handleFillEndpointTemplate}
                 >
                   <SelectTrigger size='sm' className='w-[200px]'>
                     <SelectValue placeholder={t('Load template...')} />

@@ -405,6 +405,18 @@ export const TOOLS: ToolConfig[] = [
 
 export const VALID_TOOL_IDS = TOOLS.map((t) => t.id);
 
+const TOOL_ID_ALIASES: Record<string, string> = {
+  claude: "claude-code",
+  codex: "codex-code",
+  gemini: "gemini-code",
+  openclaw: "open-claw",
+};
+
+export function resolveToolId(toolId: string) {
+  return TOOL_ID_ALIASES[toolId] ?? toolId;
+}
+
 export function getToolConfig(toolId: string): ToolConfig | undefined {
-  return TOOLS.find((t) => t.id === toolId);
+  const resolvedToolId = resolveToolId(toolId);
+  return TOOLS.find((t) => t.id === resolvedToolId);
 }

@@ -24,6 +24,7 @@ import {
   IconLinuxDo,
   IconWeChat,
 } from '@/assets/brand-icons'
+import { SiTelegram } from 'react-icons/si'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useOAuthLogin } from '../hooks/use-oauth-login'
@@ -33,6 +34,7 @@ type OAuthProvidersProps = {
   status: SystemStatus | null
   disabled?: boolean
   className?: string
+  redirectTo?: string
   onWeChatLogin?: () => void
   isWeChatLoading?: boolean
 }
@@ -49,6 +51,7 @@ export function OAuthProviders({
   status,
   disabled = false,
   className,
+  redirectTo,
   onWeChatLogin,
   isWeChatLoading = false,
 }: OAuthProvidersProps) {
@@ -63,7 +66,7 @@ export function OAuthProviders({
     handleLinuxDOLogin,
     handleTelegramLogin,
     handleCustomOAuthLogin,
-  } = useOAuthLogin(status)
+  } = useOAuthLogin(status, redirectTo)
 
   const providerButtons: ProviderButton[] = []
 
@@ -118,6 +121,7 @@ export function OAuthProviders({
       key: 'telegram',
       label: t('Continue with Telegram'),
       onClick: handleTelegramLogin,
+      icon: <SiTelegram className='h-4 w-4' />,
     })
   }
 

@@ -64,6 +64,8 @@ export type WaffoPancakePaymentResponse = ApiResponse<
       session_id?: string
       expires_at?: number | string
       order_id?: string
+      token?: string
+      token_expires_at?: number | string
     }
   | string
 >
@@ -158,6 +160,12 @@ export interface TopupInfo {
   enable_waffo_pancake_topup?: boolean
   /** Minimum topup amount for Waffo Pancake */
   waffo_pancake_min_topup?: number
+  /** Whether redemption code usage is enabled */
+  enable_redemption?: boolean
+  /** Whether compliance confirmation has been completed */
+  payment_compliance_confirmed?: boolean
+  /** Current compliance terms version */
+  payment_compliance_terms_version?: string
 }
 
 /**

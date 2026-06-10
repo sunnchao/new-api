@@ -7,6 +7,9 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useSystemConfigStore } from "@/stores/system-config-store";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Search } from "@/components/search";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeCustomizer } from "@/components/theme-customizer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,13 +19,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NotificationButton } from "@/components/notification-button";
 import {
   Sun,
   Moon,
   Monitor,
   LogOut,
   User,
-  Search,
   Menu,
   Wallet,
 } from "lucide-react";
@@ -79,6 +82,8 @@ export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
 
       <div className="flex-1" />
 
+      <Search className="hidden md:flex" placeholder={t("common.search")} />
+
       {/* Wallet balance pill */}
       {walletBalance !== null && (
         <Button
@@ -92,10 +97,19 @@ export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
         </Button>
       )}
 
+      <NotificationButton className="h-8 w-8" />
+      <LanguageSwitcher className="h-8 w-8" />
+      <ThemeCustomizer className="hidden h-8 border-0 bg-transparent p-0 lg:flex" />
+
       {/* Theme toggle */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-[var(--muted)]">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={t("System")}
+            className="h-8 w-8 text-[var(--muted)]"
+          >
             <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
@@ -103,15 +117,15 @@ export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => setTheme("light")}>
             <Sun className="mr-2 h-4 w-4" />
-            Light
+            {t("Light")}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setTheme("dark")}>
             <Moon className="mr-2 h-4 w-4" />
-            Dark
+            {t("Dark")}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setTheme("system")}>
             <Monitor className="mr-2 h-4 w-4" />
-            System
+            {t("System")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

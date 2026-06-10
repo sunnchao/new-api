@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "./app-header";
 import { SidebarNav } from "./sidebar-nav";
+import { PageFooterProvider } from "./components/page-footer";
 import { cn } from "@/lib/utils";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useSystemConfigStore } from "@/stores/system-config-store";
@@ -13,6 +14,7 @@ import { useSystemConfigStore } from "@/stores/system-config-store";
 export function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [footerContainer, setFooterContainer] = useState<HTMLDivElement | null>(null);
   const systemName = useSystemConfigStore((s) => s.getSystemName());
   const closeSidebar = () => setSidebarOpen(false);
 
@@ -77,8 +79,18 @@ export function AuthenticatedLayout({ children }: { children: React.ReactNode })
 
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
         <AppHeader onToggleSidebar={() => setSidebarOpen((v) => !v)} />
-        <main className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-7xl p-4 lg:p-6">{children}</div>
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-auto">
+            <div className="mx-auto max-w-7xl p-4 lg:p-6">
+              <PageFooterProvider container={footerContainer}>
+                {children}
+              </PageFooterProvider>
+            </div>
+          </div>
+          <div
+            ref={setFooterContainer}
+            className="border-t border-[var(--border)] bg-[var(--background)] px-4 py-2 lg:px-6"
+          />
         </main>
       </div>
     </div>

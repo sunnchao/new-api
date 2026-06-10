@@ -32,6 +32,7 @@ export interface ConfirmDialogProps {
   handleConfirm?: () => void | Promise<void>;
   /** External loading state override */
   isLoading?: boolean;
+  disabled?: boolean;
   children?: React.ReactNode;
   className?: string;
 }
@@ -50,6 +51,8 @@ export function ConfirmDialog({
   onConfirm,
   handleConfirm,
   isLoading: externalLoading,
+  disabled,
+  children,
   className,
 }: ConfirmDialogProps) {
   const [internalLoading, setInternalLoading] = React.useState(false);
@@ -80,6 +83,7 @@ export function ConfirmDialog({
             <DialogDescription>{resolvedDescription}</DialogDescription>
           ) : null}
         </DialogHeader>
+        {children ? <div className="space-y-3">{children}</div> : null}
         <DialogFooter className="gap-2 sm:gap-2">
           <Button
             type="button"
@@ -92,7 +96,7 @@ export function ConfirmDialog({
           <Button
             type="button"
             variant={resolvedVariant === "destructive" ? "destructive" : "default"}
-            disabled={loading}
+            disabled={loading || disabled}
             onClick={handleConfirmClick}
           >
             {confirmText}
@@ -163,20 +167,19 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
 
 export function useConfirm() {
   const ctx = React.useContext(ConfirmContext);
-  if (ctx) return ctx.confirm;
 
-  // Fallback: render a local portal dialog if provider is not mounted.
-  return React.useCallback((opts: ConfirmOptions) => {
+  const fallbackConfirm = React.useCallback((opts: ConfirmOptions) => {
     return new Promise<boolean>((resolve) => {
       if (typeof window === "undefined") {
         resolve(false);
         return;
       }
-      // eslint-disable-next-line no-alert
       const ok = window.confirm(
         opts.description ? `${opts.title}\n\n${opts.description}` : opts.title
       );
       resolve(ok);
     });
   }, []);
+
+  return ctx?.confirm ?? fallbackConfirm;
 }

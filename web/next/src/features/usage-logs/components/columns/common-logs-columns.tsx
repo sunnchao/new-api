@@ -42,6 +42,7 @@ import {
   formatModelName,
   getFirstResponseTimeColor,
   getResponseTimeColor,
+  getMatchedFixedRequestRule,
   getTieredBillingSummary,
   hasAnyCacheTokens,
   parseLogOther,
@@ -132,6 +133,7 @@ function buildDetailSegments(
   }
   const isTieredExpr = other.billing_mode === 'tiered_expr'
   const tieredSummary = getTieredBillingSummary(other)
+  const matchedFixedRequestRule = getMatchedFixedRequestRule(other)
   if (isTieredExpr) {
     if (tieredSummary) {
       const baseEntries = tieredSummary.priceEntries
@@ -178,6 +180,10 @@ function buildDetailSegments(
           muted: true,
         })
       }
+    } else if (matchedFixedRequestRule) {
+      segments.push({
+        text: `${t('Dynamic Pricing')} · ${t('Fixed price')} ${formatPriceCompact(matchedFixedRequestRule.fixedPrice)}/${t('request')}`,
+      })
     } else {
       segments.push({
         text: `${t('Dynamic Pricing')} · ${t('No matching results')}`,

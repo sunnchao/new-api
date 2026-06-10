@@ -15,7 +15,7 @@ export function PublicLayout({
   const persistedSystemName = useSystemConfigStore((s) => s.getSystemName());
   const [mounted, setMounted] = useState(false);
   const currentYear = new Date().getFullYear();
-  const footerHtml = mounted ? persistedFooterHtml : "";
+  const footerHtml = mounted ? persistedFooterHtml || "" : "";
   const systemName = mounted ? persistedSystemName : "New API";
   const safeFooterHtml = useMemo(
     () => footerHtml.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, ""),

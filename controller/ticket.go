@@ -76,8 +76,9 @@ func GetUserTickets(c *gin.Context) {
 func SearchUserTickets(c *gin.Context) {
 	userId := c.GetInt("id")
 	keyword := c.Query("keyword")
+	status, _ := strconv.Atoi(c.Query("status"))
 	pageInfo := common.GetPageQuery(c)
-	tickets, total, err := model.SearchUserTickets(userId, keyword, pageInfo.GetPage(), pageInfo.GetPageSize())
+	tickets, total, err := model.SearchUserTickets(userId, keyword, status, pageInfo.GetPage(), pageInfo.GetPageSize())
 	if err != nil {
 		common.ApiError(c, err)
 		return

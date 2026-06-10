@@ -38,6 +38,8 @@ const OPERATIONS_SECTIONS = [
           DefaultCollapseSidebar: settings.DefaultCollapseSidebar,
           DemoSiteEnabled: settings.DemoSiteEnabled,
           SelfUseModeEnabled: settings.SelfUseModeEnabled,
+          'token_setting.max_user_tokens':
+            settings['token_setting.max_user_tokens'] ?? 1000,
         }}
       />
     ),

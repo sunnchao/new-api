@@ -1,167 +1,246 @@
-"use client";
+"use client"
 
-import { useEffect, useState, useRef } from "react";
-import { useTranslation } from "react-i18next";
-import { getCommonHeaders } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Send, ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { readChatSession, writeChatSession } from "./lib";
-import type { ChatMessage, ChatSession } from "./types";
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { Loader2, MessageCircleWarning } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { ChatTokenPickerDialog } from '@/features/chat/components/chat-token-picker-dialog'
+import {
+  useChatTokenKey,
+  useEnabledChatTokens,
+} from '@/features/chat/hooks/use-active-chat-key'
+import { useChatPresets } from '@/features/chat/hooks/use-chat-presets'
+import {
+  chatLinkRequiresApiKey,
+  resolveChatUrl,
+} from '@/features/chat/lib/chat-links'
 
 export default function ChatPage({ chatId }: { chatId: string }) {
-  const { t } = useTranslation();
-  const [session, setSession] = useState<ChatSession | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [streaming, setStreaming] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation()
+  const { chatPresets, serverAddress } = useChatPresets()
 
-  useEffect(() => {
-    const storedSession = readChatSession(chatId);
-    setSession(storedSession);
-    setMessages(storedSession.messages || []);
-    setLoading(false);
-  }, [chatId]);
+  const preset = useMemo(() => {
+    const index = Number(chatId)
+    if (!Number.isInteger(index)) return undefined
+    return chatPresets[index]
+  }, [chatId, chatPresets])
 
-  useEffect(() => {
-    const marker = messagesEndRef.current;
-    const container = marker?.parentElement;
-    if (!container) return;
-    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  const isWebLink = preset?.type === 'web'
 
-  useEffect(() => {
-    if (session && messages.length > 0) {
-      const updated = { ...session, messages };
-      writeChatSession(chatId, updated);
-    }
-  }, [messages, session, chatId]);
+  const requiresActiveKey = useMemo(() => {
+    if (!preset || !isWebLink) return false
+    return chatLinkRequiresApiKey(preset.url ?? '')
+  }, [isWebLink, preset])
 
-  const handleSend = async () => {
-    if (!input.trim() || streaming) return;
-    const userMsg: ChatMessage = { role: "user", content: input.trim() };
-    const all = [...messages, userMsg];
-    setMessages(all);
-    setInput("");
-    setStreaming(true);
+  const needsToken = Boolean(preset && requiresActiveKey)
 
-    try {
-      const res = await fetch("/v1/chat/completions", {
-        method: "POST",
-        headers: { ...getCommonHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: session?.model || "gpt-3.5-turbo",
-          messages: all.map((m) => ({ role: m.role, content: m.content })),
-          stream: true,
-        }),
-      });
+  const [selectedTokenId, setSelectedTokenId] = useState<number | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(needsToken)
+  const [cancelled, setCancelled] = useState(false)
+  const [resetKey, setResetKey] = useState(`${chatId}:${needsToken}`)
 
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      let assistantContent = "";
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+  if (resetKey !== `${chatId}:${needsToken}`) {
+    setResetKey(`${chatId}:${needsToken}`)
+    setSelectedTokenId(null)
+    setCancelled(false)
+    setPickerOpen(needsToken)
+  }
 
-      while (reader) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const lines = decoder.decode(value, { stream: true })
-          .split("\n")
-          .filter((l) => l.startsWith("data: "));
-        for (const line of lines) {
-          const data = line.slice(6).trim();
-          if (data === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) {
-              assistantContent += delta;
-              setMessages((prev) => {
-                const copy = [...prev];
-                copy[copy.length - 1] = { role: "assistant", content: assistantContent };
-                return copy;
-              });
-            }
-          } catch {}
+  const {
+    data: tokens = [],
+    isLoading: tokensLoading,
+    error: tokensError,
+  } = useEnabledChatTokens(needsToken && pickerOpen)
+
+  const {
+    data: activeKey,
+    isPending: keyPending,
+    isError: keyIsError,
+    error: keyError,
+  } = useChatTokenKey(needsToken ? selectedTokenId : null)
+
+  const iframeSrc = useMemo(() => {
+    if (!preset || !isWebLink) return ''
+    if (needsToken && !activeKey) return ''
+    return resolveChatUrl({
+      template: preset.url,
+      apiKey: needsToken ? activeKey : undefined,
+      serverAddress,
+    })
+  }, [activeKey, isWebLink, needsToken, preset, serverAddress])
+
+  if (!preset) {
+    return (
+      <div className='flex h-full flex-col items-center justify-center gap-4 p-6 text-center'>
+        <MessageCircleWarning className='text-muted-foreground h-12 w-12' />
+        <div className='space-y-1'>
+          <h2 className='text-lg font-semibold'>
+            {t('Chat preset not found')}
+          </h2>
+          <p className='text-muted-foreground'>
+            {t('The requested chat preset does not exist or has been removed.')}
+          </p>
+        </div>
+        <Button variant='outline' render={<Link href='/dashboard' />}>
+          {t('Return to dashboard')}
+        </Button>
+      </div>
+    )
+  }
+
+  if (!isWebLink) {
+    return (
+      <div className='flex h-full flex-col items-center justify-center gap-4 p-6 text-center'>
+        <MessageCircleWarning className='text-muted-foreground h-12 w-12' />
+        <div className='space-y-1'>
+          <h2 className='text-lg font-semibold'>{t('Use sidebar shortcut')}</h2>
+          <p className='text-muted-foreground'>
+            {preset.name}{' '}
+            {t(
+              'opens in an external client. Trigger it from the sidebar or API key actions to launch the configured application.'
+            )}
+          </p>
+        </div>
+        <Button variant='outline' render={<Link href='/dashboard' />}>
+          {t('Return to dashboard')}
+        </Button>
+      </div>
+    )
+  }
+
+  const picker = (
+    <ChatTokenPickerDialog
+      open={pickerOpen}
+      onOpenChange={(open) => {
+        setPickerOpen(open)
+        if (!open && selectedTokenId == null) {
+          setCancelled(true)
         }
-      }
-    } finally {
-      setStreaming(false);
-    }
-  };
+      }}
+      tokens={tokens}
+      isLoading={tokensLoading}
+      error={tokensError as Error | null}
+      onSelect={(tokenId) => {
+        setSelectedTokenId(tokenId)
+        setPickerOpen(false)
+        setCancelled(false)
+      }}
+    />
+  )
 
-  if (loading) {
-    return <Skeleton className="h-[calc(100vh-7rem)] rounded-lg" />;
+  if (needsToken && cancelled && selectedTokenId == null) {
+    return (
+      <>
+        {picker}
+        <div className='flex h-full flex-col items-center justify-center gap-4 p-6 text-center'>
+          <p className='text-muted-foreground text-sm'>
+            {t('You cancelled token selection.')}
+          </p>
+          <Button
+            onClick={() => {
+              setCancelled(false)
+              setPickerOpen(true)
+            }}
+          >
+            {t('Select token again')}
+          </Button>
+        </div>
+      </>
+    )
+  }
+
+  if (needsToken && selectedTokenId == null) {
+    return (
+      <>
+        {picker}
+        <div className='flex h-full flex-col items-center justify-center gap-4'>
+          <Loader2 className='text-muted-foreground h-8 w-8 animate-spin' />
+          <p className='text-muted-foreground text-sm'>
+            {t('Preparing your chat link…')}
+          </p>
+        </div>
+      </>
+    )
+  }
+
+  if (needsToken && keyPending) {
+    return (
+      <div className='flex h-full flex-col items-center justify-center gap-4'>
+        <Loader2 className='text-muted-foreground h-8 w-8 animate-spin' />
+        <p className='text-muted-foreground text-sm'>
+          {t('Preparing your chat link…')}
+        </p>
+      </div>
+    )
+  }
+
+  if (needsToken && (keyIsError || !activeKey || !iframeSrc)) {
+    const message =
+      keyError instanceof Error
+        ? keyError.message
+        : 'Unable to generate chat link. Please check your API keys.'
+
+    return (
+      <div className='flex h-full flex-col items-center justify-center gap-4 p-6'>
+        <Alert variant='destructive' className='max-w-xl'>
+          <AlertTitle>{t('Unable to open chat')}</AlertTitle>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+        <Button
+          variant='outline'
+          onClick={() => {
+            setSelectedTokenId(null)
+            setPickerOpen(true)
+          }}
+        >
+          {t('Select token again')}
+        </Button>
+      </div>
+    )
+  }
+
+  if (!needsToken && !iframeSrc) {
+    return (
+      <div className='flex h-full flex-col items-center justify-center p-6'>
+        <Alert variant='destructive' className='max-w-xl'>
+          <AlertTitle>{t('Unable to open chat')}</AlertTitle>
+          <AlertDescription>
+            {t(
+              'Unable to generate chat link. Please contact your administrator.'
+            )}
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7rem)]">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <Link href="/playground">
-            <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
-          </Link>
-          <h1 className="text-xl font-bold">
-            {session?.title || `Chat ${chatId.slice(0, 8)}`}
-          </h1>
-        </div>
-      </div>
-
-      <ScrollArea className="flex-1 mb-4 rounded-lg border border-[var(--border)] p-4">
-        {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-[var(--muted)]">
-            No messages yet. Start chatting below.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-lg px-4 py-2 text-sm ${
-                  msg.role === "user"
-                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
-                    : "bg-[var(--surface)]"
-                }`}>
-                  {msg.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    <span className="whitespace-pre-wrap">{msg.content}</span>
-                  )}
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-      </ScrollArea>
-
-      <div className="flex gap-2">
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          placeholder={t("playground.sendMessage")}
-          rows={1}
-          className="min-h-[2.5rem] max-h-[8rem] resize-none"
-          disabled={streaming}
-        />
-        <Button onClick={handleSend} disabled={streaming || !input.trim()}>
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
+    <iframe
+      src={iframeSrc}
+      key={iframeSrc}
+      className='h-full w-full border-0'
+      allow='camera; microphone'
+      title={`Chat preset: ${preset.name}`}
+    />
+  )
 }

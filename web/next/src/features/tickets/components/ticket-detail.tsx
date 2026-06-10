@@ -23,9 +23,14 @@ import {
 } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
 import { SectionPageLayout } from '@/components/layout'
-import { getTicketDetail, sendTicketMessage, closeTicket } from '../api'
+import {
+  closeTicket,
+  getTicketCategories,
+  getTicketDetail,
+  sendTicketMessage,
+} from '../api'
 import { TICKET_STATUS, PRIORITY_LABELS } from '../constants'
-import type { TicketMessage } from '../types'
+import type { TicketCategory, TicketMessage } from '../types'
 import { TicketStatusBadge } from './ticket-status-badge'
 import { TicketMessageList } from './ticket-message-list'
 import {
@@ -53,6 +58,11 @@ export function TicketDetail({ ticketId }: { ticketId: number }) {
     enabled: !!ticketId,
   })
 
+  const { data: categoriesData } = useQuery({
+    queryKey: ['ticket-categories'],
+    queryFn: getTicketCategories,
+  })
+
   const closeMutation = useMutation({
     mutationFn: () => closeTicket(ticketId),
     onSuccess: () => {
@@ -75,6 +85,9 @@ export function TicketDetail({ ticketId }: { ticketId: number }) {
 
   const ticket = data?.data?.ticket
   const messages: TicketMessage[] = data?.data?.messages || []
+  const categories: TicketCategory[] = categoriesData?.data || []
+  const categoryLabel = (value: string) =>
+    categories.find((category) => category.value === value)?.label || value
 
   const form = useForm<SendMessageForm>({
     resolver: zodResolver(sendMessageSchema),
@@ -144,7 +157,7 @@ export function TicketDetail({ ticketId }: { ticketId: number }) {
           {/* Ticket metadata */}
           <div className='text-muted-foreground flex flex-wrap items-center gap-3 text-sm'>
             <TicketStatusBadge status={ticket.status} />
-            <Badge variant='outline'>{ticket.category}</Badge>
+            <Badge variant='outline'>{categoryLabel(ticket.category)}</Badge>
             <Badge variant={ticket.priority === 3 ? 'destructive' : 'outline'}>
               {t(PRIORITY_LABELS[ticket.priority])}
             </Badge>

@@ -76,6 +76,18 @@ function mapStatusDataToConfig(data: SystemStatus | undefined) {
   }
 }
 
+function getInitialStatus(): SystemStatus | undefined {
+  try {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem('status')
+      return saved ? (JSON.parse(saved) as SystemStatus) : undefined
+    }
+  } catch {
+    /* empty */
+  }
+  return undefined
+}
+
 export function useStatus() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['status'],
@@ -105,6 +117,7 @@ export function useStatus() {
       }
       return status as SystemStatus | null
     },
+    placeholderData: getInitialStatus(),
     // Data becomes stale after 5 minutes
     staleTime: 5 * 60 * 1000,
     // Cache expires after 30 minutes

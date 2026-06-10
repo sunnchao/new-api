@@ -1,3 +1,5 @@
+"use client";
+
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -112,10 +114,7 @@ function ModelsContent() {
 
   const handleSectionChange = useCallback(
     (section: string) => {
-      void router.push({
-        to: '/models/$section',
-        params: { section: section as ModelsSectionId },
-      })
+      void router.push(`/models/${section as ModelsSectionId}`)
     },
     [router]
   )

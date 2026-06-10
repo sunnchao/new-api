@@ -41,11 +41,14 @@ import {
 } from '@/components/ui/alert-dialog'
 import { SectionPageLayout } from '@/components/layout'
 import {
+  assignTicket,
+  deleteTicket,
+  getTicketCategories,
   getTicketDetail,
   sendTicketMessage,
   updateTicketStatus,
-  deleteTicket,
 } from '../api'
+import { useAuthStore } from '@/stores/auth-store'
 import {
   TICKET_STATUS,
   TICKET_PRIORITY,
@@ -53,7 +56,7 @@ import {
   PRIORITY_LABELS,
   SUCCESS_MESSAGES,
 } from '../constants'
-import type { TicketMessage } from '../types'
+import type { TicketCategory, TicketMessage } from '../types'
 import { TicketStatusBadge } from './ticket-status-badge'
 import { TicketMessageList } from './ticket-message-list'
 import {
@@ -78,6 +81,7 @@ export function AdminTicketDetail({ ticketId }: { ticketId: number }) {
   const { t } = useTranslation()
   const router = useRouter()
   const queryClient = useQueryClient()
+  const currentAdminId = useAuthStore((state) => state.auth.user?.id) || 0
   const [replyAttachments, setReplyAttachments] = useState<string[]>([])
   const [assignOpen, setAssignOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -86,6 +90,11 @@ export function AdminTicketDetail({ ticketId }: { ticketId: number }) {
     queryKey: ['ticket-detail', ticketId],
     queryFn: () => getTicketDetail(ticketId),
     enabled: !!ticketId,
+  })
+
+  const { data: categoriesData } = useQuery({
+    queryKey: ['ticket-categories'],
+    queryFn: getTicketCategories,
   })
 
   const sendMutation = useMutation({
@@ -126,9 +135,26 @@ export function AdminTicketDetail({ ticketId }: { ticketId: number }) {
     },
   })
 
+  const assignToMeMutation = useMutation({
+    mutationFn: () =>
+      assignTicket(ticketId, { admin_id: currentAdminId }),
+    onSuccess: () => {
+      toast.success(t(SUCCESS_MESSAGES.TICKET_ASSIGNED))
+      queryClient.invalidateQueries({ queryKey: ['ticket-detail', ticketId] })
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
+    },
+  })
+
   const ticket = data?.data?.ticket
   const messages: TicketMessage[] = data?.data?.messages || []
+  const categories: TicketCategory[] = categoriesData?.data || []
+  const categoryLabel = (value: string) =>
+    categories.find((category) => category.value === value)?.label || value
   const userContext = data?.data?.user_context
+  const canAssignToMe =
+    !!currentAdminId &&
+    ticket?.status !== TICKET_STATUS.CLOSED &&
+    ticket?.assigned_admin_id !== currentAdminId
 
   const form = useForm<SendMessageForm>({
     resolver: zodResolver(sendMessageSchema),
@@ -190,6 +216,17 @@ export function AdminTicketDetail({ ticketId }: { ticketId: number }) {
           <UserPlus className='mr-2 size-4' />
           {t('Assign')}
         </Button>
+        {canAssignToMe && (
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => assignToMeMutation.mutate()}
+            disabled={assignToMeMutation.isPending}
+          >
+            <UserPlus className='mr-2 size-4' />
+            {t('Assign to me')}
+          </Button>
+        )}
         <Button
           variant='destructive'
           size='sm'
@@ -249,7 +286,7 @@ export function AdminTicketDetail({ ticketId }: { ticketId: number }) {
           {/* Ticket metadata */}
           <div className='text-muted-foreground flex flex-wrap items-center gap-3 text-sm'>
             <TicketStatusBadge status={ticket.status} />
-            <Badge variant='outline'>{ticket.category}</Badge>
+            <Badge variant='outline'>{categoryLabel(ticket.category)}</Badge>
             <Badge variant={ticket.priority === 3 ? 'destructive' : 'outline'}>
               {t(PRIORITY_LABELS[ticket.priority])}
             </Badge>

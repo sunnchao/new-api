@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -41,7 +41,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { getAdminPlans, grantSubscription, searchUsers } from '../api'
 import type { AdminSearchUser, AdminPlan } from '../types'
 
@@ -53,10 +52,10 @@ interface Props {
 export function GrantSubscriptionDialog({ open, onOpenChange }: Props) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const dialogContentRef = useRef<HTMLDivElement | null>(null)
   const [searchText, setSearchText] = useState('')
   const [selectedUser, setSelectedUser] = useState<AdminSearchUser | null>(null)
-  const [selectedPlanType, setSelectedPlanType] = useState<string>('')
-  const [allowStack, setAllowStack] = useState(false)
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('')
 
   const debouncedSearch = useDebounce(searchText, 400)
 
@@ -84,8 +83,7 @@ export function GrantSubscriptionDialog({ open, onOpenChange }: Props) {
     if (!open) {
       setSearchText('')
       setSelectedUser(null)
-      setSelectedPlanType('')
-      setAllowStack(false)
+      setSelectedPlanId('')
     }
   }, [open])
 
@@ -106,20 +104,19 @@ export function GrantSubscriptionDialog({ open, onOpenChange }: Props) {
   })
 
   const handleGrant = () => {
-    if (!selectedUser || !selectedPlanType) {
+    if (!selectedUser || !selectedPlanId) {
       toast.warning(t('Please select a user and a plan'))
       return
     }
     grantMutation.mutate({
       user_id: selectedUser.id,
-      plan_type: selectedPlanType,
-      allow_stack: allowStack,
+      plan_id: Number(selectedPlanId),
     })
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-lg'>
+      <DialogContent ref={dialogContentRef} className='sm:max-w-lg'>
         <DialogHeader>
           <DialogTitle>{t('Grant Subscription')}</DialogTitle>
         </DialogHeader>
@@ -164,15 +161,19 @@ export function GrantSubscriptionDialog({ open, onOpenChange }: Props) {
           <div className='space-y-2'>
             <Label>{t('Select Plan')}</Label>
             <Select
-              value={selectedPlanType}
-              onValueChange={setSelectedPlanType}
+              modal={false}
+              value={selectedPlanId}
+              onValueChange={setSelectedPlanId}
             >
               <SelectTrigger>
                 <SelectValue placeholder={t('Please select a plan')} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent
+                alignItemWithTrigger={false}
+                container={dialogContentRef}
+              >
                 {plans.map((plan) => (
-                  <SelectItem key={plan.id} value={plan.type}>
+                  <SelectItem key={plan.id} value={String(plan.id)}>
                     {plan.name || plan.type}
                   </SelectItem>
                 ))}
@@ -180,11 +181,6 @@ export function GrantSubscriptionDialog({ open, onOpenChange }: Props) {
             </Select>
           </div>
 
-          {/* Allow stack */}
-          <div className='flex items-center justify-between'>
-            <Label>{t('Allow Stacking')}</Label>
-            <Switch checked={allowStack} onCheckedChange={setAllowStack} />
-          </div>
         </div>
 
         <DialogFooter>
