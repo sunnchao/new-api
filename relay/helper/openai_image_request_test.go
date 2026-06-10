@@ -39,7 +39,7 @@ func TestGetAndValidOpenAIImageRequestMultipartStream(t *testing.T) {
 
 	req, err := GetAndValidOpenAIImageRequest(c, relayconstant.RelayModeImagesEdits)
 	require.NoError(t, err)
-	require.True(t, req.Stream != nil && *req.Stream)
+	require.True(t, req.Stream)
 	require.True(t, req.IsStream(c))
 
 	bodyAfterValidation, err := io.ReadAll(c.Request.Body)
