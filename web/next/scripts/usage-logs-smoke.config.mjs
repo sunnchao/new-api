@@ -33,7 +33,7 @@ export default {
     },
   ],
   webServer: {
-    command: `bun run start -- --hostname 127.0.0.1 --port ${port}`,
+    command: `bun run start -- --host 127.0.0.1 --port ${port}`,
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

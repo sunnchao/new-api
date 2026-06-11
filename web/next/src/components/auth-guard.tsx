@@ -46,8 +46,28 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!user) {
-      redirectToSignIn(router);
-      return;
+      let cancelled = false;
+
+      getSelf()
+        .then((res) => {
+          if (cancelled) return;
+          if (res?.success && res.data) {
+            setUser(res.data as Parameters<typeof setUser>[0]);
+            sessionVerified = true;
+            return;
+          }
+          reset();
+          redirectToSignIn(router);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          reset();
+          redirectToSignIn(router);
+        });
+
+      return () => {
+        cancelled = true;
+      };
     }
 
     if (isAdminOnlyRoute && !isAdmin) {

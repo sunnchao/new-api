@@ -58,6 +58,7 @@ export function auditUsageLogs() {
     "features/usage-logs/components/usage-logs-table.tsx",
     warnings
   );
+  const rootPageSource = readSource("app/(app)/usage-logs/page.tsx", warnings);
   const formatSource = readSource("features/usage-logs/lib/format.ts", warnings);
   const detailsDialogSource = readSource(
     "features/usage-logs/components/dialogs/details-dialog.tsx",
@@ -229,6 +230,18 @@ export function auditUsageLogs() {
     failures.push({
       id: "usage-logs-table-manual-filtering",
       message: "Usage logs table should use manualFiltering with server filters.",
+    });
+  }
+
+  if (
+    /redirect\(/.test(rootPageSource) ||
+    !/from ["']@\/features\/usage-logs["']/.test(rootPageSource) ||
+    !/export default UsageLogs/.test(rootPageSource)
+  ) {
+    failures.push({
+      id: "usage-logs-root-renders-common-list",
+      message:
+        "The /usage-logs route should render the common log list directly instead of async-redirecting, avoiding a page-open flash before logs appear.",
     });
   }
 

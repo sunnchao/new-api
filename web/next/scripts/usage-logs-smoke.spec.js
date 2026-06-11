@@ -476,6 +476,29 @@ async function authenticate(page, storedUser = user) {
   }, storedUser);
 }
 
+async function seedCookieOnlySession(page) {
+  await page.context().addCookies([
+    {
+      name: "auth_token",
+      value: "smoke-auth-token",
+      domain: "127.0.0.1",
+      path: "/",
+    },
+    {
+      name: "session",
+      value: "smoke-session",
+      domain: "127.0.0.1",
+      path: "/",
+    },
+  ]);
+  await page.addInitScript(() => {
+    window.localStorage.setItem("i18nextLng", "en");
+    window.localStorage.setItem("setup_required", "false");
+    window.localStorage.removeItem("user");
+    window.localStorage.removeItem("uid");
+  });
+}
+
 test.describe("usage logs drawing and task runtime parity", () => {
   test("renders higher common log types with classic labels", async ({
     page,
@@ -491,20 +514,14 @@ test.describe("usage logs drawing and task runtime parity", () => {
     await expect(page.getByText("admin-error-model")).toBeVisible();
 
     await expect(
-      page.getByRole("row", { name: /subscription-model/ }).getByText("Subscription", {
-        exact: true,
-      })
-    ).toBeVisible();
+      page.getByRole("row", { name: /subscription-model/ }).locator("td").first()
+    ).toContainText("Subscription");
     await expect(
-      page.getByRole("row", { name: /archive-model/ }).getByText("Archive", {
-        exact: true,
-      })
-    ).toBeVisible();
+      page.getByRole("row", { name: /archive-model/ }).locator("td").first()
+    ).toContainText("Archive");
     await expect(
-      page.getByRole("row", { name: /admin-error-model/ }).getByText("Admin Error", {
-        exact: true,
-      })
-    ).toBeVisible();
+      page.getByRole("row", { name: /admin-error-model/ }).locator("td").first()
+    ).toContainText("Admin Error");
 
     const listRequest = requests.find(
       (request) => request.method === "GET" && request.pathname === "/api/log"
@@ -520,7 +537,7 @@ test.describe("usage logs drawing and task runtime parity", () => {
     await authenticate(page);
 
     await page.goto("/usage-logs/common");
-    await page.getByRole("combobox", { name: "All Types" }).click();
+    await page.getByRole("combobox", { name: "Type" }).click();
     await expect(page.getByRole("option", { name: "Subscription" })).toBeVisible();
     await expect(page.getByRole("option", { name: "Archive" })).toBeVisible();
     await expect(page.getByRole("option", { name: "Admin Error" })).toBeVisible();
@@ -531,7 +548,7 @@ test.describe("usage logs drawing and task runtime parity", () => {
     await authenticate(nonAdminPage, normalUser);
 
     await nonAdminPage.goto("/usage-logs/common");
-    await nonAdminPage.getByRole("combobox", { name: "All Types" }).click();
+    await nonAdminPage.getByRole("combobox", { name: "Type" }).click();
     await expect(nonAdminPage.getByRole("option", { name: "Subscription" })).toBeVisible();
     await expect(nonAdminPage.getByRole("option", { name: "Archive" })).toBeVisible();
     await expect(
@@ -549,7 +566,7 @@ test.describe("usage logs drawing and task runtime parity", () => {
 
     await page.goto("/console/log?type=0&model=smoke-common-model");
 
-    await expect(page).toHaveURL(/\/usage-logs\/common\?type=0&model=smoke-common-model$/);
+    await expect(page).toHaveURL(/\/usage-logs\?type=0&model=smoke-common-model$/);
     await expect(page.getByRole("heading", { name: "Common Logs" })).toBeVisible();
     await expect(page.getByText("smoke-common-model")).toBeVisible();
 
@@ -564,7 +581,7 @@ test.describe("usage logs drawing and task runtime parity", () => {
     expect(unhandled).toEqual([]);
   });
 
-  test("canonicalizes root common logs and forwards type filters for admins", async ({
+  test("renders root common logs and forwards type filters for admins", async ({
     page,
   }) => {
     const { requests, unhandled } = await mockApi(page);
@@ -572,7 +589,7 @@ test.describe("usage logs drawing and task runtime parity", () => {
 
     await page.goto("/usage-logs?type=0&model=smoke-common-model");
 
-    await expect(page).toHaveURL(/\/usage-logs\/common\?type=0&model=smoke-common-model$/);
+    await expect(page).toHaveURL(/\/usage-logs\?type=0&model=smoke-common-model$/);
     await expect(page.getByRole("heading", { name: "Common Logs" })).toBeVisible();
     await expect(page.getByText("smoke-common-model")).toBeVisible();
 
@@ -598,6 +615,33 @@ test.describe("usage logs drawing and task runtime parity", () => {
     expect(unhandled).toEqual([]);
   });
 
+  test("hydrates cookie-only sessions before opening root common logs", async ({
+    page,
+  }) => {
+    const { requests, unhandled } = await mockApi(page);
+    await seedCookieOnlySession(page);
+
+    await page.goto("/usage-logs?type=0&model=smoke-common-model");
+
+    await expect(page).toHaveURL(/\/usage-logs\?type=0&model=smoke-common-model$/);
+    await expect(page.getByRole("heading", { name: "Common Logs" })).toBeVisible();
+    await expect(page.getByText("smoke-common-model")).toBeVisible();
+
+    const selfRequest = requests.find(
+      (request) => request.method === "GET" && request.pathname === "/api/user/self"
+    );
+    const listRequest = requests.find(
+      (request) =>
+        request.method === "GET" &&
+        request.pathname === "/api/log" &&
+        request.params.type === "0" &&
+        request.params.model_name === "smoke-common-model"
+    );
+    expect(selfRequest).toBeTruthy();
+    expect(listRequest).toBeTruthy();
+    expect(unhandled).toEqual([]);
+  });
+
   test("opens channel affinity usage cache details with backend token-rate fields", async ({
     page,
   }) => {
@@ -616,7 +660,7 @@ test.describe("usage logs drawing and task runtime parity", () => {
       (params) =>
         params.rule_name === "smoke-affinity-rule" &&
         params.using_group === "default" &&
-        params.key_fp === "fp-smoke-42"
+        params.key_fp === "PLACEHOLDER_FP"
     );
     await channelCell.locator("button").first().click();
     await usageCacheRequest;
