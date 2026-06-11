@@ -20,8 +20,12 @@ For commercial licensing, please contact support@quantumnous.com
 import React, { useEffect, useState, useMemo, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Typography } from '@douyinfe/semi-ui';
+import { Link } from 'react-router-dom';
 import { getFooterHTML, getLogo, getSystemName } from '../../helpers';
 import { StatusContext } from '../../context/Status';
+
+const FOOTER_LEGAL_DISCLAIMER =
+  '本站API适用于测试和体验目的，请自觉遵守您当地法律法规，切勿用于非法用途，本站不承担任何法律责任。';
 
 const FooterBar = () => {
   const { t } = useTranslation();
@@ -31,12 +35,52 @@ const FooterBar = () => {
   const [statusState] = useContext(StatusContext);
   const isDemoSiteMode = statusState?.status?.demo_site_enabled || false;
 
+  const siteMapLinks = useMemo(
+    () => [
+      { to: '/user-agreement', label: t('用户协议') },
+      { to: '/privacy-policy', label: t('隐私政策') },
+    ],
+    [t],
+  );
+
+  const siteMapNav = useMemo(
+    () => (
+      <nav
+        aria-label={t('网站地图')}
+        className='flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 text-sm'
+      >
+        <div className='flex flex-wrap items-center gap-x-4 gap-y-2'>
+          {siteMapLinks.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className='!text-semi-color-text-1 hover:!text-semi-color-primary transition-colors'
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
+    ),
+    [siteMapLinks, t],
+  );
+
   const loadFooter = () => {
     let footer_html = localStorage.getItem('footer_html');
     if (footer_html) {
       setFooter(footer_html);
     }
   };
+
+  const translatedFooter = useMemo(() => {
+    if (!footer) {
+      return footer;
+    }
+
+    return footer
+      .split(FOOTER_LEGAL_DISCLAIMER)
+      .join(t(FOOTER_LEGAL_DISCLAIMER));
+  }, [footer, t]);
 
   const currentYear = new Date().getFullYear();
 
@@ -188,6 +232,10 @@ const FooterBar = () => {
           </div>
         )}
 
+        <div className='w-full max-w-[1110px] mb-8 pb-8 border-b border-semi-color-border'>
+          {siteMapNav}
+        </div>
+
         <div className='flex flex-col md:flex-row items-center justify-between w-full max-w-[1110px] gap-6'>
           <div className='flex flex-wrap items-center gap-2'>
             <Typography.Text className='text-sm !text-semi-color-text-1'>
@@ -211,7 +259,7 @@ const FooterBar = () => {
         </div>
       </footer>
     ),
-    [logo, systemName, t, currentYear, isDemoSiteMode],
+    [logo, systemName, t, currentYear, isDemoSiteMode, siteMapNav],
   );
 
   useEffect(() => {
@@ -223,10 +271,13 @@ const FooterBar = () => {
       {footer ? (
         <footer className='relative h-auto py-4 px-6 md:px-24 w-full flex items-center justify-center overflow-hidden'>
           <div className='flex flex-col md:flex-row items-center justify-between w-full max-w-[1110px] gap-4'>
-            <div
-              className='custom-footer na-cb6feafeb3990c78 text-sm !text-semi-color-text-1'
-              dangerouslySetInnerHTML={{ __html: footer }}
-            ></div>
+            <div className='flex flex-col gap-4 min-w-0'>
+              <div
+                className='custom-footer na-cb6feafeb3990c78 text-sm !text-semi-color-text-1'
+                dangerouslySetInnerHTML={{ __html: translatedFooter }}
+              ></div>
+              {siteMapNav}
+            </div>
             <div className='text-sm flex-shrink-0'>
               <span className='!text-semi-color-text-1'>
                 {t('设计与开发由')}{' '}
