@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   type ColumnDef,
-  flexRender,
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
@@ -27,19 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
   DataTablePagination,
-  TableSkeleton,
-  TableEmpty,
+  DataTableView,
 } from '@/components/data-table'
 import { PageFooterPortal } from '@/components/layout'
 import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
@@ -647,53 +637,14 @@ export function AllSubscriptionsTable() {
         </button>
       </div>
 
-      {/* Table */}
-      <div className='overflow-hidden rounded-md border'>
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} colSpan={header.colSpan}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoadingData ? (
-              <TableSkeleton table={table} keyPrefix='all-subs-skeleton' />
-            ) : table.getRowModel().rows.length === 0 ? (
-              <TableEmpty
-                colSpan={columns.length}
-                title={t('No subscriptions found')}
-                description={t(
-                  'No user subscriptions match the current filters'
-                )}
-              />
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTableView
+        table={table}
+        isLoading={isLoadingData}
+        emptyTitle={t('No subscriptions found')}
+        emptyDescription={t('No user subscriptions match the current filters')}
+        skeletonKeyPrefix='all-subs-skeleton'
+        containerClassName='rounded-md'
+      />
 
       <PageFooterPortal>
         <DataTablePagination table={table} />

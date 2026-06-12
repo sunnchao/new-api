@@ -953,7 +953,7 @@ function GroupPricingTable({
                           checked={row.hidden}
                           onCheckedChange={(checked) => {
                             const isHidden = checked === true
-                              updateRow(row._id, 'hidden', isHidden)
+                            updateRow(row._id, 'hidden', isHidden)
                             if (isHidden && row.selectable) {
                             updateRow(row._id, 'selectable', false)
                           }
