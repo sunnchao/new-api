@@ -182,6 +182,7 @@ export function ModelMutateDrawer({
       UserUsableGroups: '',
       UserUnselectableGroups: '',
       GroupGroupRatio: '',
+      GroupClientRestrictions: '{}',
       AutoGroups: '',
       DefaultUseAutoGroup: false,
       CreateCacheRatio: '',

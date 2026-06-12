@@ -27,6 +27,7 @@ import {
   handleOIDCOAuth,
   handleDiscordOAuth,
   handleLinuxDOOAuth,
+  handleCustomOAuth,
 } from '@/lib/oauth'
 import { useDialogs } from '@/hooks/use-dialog'
 import { useStatus } from '@/hooks/use-status'
@@ -40,6 +41,7 @@ import {
   unbindCustomOAuth,
   type CustomOAuthBinding,
 } from '../../api'
+import type { CustomOAuthProviderInfo } from '@/features/auth/types'
 import type { UserProfile, BindingItem } from '../../types'
 import { EmailBindDialog } from '../dialogs/email-bind-dialog'
 import { TelegramBindDialog } from '../dialogs/telegram-bind-dialog'
@@ -70,7 +72,7 @@ export function AccountBindingsTab({
   const [unbinding, setUnbinding] = useState(false)
 
   const customProviders = status?.custom_oauth_providers as
-    | Array<{ id: string; name: string }>
+    | CustomOAuthProviderInfo[]
     | undefined
 
   const fetchCustomBindings = useCallback(async () => {
@@ -93,7 +95,7 @@ export function AccountBindingsTab({
     if (!unbindTarget) return
     setUnbinding(true)
     try {
-      const res = await unbindCustomOAuth(unbindTarget.provider_id)
+      const res = await unbindCustomOAuth(String(unbindTarget.provider_id))
       if (res.success) {
         toast.success(
           t('Unbound {{provider}}', {
@@ -113,9 +115,19 @@ export function AccountBindingsTab({
     }
   }
 
-  const handleBindCustomOAuth = (provider: { id: string; name: string }) => {
-    const redirectUrl = `${window.location.origin}/oauth/${provider.id}?bind=true`
-    window.location.href = `/api/oauth/${provider.id}?redirect=${encodeURIComponent(redirectUrl)}`
+  const handleBindCustomOAuth = async (provider: CustomOAuthProviderInfo) => {
+    try {
+      const started = await handleCustomOAuth(provider)
+      if (!started) {
+        toast.error(
+          t('Failed to start {{provider}} login', { provider: provider.name })
+        )
+      }
+    } catch {
+      toast.error(
+        t('Failed to start {{provider}} login', { provider: provider.name })
+      )
+    }
   }
 
   useEffect(() => {

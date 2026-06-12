@@ -61,6 +61,7 @@ const OPTION_KEYS = [
   'UserUsableGroups',
   'UserUnselectableGroups',
   'GroupGroupRatio',
+  'GroupClientRestrictions',
   'group_ratio_setting.group_special_usable_group',
   'AutoGroups',
   'DefaultUseAutoGroup',
@@ -86,6 +87,7 @@ export default function GroupRatioSettings(props) {
     UserUsableGroups: '',
     UserUnselectableGroups: '',
     GroupGroupRatio: '',
+    GroupClientRestrictions: '{}',
     'group_ratio_setting.group_special_usable_group': '',
     AutoGroups: '',
     DefaultUseAutoGroup: false,
@@ -280,6 +282,35 @@ export default function GroupRatioSettings(props) {
           onChange={handleSpecialUsableChange}
         />
       </Form.Section>
+
+      <Form.Section text={t('客户端限制')}>
+        <Text
+          type='tertiary'
+          size='small'
+          style={{ display: 'block', marginBottom: 12 }}
+        >
+          {t(
+            '按分组限制允许访问的客户端。允许的客户端 ID 为 claude_code 和 codex；未配置或空列表的分组不限制。',
+          )}
+        </Text>
+        <Form.TextArea
+          field='GroupClientRestrictions'
+          value={inputs.GroupClientRestrictions}
+          placeholder='{"agent-only":["claude_code","codex"]}'
+          autosize={{ minRows: 5, maxRows: 10 }}
+          trigger='blur'
+          stopValidateWithError
+          rules={[
+            {
+              validator: (rule, value) => verifyJSON(value),
+              message: t('不是合法的 JSON 字符串'),
+            },
+          ]}
+          onChange={(value) =>
+            setInputs((prev) => ({ ...prev, GroupClientRestrictions: value }))
+          }
+        />
+      </Form.Section>
     </Form>
   );
 
@@ -317,6 +348,30 @@ export default function GroupRatioSettings(props) {
               ]}
               onChange={(value) =>
                 setInputs((prev) => ({ ...prev, GroupRatio: value }))
+              }
+            />
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} sm={16}>
+            <Form.TextArea
+              label={t('客户端限制')}
+              placeholder='{"agent-only":["claude_code","codex"]}'
+              extraText={t(
+                '按分组限制允许访问的客户端。允许的客户端 ID 为 claude_code 和 codex；未配置或空列表的分组不限制。',
+              )}
+              field={'GroupClientRestrictions'}
+              autosize={{ minRows: 6, maxRows: 12 }}
+              trigger='blur'
+              stopValidateWithError
+              rules={[
+                {
+                  validator: (rule, value) => verifyJSON(value),
+                  message: t('不是合法的 JSON 字符串'),
+                },
+              ]}
+              onChange={(value) =>
+                setInputs((prev) => ({ ...prev, GroupClientRestrictions: value }))
               }
             />
           </Col>

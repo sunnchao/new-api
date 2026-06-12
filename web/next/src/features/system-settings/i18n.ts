@@ -41,6 +41,9 @@ const resources = {
       'Completion tokens': 'Completion tokens',
       'Total tokens': 'Total tokens',
       'Next.js Frontend': 'Next.js Frontend',
+      'Client restrictions': 'Client restrictions',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.',
       'Switch between default, classic, and Next.js frontends. The Next.js option requires NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL to point at a running Next server.':
         'Switch between default, classic, and Next.js frontends. The Next.js option requires NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL to point at a running Next server.',
     },
@@ -79,6 +82,9 @@ const resources = {
       'Completion tokens': '补全 tokens',
       'Total tokens': '总 tokens',
       'Next.js Frontend': 'Next.js 前端',
+      'Client restrictions': '客户端限制',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        '分组到允许客户端的 JSON 映射。允许的客户端 ID 为 claude_code 和 codex；未配置或空列表的分组不限制。',
       'Switch between default, classic, and Next.js frontends. The Next.js option requires NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL to point at a running Next server.':
         '在默认、经典和 Next.js 前端之间切换。Next.js 选项需要配置 NEXT_FRONTEND_BASE_URL 或 FRONTEND_NEXT_BASE_URL 指向正在运行的 Next 服务。',
     },
@@ -123,6 +129,9 @@ const resources = {
       'Completion tokens': 'Tokens de completion',
       'Total tokens': 'Total des tokens',
       'Next.js Frontend': 'Frontend Next.js',
+      'Client restrictions': 'Restrictions de client',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        'Objet JSON associant chaque groupe aux clients autorisés. Les IDs autorisés sont claude_code et codex ; les groupes absents ou vides ne sont pas restreints.',
       'Switch between default, classic, and Next.js frontends. The Next.js option requires NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL to point at a running Next server.':
         "Basculez entre les frontends default, classic et Next.js. L'option Next.js nécessite que NEXT_FRONTEND_BASE_URL ou FRONTEND_NEXT_BASE_URL pointe vers un service Next en cours d'exécution.",
     },
@@ -166,6 +175,9 @@ const resources = {
       'Completion tokens': '補完 tokens',
       'Total tokens': '合計 tokens',
       'Next.js Frontend': 'Next.js フロントエンド',
+      'Client restrictions': 'クライアント制限',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        'グループから許可クライアントへの JSON マップです。許可されるクライアント ID は claude_code と codex です。未設定または空のグループは制限されません。',
       'Switch between default, classic, and Next.js frontends. The Next.js option requires NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL to point at a running Next server.':
         'default、classic、Next.js の各フロントエンドを切り替えます。Next.js オプションでは、実行中の Next サービスを指す NEXT_FRONTEND_BASE_URL または FRONTEND_NEXT_BASE_URL が必要です。',
     },
@@ -211,6 +223,9 @@ const resources = {
       'Completion tokens': 'Токены completion',
       'Total tokens': 'Всего токенов',
       'Next.js Frontend': 'Фронтенд Next.js',
+      'Client restrictions': 'Ограничения клиентов',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        'JSON-объект, сопоставляющий группы с разрешенными клиентами. Допустимые ID клиентов: claude_code и codex; отсутствующие группы или пустые списки не ограничиваются.',
       'Switch between default, classic, and Next.js frontends. The Next.js option requires NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL to point at a running Next server.':
         'Переключение между фронтендами default, classic и Next.js. Для варианта Next.js требуется NEXT_FRONTEND_BASE_URL или FRONTEND_NEXT_BASE_URL, указывающий на запущенный сервис Next.',
     },
@@ -255,6 +270,9 @@ const resources = {
       'Completion tokens': 'Token completion',
       'Total tokens': 'Tổng token',
       'Next.js Frontend': 'Frontend Next.js',
+      'Client restrictions': 'Giới hạn client',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        'Bản đồ JSON từ nhóm sang các client được phép. ID client hợp lệ là claude_code và codex; nhóm bị thiếu hoặc có danh sách rỗng sẽ không bị giới hạn.',
       'Switch between default, classic, and Next.js frontends. The Next.js option requires NEXT_FRONTEND_BASE_URL or FRONTEND_NEXT_BASE_URL to point at a running Next server.':
         'Chuyển đổi giữa các frontend default, classic và Next.js. Tùy chọn Next.js cần NEXT_FRONTEND_BASE_URL hoặc FRONTEND_NEXT_BASE_URL trỏ tới dịch vụ Next đang chạy.',
     },

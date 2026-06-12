@@ -92,6 +92,8 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			return nil, selectGroup, errors.New("auto groups is not enabled")
 		}
 		autoGroups := GetUserAutoGroup(userGroup)
+		// TokenAuth only sees the literal "auto" group; filter expanded groups here.
+		autoGroups = FilterGroupsByClientRestriction(param.Ctx, autoGroups)
 
 		// startGroupIndex: the group index to start searching from
 		// startGroupIndex: 开始搜索的分组索引
@@ -155,6 +157,8 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 		}
 	} else if param.TokenBackupGroup != "" {
 		autoGroups := GetTokenBackupGroup(param.TokenBackupGroup, userGroup)
+		// Backup groups are expanded after auth, so apply client restrictions here too.
+		autoGroups = FilterGroupsByClientRestriction(param.Ctx, autoGroups)
 		// startGroupIndex: the group index to start searching from
 		// startGroupIndex: 开始搜索的分组索引
 		startGroupIndex := 0

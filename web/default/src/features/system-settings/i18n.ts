@@ -18,6 +18,9 @@ const resources = {
         'Visitors must authenticate before accessing subscription plans.',
       'When enabled, paid subscription orders can be selected in invoice requests.':
         'When enabled, paid subscription orders can be selected in invoice requests.',
+      'Client restrictions': 'Client restrictions',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.',
     },
   },
   zh: {
@@ -34,6 +37,9 @@ const resources = {
         '访客必须登录后才能访问订阅套餐。',
       'When enabled, paid subscription orders can be selected in invoice requests.':
         '开启后，已支付的订阅订单可在开票申请中选择。',
+      'Client restrictions': '客户端限制',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        '分组到允许客户端的 JSON 映射。允许的客户端 ID 为 claude_code 和 codex；未配置或空列表的分组不限制。',
     },
   },
   fr: {
@@ -53,6 +59,9 @@ const resources = {
         'Les visiteurs doivent se connecter avant d’accéder aux abonnements.',
       'When enabled, paid subscription orders can be selected in invoice requests.':
         "Une fois activé, les commandes d'abonnement payées peuvent être sélectionnées dans les demandes de facture.",
+      'Client restrictions': 'Restrictions de client',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        'Objet JSON associant chaque groupe aux clients autorisés. Les IDs autorisés sont claude_code et codex ; les groupes absents ou vides ne sont pas restreints.',
     },
   },
   ja: {
@@ -73,6 +82,9 @@ const resources = {
         '訪問者はサブスクリプションプランにアクセスする前に認証する必要があります。',
       'When enabled, paid subscription orders can be selected in invoice requests.':
         '有効にすると、支払い済みのサブスクリプション注文を請求書申請で選択できます。',
+      'Client restrictions': 'クライアント制限',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        'グループから許可クライアントへの JSON マップです。許可されるクライアント ID は claude_code と codex です。未設定または空のグループは制限されません。',
     },
   },
   ru: {
@@ -92,6 +104,9 @@ const resources = {
         'Посетители должны войти в систему перед доступом к подпискам.',
       'When enabled, paid subscription orders can be selected in invoice requests.':
         'Если включено, оплаченные заказы подписки можно выбирать в заявках на счет.',
+      'Client restrictions': 'Ограничения клиентов',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        'JSON-объект, сопоставляющий группы с разрешенными клиентами. Допустимые ID клиентов: claude_code и codex; отсутствующие группы или пустые списки не ограничиваются.',
     },
   },
   vi: {
@@ -111,6 +126,9 @@ const resources = {
         'Khách truy cập phải xác thực trước khi xem các gói đăng ký.',
       'When enabled, paid subscription orders can be selected in invoice requests.':
         'Khi bật, các đơn đăng ký đã thanh toán có thể được chọn trong yêu cầu hóa đơn.',
+      'Client restrictions': 'Giới hạn client',
+      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
+        'Bản đồ JSON từ nhóm sang các client được phép. ID client hợp lệ là claude_code và codex; nhóm bị thiếu hoặc có danh sách rỗng sẽ không bị giới hạn.',
     },
   },
 } as const

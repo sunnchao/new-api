@@ -57,6 +57,7 @@ const defaultBillingSettings: BillingSettings = {
   UserUsableGroups: '',
   UserUnselectableGroups: '',
   GroupGroupRatio: '',
+  GroupClientRestrictions: '{}',
   AutoGroups: '',
   DefaultUseAutoGroup: false,
   'group_ratio_setting.group_special_usable_group': '{}',

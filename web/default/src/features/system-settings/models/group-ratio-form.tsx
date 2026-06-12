@@ -65,6 +65,7 @@ type GroupFormValues = {
   UserUsableGroups: string
   UserUnselectableGroups: string
   GroupGroupRatio: string
+  GroupClientRestrictions: string
   AutoGroups: string
   DefaultUseAutoGroup: boolean
   GroupSpecialUsableGroup: string
@@ -153,6 +154,25 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               onChange={(value) =>
                 handleFieldChange('GroupSpecialUsableGroup', value)
               }
+            />
+
+            <FormField
+              control={form.control}
+              name='GroupClientRestrictions'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Client restrictions')}</FormLabel>
+                  <FormControl>
+                    <Textarea rows={5} {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             <FormField
@@ -290,6 +310,25 @@ export const GroupRatioForm = memo(function GroupRatioForm({
                   <FormDescription>
                     {t(
                       'JSON array of group identifiers. When enabled below, new tokens rotate through this list.'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='GroupClientRestrictions'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Client restrictions')}</FormLabel>
+                  <FormControl>
+                    <Textarea rows={6} {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.'
                     )}
                   </FormDescription>
                   <FormMessage />

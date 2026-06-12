@@ -146,13 +146,17 @@ export function buildCustomOAuthUrl(
  * Get OAuth state token
  * Includes affiliate code from localStorage if available
  */
-export async function getOAuthState(): Promise<string | null> {
+export async function getOAuthState(redirectUri?: string): Promise<string | null> {
   try {
-    let path = '/api/oauth/state'
+    const params = new URLSearchParams()
     const affCode = localStorage.getItem('aff')
     if (affCode && affCode.length > 0) {
-      path += `?aff=${affCode}`
+      params.set('aff', affCode)
     }
+    if (redirectUri) {
+      params.set('redirect_uri', redirectUri)
+    }
+    const path = params.size > 0 ? `/api/oauth/state?${params}` : '/api/oauth/state'
     const res = await api.get(path)
     if (res.data.success) {
       return res.data.data
@@ -219,7 +223,8 @@ export async function handleCustomOAuth(
   provider: CustomOAuthProviderConfig,
   target = '_blank'
 ): Promise<boolean> {
-  const state = await getOAuthState()
+  const redirectUri = `${window.location.origin}/oauth/${provider.slug}`
+  const state = await getOAuthState(redirectUri)
   if (!state) return false
 
   const url = buildCustomOAuthUrl(provider, state)

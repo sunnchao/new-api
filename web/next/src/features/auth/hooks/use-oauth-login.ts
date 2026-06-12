@@ -222,7 +222,8 @@ export function useOAuthLogin(status: SystemStatus | null, redirectTo?: string) 
     setIsLoading(true)
     try {
       await resetSession()
-      const state = await getOAuthState()
+      const redirectUri = `${window.location.origin}/oauth/${provider.slug}`
+      const state = await getOAuthState(redirectUri)
       if (!state) {
         toast.error(t('Failed to initialize OAuth'))
         return

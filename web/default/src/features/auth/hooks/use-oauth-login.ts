@@ -28,6 +28,7 @@ import {
   buildDiscordOAuthUrl,
   buildOIDCOAuthUrl,
   buildLinuxDOOAuthUrl,
+  buildCustomOAuthUrl,
 } from '../lib/oauth'
 import type { SystemStatus, CustomOAuthProviderInfo } from '../types'
 
@@ -195,23 +196,14 @@ export function useOAuthLogin(status: SystemStatus | null) {
     setIsLoading(true)
     try {
       await resetSession()
-      const state = await getOAuthState()
+      const redirectUri = `${window.location.origin}/oauth/${provider.slug}`
+      const state = await getOAuthState(redirectUri)
       if (!state) {
         toast.error(t('Failed to initialize OAuth'))
         return
       }
 
-      const redirectUri = `${window.location.origin}/oauth/${provider.slug}`
-      const url = new URL(provider.authorization_endpoint)
-      url.searchParams.set('client_id', provider.client_id)
-      url.searchParams.set('redirect_uri', redirectUri)
-      url.searchParams.set('response_type', 'code')
-      url.searchParams.set('state', state)
-      if (provider.scopes) {
-        url.searchParams.set('scope', provider.scopes)
-      }
-
-      window.open(url.toString(), '_self')
+      window.open(buildCustomOAuthUrl(provider, state), '_self')
     } catch (_error) {
       toast.error(
         t('Failed to start {{provider}} login', { provider: provider.name })

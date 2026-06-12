@@ -180,6 +180,29 @@ const groupSchema = z.object({
       })
     }
   }),
+  GroupClientRestrictions: z.string().superRefine((value, ctx) => {
+    const result = validateJsonString(value, {
+      predicate: (parsed) =>
+        parsed !== null &&
+        !Array.isArray(parsed) &&
+        typeof parsed === 'object' &&
+        Object.values(parsed as Record<string, unknown>).every(
+          (clients) =>
+            Array.isArray(clients) &&
+            clients.every(
+              (client) => client === 'claude_code' || client === 'codex'
+            )
+        ),
+      predicateMessage:
+        'Expected a JSON object whose values are arrays of claude_code or codex',
+    })
+    if (!result.valid) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: result.message || 'Invalid JSON',
+      })
+    }
+  }),
   AutoGroups: z.string().superRefine((value, ctx) => {
     const result = validateJsonString(value, {
       predicate: (parsed) =>
@@ -272,6 +295,9 @@ export function RatioSettingsCard({
       groupDefaults.UserUnselectableGroups
     ),
     GroupGroupRatio: normalizeJsonString(groupDefaults.GroupGroupRatio),
+    GroupClientRestrictions: normalizeJsonString(
+      groupDefaults.GroupClientRestrictions
+    ),
     AutoGroups: normalizeJsonString(groupDefaults.AutoGroups),
     DefaultUseAutoGroup: groupDefaults.DefaultUseAutoGroup,
     GroupSpecialUsableGroup: normalizeJsonString(
@@ -311,6 +337,9 @@ export function RatioSettingsCard({
         groupDefaults.UserUnselectableGroups
       ),
       GroupGroupRatio: formatJsonForTextarea(groupDefaults.GroupGroupRatio),
+      GroupClientRestrictions: formatJsonForTextarea(
+        groupDefaults.GroupClientRestrictions
+      ),
       AutoGroups: formatJsonForTextarea(groupDefaults.AutoGroups),
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup
@@ -361,6 +390,9 @@ export function RatioSettingsCard({
         groupDefaults.UserUnselectableGroups
       ),
       GroupGroupRatio: normalizeJsonString(groupDefaults.GroupGroupRatio),
+      GroupClientRestrictions: normalizeJsonString(
+        groupDefaults.GroupClientRestrictions
+      ),
       AutoGroups: normalizeJsonString(groupDefaults.AutoGroups),
       DefaultUseAutoGroup: groupDefaults.DefaultUseAutoGroup,
       GroupSpecialUsableGroup: normalizeJsonString(
@@ -377,6 +409,9 @@ export function RatioSettingsCard({
         groupDefaults.UserUnselectableGroups
       ),
       GroupGroupRatio: formatJsonForTextarea(groupDefaults.GroupGroupRatio),
+      GroupClientRestrictions: formatJsonForTextarea(
+        groupDefaults.GroupClientRestrictions
+      ),
       AutoGroups: formatJsonForTextarea(groupDefaults.AutoGroups),
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup
@@ -429,6 +464,9 @@ export function RatioSettingsCard({
           values.UserUnselectableGroups
         ),
         GroupGroupRatio: normalizeJsonString(values.GroupGroupRatio),
+        GroupClientRestrictions: normalizeJsonString(
+          values.GroupClientRestrictions
+        ),
         AutoGroups: normalizeJsonString(values.AutoGroups),
         DefaultUseAutoGroup: values.DefaultUseAutoGroup,
         GroupSpecialUsableGroup: normalizeJsonString(

@@ -27,6 +27,11 @@ func GenerateOAuthCode(c *gin.Context) {
 	if affCode != "" {
 		session.Set("aff", affCode)
 	}
+	if redirectURI, ok := oauth.NormalizeRedirectURIForRequest(c, c.Query("redirect_uri")); ok {
+		session.Set(oauth.RedirectURISessionKey, redirectURI)
+	} else {
+		session.Delete(oauth.RedirectURISessionKey)
+	}
 	session.Set("oauth_state", state)
 	err := session.Save()
 	if err != nil {

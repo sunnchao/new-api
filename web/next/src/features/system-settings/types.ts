@@ -192,6 +192,7 @@ export type ModelSettings = {
   UserUsableGroups: string
   UserUnselectableGroups: string
   GroupGroupRatio: string
+  GroupClientRestrictions: string
   AutoGroups: string
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string
@@ -237,6 +238,7 @@ export type BillingSettings = {
   UserUsableGroups: string
   UserUnselectableGroups: string
   GroupGroupRatio: string
+  GroupClientRestrictions: string
   AutoGroups: string
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string

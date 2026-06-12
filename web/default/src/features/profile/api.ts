@@ -143,7 +143,7 @@ export async function bindWeChat(code: string): Promise<ApiResponse> {
 // ============================================================================
 
 export interface CustomOAuthBinding {
-  provider_id: string
+  provider_id: string | number
   provider_name: string
   external_id?: string
 }

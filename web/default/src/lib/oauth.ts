@@ -18,6 +18,13 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from './api'
 
+export interface CustomOAuthProviderConfig {
+  slug: string
+  client_id: string
+  authorization_endpoint: string
+  scopes?: string | null
+}
+
 // ============================================================================
 // OAuth URL Builders
 // ============================================================================
@@ -69,6 +76,27 @@ export function buildLinuxDOOAuthUrl(clientId: string, state: string): string {
   return `https://connect.linux.do/oauth2/authorize?response_type=code&client_id=${clientId}&state=${state}`
 }
 
+/**
+ * Build custom OAuth URL
+ */
+export function buildCustomOAuthUrl(
+  provider: CustomOAuthProviderConfig,
+  state: string
+): string {
+  const url = new URL(provider.authorization_endpoint)
+  url.searchParams.set('client_id', provider.client_id)
+  url.searchParams.set(
+    'redirect_uri',
+    `${window.location.origin}/oauth/${provider.slug}`
+  )
+  url.searchParams.set('response_type', 'code')
+  if (provider.scopes) {
+    url.searchParams.set('scope', provider.scopes)
+  }
+  url.searchParams.set('state', state)
+  return url.toString()
+}
+
 // ============================================================================
 // OAuth Helper Functions
 // ============================================================================
@@ -77,13 +105,19 @@ export function buildLinuxDOOAuthUrl(clientId: string, state: string): string {
  * Get OAuth state token
  * Includes affiliate code from localStorage if available
  */
-export async function getOAuthState(): Promise<string | null> {
+export async function getOAuthState(
+  redirectUri?: string
+): Promise<string | null> {
   try {
-    let path = '/api/oauth/state'
+    const params = new URLSearchParams()
     const affCode = localStorage.getItem('aff')
     if (affCode && affCode.length > 0) {
-      path += `?aff=${affCode}`
+      params.set('aff', affCode)
     }
+    if (redirectUri) {
+      params.set('redirect_uri', redirectUri)
+    }
+    const path = params.size > 0 ? `/api/oauth/state?${params}` : '/api/oauth/state'
     const res = await api.get(path)
     if (res.data.success) {
       return res.data.data
@@ -141,4 +175,20 @@ export async function handleLinuxDOOAuth(clientId: string): Promise<void> {
 
   const url = buildLinuxDOOAuthUrl(clientId, state)
   window.open(url, '_blank')
+}
+
+/**
+ * Handle custom OAuth binding/login
+ */
+export async function handleCustomOAuth(
+  provider: CustomOAuthProviderConfig,
+  target = '_blank'
+): Promise<boolean> {
+  const redirectUri = `${window.location.origin}/oauth/${provider.slug}`
+  const state = await getOAuthState(redirectUri)
+  if (!state) return false
+
+  const url = buildCustomOAuthUrl(provider, state)
+  window.open(url, target)
+  return true
 }
