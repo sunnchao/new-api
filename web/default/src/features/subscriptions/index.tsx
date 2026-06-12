@@ -38,7 +38,7 @@ function SubscriptionsContent() {
 
   return (
     <>
-      <SectionPageLayout>
+      <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>
           {t('Subscription Management')}
         </SectionPageLayout.Title>
@@ -58,29 +58,31 @@ function SubscriptionsContent() {
           )}
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
+          <div className='flex h-full min-h-0 flex-col gap-4'>
             {!complianceConfirmed ? (
-                <Alert variant='destructive' className='mb-4'>
-                    <AlertDescription>
-                        {t(
-                            'Subscription plan creation and changes are locked until the administrator confirms compliance terms in Payment Gateway settings.'
-                        )}
-                    </AlertDescription>
-                </Alert>
+              <Alert variant='destructive' className='shrink-0'>
+                <AlertDescription>
+                  {t(
+                    'Subscription plan creation and changes are locked until the administrator confirms compliance terms in Payment Gateway settings.'
+                  )}
+                </AlertDescription>
+              </Alert>
             ) : null}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value='plans'>{t('Plans')}</TabsTrigger>
-              <TabsTrigger value='all-subscriptions'>
-                {t('All Subscriptions')}
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value='plans' className='mt-4'>
-              <SubscriptionsTable />
-            </TabsContent>
-            <TabsContent value='all-subscriptions' className='mt-4'>
-              <AllSubscriptionsTable />
-            </TabsContent>
-          </Tabs>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList>
+                      <TabsTrigger value='plans'>{t('Plans')}</TabsTrigger>
+                      <TabsTrigger value='all-subscriptions'>
+                          {t('All Subscriptions')}
+                      </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value='plans' className='mt-4'>
+                      <SubscriptionsTable />
+                  </TabsContent>
+                  <TabsContent value='all-subscriptions' className='mt-4'>
+                      <AllSubscriptionsTable />
+                  </TabsContent>
+              </Tabs>
+          </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>
 

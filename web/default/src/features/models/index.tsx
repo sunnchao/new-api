@@ -120,7 +120,7 @@ function ModelsContent() {
 
   return (
     <>
-      <SectionPageLayout>
+      <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>{t(meta.titleKey)}</SectionPageLayout.Title>
         <SectionPageLayout.Actions>
           {activeSection === 'metadata' ? (
@@ -133,7 +133,7 @@ function ModelsContent() {
           )}
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
-          <div className='space-y-4'>
+          <div className='flex h-full min-h-0 flex-col gap-4'>
             <Tabs value={activeSection} onValueChange={handleSectionChange}>
               <TabsList className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto'>
                 {MODELS_SECTION_IDS.map((section) => (
@@ -143,21 +143,23 @@ function ModelsContent() {
                 ))}
               </TabsList>
             </Tabs>
-            {activeSection === 'metadata' ? (
-              <ModelsTable />
-            ) : (
-              <DeploymentAccessGuard
-                loading={deploymentLoading}
-                loadingPhase={loadingPhase}
-                isEnabled={isIoNetEnabled}
-                connectionLoading={connectionLoading}
-                connectionOk={connectionOk}
-                connectionError={connectionError}
-                onRetry={testConnection}
-              >
-                <DeploymentsTable />
-              </DeploymentAccessGuard>
-            )}
+            <div className='min-h-0 flex-1'>
+              {activeSection === 'metadata' ? (
+                <ModelsTable />
+              ) : (
+                <DeploymentAccessGuard
+                  loading={deploymentLoading}
+                  loadingPhase={loadingPhase}
+                  isEnabled={isIoNetEnabled}
+                  connectionLoading={connectionLoading}
+                  connectionOk={connectionOk}
+                  connectionError={connectionError}
+                  onRetry={testConnection}
+                >
+                  <DeploymentsTable />
+                </DeploymentAccessGuard>
+              )}
+            </div>
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>
