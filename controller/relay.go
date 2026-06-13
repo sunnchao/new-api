@@ -98,6 +98,15 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			other["error_code"] = newAPIError.GetErrorCode()
 			other["error_type"] = newAPIError.GetErrorType()
 			other["RequestId"] = requestId
+
+			adminInfo := make(map[string]interface{})
+			if c != nil && c.Request != nil {
+				if ua := c.Request.UserAgent(); ua != "" {
+					adminInfo["user_agent"] = ua
+				}
+			}
+			other["admin_info"] = adminInfo
+
 			model.RecordErrorLog(
 				c,
 				c.GetInt(string(constant.ContextKeyUserId)),
@@ -474,6 +483,15 @@ func RelayMidjourney(c *gin.Context) {
 		defer func() {
 			other := make(map[string]interface{})
 			other["LogType"] = model.LogTypeErrorForAdmin
+
+			adminInfo := make(map[string]interface{})
+			if c != nil && c.Request != nil {
+				if ua := c.Request.UserAgent(); ua != "" {
+					adminInfo["user_agent"] = ua
+				}
+			}
+			other["admin_info"] = adminInfo
+
 			model.RecordErrorLog(
 				c,
 				c.GetInt(string(constant.ContextKeyUserId)),
