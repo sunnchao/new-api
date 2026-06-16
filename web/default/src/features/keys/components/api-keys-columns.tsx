@@ -29,7 +29,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { DataTableColumnHeader } from '@/components/data-table'
+import { BadgeCell, TruncatedCell } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
 import { API_KEY_STATUSES } from '../constants'
@@ -56,9 +56,9 @@ function parseGroupList(value?: string | null): string[] {
 
 function useGroupRatios(): Record<string, number> {
   const { data } = useQuery({
-    queryKey: ['user-self-groups'],
+    queryKey: ['user-groups'],
     queryFn: getUserGroups,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     select: (res) => {
       if (!res.success || !res.data) return {}
       const ratios: Record<string, number> = {}
@@ -100,26 +100,19 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
       enableSorting: false,
       enableHiding: false,
       size: 40,
-      meta: { label: t('Select') },
     },
     {
       accessorKey: 'name',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Name')} />
-      ),
+      header: t('Name'),
       cell: ({ row }) => (
-        <div className='max-w-[200px] truncate font-medium'>
-          {row.getValue('name')}
-        </div>
+        <span className='font-medium'>{row.getValue('name')}</span>
       ),
       size: 180,
-      meta: { label: t('Name'), mobileTitle: true },
+      meta: { mobileTitle: true },
     },
     {
       accessorKey: 'status',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Status')} />
-      ),
+      header: t('Status'),
       cell: ({ row }) => {
         const statusConfig = API_KEY_STATUSES[row.getValue('status') as number]
         if (!statusConfig) return null
@@ -128,12 +121,13 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
             label={t(statusConfig.label)}
             variant={statusConfig.variant}
             copyable={false}
+            className='-ml-1.5'
           />
         )
       },
       filterFn: (row, id, value) => value.includes(String(row.getValue(id))),
       size: 120,
-      meta: { label: t('Status'), mobileBadge: true },
+      meta: { mobileBadge: true },
     },
     {
       id: 'key',
@@ -142,14 +136,11 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
       cell: ({ row }) => <ApiKeyCell apiKey={row.original} />,
       enableSorting: false,
       size: 260,
-      meta: { label: t('API Key') },
     },
     {
       id: 'quota',
       accessorKey: 'remain_quota',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Quota')} />
-      ),
+      header: t('Quota'),
       cell: ({ row }) => {
         const apiKey = row.original
         if (apiKey.unlimited_quota) {
@@ -158,6 +149,7 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
               label={t('Unlimited')}
               variant='neutral'
               copyable={false}
+              className='-ml-1.5'
             />
           )
         }
@@ -201,13 +193,10 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
         )
       },
       size: 170,
-      meta: { label: t('Quota') },
     },
     {
       accessorKey: 'group',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Group')} />
-      ),
+      header: t('Group'),
       cell: ({ row }) => {
         const apiKey = row.original
         const group = row.getValue('group') as string
@@ -219,9 +208,7 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
               <span className='inline-flex max-w-[240px] flex-wrap items-center gap-1.5'>
             <Tooltip>
               <TooltipTrigger
-                render={
-                  <span className='inline-flex items-center gap-1.5 text-xs' />
-                }
+                render={<BadgeCell className='gap-1.5 text-xs' />}
               >
                 <GroupBadge group='auto' />
                 {apiKey.cross_group_retry && (
@@ -252,62 +239,58 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
           )
         }
         return (
-          <span className='inline-flex max-w-[240px] flex-wrap items-center gap-1.5'>
+          <TruncatedCell
+            className='-ml-1.5'
+            tooltipContent={group || '-'}
+            tooltipClassName='break-all'
+          >
             <GroupBadge group={group} ratio={ratio} />
             {backupGroups.map((backupGroup) => (
-              <GroupBadge
-                key={backupGroup}
-                group={backupGroup}
-                ratio={groupRatios[backupGroup]}
-                className='opacity-70'
-              />
+                <GroupBadge
+                    key={backupGroup}
+                    group={backupGroup}
+                    ratio={groupRatios[backupGroup]}
+                    className='opacity-70'
+                />
             ))}
-          </span>
+          </TruncatedCell>
         )
       },
       size: 160,
-      meta: { label: t('Group'), mobileHidden: true },
+      meta: { mobileHidden: true },
     },
     {
       id: 'model_limits',
       accessorKey: 'model_limits',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Models')} />
-      ),
+      header: t('Models'),
       cell: ({ row }) => <ModelLimitsCell apiKey={row.original} />,
       enableSorting: false,
       size: 160,
-      meta: { label: t('Models'), mobileHidden: true },
+      meta: { mobileHidden: true },
     },
     {
       id: 'allow_ips',
       accessorKey: 'allow_ips',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('IP Restriction')} />
-      ),
+      header: t('IP Restriction'),
       cell: ({ row }) => <IpRestrictionsCell apiKey={row.original} />,
       enableSorting: false,
       size: 160,
-      meta: { label: t('IP Restriction'), mobileHidden: true },
+      meta: { mobileHidden: true },
     },
     {
       accessorKey: 'created_time',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Created')} />
-      ),
+      header: t('Created'),
       cell: ({ row }) => (
         <span className='text-muted-foreground block truncate font-mono text-xs tabular-nums'>
           {formatTimestampToDate(row.getValue('created_time'))}
         </span>
       ),
       size: 180,
-      meta: { label: t('Created'), mobileHidden: true },
+      meta: { mobileHidden: true },
     },
     {
       accessorKey: 'accessed_time',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Last Used')} />
-      ),
+      header: t('Last Used'),
       cell: ({ row }) => {
         const accessedTime = row.getValue('accessed_time') as number
         if (!accessedTime) {
@@ -320,13 +303,11 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
         )
       },
       size: 180,
-      meta: { label: t('Last Used'), mobileHidden: true },
+      meta: { mobileHidden: true },
     },
     {
       accessorKey: 'expired_time',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Expires')} />
-      ),
+      header: t('Expires'),
       cell: ({ row }) => {
         const expiredTime = row.getValue('expired_time') as number
         if (expiredTime === -1) {
@@ -335,6 +316,7 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
               label={t('Never')}
               variant='neutral'
               copyable={false}
+              className='-ml-1.5'
             />
           )
         }
@@ -351,12 +333,13 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
         )
       },
       size: 180,
-      meta: { label: t('Expires'), mobileHidden: true },
+      meta: { mobileHidden: true },
     },
     {
       id: 'actions',
+      header: () => t('Actions'),
       cell: ({ row }) => <DataTableRowActions row={row} />,
-      meta: { label: t('Actions') },
+      meta: { pinned: 'right' as const },
       size: 88,
     },
   ]

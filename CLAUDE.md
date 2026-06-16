@@ -51,7 +51,6 @@ web/             — Frontend themes container
 - Translation files: `web/default/src/i18n/locales/{lang}.json` — flat JSON, keys are English source strings
 - Usage: `useTranslation()` hook, call `t('English key')` in components
 - CLI tools: `bun run i18n:sync` (from `web/default/`)
-- Feature-scoped translations: some features define their own `i18n.ts` (e.g. `features/chat/i18n.ts`) and are merged into the global config via `src/i18n/config.ts`
 
 ## Rules
 
@@ -137,13 +136,10 @@ For request structs that are parsed from client JSON and then re-marshaled to up
 
 When working on tiered/dynamic billing (expression-based pricing), you MUST read `pkg/billingexpr/expr.md` first. It documents the design philosophy, expression language (variables, functions, examples), full system architecture (editor → storage → pre-consume → settlement → log display), token normalization rules (`p`/`c` auto-exclusion), quota conversion, and expression versioning. All code changes to the billing expression system must follow the patterns described in that document.
 
-### Rule 8: Frontend i18n — Feature-scoped translations only
+### Rule 8: Pull Requests — Identify AI-Generated Contributions When Appropriate
 
-**Do NOT add new translation keys directly to the global locale files** (`web/default/src/i18n/locales/{lang}.json`). These files are managed by `bun run i18n:sync` and are reserved for keys that are truly shared across the entire app.
+When creating a pull request:
 
-For any new translations introduced by a feature:
-
-1. Create or update `web/default/src/features/{feature}/i18n.ts` — export a `{feature}I18nResources` const with all supported languages (`en`, `zh`, `fr`, `ja`, `ru`, `vi`).
-2. Register it in `web/default/src/i18n/config.ts` by importing the export and adding a `mergeFeatureTranslations(…, {feature}I18nResources.{lang})` call for every language in the `resources` object.
-
-See `web/default/src/features/chat/i18n.ts` and `web/default/src/features/keys/i18n.ts` for reference implementations.
+- First compare the current git user (`git config user.name` / `git config user.email`) with the repository's historical core developers (for example, the recurring top authors in `git log`). Do not change git config.
+- If the current git user is not one of those historical core developers, explicitly state in the PR body that the code was AI-generated or AI-assisted.
+- Always use the repository PR template at `.github/PULL_REQUEST_TEMPLATE.md` when drafting the PR title/body. Preserve the template structure and fill in the relevant sections instead of replacing it with an ad hoc format.

@@ -371,7 +371,7 @@ export function SubscriptionPlansCard({
 
   if (loading) {
     return (
-      <Card className='gap-0 overflow-hidden py-0'>
+      <Card data-card-hover='false' className='gap-0 overflow-hidden py-0'>
         <CardHeader className='border-b p-3 !pb-3 sm:p-5 sm:!pb-5'>
           <Skeleton className='h-6 w-32' />
         </CardHeader>
@@ -420,6 +420,7 @@ export function SubscriptionPlansCard({
         title={t('Subscription Plans')}
         description={t('Subscribe to a plan for model access')}
         icon={<Crown className='h-4 w-4' />}
+        disableHoverEffect
         contentClassName='space-y-4 sm:space-y-5'
       >
         {/* My subscriptions & billing preference */}
