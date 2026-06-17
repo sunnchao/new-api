@@ -13,5 +13,23 @@
              }
            ]
          }
+       ],
+       "rewrites": [
+         {
+           "source": "/api/*",
+           "destination": "https://api-eo.wochirou.com/api/:splat"
+         },
+         {
+           "source": "/mj/*",
+           "destination": "https://api-eo.wochirou.com/mj/:splat"
+         },
+         {
+           "source": "/pg/*",
+           "destination": "https://api-eo.wochirou.com/pg/:splat"
+         },
+         {
+           "source": "/uploads/*",
+           "destination": "https://api-eo.wochirou.com/uploads/:splat"
+         }
        ]
      }
