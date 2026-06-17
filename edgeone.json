@@ -1,0 +1,17 @@
+{
+       "buildCommand": "cd web/default && bun install && bun run build",
+       "installCommand": "cd web/default && bun install",
+       "outputDirectory": "./web/default/dist",
+       "nodeVersion": "22.11.0",
+       "headers": [
+         {
+           "source": "/assets/*",
+           "headers": [
+             {
+               "key": "Cache-Control",
+               "value": "public, max-age=31536000, immutable"
+             }
+           ]
+         }
+       ]
+     }
