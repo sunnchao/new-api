@@ -68,20 +68,30 @@ function SubscriptionsContent() {
                 </AlertDescription>
               </Alert>
             ) : null}
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList>
-                      <TabsTrigger value='plans'>{t('Plans')}</TabsTrigger>
-                      <TabsTrigger value='all-subscriptions'>
-                          {t('All Subscriptions')}
-                      </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value='plans' className='mt-4'>
-                      <SubscriptionsTable />
-                  </TabsContent>
-                  <TabsContent value='all-subscriptions' className='mt-4'>
-                      <AllSubscriptionsTable />
-                  </TabsContent>
-              </Tabs>
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className='min-h-0 flex-1'
+            >
+              <TabsList className='shrink-0'>
+                <TabsTrigger value='plans'>{t('Plans')}</TabsTrigger>
+                <TabsTrigger value='all-subscriptions'>
+                  {t('All Subscriptions')}
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent
+                value='plans'
+                className='mt-2 flex min-h-0 flex-1 flex-col'
+              >
+                <SubscriptionsTable />
+              </TabsContent>
+              <TabsContent
+                value='all-subscriptions'
+                className='mt-2 flex min-h-0 flex-1 flex-col'
+              >
+                <AllSubscriptionsTable />
+              </TabsContent>
+            </Tabs>
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>

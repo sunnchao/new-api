@@ -1404,9 +1404,7 @@ export function PaymentSettingsSection({
                   </FormItem>
                 )}
               />
-                </div>
-              </div>
-            </TabsContent>
+
 
             <FormField
               control={form.control}
@@ -1432,7 +1430,9 @@ export function PaymentSettingsSection({
                 </FormItem>
               )}
             />
-          </div>
+              </div>
+            </div>
+            </TabsContent>
 
             <TabsContent value='epay' className={paymentTabContentClassName}>
               <div className='space-y-4'>

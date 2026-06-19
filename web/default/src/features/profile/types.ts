@@ -81,6 +81,8 @@ export interface UserProfile {
   telegram_id?: string
   /** LinuxDO ID (OAuth) */
   linux_do_id?: string
+  /** Avatar URL */
+  avatar_url?: string
 }
 
 /**

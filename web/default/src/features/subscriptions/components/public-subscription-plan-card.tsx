@@ -101,7 +101,7 @@ export function PublicSubscriptionPlanCard({
     plan,
     t,
     formatQuota,
-    { maxItems: mode === 'home' ? 2 : 4, includeMode: false }
+    { maxItems: mode === 'home' ? 4 : 4, includeMode: false }
   )
   const resetPeriod = formatResetPeriod(plan, t)
   const purchaseLimit = Number(plan.max_purchase_per_user || 0)
@@ -153,7 +153,7 @@ export function PublicSubscriptionPlanCard({
                 <p className='text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed'>
                   {plan.subtitle}
                 </p>
-              ) : null}
+              ) : <p className='text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed'><br/></p>}
             </div>
             {featured ? (
               <StatusBadge variant='info' copyable={false}>

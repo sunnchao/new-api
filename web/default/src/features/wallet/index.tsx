@@ -73,7 +73,7 @@ export function Wallet(props: WalletProps) {
   const [creemDialogOpen, setCreemDialogOpen] = useState(false)
   const [selectedCreemProduct, setSelectedCreemProduct] =
     useState<CreemProduct | null>(null)
-  const [showSubscriptionPanel, setShowSubscriptionPanel] = useState(true)
+  const [showSubscriptionPanel, setShowSubscriptionPanel] = useState(false)
 
   const { status } = useStatus()
   const { currency } = useSystemConfig()

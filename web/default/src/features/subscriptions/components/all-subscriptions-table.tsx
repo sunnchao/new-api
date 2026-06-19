@@ -27,10 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import {
-  DataTablePagination,
-  DataTableView,
-} from '@/components/data-table'
+import { DataTablePagination, DataTableView } from '@/components/data-table'
 import { PageFooterPortal } from '@/components/layout'
 import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
 import {
@@ -584,9 +581,9 @@ export function AllSubscriptionsTable() {
   }
 
   return (
-    <div className='space-y-4'>
+    <div className='flex min-h-0 flex-1 flex-col gap-4'>
       {/* Filters */}
-      <div className='flex flex-wrap items-center gap-2'>
+      <div className='flex shrink-0 flex-wrap items-center gap-2'>
         <Input
           placeholder={t('Search username or email')}
           value={username}
@@ -643,7 +640,10 @@ export function AllSubscriptionsTable() {
         emptyTitle={t('No subscriptions found')}
         emptyDescription={t('No user subscriptions match the current filters')}
         skeletonKeyPrefix='all-subs-skeleton'
-        containerClassName='rounded-md'
+        splitHeader
+        applyHeaderSize
+        tableContainerClassName='h-full min-h-0'
+        containerClassName='min-h-0 flex-1 rounded-md'
       />
 
       <PageFooterPortal>

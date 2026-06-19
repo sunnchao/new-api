@@ -81,20 +81,22 @@ import {
   createWaffoPancakeSubscriptionProduct,
   listWaffoPancakeSubscriptionProductOptions,
 } from '../api'
-import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import {
-    getDurationUnitOptions,
-    getResetPeriodOptions,
-    getBillingModeOptions,
-    getResetModeOptions,
+  getDurationUnitOptions,
+  getResetPeriodOptions,
+  getBillingModeOptions,
+  getResetModeOptions,
 } from '../constants'
 import {
   getPlanFormSchema,
   getPlanAmountInputStep,
+  getWaffoPancakeProductSelectItems,
   PLAN_FORM_DEFAULTS,
+  WAFFO_PANCAKE_PRODUCT_NONE_VALUE,
   planToFormValues,
   formValuesToPlanPayload,
   type PlanFormValues,
+  type WaffoPancakeProductOption,
 } from '../lib'
 import type { PlanRecord } from '../types'
 import { useSubscriptions } from './subscriptions-provider'
@@ -138,14 +140,13 @@ export function SubscriptionsMutateDrawer({
   const isEdit = !!currentRow?.plan?.id
   const { triggerRefresh } = useSubscriptions()
   const { meta: currencyMeta } = getCurrencyDisplay()
-  const tokensOnly = currencyMeta.kind === 'tokens'
   const currencyLabel = getCurrencyLabel()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [groupOptions, setGroupOptions] = useState<string[]>([])
   const [rateLimitsOpen, setRateLimitsOpen] = useState(false)
   const [creatingPancakeProduct, setCreatingPancakeProduct] = useState(false)
   const [pancakeProducts, setPancakeProducts] = useState<
-    { id: string; name: string; status: string }[]
+    WaffoPancakeProductOption[]
   >([])
 
   const schema = getPlanFormSchema(t)
@@ -188,22 +189,19 @@ export function SubscriptionsMutateDrawer({
 
   const durationUnit = form.watch('duration_unit')
   const resetPeriod = form.watch('quota_reset_period')
-    // Gate "+ Create on Pancake" on the same checks the mint handler runs.
-    const watchedTitle = form.watch('title')
-    const watchedPrice = form.watch('price_amount')
-    const pancakeCreateReady =
-        typeof watchedTitle === 'string' &&
-        watchedTitle.trim().length > 0 &&
-        Number(watchedPrice ?? 0) > 0
+  // Gate "+ Create on Pancake" on the same checks the mint handler runs.
+  const watchedTitle = form.watch('title')
+  const watchedPrice = form.watch('price_amount')
+  const pancakeCreateReady =
+    typeof watchedTitle === 'string' &&
+    watchedTitle.trim().length > 0 &&
+    Number(watchedPrice ?? 0) > 0
 
   const billingMode = form.watch('billing_mode')
   const hourlyLimitAmount = form.watch('hourly_limit_amount')
   const dailyLimitAmount = form.watch('daily_limit_amount')
   const weeklyLimitAmount = form.watch('weekly_limit_amount')
   const monthlyLimitAmount = form.watch('monthly_limit_amount')
-  const currencyDisplay = getCurrencyDisplay()
-  const currencyMeta = currencyDisplay.meta
-  const currencyLabel = getCurrencyLabel()
   const isQuotaMode = billingMode !== 'request'
   const totalQuotaLabel = isQuotaMode
     ? `${t('Quota ({{currency}})', { currency: currencyLabel })})`
@@ -221,10 +219,7 @@ export function SubscriptionsMutateDrawer({
       currency: currencyLabel,
     })
   }
-  const totalQuotaStep = getPlanAmountInputStep(
-    billingMode,
-    currencyMeta.kind
-  )
+  const totalQuotaStep = getPlanAmountInputStep(billingMode, currencyMeta.kind)
 
   const onSubmit = async (values: PlanFormValues) => {
     setIsSubmitting(true)
@@ -353,11 +348,11 @@ export function SubscriptionsMutateDrawer({
             className={sideDrawerFormClassName()}
           >
             {/* Basic Info */}
-              <SideDrawerSection>
-                  <CardHeading
-                      title={t('Basic Info')}
-                      icon={<Settings2 className='h-4 w-4' />}
-                  />
+            <SideDrawerSection>
+              <CardHeading
+                title={t('Basic Info')}
+                icon={<Settings2 className='h-4 w-4' />}
+              />
 
               <FormField
                 control={form.control}
@@ -526,7 +521,9 @@ export function SubscriptionsMutateDrawer({
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        {t('Downgrade to this group after the subscription expires')}
+                        {t(
+                          'Downgrade to this group after the subscription expires'
+                        )}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -634,10 +631,10 @@ export function SubscriptionsMutateDrawer({
 
             {/* Duration Settings */}
             <SideDrawerSection>
-                <CardHeading
-                    title={t('Duration Settings')}
-                    icon={<CalendarClock className='h-4 w-4' />}
-                />
+              <CardHeading
+                title={t('Duration Settings')}
+                icon={<CalendarClock className='h-4 w-4' />}
+              />
 
               <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
                 <FormField
@@ -723,11 +720,11 @@ export function SubscriptionsMutateDrawer({
             </SideDrawerSection>
 
             {/* Quota Reset */}
-              <SideDrawerSection>
-                  <CardHeading
-                      title={t('Quota Reset')}
-                      icon={<RefreshCw className='h-4 w-4' />}
-                  />
+            <SideDrawerSection>
+              <CardHeading
+                title={t('Quota Reset')}
+                icon={<RefreshCw className='h-4 w-4' />}
+              />
 
               <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
                 <FormField
@@ -823,7 +820,7 @@ export function SubscriptionsMutateDrawer({
             </SideDrawerSection>
 
             {/* Billing & Display */}
-              <SideDrawerSection>
+            <SideDrawerSection>
               <CardHeading
                 title={t('Billing & Display')}
                 icon={<SlidersHorizontal className='h-4 w-4' />}
@@ -1321,11 +1318,11 @@ export function SubscriptionsMutateDrawer({
             </Collapsible>
 
             {/* Payment Config */}
-              <SideDrawerSection>
-                  <CardHeading
-                      title={t('Third-party Payment Config')}
-                      icon={<CreditCard className='h-4 w-4' />}
-                  />
+            <SideDrawerSection>
+              <CardHeading
+                title={t('Third-party Payment Config')}
+                icon={<CreditCard className='h-4 w-4' />}
+              />
 
               <FormField
                 control={form.control}
@@ -1359,36 +1356,37 @@ export function SubscriptionsMutateDrawer({
                 control={form.control}
                 name='waffo_pancake_product_id'
                 render={({ field }) => {
-                  // Raw-ID fallback for IDs not yet in the catalog.
-                  const items = pancakeProducts.map((p) => ({
-                    value: p.id,
-                    label: `${p.name} (${p.id})`,
-                  }))
-                  if (
-                    field.value &&
-                    !pancakeProducts.some((p) => p.id === field.value)
-                  ) {
-                    items.push({ value: field.value, label: field.value })
-                  }
+                  const items = getWaffoPancakeProductSelectItems(
+                    pancakeProducts,
+                    field.value,
+                    t('No Waffo Pancake product')
+                  )
                   return (
                     <FormItem>
                       <FormLabel>Waffo Pancake Product ID</FormLabel>
                       <div className='flex gap-2'>
                         <Select
                           items={items}
-                          value={field.value || ''}
-                          onValueChange={(v) => field.onChange(v)}
-                          disabled={items.length === 0}
+                          value={
+                            field.value || WAFFO_PANCAKE_PRODUCT_NONE_VALUE
+                          }
+                          onValueChange={(v) =>
+                            field.onChange(
+                              v === WAFFO_PANCAKE_PRODUCT_NONE_VALUE ? '' : v
+                            )
+                          }
                         >
                           <SelectTrigger className='w-full flex-1'>
                             <SelectValue placeholder={t('Select a product')} />
                           </SelectTrigger>
                           <SelectContent>
-                            {items.map((item) => (
-                              <SelectItem key={item.value} value={item.value}>
-                                {item.label}
-                              </SelectItem>
-                            ))}
+                            <SelectGroup>
+                              {items.map((item) => (
+                                <SelectItem key={item.value} value={item.value}>
+                                  {item.label}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
                           </SelectContent>
                         </Select>
                         <Button

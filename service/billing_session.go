@@ -588,14 +588,14 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 				if allowOverflow {
 					walletSession, walletErr := tryWallet()
 					if walletErr != nil && walletErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
-						return nil, newInsufficientUserQuotaError(combineFundingFailureMessages(subErr, walletErr))
+						return nil, newInsufficientUserQuotaError(combineFundingFailureMessages(apiErr, walletErr))
 					}
 					return walletSession, walletErr
 					//return tryWallet()
 				}
 				return nil, apiErr
 			}
-			return nil, subErr
+			return nil, apiErr
 		}
 		return session, nil
 	}

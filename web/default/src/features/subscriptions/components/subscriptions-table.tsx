@@ -29,7 +29,7 @@ export function SubscriptionsTable() {
   const columns = useSubscriptionsColumns()
   const { refreshTrigger } = useSubscriptions()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['admin-subscription-plans', refreshTrigger],
     queryFn: async () => {
       const result = await getAdminPlans()
@@ -52,12 +52,14 @@ export function SubscriptionsTable() {
       table={table}
       columns={columns}
       isLoading={isLoading}
+      isFetching={isFetching}
       emptyTitle={t('No subscription plans yet')}
       emptyDescription={t(
         'Click "Create Plan" to create your first subscription plan'
       )}
       skeletonKeyPrefix='subscriptions-skeleton'
       applyHeaderSize
+      className='min-h-0 flex-1'
     />
   )
 }

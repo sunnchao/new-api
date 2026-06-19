@@ -21,6 +21,19 @@ import type { TFunction } from 'i18next'
 import { parseQuotaFromDollars, quotaUnitsToDollars } from '@/lib/format'
 import type { SubscriptionPlan, PlanPayload } from '../types'
 
+export const WAFFO_PANCAKE_PRODUCT_NONE_VALUE = '__none__'
+
+export type WaffoPancakeProductOption = {
+  id: string
+  name: string
+  status: string
+}
+
+export type WaffoPancakeProductSelectItem = {
+  value: string
+  label: string
+}
+
 export function getPlanFormSchema(t: TFunction) {
   return z.object({
     title: z.string().min(1, t('Please enter plan title')),
@@ -123,6 +136,33 @@ export const PLAN_FORM_DEFAULTS: PlanFormValues = {
   daily_approximate_times: 0,
   weekly_approximate_times: 0,
   monthly_approximate_times: 0,
+}
+
+export function getWaffoPancakeProductSelectItems(
+  products: WaffoPancakeProductOption[],
+  currentValue: string | undefined,
+  noneLabel: string
+): WaffoPancakeProductSelectItem[] {
+  const normalizedValue = (currentValue || '').trim()
+  const items = products.map((product) => ({
+    value: product.id,
+    label: `${product.name} (${product.id})`,
+  }))
+
+  if (
+    normalizedValue &&
+    !products.some((product) => product.id === normalizedValue)
+  ) {
+    items.push({ value: normalizedValue, label: normalizedValue })
+  }
+
+  return [
+    {
+      value: WAFFO_PANCAKE_PRODUCT_NONE_VALUE,
+      label: noneLabel,
+    },
+    ...items,
+  ]
 }
 
 function getBillingMode(mode: SubscriptionPlan['billing_mode'] | undefined) {

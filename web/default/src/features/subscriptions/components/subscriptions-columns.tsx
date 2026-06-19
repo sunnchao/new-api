@@ -101,9 +101,7 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
       {
         id: 'billing_mode',
         meta: { label: t('Billing Mode'), mobileHidden: true },
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Billing Mode')} />
-        ),
+        header: t('Billing Mode'),
         cell: ({ row }) => (
           <span className='text-muted-foreground'>
             {formatBillingMode(row.original.plan.billing_mode, t)}
@@ -115,9 +113,7 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
         accessorFn: (row) => row.plan.show_on_home,
         id: 'show_on_home',
         meta: { label: t('Show on Home'), mobileHidden: true },
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Show on Home')} />
-        ),
+        header: t('Show on Home'),
         cell: ({ row }) =>
           row.original.plan.show_on_home ? (
             <StatusBadge label={t('Yes')} variant='success' copyable={false} />
@@ -208,9 +204,7 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
       {
         id: 'quota_limits',
         meta: { label: t('Quota Limits'), mobileHidden: true },
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Quota Limits')} />
-        ),
+        header: t('Quota Limits'),
         cell: ({ row }) => <PlanQuotaLimitsCell plan={row.original.plan} />,
         size: 240,
       },

@@ -486,7 +486,7 @@ func calcNextResetTime(base time.Time, plan *SubscriptionPlan, endUnix int64) in
 		if plan.QuotaResetCustomSeconds <= 0 {
 			return 0
 		}
-		next = base.Add(time.Duration(plan.QuotaResetCustomSeconds) * time.Second)
+		return clampResetTimeToSubscriptionEnd(base.Add(time.Duration(plan.QuotaResetCustomSeconds)*time.Second), endUnix)
 	default:
 		return 0
 	}
@@ -773,21 +773,21 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 		allowWalletOverflow = *plan.AllowWalletOverflow
 	}
 	sub := &UserSubscription{
-		UserId:           userId,
-		PlanId:           plan.Id,
-		AmountTotal:      plan.TotalAmount,
-		AmountUsed:       0,
-		BillingMode:      NormalizeSubscriptionBillingMode(plan.BillingMode),
-		ApproximateTimes: plan.ApproximateTimes,
-		StartTime:        now.Unix(),
-		EndTime:          endUnix,
-		Status:           "active",
-		Source:           source,
-		LastResetTime:    lastReset,
-		NextResetTime:    nextReset,
-		UpgradeGroup:     upgradeGroup,
-		AllowedGroups:    plan.AllowedGroups,
-		PrevUserGroup:    prevGroup,
+		UserId:              userId,
+		PlanId:              plan.Id,
+		AmountTotal:         plan.TotalAmount,
+		AmountUsed:          0,
+		BillingMode:         NormalizeSubscriptionBillingMode(plan.BillingMode),
+		ApproximateTimes:    plan.ApproximateTimes,
+		StartTime:           now.Unix(),
+		EndTime:             endUnix,
+		Status:              "active",
+		Source:              source,
+		LastResetTime:       lastReset,
+		NextResetTime:       nextReset,
+		UpgradeGroup:        upgradeGroup,
+		AllowedGroups:       plan.AllowedGroups,
+		PrevUserGroup:       prevGroup,
 		DowngradeGroup:      strings.TrimSpace(plan.DowngradeGroup),
 		AllowWalletOverflow: allowWalletOverflow,
 
