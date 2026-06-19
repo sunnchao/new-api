@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2023-2026 QuantumNous
+Copyright (C) 2025 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -16,5 +16,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export * from './checkin'
-export * from './format'
+
+export function resolveCheckinClickAction({
+  turnstileEnabled,
+  turnstileSiteKey,
+}) {
+  if (!turnstileEnabled) {
+    return 'checkin';
+  }
+
+  if (!turnstileSiteKey) {
+    return 'missing-site-key';
+  }
+
+  return 'open-turnstile';
+}

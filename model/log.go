@@ -52,24 +52,24 @@ type Log struct {
 	Ip                string `json:"ip" gorm:"index;default:''"`
 	RequestId         string `json:"request_id,omitempty" gorm:"type:varchar(64);index:idx_logs_request_id;default:''"`
 	UpstreamRequestId string `json:"upstream_request_id,omitempty" gorm:"type:varchar(128);index:idx_logs_upstream_request_id;default:''"`
-	RequestIp        string `json:"request_ip,omitempty" gorm:"index;default:''"`
-	Other            string `json:"other"`
+	RequestIp         string `json:"request_ip,omitempty" gorm:"index;default:''"`
+	Other             string `json:"other"`
 }
 
 // don't use iota, avoid change log type value
 const (
-	LogTypeUnknown = 0
-	LogTypeTopup   = 1
-	LogTypeConsume = 2
-	LogTypeManage  = 3
-	LogTypeSystem  = 4
-	LogTypeCheckin         = 5
-	LogTypeError   = 5
-	LogTypeRefund  = 6
-	LogTypeArchive         = 8
-	LogTypeErrorForAdmin   = 9
-	LogTypeSubscriptionPay = 10
-	LogTypeLogin   = 11
+	LogTypeUnknown         = 0
+	LogTypeTopup           = 1
+	LogTypeConsume         = 2
+	LogTypeManage          = 3
+	LogTypeSystem          = 4
+	LogTypeError           = 5
+	LogTypeRefund          = 6
+	LogTypeLogin           = 7
+	LogTypeArchive         = 91
+	LogTypeErrorForAdmin   = 92
+	LogTypeSubscriptionPay = 93
+	LogTypeCheckin         = 94
 )
 
 func formatUserLogs(logs []*Log, startIdx int) {

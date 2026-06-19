@@ -16,5 +16,26 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export * from './checkin'
-export * from './format'
+
+export type CheckinClickAction =
+  | 'checkin'
+  | 'missing-site-key'
+  | 'open-turnstile'
+
+export function resolveCheckinClickAction({
+  turnstileEnabled,
+  turnstileSiteKey,
+}: {
+  turnstileEnabled: boolean
+  turnstileSiteKey: string
+}): CheckinClickAction {
+  if (!turnstileEnabled) {
+    return 'checkin'
+  }
+
+  if (!turnstileSiteKey) {
+    return 'missing-site-key'
+  }
+
+  return 'open-turnstile'
+}

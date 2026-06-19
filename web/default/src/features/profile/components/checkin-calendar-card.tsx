@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   CalendarDays,
@@ -43,6 +43,7 @@ import {
 import { Dialog } from '@/components/dialog'
 import { Turnstile } from '@/components/turnstile'
 import { getCheckinStatus, performCheckin } from '../api'
+import { resolveCheckinClickAction } from '../lib'
 import type { CheckinRecord } from '../types'
 
 interface CheckinCalendarCardProps {
@@ -64,8 +65,7 @@ export function CheckinCalendarCard({
   const [checkinLoading, setCheckinLoading] = useState(false)
   const [turnstileModalVisible, setTurnstileModalVisible] = useState(false)
   const [turnstileWidgetKey, setTurnstileWidgetKey] = useState(0)
-  const [initialLoaded, setInitialLoaded] = useState(false)
-  const [collapsed, setCollapsed] = useState<boolean>(false)
+  const [collapsed, setCollapsed] = useState<boolean | undefined>()
 
   const currentMonthStr = useMemo(() => {
     const y = currentMonth.getFullYear()
@@ -117,14 +117,7 @@ export function CheckinCalendarCard({
 
   const checkedToday = checkinData?.stats?.checked_in_today === true
   const todayAward = checkinRecordsMap[todayString]
-
-  useEffect(() => {
-    if (initialLoaded) return
-    if (isLoading) return
-    if (!checkinData) return
-    setCollapsed(checkedToday)
-    setInitialLoaded(true)
-  }, [checkinData, checkedToday, initialLoaded, isLoading])
+  const isCollapsed = collapsed ?? checkedToday
 
   const shouldTriggerTurnstile = useCallback(
     (message?: string) => {
@@ -168,6 +161,26 @@ export function CheckinCalendarCard({
     },
     [refetch, shouldTriggerTurnstile, t, turnstileSiteKey]
   )
+
+  const handleCheckinClick = useCallback(() => {
+    const action = resolveCheckinClickAction({
+      turnstileEnabled,
+      turnstileSiteKey,
+    })
+
+    if (action === 'missing-site-key') {
+      toast.error(t('Turnstile is enabled but site key is empty.'))
+      return
+    }
+
+    if (action === 'open-turnstile') {
+      setTurnstileWidgetKey((v) => v + 1)
+      setTurnstileModalVisible(true)
+      return
+    }
+
+    doCheckin()
+  }, [doCheckin, t, turnstileEnabled, turnstileSiteKey])
 
   const handlePrevMonth = () => {
     setCurrentMonth(
@@ -278,7 +291,7 @@ export function CheckinCalendarCard({
             <button
               type='button'
               className='flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left whitespace-normal outline-none'
-              onClick={() => setCollapsed((v) => !v)}
+              onClick={() => setCollapsed((v) => !(v ?? checkedToday))}
             >
               <div className='bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11'>
                 <CalendarDays
@@ -298,7 +311,7 @@ export function CheckinCalendarCard({
                     </div>
                   )}
                   <span className='text-muted-foreground inline-flex items-center'>
-                    {collapsed ? (
+                    {isCollapsed ? (
                       <ChevronDown className='h-4 w-4' />
                     ) : (
                       <ChevronUp className='h-4 w-4' />
@@ -313,7 +326,7 @@ export function CheckinCalendarCard({
               </div>
             </button>
             <Button
-              onClick={() => doCheckin()}
+              onClick={handleCheckinClick}
               disabled={checkinLoading || checkedToday}
               size='sm'
               className='w-full shrink-0 sm:w-auto'
@@ -327,7 +340,7 @@ export function CheckinCalendarCard({
           </div>
         </div>
 
-        {!collapsed ? (
+        {!isCollapsed ? (
           <>
             {/* Stats */}
             <div className='grid grid-cols-3 gap-px border-b'>

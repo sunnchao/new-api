@@ -191,6 +191,6 @@ export async function performCheckin(
   const url = turnstileToken
     ? `/api/user/checkin?turnstile=${encodeURIComponent(turnstileToken)}`
     : '/api/user/checkin'
-  const res = await api.post(url)
+  const res = await api.post(url, undefined, { skipBusinessError: true })
   return res.data
 }

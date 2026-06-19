@@ -56,10 +56,10 @@ export const LOG_TYPE_ENUM = {
   CONSUME: 2,
   MANAGE: 3,
   SYSTEM: 4,
-  CHECKIN: 5,
-  ERROR: 6,
-  REFUND: 7,
-  LOGIN: 11,
+  ERROR: 5,
+  REFUND: 6,
+  LOGIN: 7,
+  CHECKIN: 94,
 } as const
 
 /**
@@ -95,12 +95,11 @@ export const LOG_TYPES = [
   { value: 2, label: 'Consume', color: 'green' },
   { value: 3, label: 'Manage', color: 'orange' },
   { value: 4, label: 'System', color: 'purple' },
-  //   5 签到
-  { value: 5, label: 'CHECKIN', color: 'red' },
-  { value: 6, label: 'Error', color: 'red' },
-  { value: 7, label: 'Refund', color: 'blue' },
+  { value: 5, label: 'Error', color: 'red' },
+  { value: 6, label: 'Refund', color: 'blue' },
   { value: 8, label: 'System', color: 'blue' },
-    { value: 11, label: 'Login', color: 'teal' },
+  { value: 7, label: 'Login', color: 'teal' },
+  { value: 94, label: 'Check-in', color: 'red' },
 
 ] as const
 

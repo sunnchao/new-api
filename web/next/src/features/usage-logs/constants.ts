@@ -56,12 +56,12 @@ export const LOG_TYPE_ENUM = {
   CONSUME: 2,
   MANAGE: 3,
   SYSTEM: 4,
-  CHECKIN: 5,
-  ERROR: 6,
-  REFUND: 7,
-  ARCHIVE: 8,
-  ADMIN_ERROR: 9,
-  SUBSCRIPTION_PAY: 10,
+  ERROR: 5,
+  REFUND: 6,
+  ARCHIVE: 91,
+  ADMIN_ERROR: 92,
+  SUBSCRIPTION_PAY: 93,
+  CHECKIN: 94,
 } as const
 
 /**
@@ -98,11 +98,12 @@ export const LOG_TYPES = [
   { value: 2, label: 'Consume', color: 'green' },
   { value: 3, label: 'Manage', color: 'orange' },
   { value: 4, label: 'System', color: 'purple' },
-  { value: 5, label: 'Check-in', color: 'red' },
-  { value: 6, label: 'Error', color: 'red' },
-  { value: 8, label: 'Archive', color: 'blue' },
-  { value: 7, label: 'Refund', color: 'blue' },
-  { value: 9, label: 'Admin Error', color: 'red' },
+  { value: 5, label: 'Error', color: 'red' },
+  { value: 91, label: 'Archive', color: 'blue' },
+  { value: 92, label: 'Refund', color: 'blue' },
+  { value: 92, label: 'Admin Error', color: 'red' },
+  { value: 93, label: 'Subscription', color: 'purple' },
+  { value: 94, label: 'Check-in', color: 'red' },
 ] as const
 
 export function getLogTypeFilters(isAdmin: boolean) {
