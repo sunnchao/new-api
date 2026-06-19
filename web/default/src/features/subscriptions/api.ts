@@ -189,10 +189,10 @@ export async function listWaffoPancakeSubscriptionProductOptions(): Promise<
         products: { id: string; name: string; status: string }[]
     }>
 > {
-    const res = await api.post(
-        '/api/option/waffo-pancake/subscription-product-options'
-    )
-    return res.data
+  const res = await api.get(
+    '/api/option/waffo-pancake/subscription-product-options'
+  )
+  return res.data
 }
 
 export async function paySubscriptionEpay(

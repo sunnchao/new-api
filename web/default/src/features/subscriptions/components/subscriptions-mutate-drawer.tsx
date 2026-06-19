@@ -81,6 +81,7 @@ import {
   createWaffoPancakeSubscriptionProduct,
   listWaffoPancakeSubscriptionProductOptions,
 } from '../api'
+import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import {
     getDurationUnitOptions,
     getResetPeriodOptions,
@@ -136,6 +137,9 @@ export function SubscriptionsMutateDrawer({
   const { t } = useTranslation()
   const isEdit = !!currentRow?.plan?.id
   const { triggerRefresh } = useSubscriptions()
+  const { meta: currencyMeta } = getCurrencyDisplay()
+  const tokensOnly = currencyMeta.kind === 'tokens'
+  const currencyLabel = getCurrencyLabel()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [groupOptions, setGroupOptions] = useState<string[]>([])
   const [rateLimitsOpen, setRateLimitsOpen] = useState(false)
@@ -202,7 +206,7 @@ export function SubscriptionsMutateDrawer({
   const currencyLabel = getCurrencyLabel()
   const isQuotaMode = billingMode !== 'request'
   const totalQuotaLabel = isQuotaMode
-    ? `${t('Received amount')} (${currencyLabel})`
+    ? `${t('Quota ({{currency}})', { currency: currencyLabel })})`
     : t('Request Count')
   const limitAmountLabel = isQuotaMode
     ? `${t('Quota Amount')} (${currencyLabel})`
@@ -392,7 +396,7 @@ export function SubscriptionsMutateDrawer({
                   name='price_amount'
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('Actual Amount')}</FormLabel>
+                      <FormLabel>{t('Plan Price')}</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -404,6 +408,11 @@ export function SubscriptionsMutateDrawer({
                           }
                         />
                       </FormControl>
+                      <FormDescription>
+                        {t(
+                          'Amount the user pays to purchase this plan; the actual currency depends on the payment gateway.'
+                        )}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -428,7 +437,7 @@ export function SubscriptionsMutateDrawer({
                       </FormControl>
                       <FormDescription>
                         {t(
-                          '0 means unlimited. The value is converted to quota units when saved.'
+                          'Total quota included in the plan, usable per billing period. 0 means unlimited.'
                         )}
                       </FormDescription>
                       <FormMessage />
@@ -479,6 +488,53 @@ export function SubscriptionsMutateDrawer({
 
                 <FormField
                   control={form.control}
+                  name='downgrade_group'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Downgrade Group')}</FormLabel>
+                      <Select
+                        items={[
+                          {
+                            value: '__none__',
+                            label: t('Downgrade to pre-purchase group'),
+                          },
+                          ...groupOptions.map((g) => ({ value: g, label: g })),
+                        ]}
+                        onValueChange={(v) =>
+                          field.onChange(v === '__none__' ? '' : v)
+                        }
+                        value={field.value || ''}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={t('Downgrade to pre-purchase group')}
+                            />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent alignItemWithTrigger={false}>
+                          <SelectGroup>
+                            <SelectItem value='__none__'>
+                              {t('Downgrade to pre-purchase group')}
+                            </SelectItem>
+                            {groupOptions.map((g) => (
+                              <SelectItem key={g} value={g}>
+                                {g}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        {t('Downgrade to this group after the subscription expires')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name='max_purchase_per_user'
                   render={({ field }) => (
                     <FormItem>
@@ -502,27 +558,27 @@ export function SubscriptionsMutateDrawer({
                 />
               </div>
 
-              <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-                <FormField
-                  control={form.control}
-                  name='sort_order'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Sort Order')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type='number'
-                          onChange={(e) =>
-                            field.onChange(parseInt(e.target.value, 10) || 0)
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name='sort_order'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Sort Order')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type='number'
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value, 10) || 0)
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
+              <div className='flex flex-col gap-3'>
                 <FormField
                   control={form.control}
                   name='enabled'
@@ -545,6 +601,24 @@ export function SubscriptionsMutateDrawer({
                     <FormItem className={sideDrawerSwitchItemClassName()}>
                       <FormLabel className='!mt-0'>
                         {t('Allow balance redemption')}
+                      </FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='allow_wallet_overflow'
+                  render={({ field }) => (
+                    <FormItem className={sideDrawerSwitchItemClassName()}>
+                      <FormLabel className='!mt-0'>
+                        {t('Allow wallet balance after quota used up')}
                       </FormLabel>
                       <FormControl>
                         <Switch

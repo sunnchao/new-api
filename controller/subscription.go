@@ -246,6 +246,9 @@ func AdminCreateSubscriptionPlan(c *gin.Context) {
 	if req.Plan.AllowBalancePay == nil {
 		req.Plan.AllowBalancePay = common.GetPointer(true)
 	}
+	if req.Plan.AllowWalletOverflow == nil {
+		req.Plan.AllowWalletOverflow = common.GetPointer(true)
+	}
 	if req.Plan.DurationUnit == "" {
 		req.Plan.DurationUnit = model.SubscriptionDurationMonth
 	}
@@ -265,6 +268,13 @@ func AdminCreateSubscriptionPlan(c *gin.Context) {
 	if req.Plan.UpgradeGroup != "" {
 		if _, ok := ratio_setting.GetGroupRatioCopy()[req.Plan.UpgradeGroup]; !ok {
 			common.ApiErrorMsg(c, "升级分组不存在")
+			return
+		}
+	}
+	req.Plan.DowngradeGroup = strings.TrimSpace(req.Plan.DowngradeGroup)
+	if req.Plan.DowngradeGroup != "" {
+		if _, ok := ratio_setting.GetGroupRatioCopy()[req.Plan.DowngradeGroup]; !ok {
+			common.ApiErrorMsg(c, "降级分组不存在")
 			return
 		}
 	}
@@ -370,6 +380,13 @@ func AdminUpdateSubscriptionPlan(c *gin.Context) {
 			return
 		}
 	}
+	req.Plan.DowngradeGroup = strings.TrimSpace(req.Plan.DowngradeGroup)
+	if req.Plan.DowngradeGroup != "" {
+		if _, ok := ratio_setting.GetGroupRatioCopy()[req.Plan.DowngradeGroup]; !ok {
+			common.ApiErrorMsg(c, "降级分组不存在")
+			return
+		}
+	}
 	allowedGroups, err := normalizeAndValidateAllowedGroups(req.Plan.AllowedGroups)
 	if err != nil {
 		common.ApiErrorMsg(c, err.Error())
@@ -430,6 +447,7 @@ func AdminUpdateSubscriptionPlan(c *gin.Context) {
 			"approximate_times":          req.Plan.ApproximateTimes,
 			"billing_mode":               req.Plan.BillingMode,
 			"upgrade_group":              req.Plan.UpgradeGroup,
+			"downgrade_group":            req.Plan.DowngradeGroup,
 			"allowed_groups":             req.Plan.AllowedGroups,
 			"hourly_limit_amount":        req.Plan.HourlyLimitAmount,
 			"hourly_limit_hours":         req.Plan.HourlyLimitHours,
@@ -451,6 +469,9 @@ func AdminUpdateSubscriptionPlan(c *gin.Context) {
 		}
 		if req.Plan.AllowBalancePay != nil {
 			updateMap["allow_balance_pay"] = *req.Plan.AllowBalancePay
+		}
+		if req.Plan.AllowWalletOverflow != nil {
+			updateMap["allow_wallet_overflow"] = *req.Plan.AllowWalletOverflow
 		}
 		if err := tx.Model(&model.SubscriptionPlan{}).Where("id = ?", id).Updates(updateMap).Error; err != nil {
 			return err

@@ -577,14 +577,23 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 		if !hasSub {
 			return tryWallet()
 		}
-		session, subErr := trySubscription()
-		if subErr != nil {
-			if subErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
-				walletSession, walletErr := tryWallet()
-				if walletErr != nil && walletErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
-					return nil, newInsufficientUserQuotaError(combineFundingFailureMessages(subErr, walletErr))
+		session, apiErr := trySubscription()
+		if apiErr != nil {
+			if apiErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
+				// 仅当用户的活跃订阅允许钱包回退时才回退到钱包，否则返回订阅额度不足错误
+				allowOverflow, overflowErr := model.UserActiveSubscriptionsAllowWalletOverflow(relayInfo.UserId)
+				if overflowErr != nil {
+					return nil, types.NewError(overflowErr, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
 				}
-				return walletSession, walletErr
+				if allowOverflow {
+					walletSession, walletErr := tryWallet()
+					if walletErr != nil && walletErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
+						return nil, newInsufficientUserQuotaError(combineFundingFailureMessages(subErr, walletErr))
+					}
+					return walletSession, walletErr
+					//return tryWallet()
+				}
+				return nil, apiErr
 			}
 			return nil, subErr
 		}

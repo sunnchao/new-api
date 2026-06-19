@@ -65,12 +65,12 @@ const Home = () => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
     iframe.contentWindow.postMessage(
-      { themeMode: actualTheme },
-      iframeTargetOrigin,
+        { themeMode: actualTheme },
+        iframeTargetOrigin,
     );
     iframe.contentWindow.postMessage(
-      { lang: i18n.language },
-      iframeTargetOrigin,
+        { lang: i18n.language },
+        iframeTargetOrigin,
     );
   }, [actualTheme, homePageContent, i18n.language, iframeTargetOrigin]);
 
@@ -130,93 +130,93 @@ const Home = () => {
   const showLoadingHome = !homePageContentLoaded && !hasHomePageContent;
 
   const vibeCardBodyStyle = useMemo(
-    () => ({
-      padding: '28px',
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-    }),
-    [],
+      () => ({
+        padding: '28px',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }),
+      [],
   );
 
   const getVibeCardStyle = useCallback(
-    ({ accentRgb, lightBackgroundRgb }) => ({
-      border: `1px solid rgba(${accentRgb}, ${isDarkTheme ? 0.3 : 0.15})`,
-      background: isDarkTheme
-        ? `linear-gradient(145deg, rgba(17, 24, 39, 0.92) 0%, rgba(${accentRgb}, 0.10) 45%, rgba(17, 24, 39, 0.72) 100%)`
-        : `linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(${lightBackgroundRgb},0.6) 40%, rgba(${lightBackgroundRgb},0.35) 100%)`,
-      backdropFilter: 'blur(12px)',
-      boxShadow: isDarkTheme
-        ? `0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 18px rgba(${accentRgb}, 0.08), inset 0 1px 0 rgba(255,255,255,0.06)`
-        : `0 1px 2px rgba(${accentRgb}, 0.05), 0 4px 8px rgba(${accentRgb}, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)`,
-    }),
-    [isDarkTheme],
+      ({ accentRgb, lightBackgroundRgb }) => ({
+        border: `1px solid rgba(${accentRgb}, ${isDarkTheme ? 0.3 : 0.15})`,
+        background: isDarkTheme
+            ? `linear-gradient(145deg, rgba(17, 24, 39, 0.92) 0%, rgba(${accentRgb}, 0.10) 45%, rgba(17, 24, 39, 0.72) 100%)`
+            : `linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(${lightBackgroundRgb},0.6) 40%, rgba(${lightBackgroundRgb},0.35) 100%)`,
+        backdropFilter: 'blur(12px)',
+        boxShadow: isDarkTheme
+            ? `0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 18px rgba(${accentRgb}, 0.08), inset 0 1px 0 rgba(255,255,255,0.06)`
+            : `0 1px 2px rgba(${accentRgb}, 0.05), 0 4px 8px rgba(${accentRgb}, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)`,
+      }),
+      [isDarkTheme],
   );
 
   const VibeStyleCard = ({
-    to,
-    accentRgb,
-    lightBackgroundRgb,
-    icon,
-    iconWrapperClassName = '',
-    badge,
-    badgeClassName = '',
-    title,
-    titleHoverClassName = '',
-    description,
-    items = [],
-    dotClassName = 'bg-semi-color-primary',
-  }) => {
+                           to,
+                           accentRgb,
+                           lightBackgroundRgb,
+                           icon,
+                           iconWrapperClassName = '',
+                           badge,
+                           badgeClassName = '',
+                           title,
+                           titleHoverClassName = '',
+                           description,
+                           items = [],
+                           dotClassName = 'bg-semi-color-primary',
+                         }) => {
     const Wrapper = to ? Link : 'div';
     const wrapperProps = to ? { to } : {};
     const listClassName = description ? 'mt-auto space-y-3' : 'mt-4 space-y-3';
 
     return (
-      <Wrapper {...wrapperProps} className='block h-full group'>
-        <Card
-          shadows='hover'
-          className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
-          style={getVibeCardStyle({ accentRgb, lightBackgroundRgb })}
-          bodyStyle={vibeCardBodyStyle}
-        >
-          <div
-            className={`flex items-center ${badge ? 'justify-between' : 'justify-start'} mb-6`}
+        <Wrapper {...wrapperProps} className='block h-full group'>
+          <Card
+              shadows='hover'
+              className='h-full !rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg'
+              style={getVibeCardStyle({ accentRgb, lightBackgroundRgb })}
+              bodyStyle={vibeCardBodyStyle}
           >
             <div
-              className={`w-14 h-14 rounded-2xl flex items-center justify-center ${iconWrapperClassName} group-hover:scale-110 transition-transform duration-300`}
+                className={`flex items-center ${badge ? 'justify-between' : 'justify-start'} mb-6`}
             >
-              {icon}
-            </div>
-            {badge ? <span className={badgeClassName}>{badge}</span> : null}
-          </div>
-
-          <h3
-            className={`text-xl md:text-2xl font-bold text-semi-color-text-0 mb-3 ${titleHoverClassName} transition-colors`}
-          >
-            {title}
-          </h3>
-
-          {description ? (
-            <p className='text-sm text-semi-color-text-2 mb-8 leading-relaxed'>
-              {description}
-            </p>
-          ) : null}
-
-          <div className={listClassName}>
-            {items.map((text, i) => (
               <div
-                key={i}
-                className='flex items-center text-sm text-semi-color-text-1'
+                  className={`w-14 h-14 rounded-2xl flex items-center justify-center ${iconWrapperClassName} group-hover:scale-110 transition-transform duration-300`}
               >
-                <div
-                  className={`w-1.5 h-1.5 rounded-full ${dotClassName} mr-2.5 flex-shrink-0`}
-                />
-                {text}
+                {icon}
               </div>
-            ))}
-          </div>
-        </Card>
-      </Wrapper>
+              {badge ? <span className={badgeClassName}>{badge}</span> : null}
+            </div>
+
+            <h3
+                className={`text-xl md:text-2xl font-bold text-semi-color-text-0 mb-3 ${titleHoverClassName} transition-colors`}
+            >
+              {title}
+            </h3>
+
+            {description ? (
+                <p className='text-sm text-semi-color-text-2 mb-8 leading-relaxed'>
+                  {description}
+                </p>
+            ) : null}
+
+            <div className={listClassName}>
+              {items.map((text, i) => (
+                  <div
+                      key={i}
+                      className='flex items-center text-sm text-semi-color-text-1'
+                  >
+                    <div
+                        className={`w-1.5 h-1.5 rounded-full ${dotClassName} mr-2.5 flex-shrink-0`}
+                    />
+                    {text}
+                  </div>
+              ))}
+            </div>
+          </Card>
+        </Wrapper>
     );
   };
 
@@ -229,7 +229,7 @@ const Home = () => {
       iconWrapperClassName: 'bg-purple-50 dark:bg-purple-900/20',
       badge: 'Anthropic',
       badgeClassName:
-        'px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-xs font-bold dark:bg-purple-900/30 dark:text-purple-300 border border-purple-100 dark:border-purple-800',
+          'px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-xs font-bold dark:bg-purple-900/30 dark:text-purple-300 border border-purple-100 dark:border-purple-800',
       title: 'Claude Code',
       titleHoverClassName: 'group-hover:text-purple-600',
       description: t('终端集成 · 结对编程 · 深度理解'),
@@ -249,7 +249,7 @@ const Home = () => {
       iconWrapperClassName: 'bg-green-50 dark:bg-green-900/20',
       badge: 'OpenAI',
       badgeClassName:
-        'px-3 py-1 rounded-full bg-green-50 text-green-600 text-xs font-bold dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800',
+          'px-3 py-1 rounded-full bg-green-50 text-green-600 text-xs font-bold dark:bg-green-900/30 dark:text-green-300 border border-green-100 dark:border-green-800',
       title: 'Codex CLI',
       titleHoverClassName: 'group-hover:text-green-600',
       description: t('企业级 · 智能重构 · 实时联网'),
@@ -269,7 +269,7 @@ const Home = () => {
       iconWrapperClassName: 'bg-blue-50 dark:bg-blue-900/20',
       badge: 'Google',
       badgeClassName:
-        'px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-300 border border-blue-100 dark:border-blue-800',
+          'px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-300 border border-blue-100 dark:border-blue-800',
       title: 'Gemini CLI',
       titleHoverClassName: 'group-hover:text-blue-600',
       description: t('超大上下文 · Agent模式 · 多模态'),
@@ -288,22 +288,22 @@ const Home = () => {
       accentRgb: '59, 130, 246',
       lightBackgroundRgb: '248,250,255',
       icon: (
-        <svg
-          className='w-8 h-8'
-          fill='none'
-          stroke='currentColor'
-          viewBox='0 0 24 24'
-        >
-          <path
-            strokeLinecap='round'
-            strokeLinejoin='round'
-            strokeWidth={2}
-            d='M13 10V3L4 14h7v7l9-11h-7z'
-          />
-        </svg>
+          <svg
+              className='w-8 h-8'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+          >
+            <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M13 10V3L4 14h7v7l9-11h-7z'
+            />
+          </svg>
       ),
       iconWrapperClassName:
-        'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
+          'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
       title: t('极速响应'),
       titleHoverClassName: 'group-hover:text-blue-600',
       dotClassName: 'bg-blue-400',
@@ -318,22 +318,22 @@ const Home = () => {
       accentRgb: '16, 185, 129',
       lightBackgroundRgb: '247,254,250',
       icon: (
-        <svg
-          className='w-8 h-8'
-          fill='none'
-          stroke='currentColor'
-          viewBox='0 0 24 24'
-        >
-          <path
-            strokeLinecap='round'
-            strokeLinejoin='round'
-            strokeWidth={2}
-            d='M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-          />
-        </svg>
+          <svg
+              className='w-8 h-8'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+          >
+            <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+            />
+          </svg>
       ),
       iconWrapperClassName:
-        'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400',
+          'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400',
       title: t('全球网络'),
       titleHoverClassName: 'group-hover:text-emerald-600',
       dotClassName: 'bg-emerald-400',
@@ -348,22 +348,22 @@ const Home = () => {
       accentRgb: '139, 92, 246',
       lightBackgroundRgb: '250,247,255',
       icon: (
-        <svg
-          className='w-8 h-8'
-          fill='none'
-          stroke='currentColor'
-          viewBox='0 0 24 24'
-        >
-          <path
-            strokeLinecap='round'
-            strokeLinejoin='round'
-            strokeWidth={2}
-            d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-          />
-        </svg>
+          <svg
+              className='w-8 h-8'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+          >
+            <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+            />
+          </svg>
       ),
       iconWrapperClassName:
-        'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400',
+          'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400',
       title: t('透明计费'),
       titleHoverClassName: 'group-hover:text-violet-600',
       dotClassName: 'bg-violet-400',
@@ -378,22 +378,22 @@ const Home = () => {
       accentRgb: '245, 158, 11',
       lightBackgroundRgb: '255,251,235',
       icon: (
-        <svg
-          className='w-8 h-8'
-          fill='none'
-          stroke='currentColor'
-          viewBox='0 0 24 24'
-        >
-          <path
-            strokeLinecap='round'
-            strokeLinejoin='round'
-            strokeWidth={2}
-            d='M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z'
-          />
-        </svg>
+          <svg
+              className='w-8 h-8'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+          >
+            <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z'
+            />
+          </svg>
       ),
       iconWrapperClassName:
-        'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400',
+          'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400',
       title: t('全面兼容'),
       titleHoverClassName: 'group-hover:text-amber-600',
       dotClassName: 'bg-amber-400',
@@ -408,22 +408,22 @@ const Home = () => {
       accentRgb: '244, 63, 94',
       lightBackgroundRgb: '255,241,242',
       icon: (
-        <svg
-          className='w-8 h-8'
-          fill='none'
-          stroke='currentColor'
-          viewBox='0 0 24 24'
-        >
-          <path
-            strokeLinecap='round'
-            strokeLinejoin='round'
-            strokeWidth={2}
-            d='M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z'
-          />
-        </svg>
+          <svg
+              className='w-8 h-8'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+          >
+            <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z'
+            />
+          </svg>
       ),
       iconWrapperClassName:
-        'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400',
+          'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400',
       title: t('服务保障'),
       titleHoverClassName: 'group-hover:text-rose-600',
       dotClassName: 'bg-rose-400',
@@ -438,22 +438,22 @@ const Home = () => {
       accentRgb: '6, 182, 212',
       lightBackgroundRgb: '236,254,255',
       icon: (
-        <svg
-          className='w-8 h-8'
-          fill='none'
-          stroke='currentColor'
-          viewBox='0 0 24 24'
-        >
-          <path
-            strokeLinecap='round'
-            strokeLinejoin='round'
-            strokeWidth={2}
-            d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
-          />
-        </svg>
+          <svg
+              className='w-8 h-8'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+          >
+            <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
+            />
+          </svg>
       ),
       iconWrapperClassName:
-        'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400',
+          'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400',
       title: t('Midjourney支持'),
       titleHoverClassName: 'group-hover:text-cyan-600',
       dotClassName: 'bg-cyan-400',
@@ -467,72 +467,72 @@ const Home = () => {
   ];
 
   return (
-    <div className='classic-page-fill classic-home-page w-full overflow-x-hidden'>
-      <NoticeModal
-        visible={noticeVisible}
-        onClose={() => setNoticeVisible(false)}
-        isMobile={isMobile}
-      />
-      {showDefaultHome ? (
-        <div className='classic-home-default w-full overflow-x-hidden'>
-          <Hero isAuthenticated={!!userState.user} />
+      <div className='classic-page-fill classic-home-page w-full overflow-x-hidden'>
+        <NoticeModal
+            visible={noticeVisible}
+            onClose={() => setNoticeVisible(false)}
+            isMobile={isMobile}
+        />
+        {showDefaultHome ? (
+            <div className='classic-home-default w-full overflow-x-hidden'>
+              <Hero isAuthenticated={!!userState.user} />
 
-          <HomeSubscriptionPlansSection />
+              <HomeSubscriptionPlansSection />
 
-          <div className='w-full py-16 md:py-20 lg:py-24 px-4 md:px-8'>
-            <div className='max-w-7xl mx-auto'>
-              <div className='text-center mb-12 md:mb-16'>
-                <div className='inline-block px-4 py-2 rounded-full bg-semi-color-fill-1 border border-semi-color-border text-sm text-semi-color-text-2 mb-4'>
-                  {t('AI-Powered Development')}
+              <div className='w-full py-16 md:py-20 lg:py-24 px-4 md:px-8'>
+                <div className='max-w-7xl mx-auto'>
+                  <div className='text-center mb-12 md:mb-16'>
+                    <div className='inline-block px-4 py-2 rounded-full bg-semi-color-fill-1 border border-semi-color-border text-sm text-semi-color-text-2 mb-4'>
+                      {t('AI-Powered Development')}
+                    </div>
+                    <h2 className='text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-semi-color-primary to-purple-600 bg-clip-text text-transparent mb-4'>
+                      {t('Vibe Coding')}
+                    </h2>
+                    <p className='text-lg md:text-xl text-semi-color-text-1'>
+                      {t('AI 编程助手全家桶')}
+                    </p>
+                    <p className='text-base md:text-lg text-semi-color-text-2 mt-2 max-w-2xl mx-auto'>
+                      {t(
+                          '三款强大 AI 编程工具，覆盖终端、IDE、云端全场景，全面提升您的开发效率',
+                      )}
+                    </p>
+                  </div>
+
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mt-8'>
+                    {vibeCodingCardItems.map((card) => (
+                        <VibeStyleCard key={card.to} {...card} />
+                    ))}
+                  </div>
                 </div>
-                <h2 className='text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-semi-color-primary to-purple-600 bg-clip-text text-transparent mb-4'>
-                  {t('Vibe Coding')}
-                </h2>
-                <p className='text-lg md:text-xl text-semi-color-text-1'>
-                  {t('AI 编程助手全家桶')}
-                </p>
-                <p className='text-base md:text-lg text-semi-color-text-2 mt-2 max-w-2xl mx-auto'>
-                  {t(
-                    '三款强大 AI 编程工具，覆盖终端、IDE、云端全场景，全面提升您的开发效率',
-                  )}
-                </p>
               </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mt-8'>
-                {vibeCodingCardItems.map((card) => (
-                  <VibeStyleCard key={card.to} {...card} />
-                ))}
+              <div className='w-full py-16 md:py-24 lg:py-32 px-4 md:px-8 relative overflow-hidden'>
+                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-[1200px] pointer-events-none'>
+                  <div className='absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-purple-100/30 dark:bg-purple-900/10 rounded-full blur-[100px]' />
+                  <div className='absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-100/30 dark:bg-blue-900/10 rounded-full blur-[100px]' />
+                </div>
+
+                <div className='max-w-7xl mx-auto relative z-10'>
+                  <div className='text-center mb-16 md:mb-20'>
+                    <h2 className='text-3xl md:text-4xl lg:text-5xl font-bold text-semi-color-text-0 mb-6 tracking-tight'>
+                      {t('核心优势')}
+                    </h2>
+                    <p className='text-lg md:text-xl text-semi-color-text-2 max-w-3xl mx-auto leading-relaxed'>
+                      {t(
+                          '我们为您的AI应用提供企业级性能保障，确保每一次调用都稳定高效',
+                      )}
+                    </p>
+                  </div>
+
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8'>
+                    {coreAdvantageCardItems.map((card, index) => (
+                        <VibeStyleCard key={index} {...card} />
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className='w-full py-16 md:py-24 lg:py-32 px-4 md:px-8 relative overflow-hidden'>
-            <div className='absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-[1200px] pointer-events-none'>
-              <div className='absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-purple-100/30 dark:bg-purple-900/10 rounded-full blur-[100px]' />
-              <div className='absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-100/30 dark:bg-blue-900/10 rounded-full blur-[100px]' />
-            </div>
-
-            <div className='max-w-7xl mx-auto relative z-10'>
-              <div className='text-center mb-16 md:mb-20'>
-                <h2 className='text-3xl md:text-4xl lg:text-5xl font-bold text-semi-color-text-0 mb-6 tracking-tight'>
-                  {t('核心优势')}
-                </h2>
-                <p className='text-lg md:text-xl text-semi-color-text-2 max-w-3xl mx-auto leading-relaxed'>
-                  {t(
-                    '我们为您的AI应用提供企业级性能保障，确保每一次调用都稳定高效',
-                  )}
-                </p>
-              </div>
-
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8'>
-                {coreAdvantageCardItems.map((card, index) => (
-                  <VibeStyleCard key={index} {...card} />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* <div className='w-full py-16 md:py-24 lg:py-32 px-4 md:px-8'>
+              {/* <div className='w-full py-16 md:py-24 lg:py-32 px-4 md:px-8'>
             <div className='max-w-7xl mx-auto'>
               <div className='text-center mb-16 md:mb-20'>
                 <h2 className='text-3xl md:text-4xl lg:text-5xl font-bold text-semi-color-text-0 mb-6'>
@@ -655,31 +655,31 @@ const Home = () => {
               </div>
             </div>
           </div> */}
-        </div>
-      ) : showLoadingHome ? (
-        <div className='w-full border-b border-semi-color-border min-h-[420px] md:min-h-[520px] lg:min-h-[620px] relative overflow-x-hidden flex items-center justify-center'>
-          <div className='blur-ball blur-ball-indigo' />
-          <div className='blur-ball blur-ball-teal' />
-          <Spin spinning size='large' />
-        </div>
-      ) : (
-        <div className='classic-page-fill overflow-x-hidden w-full'>
-          {homePageContent.startsWith('https://') ? (
-            <iframe
-              ref={iframeRef}
-              src={homePageContent}
-              className='w-full h-full border-none'
-              onLoad={postIframeContext}
-            />
-          ) : (
-            <div
-              className='mt-[60px]'
-              dangerouslySetInnerHTML={{ __html: homePageContent }}
-            />
-          )}
-        </div>
-      )}
-    </div>
+            </div>
+        ) : showLoadingHome ? (
+            <div className='w-full border-b border-semi-color-border min-h-[420px] md:min-h-[520px] lg:min-h-[620px] relative overflow-x-hidden flex items-center justify-center'>
+              <div className='blur-ball blur-ball-indigo' />
+              <div className='blur-ball blur-ball-teal' />
+              <Spin spinning size='large' />
+            </div>
+        ) : (
+            <div className='classic-page-fill overflow-x-hidden w-full'>
+              {homePageContent.startsWith('https://') ? (
+                  <iframe
+                      ref={iframeRef}
+                      src={homePageContent}
+                      className='w-full h-screen border-none'
+                      onLoad={postIframeContext}
+                  />
+              ) : (
+                  <div
+                      className='mt-[60px]'
+                      dangerouslySetInnerHTML={{ __html: homePageContent }}
+                  />
+              )}
+            </div>
+        )}
+      </div>
   );
 };
 

@@ -16,12 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { useForm, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
+import { formatQuota, parseQuotaFromDollars } from '@/lib/format'
 import { addTimeToDate } from '@/lib/time'
 import { Button } from '@/components/ui/button'
 import {
@@ -158,6 +159,18 @@ export function RedemptionsMutateDrawer({
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    if (!isUpdate) {
+      const name = form.getValues('name')
+      if (!name?.trim()) {
+        const quota = parseQuotaFromDollars(form.getValues('quota_dollars'))
+        form.setValue('name', formatQuota(quota), { shouldValidate: true })
+      }
+    }
+
+    void form.handleSubmit(onSubmit)(event)
   }
 
   const onInvalid = (errors: FieldErrors<RedemptionFormValues>) => {
