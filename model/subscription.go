@@ -1240,6 +1240,29 @@ func logSubscriptionGroupMismatchDebug(requestId string, userId int, group strin
 	)
 }
 
+func logSubscriptionCandidateDebug(requestId string, userId int, group string, amount int64, subs []UserSubscription, message string, args ...interface{}) {
+	if !common.DebugEnabled {
+		return
+	}
+	ids := make([]string, 0, len(subs))
+	for _, sub := range subs {
+		ids = append(ids, strconv.Itoa(sub.Id))
+	}
+	ctx := context.WithValue(context.Background(), common.RequestIdKey, requestId)
+	detail := message
+	if len(args) > 0 {
+		detail = fmt.Sprintf(message, args...)
+	}
+	logger.LogDebug(ctx,
+		"subscription candidate check: user_id=%d request_group=%s need=%d active_subscription_ids=[%s] %s",
+		userId,
+		strings.TrimSpace(group),
+		amount,
+		strings.Join(ids, ","),
+		detail,
+	)
+}
+
 // GetAllUserSubscriptions returns all subscriptions (active and expired) for a user.
 func GetAllUserSubscriptions(userId int) ([]SubscriptionSummary, error) {
 	if userId <= 0 {
@@ -1773,11 +1796,17 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 		if len(subs) == 0 {
 			return ErrNoActiveSubscription
 		}
+		logSubscriptionCandidateDebug(requestId, userId, group, amount, subs, "loaded active subscriptions")
 		hasMatchedGroup := false
 		var insufficientErr *SubscriptionQuotaInsufficientError
 		for _, candidate := range subs {
 			sub := candidate
 			if !sub.IsGroupAllowed(group) {
+				logSubscriptionCandidateDebug(requestId, userId, group, amount, subs,
+					"skip sub_id=%d reason=group_mismatch allowed_groups=%q",
+					sub.Id,
+					strings.TrimSpace(sub.AllowedGroups),
+				)
 				continue
 			}
 			hasMatchedGroup = true
@@ -1811,6 +1840,12 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if sub.AmountTotal > 0 {
 				remain := sub.AmountTotal - usedBefore
 				if remain < consumeAmount {
+					logSubscriptionCandidateDebug(requestId, userId, group, amount, subs,
+						"skip sub_id=%d reason=total_insufficient remain=%d need=%d",
+						sub.Id,
+						remain,
+						consumeAmount,
+					)
 					insufficientErr = betterSubscriptionInsufficientError(insufficientErr, newSubscriptionQuotaInsufficientError(&sub, consumeAmount, SubscriptionLimitScopeTotal, remain, sub.NextResetTime))
 					continue
 				}
@@ -1820,6 +1855,13 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if sub.HourlyLimitAmount > 0 {
 				hourlyRemain := sub.HourlyLimitAmount - sub.HourlyAmountUsed
 				if hourlyRemain < consumeAmount {
+					logSubscriptionCandidateDebug(requestId, userId, group, amount, subs,
+						"skip sub_id=%d reason=hourly_insufficient remain=%d need=%d next_reset_time=%d",
+						sub.Id,
+						hourlyRemain,
+						consumeAmount,
+						sub.HourlyNextResetTime,
+					)
 					insufficientErr = betterSubscriptionInsufficientError(insufficientErr, newSubscriptionQuotaInsufficientError(&sub, consumeAmount, SubscriptionLimitScopeHourly, hourlyRemain, sub.HourlyNextResetTime))
 					continue // Hourly limit insufficient
 				}
@@ -1829,6 +1871,13 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if sub.DailyLimitAmount > 0 {
 				dailyRemain := sub.DailyLimitAmount - sub.DailyAmountUsed
 				if dailyRemain < consumeAmount {
+					logSubscriptionCandidateDebug(requestId, userId, group, amount, subs,
+						"skip sub_id=%d reason=daily_insufficient remain=%d need=%d next_reset_time=%d",
+						sub.Id,
+						dailyRemain,
+						consumeAmount,
+						sub.DailyNextResetTime,
+					)
 					insufficientErr = betterSubscriptionInsufficientError(insufficientErr, newSubscriptionQuotaInsufficientError(&sub, consumeAmount, SubscriptionLimitScopeDaily, dailyRemain, sub.DailyNextResetTime))
 					continue // Daily limit insufficient
 				}
@@ -1838,6 +1887,13 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if sub.WeeklyLimitAmount > 0 {
 				weeklyRemain := sub.WeeklyLimitAmount - sub.WeeklyAmountUsed
 				if weeklyRemain < consumeAmount {
+					logSubscriptionCandidateDebug(requestId, userId, group, amount, subs,
+						"skip sub_id=%d reason=weekly_insufficient remain=%d need=%d next_reset_time=%d",
+						sub.Id,
+						weeklyRemain,
+						consumeAmount,
+						sub.WeeklyNextResetTime,
+					)
 					insufficientErr = betterSubscriptionInsufficientError(insufficientErr, newSubscriptionQuotaInsufficientError(&sub, consumeAmount, SubscriptionLimitScopeWeekly, weeklyRemain, sub.WeeklyNextResetTime))
 					continue // Weekly limit insufficient
 				}
@@ -1847,10 +1903,23 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			if sub.MonthlyLimitAmount > 0 {
 				monthlyRemain := sub.MonthlyLimitAmount - sub.MonthlyAmountUsed
 				if monthlyRemain < consumeAmount {
+					logSubscriptionCandidateDebug(requestId, userId, group, amount, subs,
+						"skip sub_id=%d reason=monthly_insufficient remain=%d need=%d next_reset_time=%d",
+						sub.Id,
+						monthlyRemain,
+						consumeAmount,
+						sub.MonthlyNextResetTime,
+					)
 					insufficientErr = betterSubscriptionInsufficientError(insufficientErr, newSubscriptionQuotaInsufficientError(&sub, consumeAmount, SubscriptionLimitScopeMonthly, monthlyRemain, sub.MonthlyNextResetTime))
 					continue // Monthly limit insufficient
 				}
 			}
+			logSubscriptionCandidateDebug(requestId, userId, group, amount, subs,
+				"select sub_id=%d consume_amount=%d billing_mode=%s",
+				sub.Id,
+				consumeAmount,
+				billingMode,
+			)
 			record := &SubscriptionPreConsumeRecord{
 				RequestId:          requestId,
 				UserId:             userId,
