@@ -1,29 +1,19 @@
 package model
 
-import (
-	"github.com/QuantumNous/new-api/common"
-	"gorm.io/gorm"
-)
+import "github.com/QuantumNous/new-api/common"
 
 // GetDBTimestamp returns a UNIX timestamp from database time.
 // Falls back to application time on error.
 func GetDBTimestamp() int64 {
-	return getDBTimestampTx(DB)
-}
-
-func getDBTimestampTx(tx *gorm.DB) int64 {
 	var ts int64
 	var err error
-	if tx == nil {
-		return common.GetTimestamp()
-	}
 	switch {
-	case common.UsingPostgreSQL:
-		err = tx.Raw("SELECT EXTRACT(EPOCH FROM NOW())::bigint").Scan(&ts).Error
-	case common.UsingSQLite:
-		err = tx.Raw("SELECT strftime('%s','now')").Scan(&ts).Error
+	case common.UsingMainDatabase(common.DatabaseTypePostgreSQL):
+		err = DB.Raw("SELECT EXTRACT(EPOCH FROM NOW())::bigint").Scan(&ts).Error
+	case common.UsingMainDatabase(common.DatabaseTypeSQLite):
+		err = DB.Raw("SELECT strftime('%s','now')").Scan(&ts).Error
 	default:
-		err = tx.Raw("SELECT UNIX_TIMESTAMP()").Scan(&ts).Error
+		err = DB.Raw("SELECT UNIX_TIMESTAMP()").Scan(&ts).Error
 	}
 	if err != nil || ts <= 0 {
 		return common.GetTimestamp()

@@ -47,6 +47,13 @@ export const STATIC_I18N_KEYS = [
   'Routing Reliability',
   'Maintenance',
 
+  // System info
+  'online',
+  'stale',
+  'Master instances run scheduled background tasks.',
+  'Worker instances do not run master-only background tasks.',
+  'Drawing task polling',
+
   // Pricing constants
   'Name',
   'Price: Low to High',
@@ -350,6 +357,7 @@ export const STATIC_I18N_KEYS = [
 
   // Subscription management
   'Subscription Management',
+  'Subscriptions',
   'Stripe/Creem requires creating products on the third-party platform and entering the ID',
   'Create Plan',
   'Active',
