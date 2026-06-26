@@ -53,22 +53,6 @@ COPY --from=builder /build/web/default/dist ./web/default/dist
 #COPY --from=builder-classic /build/web/classic/dist ./web/classic/dist
 RUN go build -ldflags "-s -w -X 'github.com/QuantumNous/new-api/common.Version=$(cat VERSION)'" -o new-api
 
-FROM node:22-bookworm-slim AS web-next
-
-ENV NODE_ENV=production
-ENV HOSTNAME=0.0.0.0
-ENV PORT=3001
-
-WORKDIR /app
-COPY --from=builder-next /build/web/next/.next/standalone ./
-COPY --from=builder-next /build/web/next/.next/static ./next/.next/static
-COPY --from=builder-next /build/web/next/public ./next/public
-COPY LICENSE NOTICE THIRD-PARTY-LICENSES.md /licenses/
-
-EXPOSE 3001
-WORKDIR /app/next
-CMD ["node", "server.js"]
-
 FROM debian:bookworm-slim@sha256:f06537653ac770703bc45b4b113475bd402f451e85223f0f2837acbf89ab020a
 
 RUN apt-get update \
