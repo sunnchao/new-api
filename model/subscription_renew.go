@@ -17,7 +17,7 @@ func CompleteRenewalOrder(tradeNo string, providerPayload string, expectedPaymen
 		return errors.New("tradeNo is empty")
 	}
 	refCol := "`trade_no`"
-	if common.UsingPostgreSQL {
+	if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
 		refCol = `"trade_no"`
 	}
 
@@ -58,7 +58,7 @@ func CompleteRenewalOrder(tradeNo string, providerPayload string, expectedPaymen
 			}
 			return err
 		}
-		if !IsUserSubscriptionActive(&sub, getDBTimestampTx(tx)) {
+		if !IsUserSubscriptionActive(&sub, GetDBTimestamp()) {
 			return errors.New("subscription is not active")
 		}
 
@@ -73,7 +73,7 @@ func CompleteRenewalOrder(tradeNo string, providerPayload string, expectedPaymen
 			return err
 		}
 
-		nowUnix := getDBTimestampTx(tx)
+		nowUnix := GetDBTimestamp()
 
 		// Create a scheduled subscription instead of mutating the current one.
 		// The new subscription becomes active either automatically when the
@@ -146,7 +146,7 @@ func AdminRenewUserSubscription(userSubscriptionId int, adminId int, callerIp st
 			return err
 		}
 
-		now := getDBTimestampTx(tx)
+		now := GetDBTimestamp()
 		if !IsUserSubscriptionActive(&sub, now) {
 			return errors.New("subscription is not active")
 		}

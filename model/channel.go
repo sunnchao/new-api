@@ -320,7 +320,7 @@ func ApplyGroupFilter(query *gorm.DB, group string) *gorm.DB {
 		return query
 	}
 	var groupCondition string
-	if common.UsingMySQL {
+	if common.UsingMainDatabase(common.DatabaseTypeMySQL) {
 		groupCondition = "CONCAT(',', " + commonGroupCol + ", ',') LIKE ?"
 	} else {
 		groupCondition = "(',' || " + commonGroupCol + " || ',') LIKE ?"

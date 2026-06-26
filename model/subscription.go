@@ -707,7 +707,7 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 			return nil, errors.New("已达到该套餐购买上限")
 		}
 	}
-	nowUnix := getDBTimestampTx(tx)
+	nowUnix := GetDBTimestamp()
 	now := time.Unix(nowUnix, 0)
 	endUnix, err := calcPlanEndTime(now, plan)
 	if err != nil {
@@ -2426,7 +2426,7 @@ func AdminListAllUserSubscriptions(page int, pageSize int, username string, plan
 	// Apply filters
 	if username != "" {
 		username = strings.TrimSpace(username)
-		if common.UsingPostgreSQL {
+		if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
 			query = query.Where("users.username ILIKE ? OR users.display_name ILIKE ? OR users.email ILIKE ?", "%"+username+"%", "%"+username+"%", "%"+username+"%")
 		} else {
 			query = query.Where("users.username LIKE ? OR users.display_name LIKE ? OR users.email LIKE ?", "%"+username+"%", "%"+username+"%", "%"+username+"%")
@@ -2441,7 +2441,7 @@ func AdminListAllUserSubscriptions(page int, pageSize int, username string, plan
 	}
 	if userGroup != "" {
 		userGroup = strings.TrimSpace(userGroup)
-		if common.UsingPostgreSQL {
+		if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
 			query = query.Where("users.\"group\" ILIKE ?", "%"+userGroup+"%")
 		} else {
 			query = query.Where("users.`group` LIKE ?", "%"+userGroup+"%")
@@ -2452,7 +2452,7 @@ func AdminListAllUserSubscriptions(page int, pageSize int, username string, plan
 	countQuery := DB.Table("user_subscriptions").
 		Joins("LEFT JOIN users ON user_subscriptions.user_id = users.id")
 	if username != "" {
-		if common.UsingPostgreSQL {
+		if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
 			countQuery = countQuery.Where("users.username ILIKE ? OR users.display_name ILIKE ? OR users.email ILIKE ?", "%"+username+"%", "%"+username+"%", "%"+username+"%")
 		} else {
 			countQuery = countQuery.Where("users.username LIKE ? OR users.display_name LIKE ? OR users.email LIKE ?", "%"+username+"%", "%"+username+"%", "%"+username+"%")
@@ -2465,7 +2465,7 @@ func AdminListAllUserSubscriptions(page int, pageSize int, username string, plan
 		countQuery = countQuery.Where("user_subscriptions.status = ?", status)
 	}
 	if userGroup != "" {
-		if common.UsingPostgreSQL {
+		if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
 			countQuery = countQuery.Where("users.\"group\" ILIKE ?", "%"+userGroup+"%")
 		} else {
 			countQuery = countQuery.Where("users.`group` LIKE ?", "%"+userGroup+"%")
