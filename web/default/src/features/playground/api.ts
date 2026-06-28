@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
+
 import { API_ENDPOINTS } from './constants'
 import type {
   ChatCompletionRequest,
@@ -29,38 +30,33 @@ import type {
  * Send chat completion request (non-streaming)
  */
 export async function sendChatCompletion(
-  payload: ChatCompletionRequest
+  payload: ChatCompletionRequest,
+  signal?: AbortSignal
 ): Promise<ChatCompletionResponse> {
   const res = await api.post(API_ENDPOINTS.CHAT_COMPLETIONS, payload, {
+    signal,
     skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data
 }
 
 /**
- * Get user available models, with per-model enable_groups mapping for client-side filtering.
+ * Get user available models
  */
-export async function getUserModels(): Promise<{
-  models: ModelOption[]
-  modelGroups: Record<string, string[]>
-  autoGroups: string[]
-}> {
-  const res = await api.get(API_ENDPOINTS.USER_MODELS)
+export async function getUserModels(group: string): Promise<ModelOption[]> {
+  const res = await api.get(API_ENDPOINTS.USER_MODELS, {
+    params: { group },
+  })
   const { data } = res
 
   if (!data.success || !Array.isArray(data.data)) {
-    return { models: [], modelGroups: {}, autoGroups: [] }
+    return []
   }
 
-  const models = (data.data as string[]).map((model) => ({
+  return data.data.map((model: string) => ({
     label: model,
     value: model,
   }))
-  const modelGroups =
-    (data.model_groups as Record<string, string[]> | undefined) ?? {}
-  const autoGroups = (data.auto_groups as string[] | undefined) ?? []
-
-  return { models, modelGroups, autoGroups }
 }
 
 /**

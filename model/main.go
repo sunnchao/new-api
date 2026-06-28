@@ -302,6 +302,8 @@ func migrateDB() error {
 		&SystemInstance{},
 		&SystemTask{},
 		&SystemTaskLock{},
+		&CasbinRule{},
+		&AuthzRole{},
 		&Ticket{},
 		&TicketMessage{},
 	)
