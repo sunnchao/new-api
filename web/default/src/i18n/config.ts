@@ -25,6 +25,7 @@ import { pricingI18nResources } from '../features/pricing/i18n'
 import { subscriptionsI18nResources } from '../features/subscriptions/i18n'
 import { ticketsI18nResources } from '../features/tickets/i18n'
 import { usageLogsI18nResources } from '../features/usage-logs/i18n'
+
 import en from './locales/en.json'
 import fr from './locales/fr.json'
 import ja from './locales/ja.json'
