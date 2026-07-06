@@ -1,6 +1,8 @@
 package common
 
 import (
+	"crypto/rand"
+	"math/big"
 	"strings"
 	"sync"
 	"time"
@@ -24,12 +26,20 @@ var verificationMapMaxSize = 10
 var VerificationValidMinutes = 10
 
 func GenerateVerificationCode(length int) string {
-	code := uuid.New().String()
-	code = strings.Replace(code, "-", "", -1)
 	if length == 0 {
-		return code
+		code := uuid.New().String()
+		return strings.Replace(code, "-", "", -1)
 	}
-	return code[:length]
+	const digits = "0123456789"
+	code := make([]byte, length)
+	for i := range code {
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(digits))))
+		if err != nil {
+			panic(err)
+		}
+		code[i] = digits[n.Int64()]
+	}
+	return string(code)
 }
 
 func RegisterVerificationCodeWithKey(key string, code string, purpose string) {
