@@ -31,6 +31,7 @@ import type {
   QuotaDataItem,
   DashboardFilters,
 } from '@/features/dashboard/types'
+import { toIntlLocale } from '@/i18n/languages'
 import { formatCompactNumber, formatNumber, formatQuota } from '@/lib/format'
 import { computeTimeRange } from '@/lib/time'
 import { cn } from '@/lib/utils'

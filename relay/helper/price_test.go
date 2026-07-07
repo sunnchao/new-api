@@ -10,7 +10,6 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/setting/billing_setting"
 	"github.com/QuantumNous/new-api/setting/config"
-	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -62,7 +61,7 @@ func TestModelPriceHelperTieredUsesPreloadedRequestInput(t *testing.T) {
 	require.Equal(t, common.QuotaPerUnit, info.TieredBillingSnapshot.QuotaPerUnit)
 }
 
-func TestModelPriceHelperIgnoresGroupModelBillingPriceOverride(t *testing.T) {
+func TestModelPriceHelperTieredPreConsumeMaxTokensFallback(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	saved := map[string]string{}
@@ -74,37 +73,68 @@ func TestModelPriceHelperIgnoresGroupModelBillingPriceOverride(t *testing.T) {
 		require.NoError(t, config.GlobalConfig.LoadFromDB(saved))
 	})
 
-	originalGroupModelBilling := ratio_setting.GroupModelBilling2JSONString()
-	t.Cleanup(func() {
-		require.NoError(t, ratio_setting.UpdateGroupModelBillingByJSONString(originalGroupModelBilling))
-	})
-	originalModelRatio := ratio_setting.ModelRatio2JSONString()
-	t.Cleanup(func() {
-		require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(originalModelRatio))
-	})
+	require.NoError(t, config.GlobalConfig.LoadFromDB(map[string]string{
+		"billing_setting.billing_mode":    `{"tiered-fallback-model":"tiered_expr"}`,
+		"billing_setting.billing_expr":    `{"tiered-fallback-model":"tier(\"base\", p * 3 + c * 15)"}`,
+		"group_ratio_setting.group_ratio": `{"default":1,"free":0}`,
+	}))
 
-	require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(`{"group-billing-legacy-model":2}`))
-	require.NoError(t, ratio_setting.UpdateGroupModelBillingByJSONString(`{
-		"default": {
-			"group-billing-legacy-model": {
-				"quota_type": 1,
-				"model_price": 0.2
-			}
-		}
-	}`))
+	const promptTokens = 1000
 
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
-
-	info := &relaycommon.RelayInfo{
-		OriginModelName: "group-billing-legacy-model",
-		UserGroup:       "default",
-		UsingGroup:      "default",
+	cases := []struct {
+		name      string
+		group     string
+		maxTokens int
+		expected  int
+	}{
+		{
+			// max_tokens omitted in a paid group -> fall back to 8192 completion tokens.
+			// p*3 + c*15 = 1000*3 + 8192*15 = 125880 -> /1e6 * 500000 = 62940
+			name:      "non-free group falls back to 8192 completion tokens",
+			group:     "default",
+			maxTokens: 0,
+			expected:  62940,
+		},
+		{
+			// explicit max_tokens is used verbatim, no fallback.
+			// 1000*3 + 100*15 = 4500 -> /1e6 * 500000 = 2250
+			name:      "explicit max_tokens is used verbatim",
+			group:     "default",
+			maxTokens: 100,
+			expected:  2250,
+		},
+		{
+			// free group (ratio 0) stays zero; fallback is gated on non-zero group ratio.
+			name:      "free group stays zero without fallback",
+			group:     "free",
+			maxTokens: 0,
+			expected:  0,
+		},
 	}
 
-	priceData, err := ModelPriceHelper(ctx, info, 1000, &types.TokenCountMeta{})
-	require.NoError(t, err)
-	require.False(t, priceData.UsePrice)
-	require.Equal(t, 2000, priceData.QuotaToPreConsume)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(recorder)
+			req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+			req.Header.Set("Content-Type", "application/json")
+			ctx.Request = req
+			ctx.Set("group", tc.group)
+
+			info := &relaycommon.RelayInfo{
+				OriginModelName: "tiered-fallback-model",
+				UserGroup:       tc.group,
+				UsingGroup:      tc.group,
+				RequestHeaders:  map[string]string{"Content-Type": "application/json"},
+				BillingRequestInput: &billingexpr.RequestInput{
+					Headers: map[string]string{"Content-Type": "application/json"},
+					Body:    []byte(`{}`),
+				},
+			}
+
+			priceData, err := ModelPriceHelper(ctx, info, promptTokens, &types.TokenCountMeta{MaxTokens: tc.maxTokens})
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, priceData.QuotaToPreConsume)
+		})
+	}
 }

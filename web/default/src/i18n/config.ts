@@ -26,6 +26,7 @@ import { subscriptionsI18nResources } from '../features/subscriptions/i18n'
 import { ticketsI18nResources } from '../features/tickets/i18n'
 import { usageLogsI18nResources } from '../features/usage-logs/i18n'
 
+import { convertDetectedLanguage } from './languages'
 import en from './locales/en.json'
 import fr from './locales/fr.json'
 import ja from './locales/ja.json'
@@ -122,8 +123,8 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
-    supportedLngs: ['en', 'zhCN', 'fr', 'ru', 'ja', 'vi','zhTW'],
-    load: 'currentOnly', // Convert zh-CN -> zh
+    supportedLngs: ['en', 'zhCN', 'fr', 'ru', 'ja', 'vi', 'zhTW'],
+    load: 'currentOnly',
     nsSeparator: false, // Allow literal colons in keys (e.g., URLs, labels)
     debug: import.meta.env.DEV,
     interpolation: {
@@ -132,6 +133,9 @@ i18n
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
+      // Browsers report `zh-CN`/`zh-TW`/`zh`; map them onto our `zhCN`/`zhTW`
+      // codes (non-Chinese codes pass through for normal supportedLngs matching).
+      convertDetectedLanguage,
     },
   })
 
