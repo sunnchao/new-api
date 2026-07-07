@@ -57,7 +57,7 @@ export const resources = {
   ru,
   ja,
   vi,
-  zhTW
+  zhTW,
   en: mergeFeatureTranslations(
     en,
     pricingI18nResources.en,
