@@ -128,9 +128,10 @@ func setupRedeemFixture(t *testing.T, quota int) (userId int, key string) {
 func TestRedeemCreditsQuotaExactlyOnce(t *testing.T) {
 	userId, key := setupRedeemFixture(t, 500)
 
-	quota, err := Redeem(key, userId)
+	result, err := Redeem(key, userId)
 	require.NoError(t, err)
-	assert.Equal(t, 500, quota)
+	assert.Equal(t, RedemptionTypeQuota, result.Type)
+	assert.Equal(t, 500, result.Quota)
 
 	var user User
 	require.NoError(t, DB.First(&user, "id = ?", userId).Error)
