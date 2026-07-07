@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, RefreshCw, ServerCog } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toIntlLocale } from '@/i18n/languages'
 
 import { ErrorState } from '@/components/error-state'
 import { Badge } from '@/components/ui/badge'
@@ -411,7 +412,7 @@ function SystemInstancesList(props: SystemInstancesTableProps) {
                   {formatTimestampRelative(
                     instance.last_seen_at,
                     'seconds',
-                    i18n.language
+                    toIntlLocale(i18n.language)
                   )}
                 </TableCell>
               </TableRow>

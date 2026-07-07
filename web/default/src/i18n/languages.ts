@@ -33,16 +33,30 @@ export type InterfaceLanguageCode =
 export function normalizeInterfaceLanguage(value?: string | null): string {
   if (!value) return 'en'
 
-  var normalized = value.trim().replace(/_/g, '-').toLowerCase()
+  const normalized = value.trim().replaceAll('_', '-').toLowerCase()
   if (value === 'zh-TW' || value === 'zh-HK' || value === 'zh-MO' || value === 'zhTW') {
-    normalized = 'zhTW'
+    return 'zhTW'
   }
-  if (value === 'zh-CN' || value === 'zh-Hans' || value === "zhCN") {
-    normalized = 'zhCN'
+  if (value === 'zh-CN' || value === 'zh-Hans' || value === 'zhCN') {
+    return 'zhCN'
   }
 
-  console.log('Normalized interface language: %s -> %s', value, normalized)
   return INTERFACE_LANGUAGE_OPTIONS.some((lang) => lang.code === normalized)
     ? normalized
     : 'en'
+}
+
+const INTL_LOCALE_MAP: Record<string, string> = {
+  zhCN: 'zh-CN',
+  zhTW: 'zh-TW',
+  en: 'en',
+  fr: 'fr',
+  ru: 'ru',
+  ja: 'ja',
+  vi: 'vi',
+}
+
+export function toIntlLocale(language?: string | null): string {
+  if (!language) return 'en'
+  return INTL_LOCALE_MAP[language] ?? language
 }
