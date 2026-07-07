@@ -29,7 +29,7 @@ export const chatI18nResources = {
       'You cancelled token selection.': 'You cancelled token selection.',
     },
   },
-  zh: {
+  zhCN: {
     translation: {
       'Choose an enabled token to start the chat session.':
         '请选择一个已启用的令牌以开始聊天会话。',
@@ -39,6 +39,18 @@ export const chatI18nResources = {
       'Select token': '选择令牌',
       'Select token again': '重新选择令牌',
       'You cancelled token selection.': '您已取消令牌选择。',
+    },
+  },
+  zhTW: {
+    translation: {
+      'Choose an enabled token to start the chat session.':
+        '請選擇一個已啟用的令牌以開始聊天工作階段。',
+      'Failed to load API key': '取得令牌失敗',
+      'No enabled tokens available. Please create or enable a token first.':
+        '目前沒有可用的已啟用令牌，請先建立或啟用令牌。',
+      'Select token': '選擇令牌',
+      'Select token again': '重新選擇令牌',
+      'You cancelled token selection.': '您已取消令牌選擇。',
     },
   },
   fr: {

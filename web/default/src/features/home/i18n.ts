@@ -22,9 +22,14 @@ export const homeI18nResources = {
       'Supporting various LLM providers': 'Supporting various LLM providers',
     },
   },
-  zh: {
+  zhCN: {
     translation: {
       'Supporting various LLM providers': '支持众多的大模型供应商',
+    },
+  },
+  zhTW: {
+    translation: {
+      'Supporting various LLM providers': '支援眾多的大模型供應商',
     },
   },
   fr: {

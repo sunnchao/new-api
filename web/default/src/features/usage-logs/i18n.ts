@@ -5,10 +5,16 @@ export const usageLogsI18nResources = {
       request_ip: 'Request IP',
     },
   },
-  zh: {
+  zhCN: {
     translation: {
       Sign: '签到',
       request_ip: '请求IP',
+    },
+  },
+  zhTW: {
+    translation: {
+      Sign: '簽到',
+      request_ip: '請求IP',
     },
   },
   fr: {

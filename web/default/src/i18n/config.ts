@@ -51,13 +51,6 @@ function mergeFeatureTranslations(
 }
 
 export const resources = {
-  en,
-  zhCN,
-  fr,
-  ru,
-  ja,
-  vi,
-  zhTW,
   en: mergeFeatureTranslations(
     en,
     pricingI18nResources.en,
@@ -67,14 +60,14 @@ export const resources = {
     ticketsI18nResources.en,
     homeI18nResources.en
   ),
-    zhCN: mergeFeatureTranslations(
-        zhCN,
-    pricingI18nResources.zh,
-    subscriptionsI18nResources.zh,
-    usageLogsI18nResources.zh,
-    chatI18nResources.zh,
-    ticketsI18nResources.zh,
-    homeI18nResources.zh
+zhCN: mergeFeatureTranslations(
+    zhCN,
+    pricingI18nResources.zhCN,
+    subscriptionsI18nResources.zhCN,
+    usageLogsI18nResources.zhCN,
+    chatI18nResources.zhCN,
+    ticketsI18nResources.zhCN,
+    homeI18nResources.zhCN
   ),
   fr: mergeFeatureTranslations(
     fr,
@@ -111,6 +104,15 @@ export const resources = {
     chatI18nResources.vi,
     ticketsI18nResources.vi,
     homeI18nResources.vi
+  ),
+  zhTW: mergeFeatureTranslations(
+    zhTW,
+    pricingI18nResources.zhTW,
+    subscriptionsI18nResources.zhTW,
+    usageLogsI18nResources.zhTW,
+    chatI18nResources.zhTW,
+    ticketsI18nResources.zhTW,
+    homeI18nResources.zhTW
   ),
 } as const
 

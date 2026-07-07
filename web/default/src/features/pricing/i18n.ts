@@ -8,12 +8,21 @@ export const pricingI18nResources = {
       'Tokens': 'Context',
     },
   },
-  zh: {
+  zhCN: {
     translation: {
       'Billing Type': '计费类型',
       'Pricing Summary': '价格摘要',
       'See dynamic pricing details above': '见上方动态计费详情',
       'per request (if extra conditions met)': '满足额外条件时 · 每次请求',
+      'Tokens': '上下文',
+    },
+  },
+  zhTW: {
+    translation: {
+      'Billing Type': '計費類型',
+      'Pricing Summary': '價格摘要',
+      'See dynamic pricing details above': '見上方動態計費詳情',
+      'per request (if extra conditions met)': '滿足額外條件時 · 每次請求',
       'Tokens': '上下文',
     },
   },
