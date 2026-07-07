@@ -67,8 +67,8 @@ export const resources = {
     ticketsI18nResources.en,
     homeI18nResources.en
   ),
-  zh: mergeFeatureTranslations(
-    zh,
+    zhCN: mergeFeatureTranslations(
+        zhCN,
     pricingI18nResources.zh,
     subscriptionsI18nResources.zh,
     usageLogsI18nResources.zh,
