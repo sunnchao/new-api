@@ -151,8 +151,8 @@ func Redeem(key string, userId int) (*RedemptionResult, error) {
 		keyCol = `"key"`
 	}
 	common.RandomSleep()
-	err := DB.Transaction(func(tx *gorm.DB) error {
-		err := tx.Set("gorm:query_option", "FOR UPDATE").Where(keyCol+" = ?", key).First(redemption).Error
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		err := lockForUpdate(tx).Where(keyCol+" = ?", key).First(redemption).Error
 		if err != nil {
 			return errors.New("无效的兑换码")
 		}
@@ -162,35 +162,23 @@ func Redeem(key string, userId int) (*RedemptionResult, error) {
 		if redemption.ExpiredTime != 0 && redemption.ExpiredTime < common.GetTimestamp() {
 			return errors.New("该兑换码已过期")
 		}
-		redemptionType := normalizeRedemptionType(redemption.Type)
-		result.Type = redemptionType
-		switch redemptionType {
-		case RedemptionTypeSubscription:
-			if redemption.SubscriptionPlanId <= 0 {
-				return errors.New("兑换码未绑定订阅套餐")
-			}
-			plan, err := getSubscriptionPlanByIdTx(tx, redemption.SubscriptionPlanId)
-			if err != nil {
-				return err
-			}
-			subscription, err := CreateUserSubscriptionFromPlanTx(tx, userId, plan, "redemption")
-			if err != nil {
-				return err
-			}
-			result.Subscription = subscription
-			result.Plan = plan
-		default:
-			err = tx.Model(&User{}).Where("id = ?", userId).Update("quota", gorm.Expr("quota + ?", redemption.Quota)).Error
-			if err != nil {
-				return err
-			}
-			result.Quota = redemption.Quota
+		// Compare-and-swap on status: only the transaction that flips
+		// enabled -> used may credit quota, so a concurrent redeem of the
+		// same code loses here even without a row lock (e.g. on SQLite).
+		result := tx.Model(&Redemption{}).
+			Where("id = ? AND status = ?", redemption.Id, common.RedemptionCodeStatusEnabled).
+			Updates(map[string]interface{}{
+				"redeemed_time": common.GetTimestamp(),
+				"status":        common.RedemptionCodeStatusUsed,
+				"used_user_id":  userId,
+			})
+		if result.Error != nil {
+			return result.Error
 		}
-		redemption.RedeemedTime = common.GetTimestamp()
-		redemption.Status = common.RedemptionCodeStatusUsed
-		redemption.UsedUserId = userId
-		err = tx.Save(redemption).Error
-		return err
+		if result.RowsAffected == 0 {
+			return errors.New("该兑换码已被使用")
+		}
+		return tx.Model(&User{}).Where("id = ?", userId).Update("quota", gorm.Expr("quota + ?", redemption.Quota)).Error
 	})
 	if err != nil {
 		common.SysError("redemption failed: " + err.Error())
