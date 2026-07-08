@@ -84,7 +84,7 @@ type GroupRatioVisualEditorProps = {
 type GroupPricingRow = {
   _id: string
   name: string
-  ratio: number
+  ratio: string
   topupRatio: string
   selectable: boolean
   hidden: boolean
@@ -161,7 +161,7 @@ function buildGroupPricingRows(
   return [...names].map((name) => ({
     _id: createGroupPricingId(),
     name,
-    ratio: normalizeRatio(ratioMap[name]),
+    ratio: String(normalizeRatio(ratioMap[name])),
     topupRatio: Object.hasOwn(topupMap, name) ? String(topupMap[name]) : '',
     selectable: Object.hasOwn(usableMap, name),
     hidden: Object.hasOwn(unselectableMap, name),
@@ -517,7 +517,7 @@ function GroupPricingTable({
       {
         _id: createGroupPricingId(),
         name,
-        ratio: 1,
+        ratio: '1',
         topupRatio: '',
         selectable: true,
         hidden: false,
@@ -594,13 +594,9 @@ function GroupPricingTable({
                     type='number'
                     min={0}
                     step={0.1}
-                    value={String(row.ratio)}
+                    value={row.ratio}
                     onChange={(event) =>
-                      updateRow(
-                        row._id,
-                        'ratio',
-                        normalizeRatio(event.target.value)
-                      )
+                      updateRow(row._id, 'ratio', event.target.value)
                     }
                   />
                 ),
