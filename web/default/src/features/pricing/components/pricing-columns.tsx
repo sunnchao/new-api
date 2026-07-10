@@ -29,21 +29,13 @@ import { StatusBadge } from '@/components/status-badge'
 import { getLobeIcon } from '@/lib/lobe-icon'
 
 import { DEFAULT_TOKEN_UNIT, QUOTA_TYPE_VALUES } from '../constants'
-import {
-  getDynamicDisplayGroupRatio,
-  getDynamicPricingSummary,
-} from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
-import {
-    formatModelListTokenPrice,
-    getModelListPricingContext,
-} from '../lib/model-list-price'
 import { isTokenBasedModel } from '../lib/model-helpers'
 import {
-  formatPrice,
-  formatRequestPrice,
-  stripTrailingZeros,
-} from '../lib/price'
+  formatModelListTokenPrice,
+  getModelListPricingContext,
+} from '../lib/model-list-price'
+import { stripTrailingZeros } from '../lib/price'
 import type { PricingModel, TokenUnit } from '../types'
 
 // ----------------------------------------------------------------------------
@@ -68,7 +60,6 @@ export function usePricingColumns(
     priceRate = 1,
     usdExchangeRate = 1,
     showRechargePrice = false,
-    selectedGroup,
     groupFilter,
   } = options
 
@@ -113,10 +104,12 @@ export function usePricingColumns(
           priceRate,
           usdExchangeRate,
         })
+        const isRequestBased =
+          Boolean(pricingContext.requestPriceDisplay) || !isTokenBased
         return (
           <StatusBadge
-            label={pricingContext.requestPriceDisplay || !isTokenBased ? t('Token') : t('Request')}
-            variant={isTokenBased ? 'info' : 'neutral'}
+            label={isRequestBased ? t('Request') : t('Token')}
+            variant={isRequestBased ? 'neutral' : 'info'}
             copyable={false}
             className='-ml-1.5'
           />
@@ -142,10 +135,6 @@ export function usePricingColumns(
           showWithRecharge: showRechargePrice,
           priceRate,
           usdExchangeRate,
-          groupRatioMultiplier: getDynamicDisplayGroupRatio(
-            model,
-            selectedGroup
-          ),
         })
         const requestPriceDisplay = pricingContext.requestPriceDisplay
 
@@ -217,27 +206,9 @@ export function usePricingColumns(
 
         if (isTokenBased) {
           const inputPrice = stripTrailingZeros(
-            // formatPrice(
-            //   model,
-            //   'input',
-            //   tokenUnit,
-            //   showRechargePrice,
-            //   priceRate,
-            //   usdExchangeRate,
-            //   selectedGroup
-            // )
             formatModelListTokenPrice(pricingContext, 'input')
           )
           const outputPrice = stripTrailingZeros(
-            // formatPrice(
-            //   model,
-            //   'output',
-            //   tokenUnit,
-            //   showRechargePrice,
-            //   priceRate,
-            //   usdExchangeRate,
-            //   selectedGroup
-            // )
             formatModelListTokenPrice(pricingContext, 'output')
           )
 
@@ -255,19 +226,9 @@ export function usePricingColumns(
           )
         }
 
-        const price = stripTrailingZeros(
-          formatRequestPrice(
-            model,
-            showRechargePrice,
-            priceRate,
-            usdExchangeRate,
-            selectedGroup
-          )
-        )
-
         return (
           <div className='max-w-full min-w-0'>
-            <span className='font-mono text-sm tabular-nums'>{price}</span>
+            <span className='font-mono text-sm tabular-nums'>-</span>
             <div className='text-muted-foreground/50 text-[10px]'>
               / {t('request')}
             </div>
@@ -291,10 +252,6 @@ export function usePricingColumns(
           showWithRecharge: showRechargePrice,
           priceRate,
           usdExchangeRate,
-          groupRatioMultiplier: getDynamicDisplayGroupRatio(
-            model,
-            selectedGroup
-          ),
         })
 
         if (pricingContext.requestPriceDisplay) {
@@ -338,15 +295,6 @@ export function usePricingColumns(
         }
 
         const cachedPrice = stripTrailingZeros(
-          // formatPrice(
-          //   model,
-          //   'cache',
-          //   tokenUnit,
-          //   showRechargePrice,
-          //   priceRate,
-          //   usdExchangeRate,
-          //   selectedGroup
-          // )
           formatModelListTokenPrice(pricingContext, 'cache')
         )
 

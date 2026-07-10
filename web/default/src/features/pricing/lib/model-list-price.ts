@@ -80,19 +80,23 @@ export function getModelListPricingContext({
         now,
       })
     : null
-  const requestPriceDisplay = selectedGroup
-    ? selectedGroupDisplay?.billingType === 'request'
-      ? selectedGroupDisplay
-      : null
-    : getDefaultRequestPriceDisplay({
-        model,
-        groupRatio,
-        tokenUnit,
-        showWithRecharge,
-        priceRate,
-        usdExchangeRate,
-        now,
-      })
+  let requestPriceDisplay: GroupPriceDisplay | null = null
+  if (selectedGroup) {
+    requestPriceDisplay =
+      selectedGroupDisplay?.billingType === 'request'
+        ? selectedGroupDisplay
+        : null
+  } else {
+    requestPriceDisplay = getDefaultRequestPriceDisplay({
+      model,
+      groupRatio,
+      tokenUnit,
+      showWithRecharge,
+      priceRate,
+      usdExchangeRate,
+      now,
+    })
+  }
   const dynamicSummary = getDynamicPricingSummary(model, {
     tokenUnit,
     showRechargePrice: showWithRecharge,
@@ -141,7 +145,6 @@ export function formatModelListTokenPrice(
     context.tokenUnit,
     context.showWithRecharge,
     context.priceRate,
-    context.usdExchangeRate,
-    1
+    context.usdExchangeRate
   )
 }

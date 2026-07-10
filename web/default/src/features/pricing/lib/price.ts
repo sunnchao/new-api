@@ -20,12 +20,12 @@ import { formatCurrencyFromUSD } from '@/lib/currency'
 
 import { QUOTA_TYPE_VALUES, TOKEN_UNIT_DIVISORS } from '../constants'
 import type { PricingModel, TokenUnit, PriceType } from '../types'
-import { getConfiguredGroupRatio, getDisplayGroupRatio } from './model-helpers'
 import {
   parseTiersFromExpr,
   splitBillingExprAndRequestRules,
   type ParsedTier,
 } from './billing-expr'
+import { getConfiguredGroupRatio, getDisplayGroupRatio } from './model-helpers'
 
 // ----------------------------------------------------------------------------
 // Price Calculation Utilities
@@ -134,7 +134,7 @@ function calculateTieredExprTokenPrice(
   if (!tier) return null
 
   const value = Number(tier[PRICE_TYPE_TO_TIER_FIELD[type]])
-  if (!Number.isFinite(value)) return NaN
+  if (!Number.isFinite(value)) return Number.NaN
 
   return value * ratio
 }
@@ -190,14 +190,15 @@ export function formatPrice(
   priceRate = 1,
   usdExchangeRate = 1,
   selectedGroup?: string,
-  groupRatioMultiplier = 1
+  groupRatioMultiplier?: number
 ): string {
   if (model.quota_type === QUOTA_TYPE_VALUES.REQUEST) {
     return '-'
   }
 
   const displayGroupRatio = getDisplayGroupRatio(model, selectedGroup)
-  let priceInUSD = calculateTokenPrice(model, type, groupRatioMultiplier)
+  const effectiveGroupRatio = groupRatioMultiplier ?? displayGroupRatio
+  let priceInUSD = calculateTokenPrice(model, type, effectiveGroupRatio)
   priceInUSD = applyRechargeRate(
     priceInUSD,
     showWithRecharge,
@@ -289,15 +290,16 @@ export function formatRequestPrice(
   priceRate = 1,
   usdExchangeRate = 1,
   selectedGroup?: string,
-  groupRatioMultiplier = 1
+  groupRatioMultiplier?: number
 ): string {
   if (model.quota_type !== QUOTA_TYPE_VALUES.REQUEST) {
     return '-'
   }
 
   const displayGroupRatio = getDisplayGroupRatio(model, selectedGroup)
+  const effectiveGroupRatio = groupRatioMultiplier ?? displayGroupRatio
 
-  let priceInUSD = (model.model_price || 0) * groupRatioMultiplier
+  let priceInUSD = (model.model_price || 0) * effectiveGroupRatio
 
   priceInUSD = applyRechargeRate(
     priceInUSD,

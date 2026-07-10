@@ -43,9 +43,6 @@ type ResolveTieredDisplayPricingResult = {
   // matched=true means it will definitely apply; matched=false means it
   // depends on runtime token values (unknown conditions like `tokens`).
   prices: { modelPrice: number; certain: boolean }[]
-} | {
-  effectiveQuotaType: 'multiplier_only'
-  multiplier: number
 }
 
 type GroupPriceDisplayInput = {
@@ -163,7 +160,7 @@ function getTimePart(now: Date, timezone: string, timeFunc: string): number {
         Fri: 5,
         Sat: 6,
       }
-      return weekdayMap[values.weekday] ?? NaN
+      return weekdayMap[values.weekday] ?? Number.NaN
     }
     case 'month':
       return Number(values.month)
@@ -300,7 +297,9 @@ export function resolveTieredDisplayPricing(
       hasUnknownMultiplier = true
       continue
     }
-    const parsedMultiplier = Number.parseFloat(`${group.multiplier || ''}`.trim())
+    const parsedMultiplier = Number.parseFloat(
+      `${group.multiplier || ''}`.trim()
+    )
     if (!Number.isFinite(parsedMultiplier)) return null
     confirmedMultiplier *= parsedMultiplier
   }
@@ -378,12 +377,6 @@ export function getGroupPriceDisplay({
       }
     }
 
-    const effectiveModel: PricingModel = {
-      ...model,
-      quota_type: resolvedPricing.effectiveQuotaType,
-      model_price: resolvedPricing.prices[0].modelPrice,
-    }
-
     const items: GroupPriceItem[] = resolvedPricing.prices.map((p, i) => {
       const effectiveModelForPrice: PricingModel = {
         ...model,
@@ -401,7 +394,9 @@ export function getGroupPriceDisplay({
           usdExchangeRate,
           { [group]: ratio }
         ),
-        suffixKey: p.certain ? 'per request' : 'per request (if extra conditions met)',
+        suffixKey: p.certain
+          ? 'per request'
+          : 'per request (if extra conditions met)',
       }
     })
 

@@ -105,17 +105,13 @@ export function Pricing() {
     [usableGroup]
   )
 
-  // 获取availableGroups 对应的 label Record<string, string>
-  const availableGroupLabels = useMemo(
-      () => {
-        const groupLabels = {};
-        availableGroups.forEach((g) => {
-          groupLabels[g] = usableGroup?.[g] || g
-        })
-        return groupLabels
-      },
-      [availableGroups, usableGroup]
-  )
+  const availableGroupLabels = useMemo(() => {
+    const groupLabels: Record<string, string> = {}
+    availableGroups.forEach((g) => {
+      groupLabels[g] = usableGroup?.[g]?.desc || g
+    })
+    return groupLabels
+  }, [availableGroups, usableGroup])
 
   const handleClearAll = useCallback(() => {
     clearFilters()
@@ -143,7 +139,6 @@ export function Pricing() {
           tokenUnit={tokenUnit}
           showRechargePrice={showRechargePrice}
           selectedGroup={groupFilter}
-          groupFilter={groupFilter}
         />
       )
     }
