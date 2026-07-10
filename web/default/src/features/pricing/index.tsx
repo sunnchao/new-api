@@ -108,7 +108,11 @@ export function Pricing() {
   const availableGroupLabels = useMemo(() => {
     const groupLabels: Record<string, string> = {}
     availableGroups.forEach((g) => {
-      groupLabels[g] = usableGroup?.[g]?.desc || g
+      const groupInfo = usableGroup?.[g] as unknown
+      groupLabels[g] =
+        typeof groupInfo === 'string'
+          ? groupInfo || g
+          : (groupInfo as { desc?: string } | undefined)?.desc || g
     })
     return groupLabels
   }, [availableGroups, usableGroup])
