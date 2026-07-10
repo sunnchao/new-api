@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -55,6 +55,7 @@ export interface PricingColumnsOptions {
   priceRate?: number
   usdExchangeRate?: number
   showRechargePrice?: boolean
+  selectedGroup?: string
   groupFilter?: string
 }
 
@@ -67,6 +68,7 @@ export function usePricingColumns(
     priceRate = 1,
     usdExchangeRate = 1,
     showRechargePrice = false,
+    selectedGroup,
     groupFilter,
   } = options
 
@@ -140,6 +142,10 @@ export function usePricingColumns(
           showWithRecharge: showRechargePrice,
           priceRate,
           usdExchangeRate,
+          groupRatioMultiplier: getDynamicDisplayGroupRatio(
+            model,
+            selectedGroup
+          ),
         })
         const requestPriceDisplay = pricingContext.requestPriceDisplay
 
@@ -211,9 +217,27 @@ export function usePricingColumns(
 
         if (isTokenBased) {
           const inputPrice = stripTrailingZeros(
+            // formatPrice(
+            //   model,
+            //   'input',
+            //   tokenUnit,
+            //   showRechargePrice,
+            //   priceRate,
+            //   usdExchangeRate,
+            //   selectedGroup
+            // )
             formatModelListTokenPrice(pricingContext, 'input')
           )
           const outputPrice = stripTrailingZeros(
+            // formatPrice(
+            //   model,
+            //   'output',
+            //   tokenUnit,
+            //   showRechargePrice,
+            //   priceRate,
+            //   usdExchangeRate,
+            //   selectedGroup
+            // )
             formatModelListTokenPrice(pricingContext, 'output')
           )
 
@@ -236,7 +260,8 @@ export function usePricingColumns(
             model,
             showRechargePrice,
             priceRate,
-            usdExchangeRate
+            usdExchangeRate,
+            selectedGroup
           )
         )
 
@@ -266,6 +291,10 @@ export function usePricingColumns(
           showWithRecharge: showRechargePrice,
           priceRate,
           usdExchangeRate,
+          groupRatioMultiplier: getDynamicDisplayGroupRatio(
+            model,
+            selectedGroup
+          ),
         })
 
         if (pricingContext.requestPriceDisplay) {
@@ -309,6 +338,15 @@ export function usePricingColumns(
         }
 
         const cachedPrice = stripTrailingZeros(
+          // formatPrice(
+          //   model,
+          //   'cache',
+          //   tokenUnit,
+          //   showRechargePrice,
+          //   priceRate,
+          //   usdExchangeRate,
+          //   selectedGroup
+          // )
           formatModelListTokenPrice(pricingContext, 'cache')
         )
 

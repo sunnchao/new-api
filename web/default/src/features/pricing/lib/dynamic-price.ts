@@ -28,6 +28,7 @@ import {
   type BillingVar,
   type ParsedTier,
 } from './billing-expr'
+import { getDisplayGroupRatio } from './model-helpers'
 
 type DynamicPriceOptions = {
   tokenUnit: TokenUnit
@@ -63,6 +64,13 @@ const PRIMARY_DYNAMIC_FIELDS = new Set(['inputPrice', 'outputPrice'])
 
 export function isDynamicPricingModel(model: PricingModel): boolean {
   return model.billing_mode === 'tiered_expr' && Boolean(model.billing_expr)
+}
+
+export function getDynamicDisplayGroupRatio(
+  model: PricingModel,
+  selectedGroup?: string
+): number {
+  return getDisplayGroupRatio(model, selectedGroup)
 }
 
 function applyRechargeRate(
