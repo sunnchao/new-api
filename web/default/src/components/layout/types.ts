@@ -88,6 +88,17 @@ export type SidebarData = {
 }
 
 /**
+ * Secondary item under a top navigation parent (dropdown submenu).
+ */
+export type TopNavLinkItem = {
+  title: string
+  href: string
+  description?: string
+  external?: boolean
+  disabled?: boolean
+}
+
+/**
  * Top navigation link type
  */
 export type TopNavLink = {
@@ -97,6 +108,8 @@ export type TopNavLink = {
   disabled?: boolean
   requiresAuth?: boolean
   external?: boolean
+  /** When present, the parent opens a secondary menu instead of navigating. */
+  items?: TopNavLinkItem[]
 }
 
 /**

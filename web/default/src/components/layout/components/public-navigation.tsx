@@ -17,7 +17,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
+import { ChevronDown, ExternalLink } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useTopNavLinks } from '@/hooks/use-top-nav-links'
 import { cn } from '@/lib/utils'
 
@@ -44,6 +53,7 @@ export function PublicNavigation({
   links: providedLinks,
   className,
 }: PublicNavigationProps = {}) {
+  const { t } = useTranslation()
   // Use the same logic as AppHeader: prioritize dynamic links from backend
   const dynamicLinks = useTopNavLinks()
   const defaultLinks = providedLinks || defaultTopNavLinks
@@ -51,12 +61,77 @@ export function PublicNavigation({
 
   return (
     <nav className={cn('hidden items-center gap-1 md:flex', className)}>
-      {links.map((link, index) => {
+      {links.map((link) => {
+        const linkKey = `${link.title}-${link.href}`
+        if (link.items && link.items.length > 0) {
+          const submenuItems = link.items
+          return (
+            <DropdownMenu key={linkKey}>
+              <DropdownMenuTrigger
+                render={
+                  <button
+                    type='button'
+                    className={cn(
+                      'text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground inline-flex h-9 w-max items-center justify-center gap-1 rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors focus:outline-none',
+                      link.disabled && 'pointer-events-none opacity-50'
+                    )}
+                  />
+                }
+              >
+                {t(link.title)}
+                <ChevronDown className='size-3.5 opacity-60' aria-hidden />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='start' className='min-w-56 p-1.5'>
+                {submenuItems.map((item, itemIndex) => {
+                  const previous = submenuItems[itemIndex - 1]
+                  const showSeparator = Boolean(
+                    item.external && previous && !previous.external
+                  )
+                  return (
+                    <div key={`${item.title}-${item.href}`}>
+                      {showSeparator ? <DropdownMenuSeparator /> : null}
+                      <DropdownMenuItem
+                        className={cn(
+                          'cursor-pointer',
+                          !item.external && 'flex-col items-start gap-0.5 py-2'
+                        )}
+                        render={
+                          item.external ? (
+                            <a
+                              href={item.href}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                            />
+                          ) : (
+                            <Link to={item.href} />
+                          )
+                        }
+                      >
+                        <span className='flex w-full items-center gap-2 text-sm font-medium'>
+                          {t(item.title)}
+                          {item.external ? (
+                            <ExternalLink className='text-muted-foreground ms-auto size-3.5' />
+                          ) : null}
+                        </span>
+                        {item.description ? (
+                          <span className='text-muted-foreground text-xs leading-snug'>
+                            {t(item.description)}
+                          </span>
+                        ) : null}
+                      </DropdownMenuItem>
+                    </div>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        }
+
         // Handle external links
         if (link.external) {
           return (
             <a
-              key={index}
+              key={linkKey}
               href={link.href}
               target='_blank'
               rel='noopener noreferrer'
@@ -65,21 +140,21 @@ export function PublicNavigation({
                 link.disabled && 'pointer-events-none opacity-50'
               )}
             >
-              {link.title}
+              {t(link.title)}
             </a>
           )
         }
         // Handle internal links
         return (
           <Link
-            key={index}
+            key={linkKey}
             to={link.href}
             className={cn(
               'text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground inline-flex h-9 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors focus:outline-none',
               link.disabled && 'pointer-events-none opacity-50'
             )}
           >
-            {link.title}
+            {t(link.title)}
           </Link>
         )
       })}

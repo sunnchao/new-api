@@ -63,5 +63,6 @@ export type {
   SidebarView,
   SidebarViewParent,
   TopNavLink,
+  TopNavLinkItem,
 } from './types'
 export type { SectionPageLayoutProps } from './components/section-page-layout'

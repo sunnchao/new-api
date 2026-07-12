@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
+import { ChevronDown, ExternalLink } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -26,6 +27,13 @@ import { NotificationPopover } from '@/components/notification-popover'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useSystemConfig } from '@/hooks/use-system-config'
@@ -216,12 +224,96 @@ export function PublicHeader(props: PublicHeaderProps) {
 
             {/* Desktop nav */}
             <div className='hidden items-center gap-0.5 sm:flex'>
-              {links.map((link, i) => {
-                const isActive = pathname === link.href
+              {links.map((link) => {
+                const linkKey = `${link.title}-${link.href}`
+                const isActive =
+                  pathname === link.href ||
+                  (link.items?.some(
+                    (item) => !item.external && pathname.startsWith(item.href)
+                  ) ??
+                    false)
+
+                if (link.items && link.items.length > 0) {
+                  const submenuItems = link.items
+                  return (
+                    <DropdownMenu key={linkKey}>
+                      <DropdownMenuTrigger
+                        render={
+                          <button
+                            type='button'
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-200',
+                              isActive
+                                ? 'text-foreground'
+                                : 'text-muted-foreground hover:text-foreground',
+                              link.disabled && 'pointer-events-none opacity-50'
+                            )}
+                          />
+                        }
+                      >
+                        {t(link.title)}
+                        <ChevronDown
+                          className='size-3.5 opacity-60'
+                          aria-hidden='true'
+                        />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align='start'
+                        sideOffset={8}
+                        className='min-w-56 p-1.5'
+                      >
+                        {submenuItems.map((item, itemIndex) => {
+                          const isTutorialItem = !item.external
+                          const previous = submenuItems[itemIndex - 1]
+                          const showSeparator = Boolean(
+                            item.external && previous && !previous.external
+                          )
+
+                          return (
+                            <div key={`${item.title}-${item.href}`}>
+                              {showSeparator ? <DropdownMenuSeparator /> : null}
+                              <DropdownMenuItem
+                                className={cn(
+                                  'cursor-pointer',
+                                  isTutorialItem &&
+                                    'flex-col items-start gap-0.5 py-2'
+                                )}
+                                render={
+                                  item.external ? (
+                                    <a
+                                      href={item.href}
+                                      target='_blank'
+                                      rel='noopener noreferrer'
+                                    />
+                                  ) : (
+                                    <Link to={item.href} />
+                                  )
+                                }
+                              >
+                                <span className='flex w-full items-center gap-2 text-sm font-medium'>
+                                  {t(item.title)}
+                                  {item.external ? (
+                                    <ExternalLink className='text-muted-foreground ms-auto size-3.5' />
+                                  ) : null}
+                                </span>
+                                {item.description ? (
+                                  <span className='text-muted-foreground text-xs leading-snug'>
+                                    {t(item.description)}
+                                  </span>
+                                ) : null}
+                              </DropdownMenuItem>
+                            </div>
+                          )
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )
+                }
+
                 if (link.external) {
                   return (
                     <a
-                      key={i}
+                      key={linkKey}
                       href={link.href}
                       target='_blank'
                       rel='noopener noreferrer'
@@ -239,7 +331,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                 }
                 return (
                   <Link
-                    key={i}
+                    key={linkKey}
                     to={link.href}
                     disabled={link.disabled}
                     onClick={(event) => handleNavLinkClick(event, link)}
@@ -348,8 +440,14 @@ export function PublicHeader(props: PublicHeaderProps) {
       >
         <div className='flex h-full flex-col justify-between px-8 pt-20 pb-10'>
           <nav className='flex flex-col gap-1'>
-            {links.map((link, i) => {
-              const isActive = pathname === link.href
+            {links.map((link, linkOrder) => {
+              const linkKey = `${link.title}-${link.href}`
+              const isActive =
+                pathname === link.href ||
+                (link.items?.some(
+                  (item) => !item.external && pathname.startsWith(item.href)
+                ) ??
+                  false)
               const linkClassName = cn(
                 'flex items-center gap-3 py-3 text-base font-medium tracking-tight transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
                 mobileOpen
@@ -359,12 +457,65 @@ export function PublicHeader(props: PublicHeaderProps) {
                 link.disabled && 'pointer-events-none opacity-50'
               )
               const transitionStyle = {
-                transitionDelay: mobileOpen ? `${100 + i * 50}ms` : '0ms',
+                transitionDelay: mobileOpen
+                  ? `${100 + linkOrder * 50}ms`
+                  : '0ms',
               }
+
+              if (link.items && link.items.length > 0) {
+                return (
+                  <div
+                    key={linkKey}
+                    style={transitionStyle}
+                    className={cn(
+                      'transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
+                      mobileOpen
+                        ? 'translate-y-0 opacity-100'
+                        : 'translate-y-4 opacity-0'
+                    )}
+                  >
+                    <div className='text-foreground py-3 text-base font-medium tracking-tight'>
+                      {t(link.title)}
+                    </div>
+                    <div className='border-border/40 ms-1 flex flex-col gap-0.5 border-s ps-3'>
+                      {link.items.map((item) =>
+                        item.external ? (
+                          <a
+                            key={`${item.title}-${item.href}`}
+                            href={item.href}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            onClick={() => setMobileOpen(false)}
+                            className='text-muted-foreground hover:text-foreground flex items-center gap-2 py-2 text-sm'
+                          >
+                            {t(item.title)}
+                            <ExternalLink className='size-3.5 opacity-60' />
+                          </a>
+                        ) : (
+                          <Link
+                            key={`${item.title}-${item.href}`}
+                            to={item.href}
+                            onClick={() => setMobileOpen(false)}
+                            className={cn(
+                              'py-2 text-sm',
+                              pathname === item.href
+                                ? 'text-foreground'
+                                : 'text-muted-foreground hover:text-foreground'
+                            )}
+                          >
+                            {t(item.title)}
+                          </Link>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )
+              }
+
               if (link.external) {
                 return (
                   <a
-                    key={i}
+                    key={linkKey}
                     href={link.href}
                     target='_blank'
                     rel='noopener noreferrer'
@@ -380,7 +531,7 @@ export function PublicHeader(props: PublicHeaderProps) {
               }
               return (
                 <Link
-                  key={i}
+                  key={linkKey}
                   to={link.href}
                   disabled={link.disabled}
                   onClick={(event) => handleNavLinkClick(event, link, true)}

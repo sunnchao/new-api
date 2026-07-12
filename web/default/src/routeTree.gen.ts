@@ -18,9 +18,14 @@ import { Route as SubscriptionPlansIndexRouteImport } from './routes/subscriptio
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
 import { Route as PricingIndexRouteImport } from './routes/pricing/index'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as ContactIndexRouteImport } from './routes/contact/index'
 import { Route as AboutIndexRouteImport } from './routes/about/index'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
+import { Route as DocsGrokCliRouteImport } from './routes/docs/grok-cli'
+import { Route as DocsGeminiCliRouteImport } from './routes/docs/gemini-cli'
+import { Route as DocsCodexRouteImport } from './routes/docs/codex'
+import { Route as DocsClaudeCodeRouteImport } from './routes/docs/claude-code'
 import { Route as ConsoleTopupRouteImport } from './routes/console/topup'
 import { Route as ConsoleLogRouteImport } from './routes/console/log'
 import { Route as AuthenticatedChat2linkRouteImport } from './routes/_authenticated/chat2link'
@@ -119,6 +124,11 @@ const PricingIndexRoute = PricingIndexRouteImport.update({
   path: '/pricing/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/docs/',
+  path: '/docs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactIndexRoute = ContactIndexRouteImport.update({
   id: '/contact/',
   path: '/contact/',
@@ -132,6 +142,26 @@ const AboutIndexRoute = AboutIndexRouteImport.update({
 const OauthProviderRoute = OauthProviderRouteImport.update({
   id: '/oauth/$provider',
   path: '/oauth/$provider',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsGrokCliRoute = DocsGrokCliRouteImport.update({
+  id: '/docs/grok-cli',
+  path: '/docs/grok-cli',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsGeminiCliRoute = DocsGeminiCliRouteImport.update({
+  id: '/docs/gemini-cli',
+  path: '/docs/gemini-cli',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsCodexRoute = DocsCodexRouteImport.update({
+  id: '/docs/codex',
+  path: '/docs/codex',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsClaudeCodeRoute = DocsClaudeCodeRouteImport.update({
+  id: '/docs/claude-code',
+  path: '/docs/claude-code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConsoleTopupRoute = ConsoleTopupRouteImport.update({
@@ -459,9 +489,14 @@ export interface FileRoutesByFullPath {
   '/chat2link': typeof AuthenticatedChat2linkRoute
   '/console/log': typeof ConsoleLogRoute
   '/console/topup': typeof ConsoleTopupRoute
+  '/docs/claude-code': typeof DocsClaudeCodeRoute
+  '/docs/codex': typeof DocsCodexRoute
+  '/docs/gemini-cli': typeof DocsGeminiCliRoute
+  '/docs/grok-cli': typeof DocsGrokCliRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/contact/': typeof ContactIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
@@ -524,9 +559,14 @@ export interface FileRoutesByTo {
   '/chat2link': typeof AuthenticatedChat2linkRoute
   '/console/log': typeof ConsoleLogRoute
   '/console/topup': typeof ConsoleTopupRoute
+  '/docs/claude-code': typeof DocsClaudeCodeRoute
+  '/docs/codex': typeof DocsCodexRoute
+  '/docs/gemini-cli': typeof DocsGeminiCliRoute
+  '/docs/grok-cli': typeof DocsGrokCliRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about': typeof AboutIndexRoute
   '/contact': typeof ContactIndexRoute
+  '/docs': typeof DocsIndexRoute
   '/pricing': typeof PricingIndexRoute
   '/rankings': typeof RankingsIndexRoute
   '/setup': typeof SetupIndexRoute
@@ -593,9 +633,14 @@ export interface FileRoutesById {
   '/_authenticated/chat2link': typeof AuthenticatedChat2linkRoute
   '/console/log': typeof ConsoleLogRoute
   '/console/topup': typeof ConsoleTopupRoute
+  '/docs/claude-code': typeof DocsClaudeCodeRoute
+  '/docs/codex': typeof DocsCodexRoute
+  '/docs/gemini-cli': typeof DocsGeminiCliRoute
+  '/docs/grok-cli': typeof DocsGrokCliRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/contact/': typeof ContactIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
@@ -661,9 +706,14 @@ export interface FileRouteTypes {
     | '/chat2link'
     | '/console/log'
     | '/console/topup'
+    | '/docs/claude-code'
+    | '/docs/codex'
+    | '/docs/gemini-cli'
+    | '/docs/grok-cli'
     | '/oauth/$provider'
     | '/about/'
     | '/contact/'
+    | '/docs/'
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
@@ -726,9 +776,14 @@ export interface FileRouteTypes {
     | '/chat2link'
     | '/console/log'
     | '/console/topup'
+    | '/docs/claude-code'
+    | '/docs/codex'
+    | '/docs/gemini-cli'
+    | '/docs/grok-cli'
     | '/oauth/$provider'
     | '/about'
     | '/contact'
+    | '/docs'
     | '/pricing'
     | '/rankings'
     | '/setup'
@@ -794,9 +849,14 @@ export interface FileRouteTypes {
     | '/_authenticated/chat2link'
     | '/console/log'
     | '/console/topup'
+    | '/docs/claude-code'
+    | '/docs/codex'
+    | '/docs/gemini-cli'
+    | '/docs/grok-cli'
     | '/oauth/$provider'
     | '/about/'
     | '/contact/'
+    | '/docs/'
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
@@ -854,9 +914,14 @@ export interface RootRouteChildren {
   errors503Route: typeof errors503Route
   ConsoleLogRoute: typeof ConsoleLogRoute
   ConsoleTopupRoute: typeof ConsoleTopupRoute
+  DocsClaudeCodeRoute: typeof DocsClaudeCodeRoute
+  DocsCodexRoute: typeof DocsCodexRoute
+  DocsGeminiCliRoute: typeof DocsGeminiCliRoute
+  DocsGrokCliRoute: typeof DocsGrokCliRoute
   OauthProviderRoute: typeof OauthProviderRoute
   AboutIndexRoute: typeof AboutIndexRoute
   ContactIndexRoute: typeof ContactIndexRoute
+  DocsIndexRoute: typeof DocsIndexRoute
   PricingIndexRoute: typeof PricingIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
@@ -929,6 +994,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/': {
+      id: '/docs/'
+      path: '/docs'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contact/': {
       id: '/contact/'
       path: '/contact'
@@ -948,6 +1020,34 @@ declare module '@tanstack/react-router' {
       path: '/oauth/$provider'
       fullPath: '/oauth/$provider'
       preLoaderRoute: typeof OauthProviderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/grok-cli': {
+      id: '/docs/grok-cli'
+      path: '/docs/grok-cli'
+      fullPath: '/docs/grok-cli'
+      preLoaderRoute: typeof DocsGrokCliRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/gemini-cli': {
+      id: '/docs/gemini-cli'
+      path: '/docs/gemini-cli'
+      fullPath: '/docs/gemini-cli'
+      preLoaderRoute: typeof DocsGeminiCliRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/codex': {
+      id: '/docs/codex'
+      path: '/docs/codex'
+      fullPath: '/docs/codex'
+      preLoaderRoute: typeof DocsCodexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/claude-code': {
+      id: '/docs/claude-code'
+      path: '/docs/claude-code'
+      fullPath: '/docs/claude-code'
+      preLoaderRoute: typeof DocsClaudeCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/console/topup': {
@@ -1485,9 +1585,14 @@ const rootRouteChildren: RootRouteChildren = {
   errors503Route: errors503Route,
   ConsoleLogRoute: ConsoleLogRoute,
   ConsoleTopupRoute: ConsoleTopupRoute,
+  DocsClaudeCodeRoute: DocsClaudeCodeRoute,
+  DocsCodexRoute: DocsCodexRoute,
+  DocsGeminiCliRoute: DocsGeminiCliRoute,
+  DocsGrokCliRoute: DocsGrokCliRoute,
   OauthProviderRoute: OauthProviderRoute,
   AboutIndexRoute: AboutIndexRoute,
   ContactIndexRoute: ContactIndexRoute,
+  DocsIndexRoute: DocsIndexRoute,
   PricingIndexRoute: PricingIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
   SetupIndexRoute: SetupIndexRoute,

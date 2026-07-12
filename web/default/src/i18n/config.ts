@@ -20,6 +20,7 @@ import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
 import { chatI18nResources } from '../features/chat/i18n'
+import { docsI18nResources } from '../features/docs/i18n'
 import { homeI18nResources } from '../features/home/i18n'
 import { pricingI18nResources } from '../features/pricing/i18n'
 import { subscriptionsI18nResources } from '../features/subscriptions/i18n'
@@ -59,16 +60,18 @@ export const resources = {
     usageLogsI18nResources.en,
     chatI18nResources.en,
     ticketsI18nResources.en,
-    homeI18nResources.en
+    homeI18nResources.en,
+    docsI18nResources.en
   ),
-zhCN: mergeFeatureTranslations(
+  zhCN: mergeFeatureTranslations(
     zhCN,
     pricingI18nResources.zhCN,
     subscriptionsI18nResources.zhCN,
     usageLogsI18nResources.zhCN,
     chatI18nResources.zhCN,
     ticketsI18nResources.zhCN,
-    homeI18nResources.zhCN
+    homeI18nResources.zhCN,
+    docsI18nResources.zhCN
   ),
   fr: mergeFeatureTranslations(
     fr,
@@ -77,7 +80,8 @@ zhCN: mergeFeatureTranslations(
     usageLogsI18nResources.fr,
     chatI18nResources.fr,
     ticketsI18nResources.fr,
-    homeI18nResources.fr
+    homeI18nResources.fr,
+    docsI18nResources.fr
   ),
   ru: mergeFeatureTranslations(
     ru,
@@ -86,7 +90,8 @@ zhCN: mergeFeatureTranslations(
     usageLogsI18nResources.ru,
     chatI18nResources.ru,
     ticketsI18nResources.ru,
-    homeI18nResources.ru
+    homeI18nResources.ru,
+    docsI18nResources.ru
   ),
   ja: mergeFeatureTranslations(
     ja,
@@ -95,7 +100,8 @@ zhCN: mergeFeatureTranslations(
     usageLogsI18nResources.ja,
     chatI18nResources.ja,
     ticketsI18nResources.ja,
-    homeI18nResources.ja
+    homeI18nResources.ja,
+    docsI18nResources.ja
   ),
   vi: mergeFeatureTranslations(
     vi,
@@ -104,7 +110,8 @@ zhCN: mergeFeatureTranslations(
     usageLogsI18nResources.vi,
     chatI18nResources.vi,
     ticketsI18nResources.vi,
-    homeI18nResources.vi
+    homeI18nResources.vi,
+    docsI18nResources.vi
   ),
   zhTW: mergeFeatureTranslations(
     zhTW,
@@ -113,7 +120,8 @@ zhCN: mergeFeatureTranslations(
     usageLogsI18nResources.zhTW,
     chatI18nResources.zhTW,
     ticketsI18nResources.zhTW,
-    homeI18nResources.zhTW
+    homeI18nResources.zhTW,
+    docsI18nResources.zhTW
   ),
 } as const
 

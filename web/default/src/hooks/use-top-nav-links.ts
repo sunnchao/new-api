@@ -19,18 +19,14 @@ For commercial licensing, please contact support@quantumnous.com
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { buildDocsMenuItems } from '@/features/docs/lib/docs-menu-items'
 import { useStatus } from '@/hooks/use-status'
 import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
 import { useAuthStore } from '@/stores/auth-store'
+import type { TopNavLink } from '@/components/layout/types'
 import '@/features/contact/i18n'
 
-export type TopNavLink = {
-  title: string
-  href: string
-  disabled?: boolean
-  requiresAuth?: boolean
-  external?: boolean
-}
+export type { TopNavLink }
 
 /**
  * Generate top navigation links based on HeaderNavModules configuration from backend /api/status
@@ -103,13 +99,19 @@ export function useTopNavLinks(): TopNavLink[] {
     links.push({ title: t('Rankings'), href: '/rankings', requiresAuth })
   }
 
-  // Docs (supports external links)
+  // Docs — secondary menu: vibe-coding tutorials + official docs
   if (modules?.docs !== false) {
-    if (docsLink) {
-      links.push({ title: t('Docs'), href: docsLink, external: true })
-    } else {
-      links.push({ title: t('Docs'), href: '/docs' })
-    }
+    const docsItems = buildDocsMenuItems(docsLink)
+    links.push({
+      title: t('Docs'),
+      href: '/docs',
+      items: docsItems.map((item) => ({
+        title: item.title,
+        href: item.href,
+        description: item.description,
+        external: item.external,
+      })),
+    })
   }
 
   // About
