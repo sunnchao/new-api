@@ -42,7 +42,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
 import { DOCS_TUTORIAL_PATHS } from '../constants'
-import { TUTORIALS } from '../data/tutorials'
+import { TUTORIALS } from '../tutorials'
 import {
   getAnthropicCompatibleBaseUrl,
   getApiOrigin,

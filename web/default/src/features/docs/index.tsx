@@ -34,7 +34,7 @@ import { useStatus } from '@/hooks/use-status'
 import { cn } from '@/lib/utils'
 
 import { DOCS_TUTORIAL_PATHS } from './constants'
-import { TUTORIALS } from './data/tutorials'
+import { TUTORIALS } from './tutorials'
 import { buildDocsMenuItems } from './lib/docs-menu-items'
 import type { DocsTutorialSlug } from './types'
 
