@@ -29,6 +29,10 @@ import { StatusBadge } from '@/components/status-badge'
 import { getLobeIcon } from '@/lib/lobe-icon'
 
 import { DEFAULT_TOKEN_UNIT, QUOTA_TYPE_VALUES } from '../constants'
+import {
+  getDynamicDisplayGroupRatio,
+  getDynamicPricingSummary,
+} from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
 import { isTokenBasedModel } from '../lib/model-helpers'
 import {
@@ -37,6 +41,7 @@ import {
 } from '../lib/model-list-price'
 import { stripTrailingZeros } from '../lib/price'
 import type { PricingModel, TokenUnit } from '../types'
+import { ModelBillingModeBadge } from './model-billing-mode-badge'
 
 // ----------------------------------------------------------------------------
 // Pricing Table Columns
@@ -106,16 +111,17 @@ export function usePricingColumns(
         })
         const isRequestBased =
           Boolean(pricingContext.requestPriceDisplay) || !isTokenBased
-        return (
+        return [
           <StatusBadge
             label={isRequestBased ? t('Request') : t('Token')}
             variant={isRequestBased ? 'neutral' : 'info'}
             copyable={false}
             className='-ml-1.5'
-          />
-        )
+          />,
+          <ModelBillingModeBadge model={row.original} className='-ml-1.5' />
+        ]
       },
-      size: 80,
+      size: 110,
       enableSorting: false,
     },
 
