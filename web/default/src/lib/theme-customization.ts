@@ -27,7 +27,7 @@ export const THEME_PRESETS = [
   {
     value: 'default',
     name: 'Default',
-    swatches: ['oklch(0.72 0.18 250)', 'oklch(0.7 0.12 280)'],
+    swatches: ['oklch(0.13 0 0)', 'oklch(0.95 0 0)'],
   },
   {
     // Inspired by Anthropic's official brand language: warm cream canvas
@@ -110,7 +110,7 @@ export type ThemeFont = 'default' | 'sans' | 'serif'
  * needs simple attribute selectors (no `:not()` gymnastics, no per-preset
  * font branches).
  */
-export type ResolvedThemeFont = Exclude<ThemeFont, 'default'>
+export type ResolvedThemeFont = Exclude<ThemeFont, 'anthropic'>
 
 export type ThemeCustomization = {
   preset: ThemePreset
@@ -121,7 +121,7 @@ export type ThemeCustomization = {
 }
 
 export const DEFAULT_THEME_CUSTOMIZATION: ThemeCustomization = {
-  preset: 'default',
+  preset: 'anthropic',
   font: 'default',
   radius: 'default',
   scale: 'default',

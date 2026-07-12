@@ -242,19 +242,19 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
               {primaryGroup}
             </span>
           )}
-          <span className='text-muted-foreground text-xs font-medium'>
-            {requestPriceDisplay || !isTokenBased
-              ? t('Per Request')
-              : t('Token-based')}
-          </span>
-          {isDynamicPricing && (
-            <StatusBadge
-              label={t('Dynamic Pricing')}
-              variant='warning'
-              copyable={false}
-              size='sm'
-            />
-          )}
+          {/*<span className='text-muted-foreground text-xs font-medium'>*/}
+          {/*  {requestPriceDisplay || !isTokenBased*/}
+          {/*    ? t('Per Request')*/}
+          {/*    : t('Token-based')}*/}
+          {/*</span>*/}
+          {/*{isDynamicPricing && (*/}
+          {/*  <StatusBadge*/}
+          {/*    label={t('Dynamic Pricing')}*/}
+          {/*    variant='warning'*/}
+          {/*    copyable={false}*/}
+          {/*    size='sm'*/}
+          {/*  />*/}
+          {/*)}*/}
           <ModelBillingModeBadge model={props.model} />
         </div>
         <ModelPerfBadge perf={props.perf} className='row-span-2 self-start' />
