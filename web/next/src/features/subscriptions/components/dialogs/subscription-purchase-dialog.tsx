@@ -95,8 +95,7 @@ export function SubscriptionPurchaseDialog(props: Props) {
   const hasCreem = props.enableCreem && !!plan.creem_product_id
   const hasWaffoPancake =
     props.enableWaffoPancake && !!plan.waffo_pancake_product_id
-  const hasEpay =
-    false // props.enableOnlineTopUp && (props.epayMethods || []).length > 0
+  const hasEpay = props.enableOnlineTopUp && (props.epayMethods || []).length > 0
   const allowBalancePay = plan.allow_balance_pay !== false
   const hasBalance = props.enableBalancePay !== false && allowBalancePay
   const hasAnyPayment = hasStripe || hasCreem || hasWaffoPancake || hasEpay || hasBalance
