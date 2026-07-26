@@ -12,10 +12,10 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
@@ -215,48 +215,54 @@ func TestGetUserModelsFiltersByRequestedGroup(t *testing.T) {
 	require.Empty(t, decodeUserModelsResponse(t, vipRecorder))
 }
 
-func TestListModelsIncludesBackupGroupModelsOnce(t *testing.T) {
-	originalSelfUseMode := operation_setting.SelfUseModeEnabled
-	operation_setting.SelfUseModeEnabled = true
+func TestGetUserModelsExpandsAutoGroupsInConfiguredOrder(t *testing.T) {
+	originalAutoGroups := setting.AutoGroups2JsonString()
+	originalUsableGroups := setting.UserUsableGroups2JSONString()
+	originalSpecialGroups := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup.ReadAll()
 	t.Cleanup(func() {
-		operation_setting.SelfUseModeEnabled = originalSelfUseMode
+		require.NoError(t, setting.UpdateAutoGroupsByJsonString(originalAutoGroups))
+		require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(originalUsableGroups))
+		specialGroups := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup
+		specialGroups.Clear()
+		specialGroups.AddAll(originalSpecialGroups)
+	})
+
+	require.NoError(t, setting.UpdateAutoGroupsByJsonString(`["vip","default","unavailable"]`))
+	require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(`{"auto":"自动分组","default":"默认分组","unavailable":"不可用分组"}`))
+	specialGroups := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup
+	specialGroups.Clear()
+	specialGroups.Set("default", map[string]string{
+		"+:vip":         "VIP 分组",
+		"-:unavailable": "",
 	})
 
 	db := setupModelListControllerTestDB(t)
 	require.NoError(t, db.Create(&model.User{
-		Id:       1002,
-		Username: "backup-model-list-user",
+		Id:       1003,
+		Username: "playground-auto-model-user",
 		Password: "password",
 		Group:    "default",
 		Status:   common.UserStatusEnabled,
 	}).Error)
 	require.NoError(t, db.Create(&[]model.Ability{
-		{Group: "default", Model: "zz-primary-model", ChannelId: 1, Enabled: true},
-		{Group: "default", Model: "zz-shared-model", ChannelId: 1, Enabled: true},
-		{Group: "vip", Model: "zz-backup-model", ChannelId: 1, Enabled: true},
+		{Group: "vip", Model: "zz-vip-model", ChannelId: 1, Enabled: true},
 		{Group: "vip", Model: "zz-shared-model", ChannelId: 1, Enabled: true},
+		{Group: "default", Model: "zz-default-model", ChannelId: 1, Enabled: true},
+		{Group: "default", Model: "zz-shared-model", ChannelId: 2, Enabled: true},
+		{Group: "unavailable", Model: "zz-unavailable-model", ChannelId: 1, Enabled: true},
 	}).Error)
 
 	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Request = httptest.NewRequest(http.MethodGet, "/v1/models", nil)
-	ctx.Set("id", 1002)
-	common.SetContextKey(ctx, constant.ContextKeyBackupTokenGroup, "vip")
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = httptest.NewRequest(http.MethodGet, "/api/user/models?group=auto", nil)
+	context.Set("id", 1003)
 
-	ListModels(ctx, constant.ChannelTypeOpenAI)
+	GetUserModels(context)
 
-	require.Equal(t, http.StatusOK, recorder.Code)
-	var payload listModelsResponse
-	require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &payload))
-	require.True(t, payload.Success)
-
-	counts := make(map[string]int, len(payload.Data))
-	for _, item := range payload.Data {
-		counts[item.Id]++
-	}
-	require.Equal(t, 1, counts["zz-primary-model"])
-	require.Equal(t, 1, counts["zz-backup-model"])
-	require.Equal(t, 1, counts["zz-shared-model"])
+	models := decodeUserModelsResponse(t, recorder)
+	require.Len(t, models, 3)
+	assert.ElementsMatch(t, []string{"zz-vip-model", "zz-shared-model"}, models[:2])
+	assert.Equal(t, "zz-default-model", models[2])
 }
 
 func TestListModelsIncludesTieredBillingModel(t *testing.T) {
@@ -461,7 +467,7 @@ func TestCheckUpdatePasswordRejectsHistoricalEmptyPassword(t *testing.T) {
 
 func TestSetupLoginDoesNotTouchPasswordWhenPasswordFieldOmitted(t *testing.T) {
 	db := setupModelListControllerTestDB(t)
-	require.NoError(t, db.AutoMigrate(&model.Log{}))
+	require.NoError(t, db.AutoMigrate(&model.Log{}, &model.UserSession{}))
 
 	hashedPassword, err := common.Password2Hash("CurrentPassword123")
 	require.NoError(t, err)
@@ -475,8 +481,6 @@ func TestSetupLoginDoesNotTouchPasswordWhenPasswordFieldOmitted(t *testing.T) {
 	require.NoError(t, db.Create(user).Error)
 
 	router := gin.New()
-	store := cookie.NewStore([]byte("test-session-secret"))
-	router.Use(sessions.Sessions("session", store))
 	router.GET("/", func(c *gin.Context) {
 		setupLogin(&model.User{
 			Id:       user.Id,

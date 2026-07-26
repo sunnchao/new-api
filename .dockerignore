@@ -13,10 +13,5 @@ docs
 .eslintcache
 .gocache
 /web/node_modules
-/web/default/node_modules
-/web/default/dist
-/web/classic/node_modules
-/web/classic/dist
-/web/next/node_modules
-/web/next/.next
+/web/dist
 !THIRD-PARTY-LICENSES.md

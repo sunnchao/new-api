@@ -250,37 +250,7 @@ func ListModels(c *gin.Context, modelType int) {
 			userModelNames = append(userModelNames, allowModel)
 		}
 	} else {
-		var models []string
-		if groups.tokenGroup == "auto" {
-			for _, autoGroup := range ownerGroups {
-				groupModels := model.GetGroupEnabledModels(autoGroup)
-				for _, g := range groupModels {
-					if !common.StringsContains(models, g) {
-						models = append(models, g)
-					}
-				}
-			}
-		} else {
-			userId := c.GetInt("id")
-			userGroup, err := model.GetUserGroup(userId, false)
-			if err != nil {
-				c.JSON(http.StatusOK, gin.H{
-					"success": false,
-					"message": "get user group failed",
-				})
-				return
-			}
-			models = model.GetGroupEnabledModels(ownerGroups[0])
-			// 非 auto 场景下追加备用分组模型
-			backupTokenGroup := common.GetContextKeyString(c, constant.ContextKeyBackupTokenGroup)
-			for _, backupGroup := range service.GetTokenBackupGroup(backupTokenGroup, userGroup) {
-				for _, backupModel := range model.GetGroupEnabledModels(backupGroup) {
-					if !common.StringsContains(models, backupModel) {
-						models = append(models, backupModel)
-					}
-				}
-			}
-		}
+		models := service.GetGroupsEnabledModels(ownerGroups)
 		for _, modelName := range models {
 			if !acceptUnsetRatioModel {
 				if !helper.HasModelBillingConfig(modelName) {

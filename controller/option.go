@@ -80,6 +80,9 @@ func GetOptions(c *gin.Context) {
 	optionValues := make(map[string]string)
 	common.OptionMapRWMutex.Lock()
 	for k, v := range common.OptionMap {
+		if k == "theme.frontend" {
+			continue
+		}
 		value := common.Interface2String(v)
 		isSensitiveKey := strings.HasSuffix(k, "Token") ||
 			strings.HasSuffix(k, "Secret") ||
@@ -216,17 +219,10 @@ func UpdateOption(c *gin.Context) {
 			return
 		}
 	case "theme.frontend":
-		if option.Value != "default" && option.Value != "classic" && option.Value != "next" {
+		if option.Value != "default" {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,
-				"message": "无效的主题值，可选值：default（新版前端）、classic（经典前端）、next（Next 前端）",
-			})
-			return
-		}
-		if option.Value == "next" && common.GetNextFrontendBaseURL() == "" {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "无法启用 Next 前端，请先配置 NEXT_FRONTEND_BASE_URL 或 FRONTEND_NEXT_BASE_URL 指向正在运行的 Next 服务",
+				"message": "Classic 前端已移除，主题只能设置为 default",
 			})
 			return
 		}

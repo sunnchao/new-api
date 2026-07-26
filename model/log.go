@@ -211,7 +211,7 @@ func buildOpField(action string, params map[string]interface{}) map[string]inter
 
 // RecordLoginLog 记录用户登录成功的审计日志（type=LogTypeLogin）。
 // username 由调用方传入（登录流程已持有用户对象），避免额外的数据库查询。
-// content 为英文兜底文本（用于导出/经典前端）；action+params 供前端本地化渲染。
+// content 为英文兜底文本（用于导出）；action+params 供前端本地化渲染。
 // extra 可携带 login_method、user_agent 等附加信息（普通用户可见）。
 func RecordLoginLog(userId int, username string, content string, ip string, action string, params map[string]interface{}, extra map[string]interface{}) {
 	other := map[string]interface{}{}
@@ -235,7 +235,7 @@ func RecordLoginLog(userId int, username string, content string, ip string, acti
 
 // RecordOperationAuditLog 记录管理/高危操作审计日志（type=LogTypeManage）。
 // logUserId 为日志归属者，管理审计日志应归属实际操作者；目标资源/用户放入
-// action params。username 内部按 logUserId 查询。content 为英文兜底文本（导出/经典前端用）。
+// action params。username 内部按 logUserId 查询。content 为英文兜底文本（供导出使用）。
 // action+params 写入 Other.op，供前端本地化渲染（普通用户可见，不含敏感信息）。
 // adminInfo 存放操作者身份（写入 Other.admin_info，普通用户查询时剥离）；
 // auditInfo 存放路由/方法/结果等中间件兜底信息（写入 Other.audit_info，普通用户查询时剥离）。
@@ -759,94 +759,4 @@ func DeleteOldLogBatch(ctx context.Context, targetTimestamp int64, limit int) (i
 		return 0, result.Error
 	}
 	return result.RowsAffected, nil
-}
-
-func DeleteOldLog(ctx context.Context, targetTimestamp int64, limit int) (int64, error) {
-	if limit <= 0 {
-		limit = 100
-	}
-
-	var total int64 = 0
-
-	for {
-		if nil != ctx.Err() {
-			return total, ctx.Err()
-		}
-
-		rowsAffected, err := DeleteOldLogBatch(ctx, targetTimestamp, limit)
-		if nil != err {
-			return total, err
-		}
-
-		total += rowsAffected
-
-		if rowsAffected < int64(limit) {
-			break
-		}
-	}
-
-	return total, nil
-}
-
-// DeleteOldLogByGroupByUser
-// 1. 按照用户分组查询日志
-// 2. 记录归档日志
-// 3. 按照用户分组删除日志
-func DeleteOldLogByGroupByUser(ctx context.Context, targetTimestamp int64) (int64, error) {
-	type UserLogSummary struct {
-		UserId     int   `gorm:"-"`
-		LogCount   int64 `gorm:"-"`
-		TotalQuota int64 `gorm:"-"`
-	}
-
-	var userLogSummaries []UserLogSummary
-	// 使用 Table 明确指定查询 logs 表，避免 GORM 尝试映射到其他表
-	err := LOG_DB.Table("logs").
-		Select("user_id, COUNT(*) as log_count, SUM(quota) as total_quota").
-		Where("type = ? AND created_at < ?", LogTypeConsume, targetTimestamp).
-		Group("user_id").
-		Scan(&userLogSummaries).Error
-
-	if err != nil {
-		return 0, err
-	}
-
-	var totalRowsAffected int64 = 0
-
-	// 按照用户分组删除日志
-	for _, summary := range userLogSummaries {
-		if nil != ctx.Err() {
-			return totalRowsAffected, ctx.Err()
-		}
-
-		result := LOG_DB.Where("user_id = ? AND type = ? AND created_at < ?",
-			summary.UserId, LogTypeConsume, targetTimestamp).Delete(&Log{})
-
-		if result.Error != nil {
-			return totalRowsAffected, result.Error
-		}
-
-		totalRowsAffected += result.RowsAffected
-	}
-
-	// 记录归档日志
-	for _, summary := range userLogSummaries {
-		formattedTime := time.Unix(targetTimestamp, 0).Format("2006-01-02 15:04:05")
-
-		archiveContent := fmt.Sprintf("归档截止到 %s 的 %d 条日志，共计 %d 额度",
-			formattedTime, summary.LogCount, summary.TotalQuota)
-
-		archiveLog := &Log{
-			UserId:    summary.UserId,
-			CreatedAt: common.GetTimestamp(),
-			Type:      LogTypeArchive,
-			Content:   archiveContent,
-		}
-
-		if err := LOG_DB.Create(archiveLog).Error; err != nil {
-			logger.LogError(ctx, "failed to record archive log: "+err.Error())
-		}
-	}
-
-	return totalRowsAffected, nil
 }
