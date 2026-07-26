@@ -722,9 +722,9 @@ func GetUserModels(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    service.GetGroupsEnabledModels(groupsToQuery),
+		"success":      true,
+		"message":      "",
+		"data":         service.GetGroupsEnabledModels(groupsToQuery),
 		"model_groups": modelGroups,
 		"auto_groups":  service.GetUserAutoGroup(user.Group),
 	})
@@ -1608,4 +1608,52 @@ func UpdateUserSetting(c *gin.Context) {
 	}
 
 	common.ApiSuccessI18n(c, i18n.MsgSettingSaved, nil)
+}
+
+func TestUserNotification(c *gin.Context) {
+	userId := c.GetInt("id")
+	user, err := model.GetUserById(userId, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	userSetting := user.GetSetting()
+	var req struct {
+		NotifyType    string `json:"notify_type"`
+		WebhookUrl    string `json:"webhook_url"`
+		WebhookSecret string `json:"webhook_secret"`
+	}
+	if c.Request.Body != nil && c.Request.ContentLength != 0 {
+		if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return
+		}
+	}
+	if req.NotifyType == dto.NotifyTypeWebhook || req.WebhookUrl != "" {
+		req.WebhookUrl = strings.TrimSpace(req.WebhookUrl)
+		if req.WebhookUrl == "" {
+			common.ApiErrorI18n(c, i18n.MsgSettingWebhookEmpty)
+			return
+		}
+		if _, err := url.ParseRequestURI(req.WebhookUrl); err != nil {
+			common.ApiErrorI18n(c, i18n.MsgSettingWebhookInvalid)
+			return
+		}
+		userSetting.NotifyType = dto.NotifyTypeWebhook
+		userSetting.WebhookUrl = req.WebhookUrl
+		userSetting.WebhookSecret = req.WebhookSecret
+	}
+
+	if err := notifyUser(user.Id, user.Email, userSetting, dto.NewNotify(
+		dto.NotifyTypeChannelTest,
+		"通知测试",
+		"这是一条测试通知，用于确认当前通知渠道是否可用。",
+		nil,
+	)); err != nil {
+		common.ApiErrorMsg(c, err.Error())
+		return
+	}
+
+	common.ApiSuccess(c, nil)
 }

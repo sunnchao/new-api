@@ -16,18 +16,26 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Crown, RefreshCw, Sparkles, Check } from 'lucide-react'
+import { Crown, RefreshCw } from 'lucide-react'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
   StatusBadge,
   dotColorMap,
   textColorMap,
+  type StatusVariant,
 } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardDescription, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardDescription,
+  CardTitle,
+} from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import {
   Select,
@@ -51,11 +59,9 @@ import {
   getSelfSubscriptionFull,
   updateBillingPreference,
 } from '@/features/subscriptions/api'
-import { ConfirmDialog } from '@/components/confirm-dialog'
 import { SubscriptionPurchaseDialog } from '@/features/subscriptions/components/dialogs/subscription-purchase-dialog'
 import { SubscriptionRenewDialog } from '@/features/subscriptions/components/dialogs/subscription-renew-dialog'
 import { PublicSubscriptionPlanCard } from '@/features/subscriptions/components/public-subscription-plan-card'
-import { useAuthStore } from '@/stores/auth-store'
 import {
   formatBillingMode,
   formatSubscriptionAmountValue,
@@ -69,6 +75,7 @@ import type {
 } from '@/features/subscriptions/types'
 import { formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth-store'
 
 import type { PaymentMethod, TopupInfo } from '../types'
 
@@ -115,9 +122,7 @@ interface UserSubscriptionQuotaLimitsProps {
   isActive: boolean
 }
 
-function UserSubscriptionQuotaLimits(
-  props: UserSubscriptionQuotaLimitsProps
-) {
+function UserSubscriptionQuotaLimits(props: UserSubscriptionQuotaLimitsProps) {
   const { t } = useTranslation()
   const items = useMemo(
     () => getSubscriptionQuotaLimitItems(props.subscription, t),
@@ -127,7 +132,7 @@ function UserSubscriptionQuotaLimits(
   if (items.length === 0) return null
 
   return (
-    <div className='mt-2 rounded-md border bg-muted/30 p-2'>
+    <div className='bg-muted/30 mt-2 rounded-md border p-2'>
       <div className='text-muted-foreground mb-1.5 text-xs font-medium'>
         {t('Quota Limits')}
       </div>
@@ -292,26 +297,28 @@ export function SubscriptionPlansCard({
   const hasAny = allSubscriptions.length > 0
   const scheduledSubscriptions = useMemo(
     () =>
-      allSubscriptions.filter(
-        (s) => s?.subscription?.status === 'scheduled'
-      ),
+      allSubscriptions.filter((s) => s?.subscription?.status === 'scheduled'),
     [allSubscriptions]
   )
   const handleActivateScheduled = async (subId: number) => {
     setActivating(true)
     try {
       const res = await activateScheduledSubscription(subId)
-      if (res.success) {
-        toast.success(t('Subscription activated'))
-        await fetchSelfSubscription()
-      } else {
+      if (!res.success) {
         toast.error(res.message || t('Activation failed'))
+        return
       }
+
+      await Promise.allSettled([
+        fetchSelfSubscription(),
+        Promise.resolve().then(() => onPurchaseSuccess?.()),
+      ])
+      toast.success(t('Subscription activated'))
+      setActivateConfirmSubId(null)
     } catch {
       toast.error(t('Activation failed'))
     } finally {
       setActivating(false)
-      setActivateConfirmSubId(null)
     }
   }
   const isAvailable = loading || plans.length > 0 || hasAny
@@ -603,11 +610,11 @@ export function SubscriptionPlansCard({
                     )
                   } else if (isScheduled) {
                     statusBadge = (
-                        <StatusBadge
-                            label={t('Pending')}
-                            variant='warning'
-                            copyable={false}
-                        />
+                      <StatusBadge
+                        label={t('Pending')}
+                        variant='warning'
+                        copyable={false}
+                      />
                     )
                   } else if (isCancelled) {
                     statusBadge = (
@@ -642,23 +649,23 @@ export function SubscriptionPlansCard({
                           </span>
                           {statusBadge}
                           <StatusBadge
-                              label={formatBillingMode(
-                                  subscription?.billing_mode,
-                                  t
-                              )}
-                              variant='neutral'
-                              copyable={false}
+                            label={formatBillingMode(
+                              subscription?.billing_mode,
+                              t
+                            )}
+                            variant='neutral'
+                            copyable={false}
                           />
                           {subscription?.source && (
-                              <StatusBadge
-                                  label={
-                                    subscription.source === 'admin'
-                                        ? t('Admin Assigned')
-                                        : t('Self Purchased')
-                                  }
-                                  variant='neutral'
-                                  copyable={false}
-                              />
+                            <StatusBadge
+                              label={
+                                subscription.source === 'admin'
+                                  ? t('Admin Assigned')
+                                  : t('Self Purchased')
+                              }
+                              variant='neutral'
+                              copyable={false}
+                            />
                           )}
                         </div>
                         {isActive && (
@@ -687,9 +694,11 @@ export function SubscriptionPlansCard({
                             size='sm'
                             className='h-6 px-2 text-xs'
                             disabled={activating}
-                            onClick={() =>
-                              setActivateConfirmSubId(subscription!.id)
-                            }
+                            onClick={() => {
+                              if (subscription) {
+                                setActivateConfirmSubId(subscription.id)
+                              }
+                            }}
                           >
                             {t('Activate Now')}
                           </Button>
@@ -698,18 +707,18 @@ export function SubscriptionPlansCard({
                       <div className='text-muted-foreground mt-1.5'>
                         {endTimeLabel}{' '}
                         {new Date(
-                            ((isScheduled
-                                ? subscription?.start_time
-                                : subscription?.end_time) || 0) * 1000
+                          ((isScheduled
+                            ? subscription?.start_time
+                            : subscription?.end_time) || 0) * 1000
                         ).toLocaleString()}
                       </div>
                       {isScheduled && (
-                          <div className='text-muted-foreground mt-1'>
-                            {t('Estimated expiry')}:{' '}
-                            {new Date(
-                                (subscription?.end_time || 0) * 1000
-                            ).toLocaleString()}
-                          </div>
+                        <div className='text-muted-foreground mt-1'>
+                          {t('Estimated expiry')}:{' '}
+                          {new Date(
+                            (subscription?.end_time || 0) * 1000
+                          ).toLocaleString()}
+                        </div>
                       )}
                       {isActive && nextResetTime > 0 && (
                         <div className='text-muted-foreground mt-1'>
@@ -864,6 +873,7 @@ export function SubscriptionPlansCard({
             'After activation, the new subscription will start immediately. The existing active subscription keeps running in parallel until its natural expiry. Continue?'
           )}
           handleConfirm={() => handleActivateScheduled(activateConfirmSubId)}
+          isLoading={activating}
         />
       )}
     </>

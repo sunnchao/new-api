@@ -16,7 +16,34 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type TFunction } from 'i18next'
+import type { TFunction } from 'i18next'
+
+import type { SubscriptionStatus } from './types'
+
+// ============================================================================
+// Subscription Status Options
+// ============================================================================
+
+export const SUBSCRIPTION_STATUS_LABEL_KEYS: Record<
+  SubscriptionStatus,
+  string
+> = {
+  active: 'Active (status)',
+  scheduled: 'Pending',
+  expired: 'Expired',
+  cancelled: 'Cancelled',
+  exhausted: 'Exhausted',
+}
+
+export const ADMIN_SUBSCRIPTION_STATUS_FILTERS: ReadonlyArray<{
+  value: SubscriptionStatus
+  labelKey: string
+}> = [
+  { value: 'active', labelKey: 'Active (status)' },
+  { value: 'scheduled', labelKey: 'Pending' },
+  { value: 'expired', labelKey: 'Expired' },
+  { value: 'cancelled', labelKey: 'Cancelled' },
+]
 
 // ============================================================================
 // Duration Unit Options

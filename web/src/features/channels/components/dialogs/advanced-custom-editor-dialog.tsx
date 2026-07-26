@@ -711,7 +711,8 @@ export function AdvancedCustomEditorDialog({
               {t('Advanced text editing')}
             </span>
           </div>
-          <JsonCodeEditor
+          <
+            JsonCodeEditor
             value={jsonText}
             onChange={handleJsonChange}
             placeholder={stringifyAdvancedCustomConfig(

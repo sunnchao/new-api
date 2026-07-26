@@ -193,7 +193,14 @@ export const GroupRatioForm = memo(function GroupRatioForm({
                 <FormItem>
                   <FormLabel>{t('Client restrictions')}</FormLabel>
                   <FormControl>
-                    <Textarea rows={5} {...field} />
+                    <JsonCodeEditor
+                      value={field.value}
+                      onChange={field.onChange}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      textareaRef={field.ref}
+                      heightClassName='h-40 min-h-40 max-h-40'
+                    />
                   </FormControl>
                   <FormDescription>
                     {t(
@@ -315,7 +322,14 @@ export const GroupRatioForm = memo(function GroupRatioForm({
                 <FormItem>
                   <FormLabel>{t('Hidden groups')}</FormLabel>
                   <FormControl>
-                    <Textarea rows={6} {...field} />
+                    <JsonCodeEditor
+                      value={field.value}
+                      onChange={field.onChange}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      textareaRef={field.ref}
+                      heightClassName='h-40 min-h-40 max-h-40'
+                    />
                   </FormControl>
                   <FormDescription>
                     {t(
@@ -387,7 +401,14 @@ export const GroupRatioForm = memo(function GroupRatioForm({
                 <FormItem>
                   <FormLabel>{t('Client restrictions')}</FormLabel>
                   <FormControl>
-                    <Textarea rows={6} {...field} />
+                    <JsonCodeEditor
+                      value={field.value}
+                      onChange={field.onChange}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      textareaRef={field.ref}
+                      heightClassName='h-40 min-h-40 max-h-40'
+                    />
                   </FormControl>
                   <FormDescription>
                     {t(

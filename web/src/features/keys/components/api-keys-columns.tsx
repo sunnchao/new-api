@@ -20,8 +20,6 @@ import { useQuery } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
-import { BadgeCell, TruncatedCell } from '@/components/data-table'
-import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
@@ -38,6 +36,7 @@ import { cn } from '@/lib/utils'
 
 import { API_KEY_STATUSES } from '../constants'
 import type { ApiKey } from '../types'
+import { ApiKeyGroupRouteCell } from './api-key-group-route-cell'
 import { ApiKeyTimestampCell } from './api-key-timestamp-cell'
 import {
   ApiKeyCell,
@@ -51,13 +50,6 @@ function getQuotaProgressColor(percentage: number): string {
   if (percentage <= 10) return '[&_[data-slot=progress-indicator]]:bg-rose-500'
   if (percentage <= 30) return '[&_[data-slot=progress-indicator]]:bg-amber-500'
   return '[&_[data-slot=progress-indicator]]:bg-emerald-500'
-}
-
-function parseGroupList(value?: string | null): string[] {
-  return (value || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
 }
 
 function useGroupRatios(): Record<string, number> {
@@ -199,67 +191,10 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
     {
       accessorKey: 'group',
       header: t('Group'),
-      cell: ({ row }) => {
-        const apiKey = row.original
-        const group = row.getValue('group') as string
-        const ratio = group && group !== 'auto' ? groupRatios[group] : undefined
-        const backupGroups = parseGroupList(apiKey.backup_group)
-
-        if (group === 'auto') {
-          return (
-              <span className='inline-flex max-w-[240px] flex-wrap items-center gap-1.5'>
-            <Tooltip>
-              <TooltipTrigger
-                render={<BadgeCell className='gap-1.5 text-xs' />}
-              >
-                <GroupBadge group='auto' />
-                {apiKey.cross_group_retry && (
-                  <StatusBadge
-                    label={t('Cross-group')}
-                    variant='info'
-                    copyable={false}
-                  />
-                )}
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className='text-xs'>
-                  {t(
-                    'Automatically selects the best available group with circuit breaker mechanism'
-                  )}
-                </span>
-              </TooltipContent>
-            </Tooltip>
-                {backupGroups.map((backupGroup) => (
-                    <GroupBadge
-                        key={backupGroup}
-                        group={backupGroup}
-                        ratio={groupRatios[backupGroup]}
-                        className='opacity-70'
-                    />
-                ))}
-                  </span>
-          )
-        }
-        return (
-          <TruncatedCell
-            className='-ml-1.5'
-            tooltipContent={group || '-'}
-            tooltipClassName='break-all'
-          >
-            <GroupBadge group={group} ratio={ratio} />
-            {backupGroups.map((backupGroup) => (
-                <GroupBadge
-                    key={backupGroup}
-                    group={backupGroup}
-                    ratio={groupRatios[backupGroup]}
-                    className='opacity-70'
-                />
-            ))}
-          </TruncatedCell>
-        )
-      },
-      size: 160,
-      meta: { mobileHidden: true },
+      cell: ({ row }) => (
+        <ApiKeyGroupRouteCell apiKey={row.original} groupRatios={groupRatios} />
+      ),
+      size: 300,
     },
     {
       id: 'model_limits',

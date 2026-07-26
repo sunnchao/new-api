@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { PlayIcon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   type ColumnDef,
@@ -7,10 +8,14 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { MoreHorizontal, Ban, RefreshCw, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { formatQuota } from '@/lib/format'
-import { cn } from '@/lib/utils'
+
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { DataTablePagination, DataTableView } from '@/components/data-table'
+import { PageFooterPortal } from '@/components/layout'
+import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -22,35 +27,46 @@ import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ConfirmDialog } from '@/components/confirm-dialog'
-import { DataTablePagination, DataTableView } from '@/components/data-table'
-import { PageFooterPortal } from '@/components/layout'
-import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
+import { formatQuota } from '@/lib/format'
+import { cn } from '@/lib/utils'
+
 import {
   getAllUserSubscriptions,
   getAdminPlans,
+  adminActivateScheduledSubscription,
   invalidateUserSubscription,
   deleteUserSubscription,
   renewUserSubscription,
 } from '../api'
+import {
+  ADMIN_SUBSCRIPTION_STATUS_FILTERS,
+  SUBSCRIPTION_STATUS_LABEL_KEYS,
+} from '../constants'
 import { formatBillingMode, formatTimestamp } from '../lib'
-import type { AdminUserSubscriptionOverview } from '../types'
+import type {
+  AdminUserSubscriptionOverview,
+  SubscriptionStatus,
+} from '../types'
 
 // Matches the old SubscriptionOverviewPage status config
-const STATUS_CONFIG: Record<string, { variant: StatusBadgeProps['variant'] }> =
-  {
-    active: { variant: 'success' },
-    expired: { variant: 'neutral' },
-    cancelled: { variant: 'warning' },
-    exhausted: { variant: 'danger' },
-  }
+const STATUS_CONFIG: Record<
+  SubscriptionStatus,
+  { variant: StatusBadgeProps['variant'] }
+> = {
+  active: { variant: 'success' },
+  scheduled: { variant: 'info' },
+  expired: { variant: 'neutral' },
+  cancelled: { variant: 'warning' },
+  exhausted: { variant: 'danger' },
+}
 
 type ConfirmAction = {
-  type: 'invalidate' | 'delete' | 'renew'
+  type: 'activate' | 'invalidate' | 'delete' | 'renew'
   row: AdminUserSubscriptionOverview
 }
 
@@ -120,18 +136,9 @@ function useAllSubscriptionsColumns(onAction: (action: ConfirmAction) => void) {
         header: t('Status'),
         cell: ({ row }) => {
           const status = row.original.status
-          const config = STATUS_CONFIG[status] || {
-            variant: 'neutral' as const,
-          }
-          const labelMap: Record<string, string> = {
-            active: t('Active (status)'),
-            expired: t('Expired'),
-            cancelled: t('Cancelled'),
-            exhausted: t('Exhausted'),
-          }
           return (
-            <StatusBadge variant={config.variant}>
-              {labelMap[status] || status}
+            <StatusBadge variant={STATUS_CONFIG[status].variant}>
+              {t(SUBSCRIPTION_STATUS_LABEL_KEYS[status])}
             </StatusBadge>
           )
         },
@@ -183,6 +190,12 @@ function useAllSubscriptionsColumns(onAction: (action: ConfirmAction) => void) {
           }
 
           const pct = Math.round((amount_used / amount_total) * 100)
+          let progressColor = 'bg-success'
+          if (pct > 90) {
+            progressColor = 'bg-destructive'
+          } else if (pct > 70) {
+            progressColor = 'bg-warning'
+          }
 
           return (
             <div className='min-w-[120px] text-xs'>
@@ -197,11 +210,7 @@ function useAllSubscriptionsColumns(onAction: (action: ConfirmAction) => void) {
                 <div
                   className={cn(
                     'h-full rounded-full transition-all',
-                    pct > 90
-                      ? 'bg-destructive'
-                      : pct > 70
-                        ? 'bg-warning'
-                        : 'bg-success'
+                    progressColor
                   )}
                   style={{ width: `${Math.min(pct, 100)}%` }}
                 />
@@ -367,6 +376,7 @@ function useAllSubscriptionsColumns(onAction: (action: ConfirmAction) => void) {
         header: t('Actions'),
         cell: ({ row }) => {
           const isActive = row.original.status === 'active'
+          const isScheduled = row.original.status === 'scheduled'
           return (
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -375,6 +385,20 @@ function useAllSubscriptionsColumns(onAction: (action: ConfirmAction) => void) {
                 <MoreHorizontal className='h-4 w-4' />
               </DropdownMenuTrigger>
               <DropdownMenuContent align='end'>
+                {isScheduled && (
+                  <DropdownMenuItem
+                    onClick={() =>
+                      onAction({ type: 'activate', row: row.original })
+                    }
+                  >
+                    <HugeiconsIcon
+                      icon={PlayIcon}
+                      strokeWidth={2}
+                      className='mr-2 h-4 w-4'
+                    />
+                    {t('Activate Now')}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   disabled={!isActive}
                   onClick={() => onAction({ type: 'renew', row: row.original })}
@@ -459,6 +483,17 @@ export function AllSubscriptionsTable() {
     return opts
   }, [plansData, t])
 
+  const statusOptions = useMemo(
+    () => [
+      { value: '__all__', label: t('All Status') },
+      ...ADMIN_SUBSCRIPTION_STATUS_FILTERS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    ],
+    [t]
+  )
+
   const { data, isLoading, isFetching } = useQuery({
     queryKey: [
       'admin-all-subscriptions',
@@ -476,10 +511,12 @@ export function AllSubscriptionsTable() {
         page_size: pageSize,
       }
       if (debouncedUsername) params.username = debouncedUsername
-      if (planIdFilter && planIdFilter !== '__all__')
+      if (planIdFilter && planIdFilter !== '__all__') {
         params.plan_id = Number(planIdFilter)
-      if (statusFilter && statusFilter !== '__all__')
+      }
+      if (statusFilter && statusFilter !== '__all__') {
         params.status = statusFilter
+      }
       if (groupFilter) params.user_group = groupFilter
 
       const result = await getAllUserSubscriptions(params)
@@ -534,49 +571,114 @@ export function AllSubscriptionsTable() {
     if (!confirmAction) return
     setActionLoading(true)
     try {
-      if (confirmAction.type === 'invalidate') {
-        const res = await invalidateUserSubscription(confirmAction.row.id)
-        if (res.success) {
-          toast.success(res.data?.message || t('Has been invalidated'))
-          queryClient.invalidateQueries({
-            queryKey: ['admin-all-subscriptions'],
-          })
+      switch (confirmAction.type) {
+        case 'activate': {
+          const res = await adminActivateScheduledSubscription(
+            confirmAction.row.id
+          )
+          if (!res.success) {
+            toast.error(res.message || t('Activation failed'))
+            return
+          }
+          toast.success(t('Subscription activated'))
           setConfirmAction(null)
-        } else {
-          toast.error(res.message || t('Operation failed'))
+          break
         }
-      } else if (confirmAction.type === 'renew') {
-        const res = await renewUserSubscription(confirmAction.row.id)
-        if (res.success) {
+        case 'invalidate': {
+          const res = await invalidateUserSubscription(confirmAction.row.id)
+          if (!res.success) {
+            toast.error(res.message || t('Operation failed'))
+            return
+          }
+          toast.success(res.data?.message || t('Has been invalidated'))
+          setConfirmAction(null)
+          break
+        }
+        case 'renew': {
+          const res = await renewUserSubscription(confirmAction.row.id)
+          if (!res.success) {
+            toast.error(res.message || t('Operation failed'))
+            return
+          }
           const newEndTime = res.data?.new_end_time
           toast.success(
             newEndTime
               ? `${t('Renewal successful')}: ${formatTimestamp(newEndTime)}`
               : t('Renewal successful')
           )
-          queryClient.invalidateQueries({
-            queryKey: ['admin-all-subscriptions'],
-          })
           setConfirmAction(null)
-        } else {
-          toast.error(res.message || t('Operation failed'))
+          break
         }
-      } else {
-        const res = await deleteUserSubscription(confirmAction.row.id)
-        if (res.success) {
+        case 'delete': {
+          const res = await deleteUserSubscription(confirmAction.row.id)
+          if (!res.success) {
+            toast.error(res.message || t('Operation failed'))
+            return
+          }
           toast.success(t('Deleted'))
-          queryClient.invalidateQueries({
-            queryKey: ['admin-all-subscriptions'],
-          })
           setConfirmAction(null)
-        } else {
-          toast.error(res.message || t('Operation failed'))
+          break
         }
       }
+      await Promise.allSettled([
+        Promise.resolve().then(() =>
+          queryClient.invalidateQueries({
+            queryKey: ['admin-all-subscriptions'],
+          })
+        ),
+      ])
     } catch {
-      toast.error(t('Operation failed'))
+      toast.error(
+        confirmAction.type === 'activate'
+          ? t('Activation failed')
+          : t('Operation failed')
+      )
     } finally {
       setActionLoading(false)
+    }
+  }
+
+  let confirmDialogContent: {
+    title: string
+    desc: string
+    confirmText?: string
+  } | null = null
+  if (confirmAction) {
+    switch (confirmAction.type) {
+      case 'activate':
+        confirmDialogContent = {
+          title: t('Activate subscription now'),
+          desc: t(
+            'After activation, the new subscription will start immediately. The existing active subscription keeps running in parallel until its natural expiry. Continue?'
+          ),
+          confirmText: t('Activate Now'),
+        }
+        break
+      case 'invalidate':
+        confirmDialogContent = {
+          title: t('Confirm invalidate'),
+          desc: t(
+            'After invalidating, this subscription will be immediately deactivated. Historical records are not affected. Continue?'
+          ),
+        }
+        break
+      case 'renew':
+        confirmDialogContent = {
+          title: t('Confirm manual renew'),
+          desc: t(
+            'This will create a new scheduled subscription for one original plan period. The current active subscription will continue unchanged. Continue?'
+          ),
+          confirmText: t('Manual Renew'),
+        }
+        break
+      case 'delete':
+        confirmDialogContent = {
+          title: t('Confirm delete'),
+          desc: t(
+            'Deleting will permanently remove this subscription record (including benefit details). Continue?'
+          ),
+        }
+        break
     }
   }
 
@@ -591,6 +693,7 @@ export function AllSubscriptionsTable() {
           className='h-8 w-[200px]'
         />
         <Select
+          items={planOptions}
           value={planIdFilter}
           onValueChange={(value) => setPlanIdFilter(value ?? '__all__')}
         >
@@ -598,14 +701,17 @@ export function AllSubscriptionsTable() {
             <SelectValue placeholder={t('Plan')} />
           </SelectTrigger>
           <SelectContent>
-            {planOptions.map((opt) => (
-              <SelectItem key={opt.value || '__all__'} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
+            <SelectGroup>
+              {planOptions.map((opt) => (
+                <SelectItem key={opt.value || '__all__'} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
         <Select
+          items={statusOptions}
           value={statusFilter}
           onValueChange={(value) => setStatusFilter(value ?? '__all__')}
         >
@@ -613,10 +719,13 @@ export function AllSubscriptionsTable() {
             <SelectValue placeholder={t('Status')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value='__all__'>{t('All Status')}</SelectItem>
-            <SelectItem value='active'>{t('Active (status)')}</SelectItem>
-            <SelectItem value='expired'>{t('Expired')}</SelectItem>
-            <SelectItem value='cancelled'>{t('Cancelled')}</SelectItem>
+            <SelectGroup>
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
         <Input
@@ -650,36 +759,16 @@ export function AllSubscriptionsTable() {
         <DataTablePagination table={table} />
       </PageFooterPortal>
 
-      {confirmAction && (
+      {confirmAction && confirmDialogContent && (
         <ConfirmDialog
           open
           onOpenChange={(v) => !v && setConfirmAction(null)}
-          title={
-            confirmAction.type === 'invalidate'
-              ? t('Confirm invalidate')
-              : confirmAction.type === 'renew'
-                ? t('Confirm manual renew')
-                : t('Confirm delete')
-          }
-          desc={
-            confirmAction.type === 'invalidate'
-              ? t(
-                  'After invalidating, this subscription will be immediately deactivated. Historical records are not affected. Continue?'
-                )
-              : confirmAction.type === 'renew'
-                ? t(
-                    'This will extend the active subscription by one original plan period. Continue?'
-                  )
-                : t(
-                    'Deleting will permanently remove this subscription record (including benefit details). Continue?'
-                  )
-          }
+          title={confirmDialogContent.title}
+          desc={confirmDialogContent.desc}
           handleConfirm={handleConfirmAction}
           isLoading={actionLoading}
           destructive={confirmAction.type === 'delete'}
-          confirmText={
-            confirmAction.type === 'renew' ? t('Manual Renew') : undefined
-          }
+          confirmText={confirmDialogContent.confirmText}
         />
       )}
     </div>

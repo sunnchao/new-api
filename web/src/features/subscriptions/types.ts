@@ -76,11 +76,22 @@ export interface PlanRecord {
 // User Subscription Schema & Types
 // ============================================================================
 
+export const SUBSCRIPTION_STATUSES = [
+  'active',
+  'scheduled',
+  'expired',
+  'cancelled',
+  'exhausted',
+] as const
+
+export const subscriptionStatusSchema = z.enum(SUBSCRIPTION_STATUSES)
+export type SubscriptionStatus = z.infer<typeof subscriptionStatusSchema>
+
 export const userSubscriptionSchema = z.object({
   id: z.number(),
   user_id: z.number(),
   plan_id: z.number(),
-  status: z.string(),
+  status: subscriptionStatusSchema,
   source: z.string().optional(),
   billing_mode: z.string().optional(),
   start_time: z.number(),
@@ -207,7 +218,7 @@ export interface AdminUserSubscriptionOverview {
   user_group: string
   plan_id: number
   plan_title: string
-  status: string
+  status: SubscriptionStatus
   billing_mode: string
   start_time: number
   end_time: number

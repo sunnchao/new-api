@@ -150,10 +150,16 @@ func TestActivateScheduledSubscriptionAtAnchorKeepsTimes(t *testing.T) {
 	originalEnd := sub.EndTime
 	originalNextReset := sub.NextResetTime
 
+	var activation scheduledSubscriptionActivationResult
 	require.NoError(t, DB.Transaction(func(tx *gorm.DB) error {
-		return ActivateScheduledSubscriptionTx(tx, sub, anchor)
+		result, err := ActivateScheduledSubscriptionTx(tx, sub, anchor)
+		activation = result
+		return err
 	}))
 
+	assert.True(t, activation.Activated)
+	assert.Equal(t, userId, activation.UserId)
+	assert.True(t, activation.UserGroupChanged)
 	assert.Equal(t, "active", sub.Status)
 	assert.Equal(t, anchor, sub.StartTime)
 	assert.Equal(t, originalEnd, sub.EndTime, "anchor activation must not shift end_time")
@@ -183,10 +189,14 @@ func TestActivateScheduledSubscriptionEarlyShiftsAllTimeFields(t *testing.T) {
 	originalDailyDelta := sub.DailyNextResetTime - sub.DailyLastResetTime
 
 	earlyActivate := common.GetTimestamp() // 24h earlier than anchor
+	var activation scheduledSubscriptionActivationResult
 	require.NoError(t, DB.Transaction(func(tx *gorm.DB) error {
-		return ActivateScheduledSubscriptionTx(tx, sub, earlyActivate)
+		result, err := ActivateScheduledSubscriptionTx(tx, sub, earlyActivate)
+		activation = result
+		return err
 	}))
 
+	assert.True(t, activation.Activated)
 	assert.Equal(t, "active", sub.Status)
 	assert.Equal(t, earlyActivate, sub.StartTime)
 	assert.Equal(t, earlyActivate+originalLen, sub.EndTime, "subscription duration must be preserved across early activation")
@@ -212,7 +222,8 @@ func TestActivateScheduledSubscriptionRejectsNonScheduled(t *testing.T) {
 	require.NoError(t, DB.Create(sub).Error)
 
 	err := DB.Transaction(func(tx *gorm.DB) error {
-		return ActivateScheduledSubscriptionTx(tx, sub, common.GetTimestamp())
+		_, err := ActivateScheduledSubscriptionTx(tx, sub, common.GetTimestamp())
+		return err
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not scheduled")
@@ -242,6 +253,102 @@ func TestUserActivateScheduledSubscriptionOnlyOwnerCanActivate(t *testing.T) {
 	activated, err := UserActivateScheduledSubscription(owner, created.Id)
 	require.NoError(t, err)
 	assert.Equal(t, "active", activated.Status)
+}
+
+func TestUserActivateScheduledSubscriptionKeepsExistingSubscriptionActive(t *testing.T) {
+	truncateTables(t)
+	userId := 5110
+	seedScheduledUser(t, userId)
+	plan := seedScheduledPlan(t, 5210)
+	now := common.GetTimestamp()
+	oldEndTime := now + 24*3600
+
+	oldSub := &UserSubscription{
+		UserId:    userId,
+		PlanId:    plan.Id,
+		Status:    "active",
+		StartTime: now - 3600,
+		EndTime:   oldEndTime,
+	}
+	require.NoError(t, DB.Create(oldSub).Error)
+
+	var scheduled *UserSubscription
+	require.NoError(t, DB.Transaction(func(tx *gorm.DB) error {
+		created, err := CreateScheduledSubscriptionTx(tx, userId, plan, oldEndTime, "order")
+		scheduled = created
+		return err
+	}))
+
+	activated, err := UserActivateScheduledSubscription(userId, scheduled.Id)
+	require.NoError(t, err)
+	assert.Equal(t, "active", activated.Status)
+
+	var reloadedOld UserSubscription
+	require.NoError(t, DB.First(&reloadedOld, oldSub.Id).Error)
+	assert.Equal(t, "active", reloadedOld.Status)
+	assert.Equal(t, oldEndTime, reloadedOld.EndTime)
+
+	_, err = UserActivateScheduledSubscription(userId, scheduled.Id)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "待生效订阅不存在")
+}
+
+func TestUserActivateScheduledSubscriptionRefreshesGroupCacheAfterCommit(t *testing.T) {
+	truncateTables(t)
+	useUserCacheMiniRedis(t)
+	userId := 5111
+	seedScheduledUser(t, userId)
+	plan := seedScheduledPlan(t, 5211)
+
+	before, err := GetUserCache(userId)
+	require.NoError(t, err)
+	assert.Equal(t, "default", before.Group)
+
+	var scheduled *UserSubscription
+	require.NoError(t, DB.Transaction(func(tx *gorm.DB) error {
+		created, err := CreateScheduledSubscriptionTx(
+			tx,
+			userId,
+			plan,
+			common.GetTimestamp()+3600,
+			"order",
+		)
+		scheduled = created
+		return err
+	}))
+
+	activated, err := UserActivateScheduledSubscription(userId, scheduled.Id)
+	require.NoError(t, err)
+	assert.Equal(t, "default", activated.PrevUserGroup)
+
+	after, err := GetUserCache(userId)
+	require.NoError(t, err)
+	assert.Equal(t, plan.UpgradeGroup, after.Group)
+}
+
+func TestActivateScheduledSubscriptionLeavesPreviousGroupEmptyWhenGroupUnchanged(t *testing.T) {
+	truncateTables(t)
+	userId := 5112
+	seedScheduledUser(t, userId)
+	plan := seedScheduledPlan(t, 5212)
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", userId).Update("group", plan.UpgradeGroup).Error)
+
+	var scheduled *UserSubscription
+	require.NoError(t, DB.Transaction(func(tx *gorm.DB) error {
+		created, err := CreateScheduledSubscriptionTx(
+			tx,
+			userId,
+			plan,
+			common.GetTimestamp()+3600,
+			"order",
+		)
+		scheduled = created
+		return err
+	}))
+
+	activated, err := UserActivateScheduledSubscription(userId, scheduled.Id)
+	require.NoError(t, err)
+	assert.Empty(t, activated.PrevUserGroup)
 }
 
 func TestActivateDueScheduledSubscriptionsPromotesArrivedAnchors(t *testing.T) {
@@ -278,5 +385,6 @@ func TestActivateDueScheduledSubscriptionsPromotesArrivedAnchors(t *testing.T) {
 	require.NoError(t, DB.First(&reloadedDue, dueSub.Id).Error)
 	require.NoError(t, DB.First(&reloadedFuture, futureSub.Id).Error)
 	assert.Equal(t, "active", reloadedDue.Status)
+	assert.Equal(t, pastAnchor, reloadedDue.StartTime)
 	assert.Equal(t, UserSubscriptionStatusScheduled, reloadedFuture.Status)
 }

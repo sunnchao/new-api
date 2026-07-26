@@ -29,6 +29,7 @@ type GroupBadgeProps = Omit<
   group?: string | null
   label?: string
   ratio?: number | null
+  wrapLabel?: boolean
 }
 
 function getGroupRatioClassName(ratio: number): string {
@@ -60,6 +61,7 @@ export function GroupBadge(props: GroupBadgeProps) {
     group,
     label: labelOverride,
     ratio,
+    wrapLabel = false,
     copyable = false,
     showDot,
     className,
@@ -85,7 +87,12 @@ export function GroupBadge(props: GroupBadgeProps) {
       showDot={showDot ?? (isSpecialGroup ? false : undefined)}
       variant={isSpecialGroup ? 'neutral' : undefined}
       autoColor={isSpecialGroup ? undefined : groupName}
-      className={cn('min-w-0 shrink overflow-hidden', className)}
+      className={cn(
+        'min-w-0 shrink overflow-hidden',
+        wrapLabel &&
+          'w-full shrink-0 overflow-visible whitespace-normal [&>span]:overflow-visible [&>span]:text-clip [&>span]:whitespace-normal [&>span]:break-all',
+        className
+      )}
     />
   )
 
@@ -94,8 +101,20 @@ export function GroupBadge(props: GroupBadgeProps) {
   }
 
   return (
-    <span className='inline-flex max-w-full min-w-0 items-center gap-2 text-xs'>
-      <span className='max-w-full min-w-0 overflow-hidden'>{badge}</span>
+    <span
+      className={cn(
+        'inline-flex max-w-full min-w-0 items-center gap-2 text-xs',
+        wrapLabel && 'w-full items-start'
+      )}
+    >
+      <span
+        className={cn(
+          'max-w-full min-w-0 overflow-hidden',
+          wrapLabel && 'flex-1 overflow-visible'
+        )}
+      >
+        {badge}
+      </span>
       <span
         className={cn(
           'inline-flex h-5 shrink-0 items-center rounded-full px-1.5 font-mono text-xs leading-none font-medium tabular-nums',

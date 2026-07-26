@@ -19,6 +19,12 @@ import (
 //   - the user / admin manually triggers immediate activation.
 const UserSubscriptionStatusScheduled = "scheduled"
 
+type scheduledSubscriptionActivationResult struct {
+	Activated        bool
+	UserId           int
+	UserGroupChanged bool
+}
+
 // EnsureNoExistingScheduledRenewal blocks repeat renewal purchases for the same
 // plan while a previous scheduled renewal is still pending. This is a hard rule
 // because subscriptions do not support refunds; stacking multiple scheduled
@@ -169,15 +175,15 @@ func CreateScheduledSubscriptionTx(tx *gorm.DB, userId int, plan *SubscriptionPl
 // of whether the user is activating early, on-time, or late. User group upgrade
 // (if any) is applied here rather than at scheduling time, so two coexisting
 // upgrade groups do not collide while one subscription is still pending.
-func ActivateScheduledSubscriptionTx(tx *gorm.DB, sub *UserSubscription, activateTime int64) error {
+func ActivateScheduledSubscriptionTx(tx *gorm.DB, sub *UserSubscription, activateTime int64) (scheduledSubscriptionActivationResult, error) {
 	if tx == nil || sub == nil {
-		return errors.New("invalid activate args")
+		return scheduledSubscriptionActivationResult{}, errors.New("invalid activate args")
 	}
 	if sub.Status != UserSubscriptionStatusScheduled {
-		return fmt.Errorf("subscription %d is not scheduled", sub.Id)
+		return scheduledSubscriptionActivationResult{}, fmt.Errorf("subscription %d is not scheduled", sub.Id)
 	}
 	if activateTime <= 0 {
-		return errors.New("invalid activate time")
+		return scheduledSubscriptionActivationResult{}, errors.New("invalid activate time")
 	}
 
 	shift := activateTime - sub.StartTime
@@ -197,30 +203,29 @@ func ActivateScheduledSubscriptionTx(tx *gorm.DB, sub *UserSubscription, activat
 	}
 
 	sub.Status = "active"
+	result := scheduledSubscriptionActivationResult{UserId: sub.UserId}
 
 	if upgradeGroup := strings.TrimSpace(sub.UpgradeGroup); upgradeGroup != "" {
 		currentGroup, err := getUserGroupByIdTx(tx, sub.UserId)
 		if err != nil {
-			return err
+			return scheduledSubscriptionActivationResult{}, err
 		}
 		if currentGroup != upgradeGroup {
 			sub.PrevUserGroup = currentGroup
 			if err := tx.Model(&User{}).Where("id = ?", sub.UserId).
 				Update("group", upgradeGroup).Error; err != nil {
-				return err
+				return scheduledSubscriptionActivationResult{}, err
 			}
+			result.UserGroupChanged = true
 		}
 	}
 
 	sub.UpdatedAt = common.GetTimestamp()
 	if err := tx.Save(sub).Error; err != nil {
-		return err
+		return scheduledSubscriptionActivationResult{}, err
 	}
-
-	if strings.TrimSpace(sub.UpgradeGroup) != "" {
-		_ = UpdateUserGroupCache(sub.UserId, sub.UpgradeGroup)
-	}
-	return nil
+	result.Activated = true
+	return result, nil
 }
 
 // shiftTimeField mutates a unix-timestamp field in place, preserving the
@@ -242,9 +247,10 @@ func UserActivateScheduledSubscription(userId int, userSubscriptionId int) (*Use
 		return nil, errors.New("invalid args")
 	}
 	var activated UserSubscription
+	var activation scheduledSubscriptionActivationResult
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		var sub UserSubscription
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").
+		if err := lockForUpdate(tx).
 			Where("id = ? AND user_id = ? AND status = ?",
 				userSubscriptionId, userId, UserSubscriptionStatusScheduled).
 			First(&sub).Error; err != nil {
@@ -253,14 +259,19 @@ func UserActivateScheduledSubscription(userId int, userSubscriptionId int) (*Use
 			}
 			return err
 		}
-		if err := ActivateScheduledSubscriptionTx(tx, &sub, common.GetTimestamp()); err != nil {
+		result, err := ActivateScheduledSubscriptionTx(tx, &sub, common.GetTimestamp())
+		if err != nil {
 			return err
 		}
+		activation = result
 		activated = sub
 		return nil
 	})
 	if err != nil {
 		return nil, err
+	}
+	if activation.UserGroupChanged {
+		refreshSubscriptionUserGroupCache(activation.UserId, "user scheduled subscription activation")
 	}
 	return &activated, nil
 }
@@ -272,9 +283,10 @@ func AdminActivateScheduledSubscription(userSubscriptionId int) (*UserSubscripti
 		return nil, errors.New("invalid args")
 	}
 	var activated UserSubscription
+	var activation scheduledSubscriptionActivationResult
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		var sub UserSubscription
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").
+		if err := lockForUpdate(tx).
 			Where("id = ? AND status = ?", userSubscriptionId, UserSubscriptionStatusScheduled).
 			First(&sub).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -282,14 +294,19 @@ func AdminActivateScheduledSubscription(userSubscriptionId int) (*UserSubscripti
 			}
 			return err
 		}
-		if err := ActivateScheduledSubscriptionTx(tx, &sub, common.GetTimestamp()); err != nil {
+		result, err := ActivateScheduledSubscriptionTx(tx, &sub, common.GetTimestamp())
+		if err != nil {
 			return err
 		}
+		activation = result
 		activated = sub
 		return nil
 	})
 	if err != nil {
 		return nil, err
+	}
+	if activation.UserGroupChanged {
+		refreshSubscriptionUserGroupCache(activation.UserId, "admin scheduled subscription activation")
 	}
 	return &activated, nil
 }
@@ -320,9 +337,10 @@ func ActivateDueScheduledSubscriptions(limit int) (int, error) {
 	for _, s := range subs {
 		subCopy := s
 		anchor := subCopy.StartTime
+		var activation scheduledSubscriptionActivationResult
 		err := DB.Transaction(func(tx *gorm.DB) error {
 			var locked UserSubscription
-			if err := tx.Set("gorm:query_option", "FOR UPDATE").
+			if err := lockForUpdate(tx).
 				Where("id = ? AND status = ?", subCopy.Id, UserSubscriptionStatusScheduled).
 				First(&locked).Error; err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -330,12 +348,20 @@ func ActivateDueScheduledSubscriptions(limit int) (int, error) {
 				}
 				return err
 			}
-			return ActivateScheduledSubscriptionTx(tx, &locked, anchor)
+			result, err := ActivateScheduledSubscriptionTx(tx, &locked, anchor)
+			activation = result
+			return err
 		})
 		if err != nil {
 			return activated, err
 		}
+		if !activation.Activated {
+			continue
+		}
 		activated++
+		if activation.UserGroupChanged {
+			refreshSubscriptionUserGroupCache(activation.UserId, "automatic scheduled subscription activation")
+		}
 	}
 	return activated, nil
 }

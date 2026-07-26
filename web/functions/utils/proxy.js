@@ -15,6 +15,8 @@ export async function createProxyHandler(context, options = {}) {
     transformRequest,
     transformResponse
   } = options;
+  const functionRuntime = String(context.env.PROXY_FUNCTION_RUNTIME || 'auto').toLowerCase();
+  const usesDecodedBodyRuntime = functionRuntime === 'edgeone' || functionRuntime === 'auto';
 
   const isRedirectStatus = (status) => {
     return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
@@ -28,6 +30,31 @@ export async function createProxyHandler(context, options = {}) {
   const normalizeTargetBase = (base) => {
     // Avoid accidental double slashes when concatenating.
     return String(base || '').replace(/\/+$/, '');
+  };
+
+  const createProxyResponseHeaders = (headers, removeDecodedBodyMetadata = false) => {
+    const proxyHeaders = new Headers(headers);
+
+    if (removeDecodedBodyMetadata) {
+      // EdgeOne Makers may expose an already-decoded response body while
+      // preserving upstream compression metadata. Do not forward stale metadata
+      // that makes the browser decode the body again.
+      proxyHeaders.delete('content-encoding');
+      proxyHeaders.delete('content-length');
+    }
+
+    // Hop-by-hop headers describe a single transport connection and should not
+    // be replayed by an application-level proxy.
+    proxyHeaders.delete('connection');
+    proxyHeaders.delete('keep-alive');
+    proxyHeaders.delete('proxy-authenticate');
+    proxyHeaders.delete('proxy-authorization');
+    proxyHeaders.delete('te');
+    proxyHeaders.delete('trailer');
+    proxyHeaders.delete('transfer-encoding');
+    proxyHeaders.delete('upgrade');
+
+    return proxyHeaders;
   };
 
   const fetchWithRedirects = async (initialUrl, requestInit, { maxRedirects = 5 } = {}) => {
@@ -116,6 +143,9 @@ export async function createProxyHandler(context, options = {}) {
   // 这些头部在代理请求里通常无意义/不可设置，避免潜在异常。
   newHeaders.delete('host');
   newHeaders.delete('content-length');
+  if (usesDecodedBodyRuntime) {
+    newHeaders.delete('accept-encoding');
+  }
 
   // 添加额外的请求头
   Object.entries(extraHeaders).forEach(([key, value]) => {
@@ -160,7 +190,7 @@ export async function createProxyHandler(context, options = {}) {
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
-      headers: response.headers
+      headers: createProxyResponseHeaders(response.headers, usesDecodedBodyRuntime)
     });
   } catch (error) {
     // 错误处理

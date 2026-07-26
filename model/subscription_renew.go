@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"gorm.io/gorm"
@@ -28,7 +27,7 @@ func CompleteRenewalOrder(tradeNo string, providerPayload string, expectedPaymen
 
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		var order SubscriptionOrder
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where(refCol+" = ?", tradeNo).First(&order).Error; err != nil {
+		if err := lockForUpdate(tx).Where(refCol+" = ?", tradeNo).First(&order).Error; err != nil {
 			return ErrSubscriptionOrderNotFound
 		}
 		if expectedPaymentProvider != "" && order.PaymentProvider != expectedPaymentProvider {
@@ -52,7 +51,9 @@ func CompleteRenewalOrder(tradeNo string, providerPayload string, expectedPaymen
 
 		// Get the existing subscription
 		var sub UserSubscription
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ? AND user_id = ?", renewMeta.UserSubscriptionId, order.UserId).First(&sub).Error; err != nil {
+		if err := lockForUpdate(tx).
+			Where("id = ? AND user_id = ?", renewMeta.UserSubscriptionId, order.UserId).
+			First(&sub).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return errors.New("subscription not found")
 			}
@@ -142,7 +143,7 @@ func AdminRenewUserSubscription(userSubscriptionId int, adminId int, callerIp st
 	var result *AdminRenewSubscriptionResult
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		var sub UserSubscription
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ?", userSubscriptionId).First(&sub).Error; err != nil {
+		if err := lockForUpdate(tx).Where("id = ?", userSubscriptionId).First(&sub).Error; err != nil {
 			return err
 		}
 
@@ -197,127 +198,4 @@ func AdminRenewUserSubscription(userSubscriptionId int, adminId int, callerIp st
 		adminInfo,
 	)
 	return result, nil
-}
-
-// renewUserSubscriptionTx extends a subscription's validity and accumulates quota.
-// Quota reset cycles are re-computed based on the new end time.
-func renewUserSubscriptionTx(tx *gorm.DB, sub *UserSubscription, plan *SubscriptionPlan, now int64) error {
-	if tx == nil || sub == nil || plan == nil {
-		return errors.New("invalid renewal args")
-	}
-
-	nowTime := time.Unix(now, 0)
-	wasActive := sub.Status == "active" && sub.EndTime > now
-
-	// Calculate new end time
-	var baseTime time.Time
-	if wasActive {
-		// Still active: extend from current end time (seamless renewal)
-		baseTime = time.Unix(sub.EndTime, 0)
-	} else {
-		// Expired/cancelled: start fresh from now
-		baseTime = nowTime
-	}
-
-	newEndUnix, err := calcPlanEndTime(baseTime, plan)
-	if err != nil {
-		return err
-	}
-
-	// === Handle quota reset cycle ===
-	// For active subscriptions: keep LastResetTime, re-compute NextResetTime with the new end time.
-	// This ensures that if the old end_time had clamped NextResetTime to 0,
-	// the new (longer) end_time will yield a valid next reset time.
-	// For expired subscriptions: reinitialize the reset cycle from now.
-	period := NormalizeResetPeriod(plan.QuotaResetPeriod)
-	if period != SubscriptionResetNever {
-		if wasActive {
-			lastReset := sub.LastResetTime
-			if lastReset <= 0 {
-				lastReset = sub.StartTime
-			}
-			sub.NextResetTime = calcNextResetTime(time.Unix(lastReset, 0), plan, newEndUnix)
-		} else {
-			sub.LastResetTime = now
-			sub.NextResetTime = calcNextResetTime(nowTime, plan, newEndUnix)
-		}
-	}
-
-	// === Handle rate limit reset cycles ===
-	// Same principle as quota reset: active subs keep their anchor, expired subs restart from now.
-	// Hourly limit
-	if sub.HourlyLimitAmount > 0 {
-		if wasActive {
-			base := sub.HourlyLastResetTime
-			if base <= 0 {
-				base = sub.StartTime
-			}
-			sub.HourlyNextResetTime = calcNextHourlyResetTime(time.Unix(base, 0), sub.HourlyLimitHours, sub.HourlyResetMode, newEndUnix)
-		} else {
-			sub.HourlyLastResetTime = now
-			sub.HourlyNextResetTime = calcNextHourlyResetTime(nowTime, plan.HourlyLimitHours, sub.HourlyResetMode, newEndUnix)
-		}
-	}
-
-	// Daily limit
-	if sub.DailyLimitAmount > 0 {
-		if wasActive {
-			base := sub.DailyLastResetTime
-			if base <= 0 {
-				base = sub.StartTime
-			}
-			sub.DailyNextResetTime = calcNextDailyResetTime(time.Unix(base, 0), sub.DailyResetMode, newEndUnix)
-		} else {
-			sub.DailyLastResetTime = now
-			sub.DailyNextResetTime = calcNextDailyResetTime(nowTime, sub.DailyResetMode, newEndUnix)
-		}
-	}
-
-	// Weekly limit
-	if sub.WeeklyLimitAmount > 0 {
-		if wasActive {
-			base := sub.WeeklyLastResetTime
-			if base <= 0 {
-				base = sub.StartTime
-			}
-			sub.WeeklyNextResetTime = calcNextWeeklyResetTime(time.Unix(base, 0), sub.WeeklyResetMode, newEndUnix)
-		} else {
-			sub.WeeklyLastResetTime = now
-			sub.WeeklyNextResetTime = calcNextWeeklyResetTime(nowTime, sub.WeeklyResetMode, newEndUnix)
-		}
-	}
-
-	// Monthly limit
-	if sub.MonthlyLimitAmount > 0 {
-		if wasActive {
-			base := sub.MonthlyLastResetTime
-			if base <= 0 {
-				base = sub.StartTime
-			}
-			sub.MonthlyNextResetTime = calcNextMonthlyResetTime(time.Unix(base, 0), sub.MonthlyResetMode, newEndUnix)
-		} else {
-			sub.MonthlyLastResetTime = now
-			sub.MonthlyNextResetTime = calcNextMonthlyResetTime(nowTime, sub.MonthlyResetMode, newEndUnix)
-		}
-	}
-
-	// === For expired subscriptions: reset rate limit usage counters ===
-	// When a subscription has been inactive, the user should get a fresh start
-	// on all rate-limit windows after renewing. Total quota usage is preserved.
-	if !wasActive {
-		sub.HourlyAmountUsed = 0
-		sub.DailyAmountUsed = 0
-		sub.WeeklyAmountUsed = 0
-		sub.MonthlyAmountUsed = 0
-	}
-
-	// === Restore status if the subscription had expired or was cancelled ===
-	if !wasActive {
-		sub.Status = "active"
-	}
-
-	sub.EndTime = newEndUnix
-	sub.UpdatedAt = common.GetTimestamp()
-
-	return tx.Save(sub).Error
 }

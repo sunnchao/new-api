@@ -172,6 +172,8 @@ export const subscriptionsI18nResources = {
       'Third-party Payment Config': 'Third-party Payment Config',
       'This will extend the active subscription by one original plan period. Continue?':
         'This will extend the active subscription by one original plan period. Continue?',
+      'This will create a new scheduled subscription for one original plan period. The current active subscription will continue unchanged. Continue?':
+        'This will create a new scheduled subscription for one original plan period. The current active subscription will continue unchanged. Continue?',
       'This will permanently delete the disabled subscription plan. Continue?':
         'This will permanently delete the disabled subscription plan. Continue?',
       'Total Quota': 'Total Quota',
@@ -384,6 +386,8 @@ export const subscriptionsI18nResources = {
       'Third-party Payment Config': '第三方支付配置',
       'This will extend the active subscription by one original plan period. Continue?':
         '这将按原套餐周期延长该生效中的订阅。是否继续？',
+      'This will create a new scheduled subscription for one original plan period. The current active subscription will continue unchanged. Continue?':
+        '这将创建一个按原套餐周期计算的待生效订阅，当前生效中的订阅保持不变。是否继续？',
       'This will permanently delete the disabled subscription plan. Continue?':
         '这将删除已禁用的订阅套餐。是否继续？',
       'Total Quota': '总额度',
@@ -510,8 +514,7 @@ export const subscriptionsI18nResources = {
         '管理訂閱方案的建立、定價與狀態',
       'Manage your subscriptions and billing preferences':
         '管理您的訂閱和計費偏好',
-      'Modify existing subscription plan configuration':
-        '修改現有訂閱方案配置',
+      'Modify existing subscription plan configuration': '修改現有訂閱方案配置',
       Monthly: '每月',
       'Monthly Limit': '每月限制',
       'My Subscriptions': '我的訂閱',
@@ -595,6 +598,8 @@ export const subscriptionsI18nResources = {
       'Third-party Payment Config': '第三方支付配置',
       'This will extend the active subscription by one original plan period. Continue?':
         '這將按原方案週期延長該生效中的訂閱。是否繼續？',
+      'This will create a new scheduled subscription for one original plan period. The current active subscription will continue unchanged. Continue?':
+        '這將建立一個按原方案週期計算的待生效訂閱，目前生效中的訂閱保持不變。是否繼續？',
       'This will permanently delete the disabled subscription plan. Continue?':
         '這將刪除已停用的訂閱方案。是否繼續？',
       'Total Quota': '總額度',
@@ -810,6 +815,8 @@ export const subscriptionsI18nResources = {
       'Third-party Payment Config': 'Configuration de paiement tiers',
       'This will extend the active subscription by one original plan period. Continue?':
         "Cela prolongera l'abonnement actif d'une période du forfait d'origine. Continuer ?",
+      'This will create a new scheduled subscription for one original plan period. The current active subscription will continue unchanged. Continue?':
+        "Cela créera un nouvel abonnement planifié pour une période du forfait d'origine. L'abonnement actif actuel restera inchangé. Continuer ?",
       'This will permanently delete the disabled subscription plan. Continue?':
         "Cela supprimera le forfait d'abonnement désactivé. Continuer ?",
       'Total Quota': 'Quota total',
@@ -1026,6 +1033,8 @@ export const subscriptionsI18nResources = {
       'Third-party Payment Config': 'サードパーティ決済設定',
       'This will extend the active subscription by one original plan period. Continue?':
         '有効なサブスクリプションを元のプラン期間分だけ延長します。続行しますか？',
+      'This will create a new scheduled subscription for one original plan period. The current active subscription will continue unchanged. Continue?':
+        '元のプラン期間1回分の新しい予約サブスクリプションを作成します。現在有効なサブスクリプションは変更されません。続行しますか？',
       'This will permanently delete the disabled subscription plan. Continue?':
         '無効化されたサブスクリプションプランを削除します。続行しますか？',
       'Total Quota': '合計クォータ',
@@ -1242,6 +1251,8 @@ export const subscriptionsI18nResources = {
       'Third-party Payment Config': 'Настройка сторонней оплаты',
       'This will extend the active subscription by one original plan period. Continue?':
         'Активная подписка будет продлена на один исходный период тарифа. Продолжить?',
+      'This will create a new scheduled subscription for one original plan period. The current active subscription will continue unchanged. Continue?':
+        'Будет создана новая запланированная подписка на один исходный период тарифа. Текущая активная подписка останется без изменений. Продолжить?',
       'This will permanently delete the disabled subscription plan. Continue?':
         'Отключенный тариф подписки будет удален. Продолжить?',
       'Total Quota': 'Общая квота',
@@ -1457,6 +1468,8 @@ export const subscriptionsI18nResources = {
       'Third-party Payment Config': 'Cấu hình thanh toán bên thứ ba',
       'This will extend the active subscription by one original plan period. Continue?':
         'Thao tác này sẽ gia hạn đăng ký đang hoạt động thêm một chu kỳ gói ban đầu. Tiếp tục?',
+      'This will create a new scheduled subscription for one original plan period. The current active subscription will continue unchanged. Continue?':
+        'Thao tác này sẽ tạo một đăng ký mới đang chờ với thời hạn bằng một chu kỳ gói ban đầu. Đăng ký đang hoạt động hiện tại sẽ không thay đổi. Tiếp tục?',
       'This will permanently delete the disabled subscription plan. Continue?':
         'Thao tác này sẽ xóa gói đăng ký đã bị vô hiệu hóa. Tiếp tục?',
       'Total Quota': 'Tổng hạn mức',
