@@ -235,6 +235,15 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case operation_setting.ToolPriceOptionKey:
+		err = operation_setting.ValidateToolPricesJSON(option.Value.(string))
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
 	case "GroupModelBilling":
 		err = ratio_setting.UpdateGroupModelBillingByJSONString(option.Value.(string))
 		if err != nil {
