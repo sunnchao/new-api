@@ -6,7 +6,7 @@ import (
 
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/types"
+	"github.com/QuantumNous/new-api/relaykit/types"
 )
 
 func formatWalletFundingFailureMessage(userQuota int, needQuota int) string {
