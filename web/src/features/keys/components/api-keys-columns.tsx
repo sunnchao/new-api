@@ -28,6 +28,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useMediaQuery } from '@/hooks'
 import { toIntlLocale } from '@/i18n/languages'
 import { getUserGroups } from '@/lib/api'
 import dayjs from '@/lib/dayjs'
@@ -37,6 +38,7 @@ import { cn } from '@/lib/utils'
 import { API_KEY_STATUSES } from '../constants'
 import type { ApiKey } from '../types'
 import { ApiKeyGroupRouteCell } from './api-key-group-route-cell'
+import { ApiKeyGroupCell } from './api-key-group-cell'
 import { ApiKeyTimestampCell } from './api-key-timestamp-cell'
 import {
   ApiKeyCell,
@@ -52,16 +54,16 @@ function getQuotaProgressColor(percentage: number): string {
   return '[&_[data-slot=progress-indicator]]:bg-emerald-500'
 }
 
-function useGroupRatios(): Record<string, number> {
+function useGroupRatios(): Record<string, number | string> {
   const { data } = useQuery({
     queryKey: ['user-groups'],
     queryFn: getUserGroups,
     staleTime: 0,
     select: (res) => {
       if (!res.success || !res.data) return {}
-      const ratios: Record<string, number> = {}
+      const ratios: Record<string, number | string> = {}
       for (const [group, info] of Object.entries(res.data)) {
-        if (typeof info.ratio === 'number') {
+        if (typeof info.ratio === 'number' || typeof info.ratio === 'string') {
           ratios[group] = info.ratio
         }
       }
@@ -75,6 +77,7 @@ function useGroupRatios(): Record<string, number> {
 export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
   const { t, i18n } = useTranslation()
   const groupRatios = useGroupRatios()
+  const shouldReduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const justNowLabel = t('Just now')
   const staleAccessThreshold = dayjs(now).subtract(3, 'month').valueOf()
@@ -191,9 +194,15 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
     {
       accessorKey: 'group',
       header: t('Group'),
-      cell: ({ row }) => (
-        <ApiKeyGroupRouteCell apiKey={row.original} groupRatios={groupRatios} />
-      ),
+      cell: ({ row }) => [
+        <ApiKeyGroupRouteCell apiKey={row.original} groupRatios={groupRatios} />,
+        <ApiKeyGroupCell
+            group={group}
+            ratio={groupRatios[group]}
+            crossGroupRetry={apiKey.cross_group_retry}
+            shouldReduceMotion={shouldReduceMotion}
+        />
+      ],
       size: 300,
     },
     {

@@ -213,6 +213,7 @@ func Redeem(key string, userId int) (*RedemptionResult, error) {
 		}
 		RecordLog(userId, LogTypeSubscriptionPay, fmt.Sprintf("通过兑换码获取订阅 %s，兑换码ID %d", planTitle, redemption.Id), nil)
 	} else {
+		syncCreditUserQuotaCache(userId, redemption.Quota, "redemption")
 		RecordLog(userId, LogTypeTopup, fmt.Sprintf("通过兑换码充值 %s，兑换码ID %d", logger.LogQuota(redemption.Quota), redemption.Id), nil)
 	}
 	return result, nil

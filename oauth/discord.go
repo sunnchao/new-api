@@ -176,6 +176,11 @@ func (p *DiscordProvider) GetProviderPrefix() string {
 	return "discord_"
 }
 
+// ProviderUserIDColumn returns the users-table column storing this provider's user ID.
+func (p *DiscordProvider) ProviderUserIDColumn() string {
+	return "discord_id"
+}
+
 func getDiscordAvatarURL(userID, avatarHash string) string {
 	if avatarHash != "" {
 		ext := "png"

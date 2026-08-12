@@ -236,6 +236,14 @@ export type RequestRuleGroup = {
     | typeof REQUEST_RULE_ACTION_FIXED
   multiplier: string
   fixedPrice?: string
+  conditionText?: string
+  matched?: boolean
+}
+
+export type RequestRuleTrace = {
+  cond: string
+  multiplier: number
+  matched: boolean
 }
 
 export type TierCondition = {
@@ -317,9 +325,9 @@ export function parseTiersFromExpr(exprStr: string): ParsedTier[] {
 export function normalizeTierLabel(label: string | undefined): string {
   if (!label) return ''
   return label
-    .replace(/<[=＝]?|≤|＜[=＝]?/g, '<')
-    .replace(/>[=＝]?|≥|＞[=＝]?/g, '>')
-    .replace(/\s+/g, '')
+    .replaceAll(/<[=＝]?|≤|＜[=＝]?/g, '<')
+    .replaceAll(/>[=＝]?|≥|＞[=＝]?/g, '>')
+    .replaceAll(/\s+/g, '')
     .toLowerCase()
 }
 
@@ -451,24 +459,26 @@ function tryParseRequestCondition(expr: string): RequestCondition | null {
   if (m) return { source: 'param', path: m[1], mode: MATCH_EXISTS, value: '' }
 
   m = expr.match(/^has\(header\("([^"]+)"\), ((?:"(?:[^"\\]|\\.)*"))\)$/)
-  if (m)
+  if (m) {
     return {
       source: 'header',
       path: m[1],
       mode: MATCH_CONTAINS,
       value: JSON.parse(m[2]) as string,
     }
+  }
 
   m = expr.match(
     /^param\("([^"]+)"\) != nil && has\(param\("([^"]+)"\), ((?:"(?:[^"\\]|\\.)*"))\)$/
   )
-  if (m && m[1] === m[2])
+  if (m && m[1] === m[2]) {
     return {
       source: 'param',
       path: m[1],
       mode: MATCH_CONTAINS,
       value: JSON.parse(m[3]) as string,
     }
+  }
 
   m = expr.match(
     /^param\("([^"]+)"\) != nil && param\("([^"]+)"\) (>|>=|<|<=) ([\d.eE+-]+)$/
@@ -496,6 +506,19 @@ function tryParseRequestCondition(expr: string): RequestCondition | null {
   }
 
   return null
+}
+
+function tryParseRequestConditions(
+  conditionStr: string
+): RequestCondition[] | null {
+  const andParts = splitTopLevelAnd(conditionStr)
+  const conditions: RequestCondition[] = []
+  for (const part of andParts) {
+    const condition = tryParseRequestCondition(part.trim())
+    if (!condition) return null
+    conditions.push(condition)
+  }
+  return conditions.length > 0 ? conditions : null
 }
 
 function tryParseRuleGroupFactor(part: string): RequestRuleGroup | null {
@@ -565,6 +588,18 @@ function decodeRequestRulePayload(payload: string): RequestRuleGroup[] | null {
   } catch {
     return null
   }
+export function requestRuleGroupsFromTrace(
+  requestRules: RequestRuleTrace[]
+): RequestRuleGroup[] {
+  return requestRules.map((rule) => {
+    const conditionText = rule.cond.trim()
+    return {
+      conditions: tryParseRequestConditions(conditionText) || [],
+      multiplier: String(rule.multiplier),
+      conditionText,
+      matched: rule.matched,
+    }
+  })
 }
 
 export function tryParseRequestRuleExpr(
@@ -842,16 +877,18 @@ function isTimeFunc(value: unknown): value is TimeFunc {
 export function normalizeCondition(
   cond: Partial<RequestCondition> | null | undefined
 ): RequestCondition {
-  const source =
-    cond?.source === 'time'
-      ? 'time'
-      : cond?.source === 'header'
-        ? 'header'
-        : cond?.source === SOURCE_TOKEN_GROUP
-          ? SOURCE_TOKEN_GROUP
-          : cond?.source === SOURCE_TOKENS
+  let source: RequestCondition['source'] = 'param'
+  if (cond?.source === 'time') {
+    source = 'time'
+  } else if (cond?.source === 'header') {
+    source = 'header'
+  } else {
+    source = cond?.source === SOURCE_TOKEN_GROUP
+        ? SOURCE_TOKEN_GROUP
+        : cond?.source === SOURCE_TOKENS
             ? SOURCE_TOKENS
             : 'param'
+  }
 
   if (source === 'time') {
     const timeCond = cond as Partial<TimeCondition> | null | undefined
