@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/bytedance/gopkg/util/gopool"
 	"gorm.io/gorm"
 )
 
@@ -124,6 +123,9 @@ func BatchDeleteAdminTokens(ids []int) (int, error) {
 		tx.Rollback()
 		return 0, err
 	}
+	if err := invalidateTokensCache(tokens); err != nil {
+		common.SysLog("failed to invalidate token cache before admin batch delete: " + err.Error())
+	}
 
 	if err := tx.Where("id IN (?)", ids).Delete(&Token{}).Error; err != nil {
 		tx.Rollback()
@@ -132,14 +134,6 @@ func BatchDeleteAdminTokens(ids []int) (int, error) {
 
 	if err := tx.Commit().Error; err != nil {
 		return 0, err
-	}
-
-	if common.RedisEnabled {
-		gopool.Go(func() {
-			for _, token := range tokens {
-				_ = cacheDeleteToken(token.Key)
-			}
-		})
 	}
 
 	return len(tokens), nil

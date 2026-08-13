@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
@@ -71,6 +72,11 @@ func populateUserCache(user User) error {
 	if !common.RedisEnabled {
 		return nil
 	}
+	balance, err := GetUserQuotaBalance(user.Id, time.Now().Unix())
+	if err != nil {
+		return err
+	}
+	user.Quota = balance.Total
 	return writeUserCache(user.ToBaseUser(), true)
 }
 
@@ -99,12 +105,17 @@ func GetUserCache(userId int) (*UserBase, error) {
 	if err != nil {
 		return nil, err
 	}
+	balance, err := GetUserQuotaBalance(userId, time.Now().Unix())
+	if err != nil {
+		return nil, err
+	}
+	user.Quota = balance.Total
 	if common.RedisEnabled {
 		floor, floorErr := getUserAuthVersionFloor(userId)
 		if floorErr == nil && floor > user.AuthVersion {
 			return nil, ErrUserAuthCachePending
 		}
-		if err := populateUserCache(*user); err != nil {
+		if err := writeUserCache(user.ToBaseUser(), true); err != nil {
 			if errors.Is(err, ErrUserAuthCachePending) {
 				return nil, err
 			}

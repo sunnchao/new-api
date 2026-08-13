@@ -588,6 +588,7 @@ function decodeRequestRulePayload(payload: string): RequestRuleGroup[] | null {
   } catch {
     return null
   }
+}
 export function requestRuleGroupsFromTrace(
   requestRules: RequestRuleTrace[]
 ): RequestRuleGroup[] {

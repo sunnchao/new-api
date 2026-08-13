@@ -2,6 +2,27 @@ package common
 
 import "github.com/gin-gonic/gin"
 
+// GiftQuotaAllocation records quota consumed from one gift batch.
+type GiftQuotaAllocation struct {
+	GiftQuotaId int64 `json:"gift_quota_id"`
+	Quota       int   `json:"quota"`
+}
+
+// WalletQuotaAllocation records the wallet sources used by one billing lifecycle.
+type WalletQuotaAllocation struct {
+	GiftQuotas   []GiftQuotaAllocation `json:"gift_quotas,omitempty"`
+	RegularQuota int                   `json:"regular_quota,omitempty"`
+}
+
+// Total returns the quota represented by the allocation.
+func (a WalletQuotaAllocation) Total() int {
+	total := a.RegularQuota
+	for _, gift := range a.GiftQuotas {
+		total += gift.Quota
+	}
+	return total
+}
+
 // BillingSettler 抽象计费会话的生命周期操作。
 // 由 service.BillingSession 实现，存储在 RelayInfo 上以避免循环引用。
 type BillingSettler interface {
@@ -21,4 +42,7 @@ type BillingSettler interface {
 
 	// Reserve 将预扣额度补到目标值；若目标值不高于当前预扣额度则不做任何事。
 	Reserve(targetQuota int) error
+
+	// GetWalletQuotaAllocation 返回钱包计费的额度来源快照。
+	GetWalletQuotaAllocation() WalletQuotaAllocation
 }

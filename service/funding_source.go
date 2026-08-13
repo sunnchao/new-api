@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/model"
+	relaycommon "github.com/QuantumNous/new-api/relay/common"
 )
 
 // ---------------------------------------------------------------------------
@@ -33,8 +34,9 @@ type FundingSource interface {
 var ErrInsufficientWalletQuota = errors.New("wallet quota insufficient")
 
 type WalletFunding struct {
-	userId   int
-	consumed int // 实际预扣的用户额度
+	userId     int
+	consumed   int // 实际预扣的用户额度
+	allocation relaycommon.WalletQuotaAllocation
 }
 
 func (w *WalletFunding) Source() string { return BillingSourceWallet }
@@ -43,13 +45,15 @@ func (w *WalletFunding) PreConsume(amount int, usingGroup string) error {
 	if amount <= 0 {
 		return nil
 	}
-	reserved, err := model.TryReserveUserQuota(w.userId, amount)
+	//reserved, err := model.TryReserveUserQuota(w.userId, amount)
+	allocation, err := model.ConsumeWalletQuota(w.userId, amount)
 	if err != nil {
 		return err
 	}
-	if !reserved {
-		return ErrInsufficientWalletQuota
-	}
+	//if !reserved {
+	//	return ErrInsufficientWalletQuota
+	//}
+	w.appendAllocation(allocation)
 	w.consumed = amount
 	return nil
 }
@@ -59,18 +63,35 @@ func (w *WalletFunding) Settle(delta int) error {
 		return nil
 	}
 	if delta > 0 {
-		return model.DecreaseUserQuota(w.userId, delta, false)
+		allocation, err := model.ConsumeWalletQuota(w.userId, delta)
+		if err != nil {
+			return err
+		}
+		w.appendAllocation(allocation)
+		w.consumed += delta
+		return nil
 	}
-	return model.IncreaseUserQuota(w.userId, -delta, false)
+	if err := model.RefundWalletQuota(w.userId, &w.allocation, -delta); err != nil {
+		return err
+	}
+	w.consumed += delta
+	return nil
 }
 
 func (w *WalletFunding) Refund() error {
 	if w.consumed <= 0 {
 		return nil
 	}
-	// IncreaseUserQuota 是 quota += N 的非幂等操作，不能重试，否则会多退额度。
-	// 订阅的 RefundSubscriptionPreConsume 有 requestId 幂等保护所以可以重试。
-	return model.IncreaseUserQuota(w.userId, w.consumed, false)
+	if err := model.RefundWalletQuota(w.userId, &w.allocation, w.allocation.Total()); err != nil {
+		return err
+	}
+	w.consumed = 0
+	return nil
+}
+
+func (w *WalletFunding) appendAllocation(incoming relaycommon.WalletQuotaAllocation) {
+	w.allocation.RegularQuota += incoming.RegularQuota
+	w.allocation.GiftQuotas = append(w.allocation.GiftQuotas, incoming.GiftQuotas...)
 }
 
 // ---------------------------------------------------------------------------

@@ -211,11 +211,11 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	}()
 
 	retryParam := &service.RetryParam{
-		Ctx:         c,
-		TokenGroup:  relayInfo.TokenGroup,
-		ModelName:   relayInfo.OriginModelName,
-		RequestPath: c.Request.URL.Path,
-		Retry:       common.GetPointer(0),
+		Ctx:              c,
+		TokenGroup:       relayInfo.TokenGroup,
+		ModelName:        relayInfo.OriginModelName,
+		RequestPath:      c.Request.URL.Path,
+		Retry:            common.GetPointer(0),
 		TokenBackupGroup: common.GetContextKeyString(c, constant.ContextKeyBackupTokenGroup),
 	}
 	relayInfo.RetryIndex = 0
@@ -581,11 +581,11 @@ func RelayTask(c *gin.Context) {
 	}()
 
 	retryParam := &service.RetryParam{
-		Ctx:         c,
-		TokenGroup:  relayInfo.TokenGroup,
-		ModelName:   relayInfo.OriginModelName,
-		RequestPath: c.Request.URL.Path,
-		Retry:       common.GetPointer(0),
+		Ctx:              c,
+		TokenGroup:       relayInfo.TokenGroup,
+		ModelName:        relayInfo.OriginModelName,
+		RequestPath:      c.Request.URL.Path,
+		Retry:            common.GetPointer(0),
 		TokenBackupGroup: common.GetContextKeyString(c, constant.ContextKeyBackupTokenGroup),
 	}
 
@@ -658,13 +658,19 @@ func RelayTask(c *gin.Context) {
 		task.PrivateData.SubscriptionId = relayInfo.SubscriptionId
 		task.PrivateData.TokenId = relayInfo.TokenId
 		task.PrivateData.NodeName = common.NodeName
+		if relayInfo.Billing != nil {
+			allocation := relayInfo.Billing.GetWalletQuotaAllocation()
+			if allocation.Total() > 0 {
+				task.PrivateData.WalletQuotaAllocation = &allocation
+			}
+		}
 		task.PrivateData.BillingContext = &model.TaskBillingContext{
-			ModelPrice:      relayInfo.PriceData.ModelPrice,
-			GroupRatio:      relayInfo.PriceData.GroupRatioInfo.GroupRatio,
-			ModelRatio:      relayInfo.PriceData.ModelRatio,
-			OtherRatios:     relayInfo.PriceData.OtherRatios(),
-			OriginModelName: relayInfo.OriginModelName,
-			PerCallBilling:  common.StringsContains(constant.TaskPricePatches, relayInfo.OriginModelName) || relayInfo.PriceData.UsePrice,
+			ModelPrice:              relayInfo.PriceData.ModelPrice,
+			GroupRatio:              relayInfo.PriceData.GroupRatioInfo.GroupRatio,
+			ModelRatio:              relayInfo.PriceData.ModelRatio,
+			OtherRatios:             relayInfo.PriceData.OtherRatios(),
+			OriginModelName:         relayInfo.OriginModelName,
+			PerCallBilling:          common.StringsContains(constant.TaskPricePatches, relayInfo.OriginModelName) || relayInfo.PriceData.UsePrice,
 			SubscriptionBillingMode: relayInfo.SubscriptionBillingMode,
 		}
 		task.Quota = result.Quota

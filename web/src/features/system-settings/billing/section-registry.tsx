@@ -25,6 +25,7 @@ import { PaymentSettingsSection } from '../integrations/payment-settings-section
 import { RatioSettingsCard } from '../models/ratio-settings-card'
 import type { BillingSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { GiftQuotaExpirationSection } from './gift-quota-expiration-section'
 
 const getModelDefaults = (settings: BillingSettings) => ({
   ModelPrice: settings.ModelPrice,
@@ -191,6 +192,16 @@ const BILLING_SECTIONS = [
           confirmedAt: settings['payment_setting.compliance_confirmed_at'] ?? 0,
           confirmedBy: settings['payment_setting.compliance_confirmed_by'] ?? 0,
         }}
+      />
+    ),
+  },
+  {
+    id: 'gift-quota-expiration',
+    titleKey: 'Gift Quota Expiration',
+    build: (settings: BillingSettings) => (
+      <GiftQuotaExpirationSection
+        checkin={settings['gift_quota_expiration_setting.checkin']}
+        topupBonus={settings['gift_quota_expiration_setting.topup_bonus']}
       />
     ),
   },

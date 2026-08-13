@@ -552,6 +552,14 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 	userSetting := user.GetSetting()
 	permissions := calculateUserPermissions(user.Role)
 	permissions["admin_permissions"] = authz.Capabilities(user.Id, user.Role)
+	regularQuota := user.Quota
+	giftQuota := 0
+	totalQuota := regularQuota
+	if balance, err := model.GetUserQuotaBalance(user.Id, time.Now().Unix()); err == nil {
+		regularQuota = balance.Regular
+		giftQuota = balance.Gift
+		totalQuota = balance.Total
+	}
 	return map[string]interface{}{
 		"id":                user.Id,
 		"username":          user.Username,
@@ -565,7 +573,9 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"wechat_id":         user.WeChatId,
 		"telegram_id":       user.TelegramId,
 		"group":             user.Group,
-		"quota":             user.Quota,
+		"quota":             totalQuota,
+		"regular_quota":     regularQuota,
+		"gift_quota":        giftQuota,
 		"used_quota":        user.UsedQuota,
 		"request_count":     user.RequestCount,
 		"aff_code":          user.AffCode,

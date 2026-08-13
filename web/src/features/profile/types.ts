@@ -47,6 +47,8 @@ export interface UserProfile {
   group: string
   /** Current quota balance */
   quota: number
+  /** Currently active gift quota balance */
+  gift_quota?: number
   /** Total used quota */
   used_quota: number
   /** Total request count */
@@ -199,6 +201,21 @@ export interface CheckinRecord {
   checkin_date: string
   /** Quota awarded for this check-in */
   quota_awarded: number
+}
+
+export interface GiftQuotaHistoryItem {
+  id: number
+  source: string
+  quota: number
+  created_at: number
+  expires_at: number
+}
+
+export interface GiftQuotaHistoryPage {
+  page: number
+  page_size: number
+  total: number
+  items: GiftQuotaHistoryItem[]
 }
 
 /**

@@ -18,6 +18,8 @@ type Checkin struct {
 	QuotaAwarded int    `json:"quota_awarded" gorm:"not null"`
 	CreatedAt    int64  `json:"created_at" gorm:"bigint"`
 	RequestIP    string `json:"request_ip" gorm:"type:varchar(45);uniqueIndex:idx_checkin_date_ip"`
+
+	GiftExpiresAt int64 `json:"gift_expires_at" gorm:"-"`
 }
 
 // CheckinRecord 用于API返回的签到记录（不包含敏感字段）
@@ -104,13 +106,16 @@ func UserCheckin(userId int, requestIP string) (*Checkin, error) {
 		quotaAwarded = quotaAwarded / 2
 	}
 
-	today := time.Now().Format("2006-01-02")
+	grantedAt := time.Now()
+	expiresAt := operation_setting.GetCheckinGiftQuotaExpirationPolicy().ExpiresAt(grantedAt)
+	today := grantedAt.Format("2006-01-02")
 	checkin := &Checkin{
-		UserId:       userId,
-		CheckinDate:  today,
-		QuotaAwarded: quotaAwarded,
-		CreatedAt:    time.Now().Unix(),
-		RequestIP:    requestIP,
+		UserId:        userId,
+		CheckinDate:   today,
+		QuotaAwarded:  quotaAwarded,
+		CreatedAt:     grantedAt.Unix(),
+		RequestIP:     requestIP,
+		GiftExpiresAt: expiresAt,
 	}
 
 	// 根据数据库类型选择不同的策略
@@ -132,10 +137,12 @@ func userCheckinWithTransaction(checkin *Checkin, userId int, quotaAwarded int) 
 			return errors.New("签到失败，请稍后重试")
 		}
 
-		// 步骤2: 在事务中增加用户额度
-		if err := tx.Model(&User{}).Where("id = ?", userId).
-			Update("quota", gorm.Expr("quota + ?", quotaAwarded)).Error; err != nil {
-			return errors.New("签到失败：更新额度出错")
+		// 步骤2: 将奖励写入赠送额度批次
+		if quotaAwarded > 0 {
+			if _, err := GrantGiftQuota(tx, userId, GiftQuotaSourceCheckin, int64(checkin.Id), quotaAwarded,
+				time.Unix(checkin.CreatedAt, 0), checkin.GiftExpiresAt); err != nil {
+				return errors.New("签到失败：发放赠送额度出错")
+			}
 		}
 
 		return nil
@@ -145,10 +152,9 @@ func userCheckinWithTransaction(checkin *Checkin, userId int, quotaAwarded int) 
 		return nil, err
 	}
 
-	// 事务成功后，异步更新缓存
-	go func() {
-		_ = cacheIncrUserQuota(userId, int64(quotaAwarded))
-	}()
+	if quotaAwarded > 0 {
+		_ = invalidateUserCache(userId)
+	}
 
 	return checkin, nil
 }
@@ -161,12 +167,18 @@ func userCheckinWithoutTransaction(checkin *Checkin, userId int, quotaAwarded in
 		return nil, errors.New("签到失败，请稍后重试")
 	}
 
-	// 步骤2: 增加用户额度
-	// 使用 db=true 强制直接写入数据库，不使用批量更新
-	if err := IncreaseUserQuota(userId, quotaAwarded, true); err != nil {
-		// 如果增加额度失败，需要回滚签到记录
-		DB.Delete(checkin)
-		return nil, errors.New("签到失败：更新额度出错")
+	// 步骤2: 发放赠送额度
+	if quotaAwarded > 0 {
+		_, err := GrantGiftQuota(DB, userId, GiftQuotaSourceCheckin, int64(checkin.Id), quotaAwarded,
+			time.Unix(checkin.CreatedAt, 0), checkin.GiftExpiresAt)
+		if err == nil {
+			_ = invalidateUserCache(userId)
+		}
+		if err != nil {
+			// 如果增加额度失败，需要回滚签到记录
+			DB.Delete(checkin)
+			return nil, errors.New("签到失败：发放赠送额度出错")
+		}
 	}
 
 	return checkin, nil

@@ -243,6 +243,8 @@ export interface UserWalletData {
   username: string
   /** Current quota balance */
   quota: number
+  /** Currently active gift quota balance */
+  gift_quota?: number
   /** Total used quota */
   used_quota: number
   /** Total request count */

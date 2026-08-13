@@ -1,8 +1,18 @@
 import i18n from '@/i18n/config'
 
-const resources = {
+export const systemSettingsI18nResources = {
   en: {
     translation: {
+      'Gift Quota Expiration': 'Gift Quota Expiration',
+      'Check-in gift quota expiration': 'Check-in gift quota expiration',
+      'Top-up bonus quota expiration': 'Top-up bonus quota expiration',
+      'Enter a valid duration': 'Enter a valid duration',
+      'Expiration policy': 'Expiration policy',
+      Permanent: 'Permanent',
+      'Fixed duration': 'Fixed duration',
+      'Validity period': 'Validity period',
+      Days: 'Days',
+      Months: 'Months',
       'Allow subscription purchases for invoices':
         'Allow subscription purchases for invoices',
       'Protect login and registration with Cloudflare Turnstile':
@@ -23,8 +33,18 @@ const resources = {
         'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.',
     },
   },
-  zh: {
+  zhCN: {
     translation: {
+      'Gift Quota Expiration': '赠送额度有效期',
+      'Check-in gift quota expiration': '签到赠送额度有效期',
+      'Top-up bonus quota expiration': '充值赠送额度有效期',
+      'Enter a valid duration': '请输入有效的有效期',
+      'Expiration policy': '有效期方式',
+      Permanent: '永久',
+      'Fixed duration': '固定时长',
+      'Validity period': '有效期时长',
+      Days: '天',
+      Months: '个月',
       'Allow subscription purchases for invoices': '允许订阅购买记录开票',
       'Protect login and registration with Cloudflare Turnstile':
         '使用 Cloudflare Turnstile 保护登录和注册',
@@ -42,8 +62,33 @@ const resources = {
         '分组到允许客户端的 JSON 映射。允许的客户端 ID 为 claude_code 和 codex；未配置或空列表的分组不限制。',
     },
   },
+  zhTW: {
+    translation: {
+      'Gift Quota Expiration': '贈送額度有效期',
+      'Check-in gift quota expiration': '簽到贈送額度有效期',
+      'Top-up bonus quota expiration': '儲值贈送額度有效期',
+      'Enter a valid duration': '請輸入有效的有效期',
+      'Expiration policy': '有效期方式',
+      Permanent: '永久',
+      'Fixed duration': '固定時長',
+      'Validity period': '有效期時長',
+      Days: '天',
+      Months: '個月',
+    },
+  },
   fr: {
     translation: {
+      'Gift Quota Expiration': 'Expiration du quota offert',
+      'Check-in gift quota expiration':
+        'Expiration du quota offert par pointage',
+      'Top-up bonus quota expiration': 'Expiration du quota bonus de recharge',
+      'Enter a valid duration': 'Saisissez une durée valide',
+      'Expiration policy': "Mode d'expiration",
+      Permanent: 'Permanent',
+      'Fixed duration': 'Durée fixe',
+      'Validity period': 'Durée de validité',
+      Days: 'Jours',
+      Months: 'Mois',
       'Allow subscription purchases for invoices':
         "Autoriser les achats d'abonnement pour les factures",
       'Protect login and registration with Cloudflare Turnstile':
@@ -66,6 +111,16 @@ const resources = {
   },
   ja: {
     translation: {
+      'Gift Quota Expiration': '付与クォータの有効期限',
+      'Check-in gift quota expiration': 'チェックイン付与クォータの有効期限',
+      'Top-up bonus quota expiration': 'チャージ特典クォータの有効期限',
+      'Enter a valid duration': '有効な期間を入力してください',
+      'Expiration policy': '有効期限の設定',
+      Permanent: '無期限',
+      'Fixed duration': '期間を設定',
+      'Validity period': '有効期間',
+      Days: '日',
+      Months: 'か月',
       'Allow subscription purchases for invoices':
         'サブスクリプション購入の請求書発行を許可',
       'Protect login and registration with Cloudflare Turnstile':
@@ -89,6 +144,18 @@ const resources = {
   },
   ru: {
     translation: {
+      'Gift Quota Expiration': 'Срок действия подарочной квоты',
+      'Check-in gift quota expiration':
+        'Срок действия квоты за ежедневную отметку',
+      'Top-up bonus quota expiration':
+        'Срок действия бонусной квоты пополнения',
+      'Enter a valid duration': 'Укажите корректный срок',
+      'Expiration policy': 'Режим срока действия',
+      Permanent: 'Бессрочно',
+      'Fixed duration': 'Ограниченный срок',
+      'Validity period': 'Срок действия',
+      Days: 'Дни',
+      Months: 'Месяцы',
       'Allow subscription purchases for invoices':
         'Разрешить выставлять счета за покупки подписок',
       'Protect login and registration with Cloudflare Turnstile':
@@ -111,6 +178,16 @@ const resources = {
   },
   vi: {
     translation: {
+      'Gift Quota Expiration': 'Thời hạn hạn mức được tặng',
+      'Check-in gift quota expiration': 'Thời hạn hạn mức tặng khi điểm danh',
+      'Top-up bonus quota expiration': 'Thời hạn hạn mức thưởng nạp tiền',
+      'Enter a valid duration': 'Nhập thời hạn hợp lệ',
+      'Expiration policy': 'Cách hết hạn',
+      Permanent: 'Vĩnh viễn',
+      'Fixed duration': 'Thời hạn cố định',
+      'Validity period': 'Thời hạn hiệu lực',
+      Days: 'Ngày',
+      Months: 'Tháng',
       'Allow subscription purchases for invoices':
         'Cho phép mua gói đăng ký để xuất hóa đơn',
       'Protect login and registration with Cloudflare Turnstile':
@@ -133,7 +210,9 @@ const resources = {
   },
 } as const
 
-for (const [language, resource] of Object.entries(resources)) {
+for (const [language, resource] of Object.entries(
+  systemSettingsI18nResources
+)) {
   i18n.addResourceBundle(
     language,
     'translation',

@@ -57,7 +57,7 @@ func writeUserCache(user *UserBase, includeQuota bool) error {
 	if includeQuota {
 		includeQuotaArg = "1"
 	}
-	ttl := userCacheTTLSeconds()
+	ttl := userCacheTTLWithGiftExpiration(user.Id, userCacheTTLSeconds())
 	const script = `
 local incoming = tonumber(ARGV[1])
 local pending = tonumber(redis.call('GET', KEYS[2]) or '0')

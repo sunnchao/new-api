@@ -21,6 +21,7 @@ import i18n from '@/i18n/config'
 const resources = {
   en: {
     translation: {
+      'Gift quota {{quota}}': 'Gift quota {{quota}}',
       'Purchase a plan to enjoy model benefits':
         'Purchase a plan to enjoy model benefits',
       'Successfully redeemed subscription: {{plan}}':
@@ -29,12 +30,24 @@ const resources = {
   },
   zh: {
     translation: {
+      'Gift quota {{quota}}': '赠送额度 {{quota}}',
       'Purchase a plan to enjoy model benefits': '购买套餐后即可享受模型权益',
       'Successfully redeemed subscription: {{plan}}': '订阅兑换成功：{{plan}}',
     },
   },
+  zhCN: {
+    translation: {
+      'Gift quota {{quota}}': '赠送额度 {{quota}}',
+    },
+  },
+  zhTW: {
+    translation: {
+      'Gift quota {{quota}}': '贈送額度 {{quota}}',
+    },
+  },
   fr: {
     translation: {
+      'Gift quota {{quota}}': 'Quota offert : {{quota}}',
       'Purchase a plan to enjoy model benefits':
         'Souscrivez un plan pour bénéficier des avantages des modèles',
       'Successfully redeemed subscription: {{plan}}':
@@ -43,6 +56,7 @@ const resources = {
   },
   ja: {
     translation: {
+      'Gift quota {{quota}}': '特典クォータ {{quota}}',
       'Purchase a plan to enjoy model benefits':
         'プランを購入してモデルの特典を享受',
       'Successfully redeemed subscription: {{plan}}':
@@ -51,6 +65,7 @@ const resources = {
   },
   ru: {
     translation: {
+      'Gift quota {{quota}}': 'Подарочная квота: {{quota}}',
       'Purchase a plan to enjoy model benefits':
         'Приобретите план, чтобы воспользоваться преимуществами моделей',
       'Successfully redeemed subscription: {{plan}}':
@@ -59,6 +74,7 @@ const resources = {
   },
   vi: {
     translation: {
+      'Gift quota {{quota}}': 'Hạn mức tặng {{quota}}',
       'Purchase a plan to enjoy model benefits':
         'Mua gói để tận hưởng quyền lợi mô hình',
       'Successfully redeemed subscription: {{plan}}':

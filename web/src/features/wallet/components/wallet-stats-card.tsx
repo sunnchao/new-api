@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatQuota } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 import type { UserWalletData } from '../types'
 
@@ -50,13 +51,17 @@ export function WalletStatsCard(props: WalletStatsCardProps) {
     label: string
     value: string
     description: string
+    showDescriptionOnMobile?: boolean
     icon: typeof WalletCards
     tone: IconBadgeTone
   }[] = [
     {
       label: t('Current Balance'),
       value: formatQuota(props.user?.quota ?? 0),
-      description: t('Remaining quota'),
+      description: t('Gift quota {{quota}}', {
+        quota: formatQuota(props.user?.gift_quota ?? 0),
+      }),
+      showDescriptionOnMobile: true,
       icon: WalletCards,
       tone: 'success',
     },
@@ -92,7 +97,12 @@ export function WalletStatsCard(props: WalletStatsCardProps) {
           <div className='text-foreground mt-1.5 font-mono text-sm font-bold tracking-tight break-all tabular-nums sm:mt-2.5 sm:text-2xl'>
             {item.value}
           </div>
-          <div className='text-muted-foreground/60 mt-1 hidden text-xs md:block'>
+          <div
+            className={cn(
+              'text-muted-foreground/60 mt-1 text-[10px] [overflow-wrap:anywhere] sm:text-xs',
+              !item.showDescriptionOnMobile && 'hidden md:block'
+            )}
+          >
             {item.description}
           </div>
         </div>

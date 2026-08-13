@@ -111,6 +111,10 @@ const defaultBillingSettings: BillingSettings = {
   'checkin_setting.enabled': false,
   'checkin_setting.min_quota': 1000,
   'checkin_setting.max_quota': 10000,
+  'gift_quota_expiration_setting.checkin':
+    '{"mode":"permanent","unit":"day","value":0}',
+  'gift_quota_expiration_setting.topup_bonus':
+    '{"mode":"permanent","unit":"day","value":0}',
 }
 
 export function BillingSettings() {

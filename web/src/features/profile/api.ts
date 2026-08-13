@@ -27,6 +27,7 @@ import type {
   DeleteAccountRequest,
   CheckinStatusResponse,
   CheckinResponse,
+  GiftQuotaHistoryPage,
 } from './types'
 
 // ============================================================================
@@ -98,6 +99,17 @@ export async function deleteUserAccount(
  */
 export async function generateAccessToken(): Promise<ApiResponse<string>> {
   const res = await api.get('/api/user/token')
+  return res.data
+}
+
+export async function getGiftQuotaHistory(
+  page: number,
+  pageSize: number
+): Promise<ApiResponse<GiftQuotaHistoryPage>> {
+  const res = await api.get('/api/user/gift-quota/history', {
+    params: { p: page, page_size: pageSize },
+    skipBusinessError: true,
+  })
   return res.data
 }
 

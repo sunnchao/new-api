@@ -73,6 +73,7 @@ func DoCheckin(c *gin.Context) {
 		"message": "签到成功",
 		"data": gin.H{
 			"quota_awarded": checkin.QuotaAwarded,
-			"checkin_date":  checkin.CheckinDate},
+			"checkin_date":  checkin.CheckinDate,
+			"expires_at":    checkin.GiftExpiresAt},
 	})
 }

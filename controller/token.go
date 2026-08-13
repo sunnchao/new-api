@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -275,7 +276,7 @@ func AddToken(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	mjModel, ok := common.NormalizeMjModel(token.MjModel)
+	mjModel, ok := common.NormalizeMjModel(request.MjModel)
 	if !ok {
 		writeInvalidTokenMjModelError(c)
 		return

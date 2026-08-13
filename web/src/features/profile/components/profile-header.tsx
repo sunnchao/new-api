@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Activity, BarChart3, WalletCards } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { StatusBadge } from '@/components/status-badge'
@@ -27,9 +28,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { formatCompactNumber, formatQuota } from '@/lib/format'
 import { getRoleLabel } from '@/lib/roles'
+import { cn } from '@/lib/utils'
 
 import { getDisplayName } from '../lib'
 import type { UserProfile } from '../types'
+import { GiftQuotaHistoryDialog } from './dialogs/gift-quota-history-dialog'
 
 // ============================================================================
 // Profile Header Component
@@ -87,14 +90,18 @@ export function ProfileHeader({ profile, loading }: ProfileHeaderProps) {
   const stats: {
     label: string
     value: string
-    description: string
+    description: ReactNode
+    showDescriptionOnMobile?: boolean
     icon: typeof WalletCards
     tone: IconBadgeTone
   }[] = [
     {
       label: t('Current Balance'),
       value: formatQuota(profile.quota),
-      description: t('Remaining quota'),
+      description: (
+        <GiftQuotaHistoryDialog giftQuota={profile.gift_quota ?? 0} />
+      ),
+      showDescriptionOnMobile: true,
       icon: WalletCards,
       tone: 'success',
     },
@@ -184,7 +191,12 @@ export function ProfileHeader({ profile, loading }: ProfileHeaderProps) {
               <div className='text-foreground mt-1.5 truncate font-mono text-lg font-bold tracking-tight tabular-nums sm:mt-2 sm:text-2xl'>
                 {item.value}
               </div>
-              <div className='text-muted-foreground/60 mt-1 hidden text-xs md:block'>
+              <div
+                className={cn(
+                  'text-muted-foreground/60 mt-1 text-xs',
+                  !item.showDescriptionOnMobile && 'hidden md:block'
+                )}
+              >
                 {item.description}
               </div>
             </div>
