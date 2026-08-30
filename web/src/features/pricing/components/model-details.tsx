@@ -1256,11 +1256,6 @@ function GroupPricingSection(props: {
               ? t('Prices shown per usage unit')
               : `${t('Prices shown per')} ${tokenUnitLabel} tokens`}
           </p>
-          {hasDynamicTokenRows && (
-            <p className='text-muted-foreground/40 mt-1.5 text-[10px]'>
-              {t('Prices shown per')} {tokenUnitLabel} tokens
-            </p>
-          )}
         </div>
       </section>
     )

@@ -649,7 +649,6 @@ export function DynamicPricingBreakdown({
                     )}
                   >
                     {group.multiplier}x{isMatched && ` · ${t('Matched')}`}
-                    {describeGroupAction(group, symbol, rate)}
                   </Badge>
                 </li>
               )

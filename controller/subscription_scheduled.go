@@ -28,6 +28,10 @@ func UserActivateScheduledSubscription(c *gin.Context) {
 		common.ApiErrorMsg(c, err.Error())
 		return
 	}
+	if sub.Source == "admin" {
+		common.ApiErrorMsg(c, "管理员赠送的订阅不支持手动续费")
+		return
+	}
 
 	info, _ := model.GetSubscriptionPlanInfoByUserSubscriptionId(sub.Id)
 	planTitle := ""
