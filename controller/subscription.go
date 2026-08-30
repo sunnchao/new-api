@@ -104,6 +104,11 @@ func GetSubscriptionSelf(c *gin.Context) {
 		activeSubscriptions = []model.SubscriptionSummary{}
 	}
 
+	// Delete the ID field from allSubscriptions
+	for _, sub := range allSubscriptions {
+		sub.Subscription.Id = 0
+	}
+
 	common.ApiSuccess(c, gin.H{
 		"billing_preference": pref,
 		"subscriptions":      activeSubscriptions, // all active subscriptions

@@ -282,7 +282,7 @@ func RelaySwapFace(c *gin.Context, info *relaycommon.RelayInfo) *dto.MidjourneyR
 			TokenName: tokenName,
 			Quota:     midjourneyTask.Quota,
 			Content:   logContent,
-			TokenId:   midjourneyTask.TokenId,
+			TokenId:   midjourneyTask.TokenID,
 			Group:     info.UsingGroup,
 			Other:     other,
 		})
@@ -658,7 +658,7 @@ func RelayMidjourneySubmit(c *gin.Context, relayInfo *relaycommon.RelayInfo) *dt
 			TokenName: tokenName,
 			Quota:     midjourneyTask.Quota,
 			Content:   logContent,
-			TokenId:   midjourneyTask.TokenId,
+			TokenId:   midjourneyTask.TokenID,
 			Group:     relayInfo.UsingGroup,
 			Other:     other,
 		})

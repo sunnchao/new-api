@@ -37,7 +37,7 @@ const resources = {
         'Scan the QR code to join the QQ group.',
     },
   },
-  zh: {
+  zhCN: {
     translation: {
       'Support channels': '支持渠道',
       'Contact us': '联系我们',
@@ -52,6 +52,23 @@ const resources = {
       'Quick join': '一键加群',
       'QQ group QR code': 'QQ 群二维码',
       'Scan the QR code to join the QQ group.': '扫描二维码加入 QQ 群。',
+    },
+  },
+  zhTW: {
+    translation: {
+      'Support channels': '支援管道',
+      'Contact us': '聯繫我們',
+      'Classic homepage contact details.': '經典首頁的聯絡資訊。',
+      'Email support': '電子郵件支援',
+      'Reply within 24 hours.': '24 小時內回覆。',
+      'QQ group': 'QQ 群組',
+      'User updates and community help.': '用戶更新與社群協助。',
+      'View QR code': '查看二維碼',
+      'Copy contact': '複製聯絡方式',
+      'Copied!': '已複製！',
+      'Quick join': '一鍵加入',
+      'QQ group QR code': 'QQ 群組二維碼',
+      'Scan the QR code to join the QQ group.': '掃描二維碼加入 QQ 群組。',
     },
   },
   fr: {

@@ -644,8 +644,8 @@ export function SubscriptionPlansCard({
                         <div className='flex items-center gap-2'>
                           <span className='font-medium'>
                             {planTitle
-                              ? `${planTitle} · ${t('Subscription')} #${subscription?.id}`
-                              : `${t('Subscription')} #${subscription?.id}`}
+                              ? `${planTitle} · ${t('Subscription')}`
+                              : `${t('Subscription')}`}
                           </span>
                           {statusBadge}
                           <StatusBadge
@@ -675,7 +675,7 @@ export function SubscriptionPlansCard({
                             })}
                           </span>
                         )}
-                        {isActive && (
+                        {(isActive && subscription.source !== "admin") && (
                           <Button
                             variant='ghost'
                             size='sm'

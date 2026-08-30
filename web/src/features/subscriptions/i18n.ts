@@ -9,6 +9,7 @@ export const subscriptionsI18nResources = {
       'Actual Amount': 'Actual Amount',
       'Add subscription': 'Add subscription',
       'Added successfully': 'Added successfully',
+      'Admin Assigned': 'Admin Assigned',
       'After disabling, it will no longer be shown to users, but historical orders are not affected. Continue?':
         'After disabling, it will no longer be shown to users, but historical orders are not affected. Continue?',
       'After enabling, the plan will be shown to users. Continue?':
@@ -160,6 +161,7 @@ export const subscriptionsI18nResources = {
       'Search username or email': 'Search username or email',
       'Select payment method': 'Select payment method',
       'Select subscription plan': 'Select subscription plan',
+      'Self Purchased': 'Self Purchased',
       'Show on Home': 'Show on Home',
       'Sort Order': 'Sort Order',
       Source: 'Source',
@@ -224,6 +226,7 @@ export const subscriptionsI18nResources = {
       'Actual Amount': '实付金额',
       'Add subscription': '添加订阅',
       'Added successfully': '添加成功',
+      'Admin Assigned': '管理员分配',
       'After disabling, it will no longer be shown to users, but historical orders are not affected. Continue?':
         '禁用后将不再向用户展示，历史订单不受影响。确认继续？',
       'After enabling, the plan will be shown to users. Continue?':
@@ -374,6 +377,7 @@ export const subscriptionsI18nResources = {
       'Search username or email': '搜索用户名或邮箱',
       'Select payment method': '选择支付方式',
       'Select subscription plan': '选择订阅套餐',
+      'Self Purchased': '自行购买',
       'Show on Home': '首页展示',
       'Sort Order': '排序',
       Source: '来源',
@@ -436,6 +440,7 @@ export const subscriptionsI18nResources = {
       'Actual Amount': '實付金額',
       'Add subscription': '新增訂閱',
       'Added successfully': '新增成功',
+      'Admin Assigned': '管理員分配',
       'After disabling, it will no longer be shown to users, but historical orders are not affected. Continue?':
         '停用後將不再向使用者展示，歷史訂單不受影響。確認繼續？',
       'After enabling, the plan will be shown to users. Continue?':
@@ -586,6 +591,7 @@ export const subscriptionsI18nResources = {
       'Search username or email': '搜尋使用者名稱或電子郵箱',
       'Select payment method': '選擇支付方式',
       'Select subscription plan': '選擇訂閱方案',
+      'Self Purchased': '自行購買',
       'Show on Home': '首頁展示',
       'Sort Order': '排序',
       Source: '來源',
@@ -648,6 +654,7 @@ export const subscriptionsI18nResources = {
       'Actual Amount': 'Montant réel',
       'Add subscription': 'Ajouter un abonnement',
       'Added successfully': 'Ajouté avec succès',
+      'Admin Assigned': "Attribué par l'administrateur",
       'After disabling, it will no longer be shown to users, but historical orders are not affected. Continue?':
         'Après désactivation, il ne sera plus affiché aux utilisateurs, mais les commandes historiques ne sont pas affectées. Continuer ?',
       'After enabling, the plan will be shown to users. Continue?':
@@ -803,6 +810,7 @@ export const subscriptionsI18nResources = {
         "Rechercher un nom d'utilisateur ou un e-mail",
       'Select payment method': 'Sélectionner un mode de paiement',
       'Select subscription plan': "Sélectionner un plan d'abonnement",
+      'Self Purchased': 'Acheté par vous-même',
       'Show on Home': "Afficher sur l'accueil",
       'Sort Order': 'Ordre de tri',
       Source: 'Source',
@@ -868,6 +876,7 @@ export const subscriptionsI18nResources = {
       'Actual Amount': '実際の金額',
       'Add subscription': 'サブスクリプションを追加',
       'Added successfully': '追加しました',
+      'Admin Assigned': '管理者割り当て',
       'After disabling, it will no longer be shown to users, but historical orders are not affected. Continue?':
         '無効化後はユーザーに表示されなくなりますが、過去の注文には影響しません。続行しますか？',
       'After enabling, the plan will be shown to users. Continue?':
@@ -1021,6 +1030,7 @@ export const subscriptionsI18nResources = {
       'Search username or email': 'ユーザー名またはメールを検索',
       'Select payment method': '支払い方法を選択',
       'Select subscription plan': 'サブスクリプションプランを選択',
+      'Self Purchased': '自己購入',
       'Show on Home': 'ホームに表示',
       'Sort Order': '並び順',
       Source: 'ソース',
@@ -1085,6 +1095,7 @@ export const subscriptionsI18nResources = {
       'Actual Amount': 'Фактическая сумма',
       'Add subscription': 'Добавить подписку',
       'Added successfully': 'Успешно добавлено',
+      'Admin Assigned': 'Назначено администратором',
       'After disabling, it will no longer be shown to users, but historical orders are not affected. Continue?':
         'После отключения план больше не будет отображаться пользователям, но исторические заказы не затронуты. Продолжить?',
       'After enabling, the plan will be shown to users. Continue?':
@@ -1239,6 +1250,7 @@ export const subscriptionsI18nResources = {
       'Search username or email': 'Поиск по имени пользователя или email',
       'Select payment method': 'Выбрать способ оплаты',
       'Select subscription plan': 'Выбрать план подписки',
+      'Self Purchased': 'Куплено самостоятельно',
       'Show on Home': 'Показывать на главной',
       'Sort Order': 'Порядок сортировки',
       Source: 'Источник',
@@ -1304,6 +1316,7 @@ export const subscriptionsI18nResources = {
       'Actual Amount': 'Số tiền thực tế',
       'Add subscription': 'Thêm đăng ký',
       'Added successfully': 'Thêm thành công',
+      'Admin Assigned': 'Quản trị viên chỉ định',
       'After disabling, it will no longer be shown to users, but historical orders are not affected. Continue?':
         'Sau khi vô hiệu hóa, gói sẽ không còn hiển thị với người dùng, nhưng các đơn hàng cũ không bị ảnh hưởng. Tiếp tục?',
       'After enabling, the plan will be shown to users. Continue?':
@@ -1456,6 +1469,7 @@ export const subscriptionsI18nResources = {
       'Search username or email': 'Tìm tên người dùng hoặc email',
       'Select payment method': 'Chọn phương thức thanh toán',
       'Select subscription plan': 'Chọn gói đăng ký',
+      'Self Purchased': 'Tự mua',
       'Show on Home': 'Hiển thị trên trang chủ',
       'Sort Order': 'Thứ tự sắp xếp',
       Source: 'Nguồn',

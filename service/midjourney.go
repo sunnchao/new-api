@@ -37,7 +37,7 @@ func PrepareMidjourneyTaskBilling(relayInfo *relaycommon.RelayInfo, task *model.
 		return false, errors.New("Midjourney task is nil")
 	}
 	task.Quota = 0
-	task.TokenId = 0
+	task.TokenID = 0
 	task.BillingChannelId = 0
 	if !shouldBill {
 		return false, nil
@@ -75,7 +75,7 @@ func SettleMidjourneyTaskBilling(relayInfo *relaycommon.RelayInfo, task *model.M
 	result, billingErr := postConsumeQuotaWithResult(relayInfo, task.Quota, 0, true)
 	if !result.FundingApplied {
 		task.Quota = 0
-		task.TokenId = 0
+		task.TokenID = 0
 		task.BillingChannelId = 0
 		if updateErr := task.UpdateBillingState(); updateErr != nil {
 			return false, errors.Join(billingErr, fmt.Errorf("clear Midjourney billing state: %w", updateErr))
@@ -83,9 +83,9 @@ func SettleMidjourneyTaskBilling(relayInfo *relaycommon.RelayInfo, task *model.M
 		return false, billingErr
 	}
 
-	task.TokenId = 0
+	task.TokenID = 0
 	if result.TokenApplied {
-		task.TokenId = relayInfo.TokenId
+		task.TokenID = relayInfo.TokenId
 	}
 	if updateErr := task.UpdateBillingState(); updateErr != nil {
 		return true, errors.Join(billingErr, fmt.Errorf("update Midjourney billing state: %w", updateErr))
@@ -105,10 +105,10 @@ func RefundMidjourneyQuota(ctx context.Context, task *model.Midjourney, reason s
 		return false
 	}
 
-	if task.TokenId > 0 {
-		tokenKey := resolveTokenKey(ctx, task.TokenId, task.MjId)
+	if task.TokenID > 0 {
+		tokenKey := resolveTokenKey(ctx, task.TokenID, task.MjId)
 		if tokenKey != "" {
-			if err := model.IncreaseTokenQuota(task.TokenId, tokenKey, quota); err != nil {
+			if err := model.IncreaseTokenQuota(task.TokenID, tokenKey, quota); err != nil {
 				logger.LogWarn(ctx, fmt.Sprintf("退还 Midjourney 令牌额度失败 task %s: %s", task.MjId, err.Error()))
 			}
 		}
@@ -124,7 +124,7 @@ func RefundMidjourneyQuota(ctx context.Context, task *model.Midjourney, reason s
 		ChannelId: billingChannelId,
 		ModelName: CovertMjpActionToModelName(task.Action),
 		Quota:     quota,
-		TokenId:   task.TokenId,
+		TokenId:   task.TokenID,
 		Other: map[string]interface{}{
 			"task_id": task.MjId,
 			"reason":  reason,
