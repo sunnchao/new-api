@@ -319,6 +319,7 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 
 	tokenName := ctx.GetString("token_name")
 	billingModelName := relayInfo.GetBillingModelName()
+	completionRatioValue := ratio_setting.GetCompletionRatio(billingModelName)
 	completionRatio := decimal.NewFromFloat(ratio_setting.GetCompletionRatio(billingModelName))
 	audioRatio := decimal.NewFromFloat(ratio_setting.GetAudioRatio(billingModelName))
 	audioCompletionRatio := decimal.NewFromFloat(ratio_setting.GetAudioCompletionRatio(billingModelName))
@@ -327,9 +328,6 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
 	modelPrice := relayInfo.PriceData.ModelPrice
 	usePrice := relayInfo.PriceData.UsePrice
-	completionRatio := decimal.NewFromFloat(completionRatioValue)
-	audioRatio := decimal.NewFromFloat(audioRatioValue)
-	audioCompletionRatio := decimal.NewFromFloat(audioCompletionRatioValue)
 
 	quotaInfo := QuotaInfo{
 		InputDetails: TokenDetails{
@@ -340,11 +338,11 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 			TextTokens:  textOutTokens,
 			AudioTokens: audioOutTokens,
 		},
-		ModelName:  billingModelName,
-		UsePrice:   usePrice,
-		ModelRatio: modelRatio,
-		CompletionRatio: completionRatio,
-		GroupRatio: groupRatio,
+		ModelName:       billingModelName,
+		UsePrice:        usePrice,
+		ModelRatio:      modelRatio,
+		CompletionRatio: completionRatioValue,
+		GroupRatio:      groupRatio,
 	}
 
 	quota, clamp := calculateAudioQuota(quotaInfo)
