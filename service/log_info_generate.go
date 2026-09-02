@@ -47,7 +47,7 @@ func attachQuotaSaturation(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, o
 	}
 	attachQuotaSaturationToOther(other, clamp)
 	logger.LogWarn(ctx, fmt.Sprintf("quota saturation on consume log: op=%s kind=%s original=%g clamped=%d user=%d model=%s",
-		clamp.Op, clamp.Kind, clamp.Original, clamp.Clamped, relayInfo.UserId, relayInfo.OriginModelName))
+		clamp.Op, clamp.Kind, clamp.Original, clamp.Clamped, relayInfo.UserId, relayInfo.GetBillingModelName()))
 }
 
 func appendRequestPath(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other map[string]interface{}) {
@@ -99,6 +99,15 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 		if ua := ctx.Request.UserAgent(); ua != "" {
 			adminInfo["user_agent"] = ua
 		}
+	}
+	if billingModel := relayInfo.GetBillingModelName(); billingModel != "" && billingModel != relayInfo.OriginModelName {
+		adminInfo["billing_model"] = billingModel
+	}
+	if diagnostics := relayInfo.ConversionDiagnostics(); len(diagnostics) > 0 {
+		adminInfo["conversion_diagnostics"] = diagnostics
+	}
+	if relayInfo.ConversionDiagnosticsTruncated() {
+		adminInfo["conversion_diagnostics_truncated"] = true
 	}
 	isMultiKey := common.GetContextKeyBool(ctx, constant.ContextKeyChannelIsMultiKey)
 	if isMultiKey {
