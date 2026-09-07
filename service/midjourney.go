@@ -37,7 +37,7 @@ func PrepareMidjourneyTaskBilling(relayInfo *relaycommon.RelayInfo, task *model.
 		return false, errors.New("Midjourney task is nil")
 	}
 	task.Quota = 0
-	task.TokenID = 0
+	task.TokenId = 0
 	task.BillingChannelId = 0
 	if !shouldBill {
 		return false, nil
@@ -75,7 +75,7 @@ func SettleMidjourneyTaskBilling(relayInfo *relaycommon.RelayInfo, task *model.M
 	result, billingErr := postConsumeQuotaWithResult(relayInfo, task.Quota, 0, true)
 	if !result.FundingApplied {
 		task.Quota = 0
-		task.TokenID = 0
+		task.TokenId = 0
 		task.BillingChannelId = 0
 		if updateErr := task.UpdateBillingState(); updateErr != nil {
 			return false, errors.Join(billingErr, fmt.Errorf("clear Midjourney billing state: %w", updateErr))
@@ -83,9 +83,9 @@ func SettleMidjourneyTaskBilling(relayInfo *relaycommon.RelayInfo, task *model.M
 		return false, billingErr
 	}
 
-	task.TokenID = 0
+	task.TokenId = 0
 	if result.TokenApplied {
-		task.TokenID = relayInfo.TokenId
+		task.TokenId = relayInfo.TokenId
 	}
 	if updateErr := task.UpdateBillingState(); updateErr != nil {
 		return true, errors.Join(billingErr, fmt.Errorf("update Midjourney billing state: %w", updateErr))
@@ -105,10 +105,10 @@ func RefundMidjourneyQuota(ctx context.Context, task *model.Midjourney, reason s
 		return false
 	}
 
-	if task.TokenID > 0 {
-		tokenKey := resolveTokenKey(ctx, task.TokenID, task.MjId)
+	if task.TokenId > 0 {
+		tokenKey := resolveTokenKey(ctx, task.TokenId, task.MjId)
 		if tokenKey != "" {
-			if err := model.IncreaseTokenQuota(task.TokenID, tokenKey, quota); err != nil {
+			if err := model.IncreaseTokenQuota(task.TokenId, tokenKey, quota); err != nil {
 				logger.LogWarn(ctx, fmt.Sprintf("退还 Midjourney 令牌额度失败 task %s: %s", task.MjId, err.Error()))
 			}
 		}
@@ -117,6 +117,9 @@ func RefundMidjourneyQuota(ctx context.Context, task *model.Midjourney, reason s
 	billingChannelId := task.GetBillingChannelId()
 	model.UpdateUserUsedQuota(task.UserId, -quota)
 	model.UpdateChannelUsedQuota(billingChannelId, -quota)
+	other := model.NewLogOther()
+	other.SetPublic("task_id", task.MjId)
+	other.SetPublic("reason", reason)
 	model.RecordTaskBillingLog(model.RecordTaskBillingLogParams{
 		UserId:    task.UserId,
 		LogType:   model.LogTypeRefund,
@@ -124,11 +127,8 @@ func RefundMidjourneyQuota(ctx context.Context, task *model.Midjourney, reason s
 		ChannelId: billingChannelId,
 		ModelName: CovertMjpActionToModelName(task.Action),
 		Quota:     quota,
-		TokenId:   task.TokenID,
-		Other: map[string]interface{}{
-			"task_id": task.MjId,
-			"reason":  reason,
-		},
+		TokenId:   task.TokenId,
+		Other:     other,
 	})
 
 	task.Quota = 0
@@ -294,17 +294,14 @@ func DoMidjourneyHttpRequest(c *gin.Context, timeout time.Duration, fullRequestU
 		//req, err := http.NewRequest(c.Request.Method, fullRequestURL, requestBody)
 		// make new request with mapResult
 	}
-	if prompt, ok := mapResult["prompt"].(string); ok {
-		prompt = strings.Replace(prompt, "--fast", "", -1)
-		prompt = strings.Replace(prompt, "--relax", "", -1)
-		prompt = strings.Replace(prompt, "--turbo", "", -1)
-		prompt = strings.TrimSpace(prompt)
+	if setting.MjModeClearEnabled {
+		if prompt, ok := mapResult["prompt"].(string); ok {
+			prompt = strings.Replace(prompt, "--fast", "", -1)
+			prompt = strings.Replace(prompt, "--relax", "", -1)
+			prompt = strings.Replace(prompt, "--turbo", "", -1)
 
-		mjModel, ok := common.NormalizeMjModel(c.GetString("mj_model"))
-		if ok && mjModel != "" && prompt != "" {
-			prompt = prompt + " --" + mjModel
+			mapResult["prompt"] = prompt
 		}
-		mapResult["prompt"] = prompt
 	}
 	reqBody, err := json.Marshal(mapResult)
 	if err != nil {

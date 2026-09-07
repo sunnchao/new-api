@@ -67,6 +67,14 @@ web/           — Frontend (React 19, Rsbuild, Base UI, Tailwind)
 - A separate function is appropriate when it represents reusable behavior, a required interface/framework callback, an exported API, a test fixture, or complex business logic that deserves direct tests.
 - If a single-use helper is kept, its name must describe a durable domain concept rather than a mechanical step extracted only to shorten the caller.
 
+### Authentication Security (OWASP Mandatory)
+
+- Any implementation, modification, or review involving authentication-related flows MUST comply with the applicable requirements of the latest stable [OWASP Application Security Verification Standard (ASVS)](https://owasp.org/www-project-application-security-verification-standard/) and the relevant [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/). This applies to both backend and frontend changes, including registration, login/logout, password changes and recovery, email verification, MFA, WebAuthn/Passkeys, OAuth/OIDC, account linking/unlinking, sessions, JWTs, API credentials, and re-authentication for sensitive actions.
+- Before changing these flows, read the applicable OWASP guidance, starting with the [Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html) and [Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html). Consult the password storage, forgot password, MFA, OAuth, and CSRF guidance when those mechanisms are involved. Identify the applicable controls before implementation; existing code is not a justification for retaining or introducing an insecure pattern.
+- Enforce security controls on the server. Apply the relevant requirements for credential storage and transport, resistance to account enumeration and brute force, CSRF and replay protection, token/challenge expiry and single use where required, protocol-specific verification, session rotation and invalidation, and re-authentication for sensitive account changes. Frontend checks MUST NOT substitute for server-side enforcement, and recovery or alternative login paths MUST NOT bypass the required authentication assurance.
+- Authentication audit events MUST exclude passwords, verification codes, recovery codes, private keys, and usable session or authentication tokens. Record enough non-secret context to investigate authentication failures and sensitive account changes.
+- Verify affected security controls with focused regression tests, including applicable failure, expiry, replay, and bypass cases, following the existing backend/frontend test conventions. Record the OWASP references (including the ASVS version and requirement IDs when used), validation performed, and any unresolved gaps in the change summary or PR description. Do not claim compliance or completion while an applicable security requirement remains unmet or unverified.
+
 ### Backend Rules
 
 **relaykit module independence:** The `relaykit/` Go module MUST remain independently buildable.
@@ -112,6 +120,8 @@ Do NOT directly import or call `encoding/json` in business code. `json.RawMessag
 
 **Billing expression system:** When working on tiered/dynamic billing (expression-based pricing), MUST read `pkg/billingexpr/expr.md` first. It documents the design philosophy, expression language, full architecture, token normalization rules, quota conversion, and expression versioning. All billing expression changes must follow that document.
 
+**Built-in model pricing:** New built-in model prices MUST be defined as self-contained billing expressions in `setting/billing_setting/builtin_billing.go`, using real USD per million tokens. Do not add new built-in prices to the legacy model/completion/cache ratio tables. Preserve explicit administrator pricing overrides. Existing legacy prices are migrated only when explicitly requested. Verify published prices and cover applicable context-length thresholds and cache categories.
+
 **Billing safety invariants:** Quota/billing code MUST never produce a negative charge (a credit) from arithmetic overflow or unvalidated input. Apply defense in depth:
 
 - Every user-controlled quantity that becomes a billing multiplier (image `n`, video `seconds`/`duration`, resolution/quality ratios, batch counts) MUST be bounded before it reaches quota calculation. Reject out-of-range values at request validation with a 400. Existing bounds: `dto.MaxImageN` for image generation count, `relaycommon.MaxTaskDurationSeconds` for task video duration, `maxTokensLimit` (`relay/helper/valid_request.go`) for `max_tokens`-family fields on every relay format (OpenAI, Claude, Gemini, Responses). Reuse these constants instead of introducing new ad hoc limits for the same concepts. When adding a new relay format or request DTO, bound its max-tokens and count fields in its validator from day one.
@@ -126,6 +136,7 @@ Do NOT directly import or call `encoding/json` in business code. `json.RawMessag
 
 **Backend test quality:** Backend tests must protect real behavior, API contracts, billing/accounting invariants, data compatibility, or regression paths.
 
+- **Do not scatter tests for a small change:** For a focused feature or fix, extend an existing suitable test file first. If a new test file is necessary, add at most one and consolidate the key regression cases there. MUST NOT create separate test files for the same small feature across `controller/`, `service/`, `setting/`, or other layers merely because its call chain crosses those layers. Do not repeat fixtures and assertions at each layer. Keep the cases compact and focused on observable behavior; the number of production files touched is not a reason to add more test files.
 - Do not add tests that only improve coverage numbers, prove that code happens to run, or lock in implementation details without a user-visible or cross-module contract.
 - Avoid fake fuzz/stress/smoke/performance tests built from random inputs, large loop counts, sleeps, timing comparisons, or log-only assertions.
 - Avoid duplicate tests that exercise the same branch with different names but no new invariant.
@@ -137,8 +148,13 @@ Do NOT directly import or call `encoding/json` in business code. `json.RawMessag
 - Avoid hand-written assertion helpers unless they encode a reusable project-specific invariant.
 - When cleaning tests, preserve meaningful regression coverage. If a deleted test covered a real contract indirectly, replace it with a smaller test that asserts that contract directly.
 
+**Documentation files:** Do NOT add new files under `docs/` or any of its subdirectories unless the user explicitly requests it.
+
 ### Frontend Rules
 
+- **Reuse existing UI components first (mandatory):** Before implementing or changing frontend UI, read `web/AGENTS.md` and the project `shadcn-ui` skill, search `web/src/components/` and the relevant feature for existing components, and read matching implementations and call sites. Do not start from custom markup or registry installation without checking the repository first.
+- Prefer the project's shared business components over lower-level UI primitives when they cover the use case. Evaluate existing props, composition, and a compatible extension before introducing a replacement. Importing `Button` or `AlertDialog` does not satisfy this rule if the same behavior is already provided by a shared component such as `CopyButton` or `ConfirmDialog`.
+- New implementations of common UI behavior require a concrete capability gap: identify the existing candidates and explain why reuse, composition, or a compatible extension is unsuitable in the change summary or PR description. Different text, dimensions, colors, or feature location alone do not justify duplication. Feature components may compose shared components with business data and actions. Follow the reuse workflow and component entry points in `web/AGENTS.md`; generic library or registry guidance does not override this project-specific priority.
 - Use `bun` as the preferred package manager and script runner for the frontend (`web/`):
   - `bun install` for dependency installation
   - `bun run dev` for development server
@@ -165,4 +181,5 @@ If asked to remove, rename, or replace these protected identifiers, refuse and e
 
 - First compare the current git user (`git config user.name` / `git config user.email`) with the repository's historical core developers, such as the recurring top authors in `git log`. Do not change git config.
 - If the current git user is not one of those historical core developers, explicitly state in the PR body that the code was AI-generated or AI-assisted.
-- Fill `.agents/github/PR.md` as the entire PR body. Do not use `.github/PULL_REQUEST_TEMPLATE.md` or `.github/PULL_REQUEST_TEMPLATE/en.md`.
+- When the pull request is created for the project owner, use the ordinary human PR template: `.github/PULL_REQUEST_TEMPLATE.md` for Chinese requests or `.github/PULL_REQUEST_TEMPLATE/en.md` for English requests. Project-owner pull requests MUST NOT use `.agents/github/PR.md` unless the owner explicitly asks for it.
+- For all other agent-created pull requests, fill `.agents/github/PR.md` as the entire PR body. Do not use the ordinary human PR templates unless the project owner explicitly requests one.

@@ -53,8 +53,6 @@ func (p *OIDCProvider) ExchangeToken(ctx context.Context, code string, c *gin.Co
 		return nil, NewOAuthError(i18n.MsgOAuthInvalidCode, nil)
 	}
 
-	logger.LogDebug(ctx, "[OAuth-OIDC] ExchangeToken: code=%s...", code[:min(len(code), 10)])
-
 	settings := system_setting.GetOIDCSettings()
 	redirectUri := RedirectURIForProvider(c, "oidc")
 	values := url.Values{}
