@@ -301,8 +301,8 @@ func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string,
 	}
 
 	logType := LogTypeError
-	if other["LogType"] != nil {
-		logType = other["LogType"].(int)
+	if other.public["LogType"] != nil {
+		logType = other.public["LogType"].(int)
 	}
 
 	log := &Log{

@@ -96,21 +96,19 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			logger.LogError(c, fmt.Sprintf("relay error: %s", common.LocalLogPreview(newAPIError.Error())))
 			newAPIError.SetMessage(common.MessageWithRequestId(newAPIError.Error(), requestId))
 
-			other := make(map[string]interface{})
+			other := model.NewLogOther()
 			//if newAPIError.GetErrorCode() == types.ErrorCodeInsufficientUserQuota || newAPIError.GetErrorCode() == types.ErrorCodePreConsumeTokenQuotaFailed {
 			//	logType = model.LogTypeError
 			//}
-			other["error_code"] = newAPIError.GetErrorCode()
-			other["error_type"] = newAPIError.GetErrorType()
-			other["RequestId"] = requestId
+			other.SetPublic("error_code", newAPIError.GetErrorCode())
+			other.SetPublic("error_type", newAPIError.GetErrorType())
+			other.SetPublic("RequestId", requestId)
 
-			adminInfo := make(map[string]interface{})
 			if c != nil && c.Request != nil {
 				if ua := c.Request.UserAgent(); ua != "" {
-					adminInfo["user_agent"] = ua
+					other.SetAdmin("user_agent", ua)
 				}
 			}
-			other["admin_info"] = adminInfo
 
 			model.RecordErrorLog(
 				c,
@@ -213,11 +211,11 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	}()
 
 	retryParam := &service.RetryParam{
-		Ctx:         c,
-		TokenGroup:  relayInfo.TokenGroup,
-		ModelName:   relayInfo.OriginModelName,
-		RequestPath: c.Request.URL.Path,
-		Retry:       common.GetPointer(0),
+		Ctx:              c,
+		TokenGroup:       relayInfo.TokenGroup,
+		ModelName:        relayInfo.OriginModelName,
+		RequestPath:      c.Request.URL.Path,
+		Retry:            common.GetPointer(0),
 		TokenBackupGroup: common.GetContextKeyString(c, constant.ContextKeyBackupTokenGroup),
 	}
 	relayInfo.RetryIndex = 0
@@ -452,25 +450,24 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		if c.Request != nil && c.Request.URL != nil {
 			other.SetPublic("request_path", c.Request.URL.Path)
 		}
-		adminInfo := make(map[string]interface{})
-		adminInfo["error_type"] = err.GetErrorType()
-		adminInfo["error_code"] = err.GetErrorCode()
-		adminInfo["status_code"] = err.StatusCode
-		adminInfo["channel_id"] = channelId
-		adminInfo["channel_name"] = c.GetString("channel_name")
-		adminInfo["channel_type"] = c.GetInt("channel_type")
-		adminInfo["use_channel"] = c.GetStringSlice("use_channel")
+		other.SetPublic("error_type", err.GetErrorType())
+		other.SetPublic("error_code", err.GetErrorCode())
+		other.SetPublic("status_code", err.StatusCode)
+		other.SetAdmin("channel_id", channelError.ChannelId)
+		other.SetAdmin("channel_name", c.GetString("channel_name"))
+		other.SetAdmin("channel_type", c.GetInt("channel_type"))
+		other.SetAdmin("use_channel", c.GetStringSlice("use_channel"))
 		if c != nil && c.Request != nil {
 			if ua := c.Request.UserAgent(); ua != "" {
-				adminInfo["user_agent"] = ua
+				other.SetAdmin("user_agent", ua)
 			}
 		}
 		if relayInfo != nil {
 			if diagnostics := relayInfo.ConversionDiagnostics(); len(diagnostics) > 0 {
-				adminInfo["conversion_diagnostics"] = diagnostics
+				other.SetAdmin("conversion_diagnostics", diagnostics)
 			}
 			if relayInfo.ConversionDiagnosticsTruncated() {
-				adminInfo["conversion_diagnostics_truncated"] = true
+				other.SetAdmin("conversion_diagnostics_truncated", true)
 			}
 		}
 		other.SetPublic("error_type", err.GetErrorType())
@@ -530,16 +527,14 @@ func RelayMidjourney(c *gin.Context) {
 		logger.LogError(c, fmt.Sprintf("relay error (channel #%d, status code %d): %s", channelId, statusCode, fmt.Sprintf("%s %s", mjErr.Description, mjErr.Result)))
 
 		defer func() {
-			other := make(map[string]interface{})
-			other["LogType"] = model.LogTypeErrorForAdmin
+			other := model.NewLogOther()
+			other.SetPublic("log_type", model.LogTypeErrorForAdmin)
 
-			adminInfo := make(map[string]interface{})
 			if c != nil && c.Request != nil {
 				if ua := c.Request.UserAgent(); ua != "" {
-					adminInfo["user_agent"] = ua
+					other.SetAdmin("user_agent", ua)
 				}
 			}
-			other["admin_info"] = adminInfo
 
 			model.RecordErrorLog(
 				c,
@@ -699,11 +694,11 @@ func executeTaskSubmissionWith(
 	}
 
 	retryParam := &service.RetryParam{
-		Ctx:         c,
-		TokenGroup:  relayInfo.TokenGroup,
-		ModelName:   relayInfo.OriginModelName,
-		RequestPath: c.Request.URL.Path,
-		Retry:       common.GetPointer(0),
+		Ctx:              c,
+		TokenGroup:       relayInfo.TokenGroup,
+		ModelName:        relayInfo.OriginModelName,
+		RequestPath:      c.Request.URL.Path,
+		Retry:            common.GetPointer(0),
 		TokenBackupGroup: common.GetContextKeyString(c, constant.ContextKeyBackupTokenGroup),
 	}
 
@@ -829,13 +824,13 @@ func executeTaskSubmissionWith(
 		}
 	}
 	task.PrivateData.BillingContext = &model.TaskBillingContext{
-		ModelPrice:      relayInfo.PriceData.ModelPrice,
-		GroupRatio:      relayInfo.PriceData.GroupRatioInfo.GroupRatio,
-		ModelRatio:      relayInfo.PriceData.ModelRatio,
-		OtherRatios:     relayInfo.PriceData.OtherRatios(),
-		OriginModelName: relayInfo.OriginModelName,
-		PerCallBilling:  common.StringsContains(constant.TaskPricePatches, relayInfo.OriginModelName) || relayInfo.PriceData.UsePrice,
-		TieredSnapshot:  relayInfo.TieredBillingSnapshot,
+		ModelPrice:              relayInfo.PriceData.ModelPrice,
+		GroupRatio:              relayInfo.PriceData.GroupRatioInfo.GroupRatio,
+		ModelRatio:              relayInfo.PriceData.ModelRatio,
+		OtherRatios:             relayInfo.PriceData.OtherRatios(),
+		OriginModelName:         relayInfo.OriginModelName,
+		PerCallBilling:          common.StringsContains(constant.TaskPricePatches, relayInfo.OriginModelName) || relayInfo.PriceData.UsePrice,
+		TieredSnapshot:          relayInfo.TieredBillingSnapshot,
 		SubscriptionBillingMode: relayInfo.SubscriptionBillingMode,
 	}
 	task.Quota = result.Quota

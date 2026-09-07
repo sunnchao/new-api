@@ -744,7 +744,7 @@ func AdminRenewUserSubscription(c *gin.Context) {
 		common.ApiErrorMsg(c, "无效的订阅ID")
 		return
 	}
-	result, err := model.AdminRenewUserSubscription(subId, c.GetInt("id"), c.ClientIP())
+	result, err := model.AdminRenewUserSubscription(subId, c.GetInt("id"), c.ClientIP(), c)
 	if err != nil {
 		if strings.Contains(err.Error(), "subscription is not active") {
 			common.ApiErrorMsg(c, "仅生效中的订阅可以续费")

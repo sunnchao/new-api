@@ -56,6 +56,7 @@ import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
 import { useMediaQuery } from '@/hooks'
 
 import { safeJsonParse } from '../utils/json-parser'
+import { upsertModelImageSpecPrices } from './image-spec-price'
 import type { PricingMode } from './model-pricing-core'
 import {
   ModelPricingEditorPanel,
@@ -85,6 +86,7 @@ type ModelRatioVisualEditorProps = {
   savedAudioCompletionRatio: string
   savedBillingMode: string
   savedBillingExpr: string
+  savedImageSpecPrice: string
   modelPrice: string
   modelRatio: string
   cacheRatio: string
@@ -95,6 +97,7 @@ type ModelRatioVisualEditorProps = {
   audioCompletionRatio: string
   billingMode: string
   billingExpr: string
+  imageSpecPrice: string
   candidateModelNames?: string[]
   candidateModelsLoading?: boolean
   filterMode?: 'all' | 'unset'
@@ -124,6 +127,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
     savedAudioCompletionRatio,
     savedBillingMode,
     savedBillingExpr,
+    savedImageSpecPrice,
     modelPrice,
     modelRatio,
     cacheRatio,
@@ -134,6 +138,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
     audioCompletionRatio,
     billingMode,
     billingExpr,
+    imageSpecPrice,
     candidateModelNames,
     candidateModelsLoading,
     filterMode = 'all',
@@ -227,6 +232,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio: savedAudioCompletionRatio,
       billingMode: savedBillingMode,
       billingExpr: savedBillingExpr,
+      imageSpecPrice: savedImageSpecPrice,
     })
     const draftRows = buildModelSnapshots({
       modelPrice,
@@ -239,6 +245,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio,
       billingMode,
       billingExpr,
+      imageSpecPrice,
     })
 
     const savedByName = new Map(savedRows.map((row) => [row.name, row]))
@@ -282,6 +289,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
     savedAudioCompletionRatio,
     savedBillingMode,
     savedBillingExpr,
+    savedImageSpecPrice,
     modelPrice,
     modelRatio,
     cacheRatio,
@@ -292,6 +300,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
     audioCompletionRatio,
     billingMode,
     billingExpr,
+    imageSpecPrice,
   ])
 
   const modeCounts = useMemo(() => {
@@ -325,7 +334,11 @@ const ModelRatioVisualEditorComponent = forwardRef<
       let editBillingMode: PricingMode = 'per-token'
       if (editableModel.billingMode === 'tiered_expr') {
         editBillingMode = 'tiered_expr'
-      } else if (editableModel.price && editableModel.price !== '') {
+      } else if (
+        (editableModel.price && editableModel.price !== '') ||
+        (editableModel.imageSpecPrices &&
+          Object.keys(editableModel.imageSpecPrices).length > 0)
+      ) {
         editBillingMode = 'per-request'
       }
       setEditData({
@@ -341,6 +354,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
         billingMode: editBillingMode,
         billingExpr: editableModel.billingExpr,
         requestRuleExpr: editableModel.requestRuleExpr,
+        imageSpecPrices: editableModel.imageSpecPrices,
       })
       setEditorOpen(true)
       if (isMobile) setSheetOpen(true)
@@ -442,6 +456,10 @@ const ModelRatioVisualEditorComponent = forwardRef<
         'billing_setting.billing_expr',
         JSON.stringify(billingExprMap, null, 2)
       )
+      onChange(
+        'billing_setting.image_spec_price',
+        upsertModelImageSpecPrices(imageSpecPrice, [name])
+      )
 
       if (editData?.name === name) {
         setEditData(null)
@@ -460,6 +478,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio,
       billingMode,
       billingExpr,
+      imageSpecPrice,
       onChange,
       editData,
     ]
@@ -523,6 +542,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
         AudioCompletionRatio: audioCompletionRatio,
         BillingMode: billingMode,
         BillingExpr: billingExpr,
+          ImageSpecPrice: imageSpecPrice,
       })
       const updated = applyPricingDraft(options, data, targetNames)
       for (const [key, value] of Object.entries(updated)) onChange(key, value)
@@ -538,6 +558,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio,
       billingMode,
       billingExpr,
+      imageSpecPrice,
       onChange,
     ]
   )
@@ -787,6 +808,7 @@ export const ModelRatioVisualEditor = memo(
         nextProps.savedAudioCompletionRatio &&
       prevProps.savedBillingMode === nextProps.savedBillingMode &&
       prevProps.savedBillingExpr === nextProps.savedBillingExpr &&
+      prevProps.savedImageSpecPrice === nextProps.savedImageSpecPrice &&
       prevProps.modelPrice === nextProps.modelPrice &&
       prevProps.modelRatio === nextProps.modelRatio &&
       prevProps.cacheRatio === nextProps.cacheRatio &&
@@ -797,6 +819,7 @@ export const ModelRatioVisualEditor = memo(
       prevProps.audioCompletionRatio === nextProps.audioCompletionRatio &&
       prevProps.billingMode === nextProps.billingMode &&
       prevProps.billingExpr === nextProps.billingExpr &&
+      prevProps.imageSpecPrice === nextProps.imageSpecPrice &&
       prevProps.candidateModelNames === nextProps.candidateModelNames &&
       prevProps.candidateModelsLoading === nextProps.candidateModelsLoading &&
       prevProps.filterMode === nextProps.filterMode &&

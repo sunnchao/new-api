@@ -18,7 +18,11 @@ import {
   type RequestCondition,
   type RequestRuleGroup,
 } from './billing-expr'
-import { formatFixedPrice, formatGroupPrice } from './price'
+import {
+  formatFixedPrice,
+  formatGroupPrice,
+  formatRequestUsdPrice,
+} from './price'
 
 export type GroupPriceItem = {
   key: string
@@ -323,7 +327,7 @@ function buildRequestItems(
   priceRate: number,
   usdExchangeRate: number
 ): GroupPriceItem[] {
-  return [
+  const items: GroupPriceItem[] = [
     {
       key: 'fixed',
       labelKey: 'Model Price',
@@ -337,7 +341,28 @@ function buildRequestItems(
       ),
       suffixKey: 'per request',
     },
-  ].filter((item) => item.value !== '-')
+  ]
+
+  const specs = model.image_spec_price || {}
+  for (const spec of Object.keys(specs).sort((a, b) => a.localeCompare(b))) {
+    const price = specs[spec]
+    if (!Number.isFinite(price) || price < 0) continue
+    items.push({
+      key: `spec:${spec}`,
+      labelKey: spec,
+      value: formatRequestUsdPrice(
+        price,
+        group,
+        showWithRecharge,
+        priceRate,
+        usdExchangeRate,
+        groupRatio
+      ),
+      suffixKey: 'per image',
+    })
+  }
+
+  return items.filter((item) => item.value !== '-')
 }
 
 export function getGroupPriceDisplay({
@@ -518,21 +543,14 @@ export function getDefaultGroupPriceDisplay({
     ratio,
     billingType: 'request',
     effectiveQuotaType: model.quota_type,
-    items: [
-      {
-        key: 'fixed',
-        labelKey: 'Model Price',
-        value: formatFixedPrice(
-          model,
-          '',
-          showWithRecharge,
-          priceRate,
-          usdExchangeRate,
-          {}
-        ),
-        suffixKey: 'per request',
-      },
-    ].filter((item) => item.value !== '-'),
+    items: buildRequestItems(
+      model,
+      '',
+      {},
+      showWithRecharge,
+      priceRate,
+      usdExchangeRate
+    ),
   }
 }
 

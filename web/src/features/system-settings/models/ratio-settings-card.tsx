@@ -127,6 +127,7 @@ const createModelSchema = (t: Translate) =>
     ExposeRatioEnabled: z.boolean(),
     BillingMode: createJsonStringField(t),
     BillingExpr: createJsonStringField(t),
+    ImageSpecPrice: createJsonStringField(t),
   })
 
 const createGroupSchema = (t: Translate) =>
@@ -248,6 +249,7 @@ export function RatioSettingsCard({
     ExposeRatioEnabled: modelDefaults.ExposeRatioEnabled,
     BillingMode: normalizeJsonString(modelDefaults.BillingMode),
     BillingExpr: normalizeJsonString(modelDefaults.BillingExpr),
+    ImageSpecPrice: normalizeJsonString(modelDefaults.ImageSpecPrice),
   })
   const [savedModelValues, setSavedModelValues] = useState(
     modelNormalizedDefaults.current
@@ -291,6 +293,7 @@ export function RatioSettingsCard({
       ),
       BillingMode: formatJsonForTextarea(modelDefaults.BillingMode),
       BillingExpr: formatJsonForTextarea(modelDefaults.BillingExpr),
+      ImageSpecPrice: formatJsonForTextarea(modelDefaults.ImageSpecPrice),
     },
   })
 
@@ -331,6 +334,7 @@ export function RatioSettingsCard({
       ExposeRatioEnabled: modelDefaults.ExposeRatioEnabled,
       BillingMode: normalizeJsonString(modelDefaults.BillingMode),
       BillingExpr: normalizeJsonString(modelDefaults.BillingExpr),
+      ImageSpecPrice: normalizeJsonString(modelDefaults.ImageSpecPrice),
     }
     setSavedModelValues(modelNormalizedDefaults.current)
 
@@ -348,6 +352,7 @@ export function RatioSettingsCard({
       ),
       BillingMode: formatJsonForTextarea(modelDefaults.BillingMode),
       BillingExpr: formatJsonForTextarea(modelDefaults.BillingExpr),
+      ImageSpecPrice: formatJsonForTextarea(modelDefaults.ImageSpecPrice),
     })
   }, [modelDefaults, modelForm])
 
@@ -404,6 +409,7 @@ export function RatioSettingsCard({
         ExposeRatioEnabled: values.ExposeRatioEnabled,
         BillingMode: normalizeJsonString(values.BillingMode),
         BillingExpr: normalizeJsonString(values.BillingExpr),
+        ImageSpecPrice: normalizeJsonString(values.ImageSpecPrice),
       }
 
       if (!pricingBaseline) return

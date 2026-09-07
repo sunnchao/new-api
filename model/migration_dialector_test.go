@@ -1,12 +1,15 @@
 package model
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
+	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -174,4 +177,19 @@ func TestMigrationSchemaStability(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestIsMySQLDuplicateIndexName(t *testing.T) {
+	duplicate := &mysqldriver.MySQLError{
+		Number:  1061,
+		Message: "Duplicate key name 'idx_users_access_token'",
+	}
+	assert.True(t, isMySQLDuplicateIndexName(duplicate))
+	assert.True(t, isMySQLDuplicateIndexName(fmt.Errorf("create index: %w", duplicate)))
+	assert.False(t, isMySQLDuplicateIndexName(nil))
+	assert.False(t, isMySQLDuplicateIndexName(errors.New("duplicate key name")))
+	assert.False(t, isMySQLDuplicateIndexName(&mysqldriver.MySQLError{
+		Number:  1062,
+		Message: "Duplicate entry 'token' for key 'idx_users_access_token'",
+	}))
 }

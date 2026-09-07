@@ -31,6 +31,26 @@ export const systemSettingsI18nResources = {
       'Client restrictions': 'Client restrictions',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.',
+      'Image spec price': 'Image spec price',
+      'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
+        'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.',
+      'Image spec prices': 'Image spec prices',
+      'Overlay on the fallback price. Lookup order is resolution/quality, then resolution, then quality.':
+        'Overlay on the fallback price. Lookup order is resolution/quality, then resolution, then quality.',
+      'Spec key': 'Spec key',
+      'per image': 'per image',
+      'Add spec': 'Add spec',
+      'Spec key is required': 'Spec key is required',
+      'Duplicate spec key': 'Duplicate spec key',
+      'Image spec price must be finite and non-negative':
+        'Image spec price must be finite and non-negative',
+      'Fallback price is required when image spec prices are set.':
+        'Fallback price is required when image spec prices are set.',
+      'Cost in USD per request, regardless of tokens used. Used as the fallback when no image spec matches.':
+        'Cost in USD per request, regardless of tokens used. Used as the fallback when no image spec matches.',
+      'image specs': 'image specs',
+      'Includes resolution/quality prices':
+        'Includes resolution/quality prices',
     },
   },
   zhCN: {
@@ -60,6 +80,25 @@ export const systemSettingsI18nResources = {
       'Client restrictions': '客户端限制',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         '分组到允许客户端的 JSON 映射。允许的客户端 ID 为 claude_code 和 codex；未配置或空列表的分组不限制。',
+      'Image spec price': '图片规格价格',
+      'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
+        '模型到分辨率/画质单价的 JSON 映射。覆盖 ModelPrice；查找顺序为 resolution/quality、resolution，然后 quality。',
+      'Image spec prices': '图片规格价格',
+      'Overlay on the fallback price. Lookup order is resolution/quality, then resolution, then quality.':
+        '叠加在保底单价上。查找顺序为 resolution/quality、resolution，然后 quality。',
+      'Spec key': '规格键',
+      'per image': '每张',
+      'Add spec': '添加规格',
+      'Spec key is required': '必须填写规格键',
+      'Duplicate spec key': '规格键不能重复',
+      'Image spec price must be finite and non-negative':
+        '图片规格价格必须为有限非负数',
+      'Fallback price is required when image spec prices are set.':
+        '已设置图片规格价格时必须填写保底单价。',
+      'Cost in USD per request, regardless of tokens used. Used as the fallback when no image spec matches.':
+        '每次请求的美元价格，与 token 用量无关。未匹配到图片规格时使用该保底价。',
+      'image specs': '图片规格',
+      'Includes resolution/quality prices': '包含分辨率/画质价格',
     },
   },
   zhTW: {
@@ -74,6 +113,25 @@ export const systemSettingsI18nResources = {
       'Validity period': '有效期時長',
       Days: '天',
       Months: '個月',
+      'Image spec price': '圖片規格價格',
+      'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
+        '模型到解析度／畫質單價的 JSON 對應。覆蓋 ModelPrice；查找順序為 resolution/quality、resolution，然後 quality。',
+      'Image spec prices': '圖片規格價格',
+      'Overlay on the fallback price. Lookup order is resolution/quality, then resolution, then quality.':
+        '疊加在保底單價上。查找順序為 resolution/quality、resolution，然後 quality。',
+      'Spec key': '規格鍵',
+      'per image': '每張',
+      'Add spec': '新增規格',
+      'Spec key is required': '必須填寫規格鍵',
+      'Duplicate spec key': '規格鍵不可重複',
+      'Image spec price must be finite and non-negative':
+        '圖片規格價格必須為有限非負數',
+      'Fallback price is required when image spec prices are set.':
+        '已設定圖片規格價格時必須填寫保底單價。',
+      'Cost in USD per request, regardless of tokens used. Used as the fallback when no image spec matches.':
+        '每次請求的美元價格，與 token 用量無關。未匹配到圖片規格時使用該保底價。',
+      'image specs': '圖片規格',
+      'Includes resolution/quality prices': '包含解析度／畫質價格',
     },
   },
   fr: {
@@ -107,6 +165,26 @@ export const systemSettingsI18nResources = {
       'Client restrictions': 'Restrictions de client',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         'Objet JSON associant chaque groupe aux clients autorisés. Les IDs autorisés sont claude_code et codex ; les groupes absents ou vides ne sont pas restreints.',
+      'Image spec price': "Prix par spécification d'image",
+      'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
+        "Objet JSON modèle → prix par résolution/qualité. Superpose ModelPrice ; ordre : resolution/quality, puis resolution, puis quality.",
+      'Image spec prices': "Prix par spécification d'image",
+      'Overlay on the fallback price. Lookup order is resolution/quality, then resolution, then quality.':
+        'Superpose le prix de repli. Ordre : resolution/quality, puis resolution, puis quality.',
+      'Spec key': 'Clé de spécification',
+      'per image': 'par image',
+      'Add spec': 'Ajouter une spécification',
+      'Spec key is required': 'La clé de spécification est obligatoire',
+      'Duplicate spec key': 'Clé de spécification en double',
+      'Image spec price must be finite and non-negative':
+        "Le prix de spécification d'image doit être fini et non négatif",
+      'Fallback price is required when image spec prices are set.':
+        "Un prix de repli est requis lorsque des prix par spécification d'image sont définis.",
+      'Cost in USD per request, regardless of tokens used. Used as the fallback when no image spec matches.':
+        "Coût en USD par requête, indépendamment des tokens. Utilisé comme repli si aucune spécification d'image ne correspond.",
+      'image specs': "spécifications d'image",
+      'Includes resolution/quality prices':
+        'Inclut les prix par résolution/qualité',
     },
   },
   ja: {
@@ -140,6 +218,25 @@ export const systemSettingsI18nResources = {
       'Client restrictions': 'クライアント制限',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         'グループから許可クライアントへの JSON マップです。許可されるクライアント ID は claude_code と codex です。未設定または空のグループは制限されません。',
+      'Image spec price': '画像スペック価格',
+      'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
+        'モデルから解像度／品質単価への JSON マップです。ModelPrice を上書きし、検索順は resolution/quality、resolution、quality です。',
+      'Image spec prices': '画像スペック価格',
+      'Overlay on the fallback price. Lookup order is resolution/quality, then resolution, then quality.':
+        'フォールバック単価の上に重ねます。検索順は resolution/quality、resolution、quality です。',
+      'Spec key': 'スペックキー',
+      'per image': '/枚',
+      'Add spec': 'スペックを追加',
+      'Spec key is required': 'スペックキーは必須です',
+      'Duplicate spec key': 'スペックキーが重複しています',
+      'Image spec price must be finite and non-negative':
+        '画像スペック価格は有限の非負数である必要があります',
+      'Fallback price is required when image spec prices are set.':
+        '画像スペック価格を設定する場合はフォールバック単価が必要です。',
+      'Cost in USD per request, regardless of tokens used. Used as the fallback when no image spec matches.':
+        'トークン数に関係なく、リクエストあたりの USD 価格です。画像スペックに一致しない場合のフォールバック単価として使います。',
+      'image specs': '画像スペック',
+      'Includes resolution/quality prices': '解像度／品質価格を含む',
     },
   },
   ru: {
@@ -174,6 +271,26 @@ export const systemSettingsI18nResources = {
       'Client restrictions': 'Ограничения клиентов',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         'JSON-объект, сопоставляющий группы с разрешенными клиентами. Допустимые ID клиентов: claude_code и codex; отсутствующие группы или пустые списки не ограничиваются.',
+      'Image spec price': 'Цена по спецификации изображения',
+      'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
+        'JSON-объект модели к ценам по разрешению/качеству. Перекрывает ModelPrice; порядок поиска: resolution/quality, затем resolution, затем quality.',
+      'Image spec prices': 'Цены по спецификации изображения',
+      'Overlay on the fallback price. Lookup order is resolution/quality, then resolution, then quality.':
+        'Наложение на резервную цену. Порядок поиска: resolution/quality, затем resolution, затем quality.',
+      'Spec key': 'Ключ спецификации',
+      'per image': 'за изображение',
+      'Add spec': 'Добавить спецификацию',
+      'Spec key is required': 'Ключ спецификации обязателен',
+      'Duplicate spec key': 'Дублирующийся ключ спецификации',
+      'Image spec price must be finite and non-negative':
+        'Цена спецификации изображения должна быть конечной и неотрицательной',
+      'Fallback price is required when image spec prices are set.':
+        'При заданных ценах по спецификации изображения требуется резервная цена.',
+      'Cost in USD per request, regardless of tokens used. Used as the fallback when no image spec matches.':
+        'Стоимость в USD за запрос независимо от токенов. Используется как резервная цена, если спецификация изображения не совпала.',
+      'image specs': 'спецификации изображения',
+      'Includes resolution/quality prices':
+        'Включает цены по разрешению/качеству',
     },
   },
   vi: {
@@ -206,6 +323,26 @@ export const systemSettingsI18nResources = {
       'Client restrictions': 'Giới hạn client',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         'Bản đồ JSON từ nhóm sang các client được phép. ID client hợp lệ là claude_code và codex; nhóm bị thiếu hoặc có danh sách rỗng sẽ không bị giới hạn.',
+      'Image spec price': 'Giá theo thông số ảnh',
+      'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
+        'Bản đồ JSON từ mô hình tới giá theo độ phân giải/chất lượng. Ghi đè ModelPrice; thứ tự tra cứu là resolution/quality, rồi resolution, rồi quality.',
+      'Image spec prices': 'Giá theo thông số ảnh',
+      'Overlay on the fallback price. Lookup order is resolution/quality, then resolution, then quality.':
+        'Ghi đè lên giá dự phòng. Thứ tự tra cứu là resolution/quality, rồi resolution, rồi quality.',
+      'Spec key': 'Khóa thông số',
+      'per image': 'mỗi ảnh',
+      'Add spec': 'Thêm thông số',
+      'Spec key is required': 'Bắt buộc nhập khóa thông số',
+      'Duplicate spec key': 'Khóa thông số bị trùng',
+      'Image spec price must be finite and non-negative':
+        'Giá theo thông số ảnh phải là số hữu hạn không âm',
+      'Fallback price is required when image spec prices are set.':
+        'Cần giá dự phòng khi đã đặt giá theo thông số ảnh.',
+      'Cost in USD per request, regardless of tokens used. Used as the fallback when no image spec matches.':
+        'Chi phí USD mỗi yêu cầu, không phụ thuộc token. Dùng làm giá dự phòng khi không khớp thông số ảnh.',
+      'image specs': 'thông số ảnh',
+      'Includes resolution/quality prices':
+        'Bao gồm giá theo độ phân giải/chất lượng',
     },
   },
 } as const

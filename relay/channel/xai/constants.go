@@ -22,10 +22,12 @@ var ModelList = []string{
 	// grok-3-mini reasoning effort variants
 	"grok-3-mini-high", "grok-3-mini-low",
 	// image generation models
+	"grok-imagine-image-2.0",
 	"grok-imagine-image-pro",
 	"grok-imagine-image",
 	"grok-2-image-1212",
-	// video generation model
+	// video generation models
+	"grok-imagine-video-1.5",
 	"grok-imagine-video",
 }
 

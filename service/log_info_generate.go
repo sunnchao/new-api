@@ -117,10 +117,34 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 	if isSystemPromptOverwritten {
 		other.SetPublic("is_system_prompt_overwritten", true)
 	}
+	if ctx != nil && ctx.Request != nil {
+		if ua := ctx.Request.UserAgent(); ua != "" {
+			other.SetAdmin("user_agent", ua)
+		}
+	}
+	if billingModel := relayInfo.GetBillingModelName(); billingModel != "" && billingModel != relayInfo.OriginModelName {
+		other.SetAdmin("billing_model", billingModel)
+	}
+	if diagnostics := relayInfo.ConversionDiagnostics(); len(diagnostics) > 0 {
+		other.SetAdmin("conversion_diagnostics", diagnostics)
+	}
+	if relayInfo.ConversionDiagnosticsTruncated() {
+		other.SetAdmin("conversion_diagnostics_truncated", true)
+	}
+	isMultiKey := common.GetContextKeyBool(ctx, constant.ContextKeyChannelIsMultiKey)
+	if isMultiKey {
+		other.SetAdmin("is_multi_key", true)
+		other.SetAdmin("multi_key_index", common.GetContextKeyInt(ctx, constant.ContextKeyChannelMultiKeyIndex))
+	}
 
-	AppendChannelAffinityAdminInfo(ctx, adminInfo)
+	isLocalCountTokens := common.GetContextKeyBool(ctx, constant.ContextKeyLocalCountTokens)
+	if isLocalCountTokens {
+		other.SetAdmin("local_count_tokens", isLocalCountTokens)
+	}
+
+	AppendChannelAffinityAdminInfo(ctx, other)
 	AppendRelayLogAdminInfo(ctx, relayInfo, other)
-	appendImageRequestInfo(relayInfo, adminInfo)
+	appendImageRequestInfo(relayInfo, other)
 	appendRequestPath(ctx, relayInfo, other)
 	appendRequestConversionChain(relayInfo, other)
 	appendFinalRequestFormat(relayInfo, other)
@@ -337,8 +361,8 @@ func InjectTieredBillingInfo(other *model.LogOther, relayInfo *relaycommon.Relay
 	}
 }
 
-func appendImageRequestInfo(relayInfo *relaycommon.RelayInfo, adminInfo map[string]interface{}) {
-	if relayInfo == nil || relayInfo.Request == nil || adminInfo == nil {
+func appendImageRequestInfo(relayInfo *relaycommon.RelayInfo, other *model.LogOther) {
+	if relayInfo == nil || relayInfo.Request == nil || other == nil {
 		return
 	}
 	imageReq, ok := relayInfo.Request.(*dto.ImageRequest)
@@ -360,5 +384,5 @@ func appendImageRequestInfo(relayInfo *relaycommon.RelayInfo, adminInfo map[stri
 	if imageReq.N != nil {
 		imageInfo["n"] = *imageReq.N
 	}
-	adminInfo["image_request"] = imageInfo
+	other.SetPublic("image_request", imageInfo)
 }

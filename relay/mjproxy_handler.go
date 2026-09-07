@@ -251,7 +251,7 @@ func RelaySwapFace(c *gin.Context, info *relaycommon.RelayInfo) *dto.MidjourneyR
 		Progress:    "0%",
 		FailReason:  "",
 		ChannelId:   c.GetInt("channel_id"),
-		TokenID:     c.GetInt("token_id"),
+		TokenId:     c.GetInt("token_id"),
 		Mode:        c.GetString("mj_model"),
 	}
 	billingPrepared, billingErr := service.PrepareMidjourneyTaskBilling(
@@ -282,7 +282,7 @@ func RelaySwapFace(c *gin.Context, info *relaycommon.RelayInfo) *dto.MidjourneyR
 			TokenName: tokenName,
 			Quota:     midjourneyTask.Quota,
 			Content:   logContent,
-			TokenId:   midjourneyTask.TokenID,
+			TokenId:   midjourneyTask.TokenId,
 			Group:     info.UsingGroup,
 			Other:     other,
 		})
@@ -581,7 +581,7 @@ func RelayMidjourneySubmit(c *gin.Context, relayInfo *relaycommon.RelayInfo) *dt
 		FailReason:  "",
 		ChannelId:   c.GetInt("channel_id"),
 		Quota:       priceData.Quota,
-		TokenID:     c.GetInt("token_id"),
+		TokenId:     c.GetInt("token_id"),
 		Mode:        c.GetString("mj_model"),
 	}
 	if midjResponse.Code == 3 {
@@ -658,7 +658,7 @@ func RelayMidjourneySubmit(c *gin.Context, relayInfo *relaycommon.RelayInfo) *dt
 			TokenName: tokenName,
 			Quota:     midjourneyTask.Quota,
 			Content:   logContent,
-			TokenId:   midjourneyTask.TokenID,
+			TokenId:   midjourneyTask.TokenId,
 			Group:     relayInfo.UsingGroup,
 			Other:     other,
 		})

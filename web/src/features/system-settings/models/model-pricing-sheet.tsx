@@ -70,6 +70,12 @@ import {
 import type { BillingUsageSchema } from '@/features/pricing/types'
 import { cn } from '@/lib/utils'
 
+import { ImageSpecPriceEditor } from './image-spec-price-editor'
+import {
+  imageSpecPriceToRows,
+  parseImageSpecPriceRows,
+  type ImageSpecPriceRow,
+} from './image-spec-price'
 import {
   EMPTY_LANE_ENABLED,
   EMPTY_LANE_PRICES,
@@ -177,6 +183,8 @@ export const ModelPricingEditorPanel = forwardRef<
   })
   const [billingExpr, setBillingExpr] = useState('')
   const [requestRuleExpr, setRequestRuleExpr] = useState('')
+  const [imageSpecRows, setImageSpecRows] = useState<ImageSpecPriceRow[]>([])
+  const [imageSpecError, setImageSpecError] = useState('')
   const [editorReloadToken, setEditorReloadToken] = useState(0)
   const autoSwitchedForRef = useRef<string | null>(null)
   const isEditMode = !!editData
@@ -260,6 +268,7 @@ export const ModelPricingEditorPanel = forwardRef<
       setPricingMode(nextPricingMode)
       setBillingExpr(editData.billingExpr || '')
       setRequestRuleExpr(editData.requestRuleExpr || '')
+      setImageSpecRows(imageSpecPriceToRows(editData.imageSpecPrices))
     } else {
       form.reset({
         name: '',
@@ -275,11 +284,13 @@ export const ModelPricingEditorPanel = forwardRef<
       setPricingMode('per-token')
       setBillingExpr('')
       setRequestRuleExpr('')
+      setImageSpecRows([])
     }
 
     setPromptPrice(nextLaneState.promptPrice)
     setLanePrices(nextLaneState.prices)
     setLaneEnabled(nextLaneState.enabled)
+    setImageSpecError('')
     setEditorReloadToken((token) => token + 1)
     autoSwitchedForRef.current = null
   }, [editData, form])
@@ -436,6 +447,11 @@ export const ModelPricingEditorPanel = forwardRef<
     }
   }
 
+  const parsedImageSpecPrices = useMemo(() => {
+    const parsed = parseImageSpecPriceRows(imageSpecRows)
+    return parsed.ok ? parsed.specs : {}
+  }, [imageSpecRows])
+
   const previewRows = useMemo(
     () =>
       buildPreviewRows(
@@ -446,12 +462,14 @@ export const ModelPricingEditorPanel = forwardRef<
         promptPrice,
         lanePrices,
         laneEnabled,
-        t
+        t,
+        parsedImageSpecPrices
       ),
     [
       resolvedBillingExpr,
       laneEnabled,
       lanePrices,
+      parsedImageSpecPrices,
       pricingMode,
       promptPrice,
       requestRuleExpr,
@@ -548,8 +566,28 @@ export const ModelPricingEditorPanel = forwardRef<
       return false
     }
 
+    if (pricingMode === 'per-request') {
+      const parsed = parseImageSpecPriceRows(imageSpecRows)
+      if (!parsed.ok) {
+        setImageSpecError(t(parsed.messageKey))
+        return false
+      }
+      if (
+        Object.keys(parsed.specs).length > 0 &&
+        !hasValue(form.getValues().price)
+      ) {
+        form.setError('price', {
+          message: t(
+            'Fallback price is required when image spec prices are set.'
+          ),
+        })
+        return false
+      }
+    }
+
+    setImageSpecError('')
     return true
-  }, [form, laneEnabled, lanePrices, pricingMode, promptPrice, t])
+  }, [form, imageSpecRows, laneEnabled, lanePrices, pricingMode, promptPrice, t])
 
   const buildSubmitData = useCallback(
     (values: ModelPricingFormValues) => {
@@ -571,9 +609,14 @@ export const ModelPricingEditorPanel = forwardRef<
         data.requestRuleExpr = requestRuleExpr
       }
 
+      if (pricingMode === 'per-request') {
+        const parsed = parseImageSpecPriceRows(imageSpecRows)
+        data.imageSpecPrices = parsed.ok ? parsed.specs : {}
+      }
+
       return data
     },
-    [pricingMode, requestRuleExpr, resolvedBillingExpr]
+    [imageSpecRows, pricingMode, requestRuleExpr, resolvedBillingExpr]
   )
 
   useImperativeHandle(
@@ -767,13 +810,21 @@ export const ModelPricingEditorPanel = forwardRef<
                               </FormControl>
                               <FieldDescription>
                                 {t(
-                                  'Cost in USD per request, regardless of tokens used.'
+                                  'Cost in USD per request, regardless of tokens used. Used as the fallback when no image spec matches.'
                                 )}
                               </FieldDescription>
                               <FormMessage />
                             </Field>
                           </FormItem>
                         )}
+                      />
+                      <ImageSpecPriceEditor
+                        rows={imageSpecRows}
+                        error={imageSpecError}
+                        onChange={(rows) => {
+                          setImageSpecError('')
+                          setImageSpecRows(rows)
+                        }}
                       />
                     </FieldGroup>
                   </TabsContent>

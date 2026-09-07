@@ -74,7 +74,7 @@ func AdminActivateScheduledSubscription(c *gin.Context) {
 	if info != nil {
 		planTitle = info.PlanTitle
 	}
-	adminInfo := map[string]interface{}{
+	adminInfoParams := map[string]interface{}{
 		"admin_id":             c.GetInt("id"),
 		"caller_ip":            c.ClientIP(),
 		"user_subscription_id": sub.Id,
@@ -82,10 +82,18 @@ func AdminActivateScheduledSubscription(c *gin.Context) {
 		"start_time":           sub.StartTime,
 		"end_time":             sub.EndTime,
 	}
+	adminInfo := &model.AuditAdminInfo{
+		AdminID:  c.GetInt("id"),
+		CallerIp: c.ClientIP(),
+		Params:   adminInfoParams,
+	}
+
 	model.RecordLogWithAdminInfo(sub.UserId, model.LogTypeManage,
 		fmt.Sprintf("管理员立即激活待生效订阅，套餐: %s，订阅ID: %d，到期时间: %d",
 			planTitle, sub.Id, sub.EndTime),
 		adminInfo,
+		nil,
+		c,
 	)
 
 	common.ApiSuccess(c, gin.H{

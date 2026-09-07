@@ -250,6 +250,34 @@ export function formatGroupPrice(
 }
 
 /**
+ * Format a per-request USD unit price after applying the group ratio.
+ */
+export function formatRequestUsdPrice(
+  unitPrice: number,
+  group: string,
+  showWithRecharge = false,
+  priceRate = 1,
+  usdExchangeRate = 1,
+  groupRatio: Record<string, number>
+): string {
+  const ratio = getConfiguredGroupRatio(groupRatio, group)
+  let priceInUSD = unitPrice * ratio
+
+  priceInUSD = applyRechargeRate(
+    priceInUSD,
+    showWithRecharge,
+    priceRate,
+    usdExchangeRate
+  )
+
+  return formatCurrencyFromUSD(priceInUSD, {
+    digitsLarge: 4,
+    digitsSmall: 4,
+    abbreviate: false,
+  })
+}
+
+/**
  * Format fixed price for pay-per-request models (with specific group)
  */
 export function formatFixedPrice(
@@ -264,21 +292,14 @@ export function formatFixedPrice(
     return '-'
   }
 
-  const ratio = getConfiguredGroupRatio(groupRatio, group)
-  let priceInUSD = (model.model_price || 0) * ratio
-
-  priceInUSD = applyRechargeRate(
-    priceInUSD,
+  return formatRequestUsdPrice(
+    model.model_price || 0,
+    group,
     showWithRecharge,
     priceRate,
-    usdExchangeRate
+    usdExchangeRate,
+    groupRatio
   )
-
-  return formatCurrencyFromUSD(priceInUSD, {
-    digitsLarge: 4,
-    digitsSmall: 4,
-    abbreviate: false,
-  })
 }
 
 /**

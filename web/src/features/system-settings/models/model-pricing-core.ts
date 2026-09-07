@@ -62,6 +62,7 @@ export type ModelRatioData = {
   billingMode?: PricingMode
   billingExpr?: string
   requestRuleExpr?: string
+  imageSpecPrices?: Record<string, number>
 }
 
 export type PreviewRow = {
@@ -215,7 +216,8 @@ export function buildPreviewRows(
   promptPrice: string,
   lanePrices: Record<LaneKey, string>,
   laneEnabled: Record<LaneKey, boolean>,
-  t: (key: string) => string
+  t: (key: string) => string,
+  imageSpecPrices: Record<string, number> = {}
 ): PreviewRow[] {
   if (mode === 'tiered_expr') {
     const effectiveExpr = combineBillingExpr(billingExpr, requestRuleExpr)
@@ -231,12 +233,18 @@ export function buildPreviewRows(
   }
 
   if (mode === 'per-request') {
+    const specRows = Object.entries(imageSpecPrices).map(([spec, price]) => ({
+      key: `spec:${spec}`,
+      label: spec,
+      value: `$${formatPricingNumber(price)}`,
+    }))
     return [
       {
         key: 'price',
         label: t('Fixed price'),
         value: values.price || t('Empty'),
       },
+      ...specRows,
     ]
   }
 

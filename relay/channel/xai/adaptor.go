@@ -2,15 +2,18 @@ package xai
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/relay/channel"
 	"github.com/QuantumNous/new-api/relay/channel/openai"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
+	"github.com/QuantumNous/new-api/setting/billing_setting"
 	"github.com/QuantumNous/new-api/setting/model_setting"
 
 	"github.com/QuantumNous/new-api/relay/constant"
@@ -39,11 +42,24 @@ func (a *Adaptor) ConvertAudioRequest(c *gin.Context, info *relaycommon.RelayInf
 }
 
 func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.ImageRequest) (any, error) {
+	n := int(lo.FromPtrOr(request.N, uint(1)))
+	if n > maxImageN {
+		return nil, fmt.Errorf("n must be at most %d", maxImageN)
+	}
+	resolution, quality := billing_setting.ImageSpecFromRequest(&request)
 	xaiRequest := ImageRequest{
 		Model:          request.Model,
 		Prompt:         request.Prompt,
-		N:              int(lo.FromPtrOr(request.N, uint(1))),
+		N:              n,
+		Quality:        quality,
+		Resolution:     resolution,
 		ResponseFormat: request.ResponseFormat,
+	}
+	if raw, ok := request.Extra["aspect_ratio"]; ok {
+		var aspectRatio string
+		if err := common.Unmarshal(raw, &aspectRatio); err == nil {
+			xaiRequest.AspectRatio = aspectRatio
+		}
 	}
 	return xaiRequest, nil
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -135,7 +136,7 @@ type AdminRenewSubscriptionResult struct {
 	NewEndTime         int64  `json:"new_end_time"`
 }
 
-func AdminRenewUserSubscription(userSubscriptionId int, adminId int, callerIp string) (*AdminRenewSubscriptionResult, error) {
+func AdminRenewUserSubscription(userSubscriptionId int, adminId int, callerIp string, ctx *gin.Context) (*AdminRenewSubscriptionResult, error) {
 	if userSubscriptionId <= 0 {
 		return nil, errors.New("invalid userSubscriptionId")
 	}
@@ -184,7 +185,9 @@ func AdminRenewUserSubscription(userSubscriptionId int, adminId int, callerIp st
 		return nil, errors.New("subscription renewal failed")
 	}
 
-	adminInfo := map[string]interface{}{
+	// adminInfo *model.AuditAdminInfo
+
+	adminInfoParams := map[string]interface{}{
 		"admin_id":             adminId,
 		"caller_ip":            callerIp,
 		"user_subscription_id": result.UserSubscriptionId,
@@ -192,10 +195,17 @@ func AdminRenewUserSubscription(userSubscriptionId int, adminId int, callerIp st
 		"old_end_time":         result.OldEndTime,
 		"new_end_time":         result.NewEndTime,
 	}
+	adminInfo := &AuditAdminInfo{
+		AdminID:  adminId,
+		CallerIp: callerIp,
+		Params:   adminInfoParams,
+	}
 	RecordLogWithAdminInfo(result.UserId, LogTypeManage,
 		fmt.Sprintf("管理员手动续费订阅，套餐: %s，待生效订阅ID: %d，预计生效时间: %d，预计到期时间: %d",
 			result.PlanTitle, result.UserSubscriptionId, result.OldEndTime, result.NewEndTime),
 		adminInfo,
+		nil,
+		ctx,
 	)
 	return result, nil
 }

@@ -147,13 +147,19 @@ export function usePricingColumns(
         const requestPriceDisplay = pricingContext.requestPriceDisplay
 
         if (requestPriceDisplay) {
+          const requestItem = requestPriceDisplay.items[0]
+          const specCount = requestPriceDisplay.items.filter((item) =>
+            item.key.startsWith('spec:')
+          ).length
           return (
             <div className='min-w-[100px]'>
               <span className='font-mono text-sm tabular-nums'>
-                {stripTrailingZeros(requestPriceDisplay.items[0]?.value ?? '-')}
+                {stripTrailingZeros(requestItem?.value ?? '-')}
               </span>
               <div className='text-muted-foreground/50 text-[10px]'>
-                / {t('request')}
+                {t(requestItem?.suffixKey || 'per request')}
+                {specCount > 0 &&
+                  ` · ${t('{{count}} specs', { count: specCount })}`}
               </div>
             </div>
           )

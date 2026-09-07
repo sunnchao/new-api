@@ -59,6 +59,7 @@ type ModelFormValues = {
   ExposeRatioEnabled: boolean
   BillingMode: string
   BillingExpr: string
+  ImageSpecPrice: string
 }
 
 type ModelRatioFormProps = {
@@ -80,6 +81,7 @@ type ModelJsonFieldName =
   | 'ImageRatio'
   | 'AudioRatio'
   | 'AudioCompletionRatio'
+  | 'ImageSpecPrice'
 
 const modelJsonFields: Array<{
   name: ModelJsonFieldName
@@ -91,6 +93,12 @@ const modelJsonFields: Array<{
     labelKey: 'Model fixed pricing',
     descriptionKey:
       'JSON map of model → USD cost per request. Takes precedence over ratio based billing.',
+  },
+  {
+    name: 'ImageSpecPrice',
+    labelKey: 'Image spec price',
+    descriptionKey:
+      'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.',
   },
   {
     name: 'ModelRatio',
@@ -275,6 +283,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
               savedAudioCompletionRatio={savedValues.AudioCompletionRatio}
               savedBillingMode={savedValues.BillingMode}
               savedBillingExpr={savedValues.BillingExpr}
+              savedImageSpecPrice={savedValues.ImageSpecPrice}
               modelPrice={form.watch('ModelPrice')}
               modelRatio={form.watch('ModelRatio')}
               cacheRatio={form.watch('CacheRatio')}
@@ -285,6 +294,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
               audioCompletionRatio={form.watch('AudioCompletionRatio')}
               billingMode={form.watch('BillingMode')}
               billingExpr={form.watch('BillingExpr')}
+              imageSpecPrice={form.watch('ImageSpecPrice')}
               candidateModelNames={
                 isUnsetVariant ? enabledModelsQuery.data?.data : undefined
               }
@@ -298,6 +308,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
                 const fieldMap: Record<string, keyof ModelFormValues> = {
                   'billing_setting.billing_mode': 'BillingMode',
                   'billing_setting.billing_expr': 'BillingExpr',
+                  'billing_setting.image_spec_price': 'ImageSpecPrice',
                 }
                 const formField =
                   fieldMap[field] || (field as keyof ModelFormValues)

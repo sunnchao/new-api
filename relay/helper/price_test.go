@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -653,4 +654,94 @@ func TestModelPriceHelperNativeGeminiNoThinkingDoesNotAliasBillingModel(t *testi
 	assert.Equal(t, "gemini-3-pro", info.GetBillingModelName())
 	assert.Equal(t, 1.25, priceData.ModelRatio)
 	assert.NotEqual(t, 37.5, priceData.ModelRatio)
+}
+
+func TestModelPriceHelperOverlaysImageSpecPrice(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	saved := map[string]string{}
+	require.NoError(t, config.GlobalConfig.SaveToDB(func(key, value string) error {
+		saved[key] = value
+		return nil
+	}))
+	t.Cleanup(func() {
+		require.NoError(t, config.GlobalConfig.LoadFromDB(saved))
+	})
+	require.NoError(t, config.GlobalConfig.LoadFromDB(map[string]string{
+		"billing_setting.image_spec_price": `{"grok-imagine-image-2.0":{"2k/medium":0.07}}`,
+	}))
+
+	savedPrices := ratio_setting.ModelPrice2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(savedPrices))
+	})
+	prices := ratio_setting.GetModelPriceCopy()
+	prices["grok-imagine-image-2.0"] = 0.02
+	priceJSON, err := common.Marshal(prices)
+	require.NoError(t, err)
+	require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(string(priceJSON)))
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Set("group", "default")
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "grok-imagine-image-2.0",
+		UserGroup:       "default",
+		UsingGroup:      "default",
+		Request: &dto.ImageRequest{
+			Quality: "medium",
+			Extra: map[string]json.RawMessage{
+				"resolution": json.RawMessage(`"2k"`),
+			},
+		},
+	}
+
+	priceData, err := ModelPriceHelper(ctx, info, 0, &types.TokenCountMeta{})
+	require.NoError(t, err)
+	assert.True(t, priceData.UsePrice)
+	assert.Equal(t, 0.07, priceData.ModelPrice)
+	assert.Equal(t, 35000, priceData.QuotaToPreConsume)
+}
+
+func TestModelPriceHelperOverlaysOpenAIImageSize(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	saved := map[string]string{}
+	require.NoError(t, config.GlobalConfig.SaveToDB(func(key, value string) error {
+		saved[key] = value
+		return nil
+	}))
+	t.Cleanup(func() {
+		require.NoError(t, config.GlobalConfig.LoadFromDB(saved))
+	})
+	require.NoError(t, config.GlobalConfig.LoadFromDB(map[string]string{
+		"billing_setting.image_spec_price": `{"grok-imagine-image-2.0":{"1k/low":0.02}}`,
+	}))
+
+	savedPrices := ratio_setting.ModelPrice2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(savedPrices))
+	})
+	prices := ratio_setting.GetModelPriceCopy()
+	prices["grok-imagine-image-2.0"] = 0.08
+	priceJSON, err := common.Marshal(prices)
+	require.NoError(t, err)
+	require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(string(priceJSON)))
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Set("group", "default")
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "grok-imagine-image-2.0",
+		UserGroup:       "default",
+		UsingGroup:      "default",
+		Request: &dto.ImageRequest{
+			Size:    "1024x1024",
+			Quality: "standard",
+		},
+	}
+
+	priceData, err := ModelPriceHelper(ctx, info, 0, &types.TokenCountMeta{})
+	require.NoError(t, err)
+	assert.True(t, priceData.UsePrice)
+	assert.Equal(t, 0.02, priceData.ModelPrice)
+	assert.Equal(t, 10000, priceData.QuotaToPreConsume)
 }

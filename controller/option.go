@@ -366,6 +366,12 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "billing_setting.image_spec_price":
+		err = billing_setting.ValidateImageSpecPriceJSON(option.Value.(string))
+		if err != nil {
+			common.ApiErrorMsg(c, err.Error())
+			return
+		}
 	case "billing_setting.billing_expr":
 		expressions := make(map[string]string)
 		if err = common.UnmarshalJsonStr(option.Value.(string), &expressions); err != nil {

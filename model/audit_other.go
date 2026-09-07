@@ -25,10 +25,12 @@ type AuditOperation struct {
 }
 
 type AuditAdminInfo struct {
-	AdminID       int    `json:"admin_id,omitempty"`
-	AdminUsername string `json:"admin_username,omitempty"`
-	AdminRole     int    `json:"admin_role,omitempty"`
-	AuthMethod    string `json:"auth_method,omitempty"`
+	AdminID       int                        `json:"admin_id,omitempty"`
+	AdminUsername string                     `json:"admin_username,omitempty"`
+	AdminRole     int                        `json:"admin_role,omitempty"`
+	AuthMethod    string                     `json:"auth_method,omitempty"`
+	CallerIp      string                     `json:"caller_ip,omitempty"`
+	Params        AuditAdminInfoParamsFields `json:"params,omitempty"`
 }
 
 type AuditRequestInfo struct {
@@ -44,6 +46,7 @@ type AuditRequestInfo struct {
 // Retain their encoded values when reading so arbitrary nested integers do not
 // round-trip through float64 and lose precision before the API returns them.
 type AuditFields map[string]any
+type AuditAdminInfoParamsFields map[string]any
 
 func (fields *AuditFields) UnmarshalJSON(data []byte) error {
 	var values map[string]json.RawMessage

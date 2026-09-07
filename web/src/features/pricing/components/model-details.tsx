@@ -660,10 +660,10 @@ function PriceSection(props: {
     priceRate: props.priceRate,
     usdExchangeRate: props.usdExchangeRate,
   })
-  const defaultRequestPriceItem =
+  const requestPriceItems =
     defaultGroupPriceDisplay?.billingType === 'request'
-      ? defaultGroupPriceDisplay.items[0]
-      : null
+      ? defaultGroupPriceDisplay.items
+      : []
   const baseGroupKey = '_base'
   const baseGroupRatioMap = { [baseGroupKey]: 1 }
   const dynamicSummary = getDynamicPricingSummary(props.model, {
@@ -712,17 +712,31 @@ function PriceSection(props: {
     },
   ]
 
-  if (defaultRequestPriceItem) {
+  if (requestPriceItems.length > 0) {
     return (
       <section className='border-b py-4'>
         <SectionTitle>{t('Base Price')}</SectionTitle>
-        <div className='flex items-baseline justify-between'>
-          <span className='text-muted-foreground text-sm'>
-            {t('Per request')}
-          </span>
-          <span className='text-foreground font-mono text-sm font-semibold tabular-nums'>
-            {defaultRequestPriceItem.value}
-          </span>
+        <div className='space-y-2'>
+          {requestPriceItems.map((item) => (
+            <div
+              key={item.key}
+              className='flex items-baseline justify-between gap-4'
+            >
+              <span className='text-muted-foreground text-sm'>
+                {item.key === 'fixed' ? t('Per request') : t(item.labelKey)}
+              </span>
+              <span className='text-right'>
+                <span className='text-foreground font-mono text-sm font-semibold tabular-nums'>
+                  {item.value}
+                </span>
+                {item.key !== 'fixed' && item.suffixKey && (
+                  <span className='text-muted-foreground/50 ml-1 text-xs'>
+                    {t(item.suffixKey)}
+                  </span>
+                )}
+              </span>
+            </div>
+          ))}
         </div>
       </section>
     )

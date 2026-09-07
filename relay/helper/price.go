@@ -137,6 +137,7 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		}
 		preConsumedQuota = quota
 	} else {
+		modelPrice = billing_setting.OverlayImageSpecPrice(info.OriginModelName, info.Request, modelPrice)
 		if meta.ImagePriceRatio != 0 {
 			modelPrice = modelPrice * meta.ImagePriceRatio
 		}

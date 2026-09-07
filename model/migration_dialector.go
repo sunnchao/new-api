@@ -1,8 +1,10 @@
 package model
 
 import (
+	"errors"
 	"strings"
 
+	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/shopspring/decimal"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -19,6 +21,19 @@ func (d mysqlMigrationDialector) Migrator(db *gorm.DB) gorm.Migrator {
 }
 
 type mysqlSchemaMigrator struct{ mysql.Migrator }
+
+func (m mysqlSchemaMigrator) CreateIndex(value any, name string) error {
+	err := m.Migrator.CreateIndex(value, name)
+	if isMySQLDuplicateIndexName(err) {
+		return nil
+	}
+	return err
+}
+
+func isMySQLDuplicateIndexName(err error) bool {
+	var mysqlErr *mysqldriver.MySQLError
+	return errors.As(err, &mysqlErr) && mysqlErr.Number == 1061
+}
 
 func (m mysqlSchemaMigrator) MigrateColumn(value any, field *schema.Field, column gorm.ColumnType) error {
 	if !field.HasDefaultValue || !strings.EqualFold(column.DatabaseTypeName(), "decimal") {
