@@ -16,11 +16,43 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 
 import { StatusBadge, type StatusBadgeProps } from './status-badge'
+import { Badge } from './ui/badge'
+
+export function GroupMultiplierBadge(props: {
+  children?: ReactNode
+  className?: string
+  label?: string
+  ratio?: number | null
+}) {
+  let colorClassName =
+    'border-muted-foreground/30 bg-muted text-muted-foreground'
+  if (props.ratio != null && props.ratio > 1) {
+    colorClassName = 'border-warning/30 bg-warning/10 text-warning'
+  } else if (props.ratio != null && props.ratio < 1) {
+    colorClassName = 'border-info/30 bg-info/10 text-info'
+  }
+
+  return (
+    <Badge
+      variant='outline'
+      className={cn(
+        'relative h-5 min-w-12 rounded-full px-1.5 py-0 text-sm leading-none font-medium shadow-none',
+        !props.label && 'tabular-nums',
+        colorClassName,
+        props.className
+      )}
+    >
+      {props.children}
+      <span>{props.label ?? `${props.ratio}x`}</span>
+    </Badge>
+  )
+}
 
 type GroupBadgeProps = Omit<
   StatusBadgeProps,
@@ -29,17 +61,9 @@ type GroupBadgeProps = Omit<
   group?: string | null
   label?: string
   ratio?: number | null
+  ratioLabel?: string
+  containerClassName?: string
   wrapLabel?: boolean
-}
-
-function getGroupRatioClassName(ratio: number): string {
-  if (ratio > 1) {
-    return 'bg-warning/10 text-warning'
-  }
-  if (ratio < 1) {
-    return 'bg-info/10 text-info'
-  }
-  return 'bg-muted text-muted-foreground'
 }
 
 function getGroupLabel(params: {
@@ -61,6 +85,8 @@ export function GroupBadge(props: GroupBadgeProps) {
     group,
     label: labelOverride,
     ratio,
+    ratioLabel,
+    containerClassName,
     wrapLabel = false,
     copyable = false,
     showDot,
@@ -96,33 +122,19 @@ export function GroupBadge(props: GroupBadgeProps) {
     />
   )
 
-  if (ratio == null) {
+  if (ratio == null && !ratioLabel) {
     return badge
   }
 
   return (
     <span
       className={cn(
-        'inline-flex max-w-full min-w-0 items-center gap-2 text-xs',
-        wrapLabel && 'w-full items-start'
+        'inline-flex max-w-full min-w-0 items-center gap-2 text-sm',
+        containerClassName
       )}
     >
-      <span
-        className={cn(
-          'max-w-full min-w-0 overflow-hidden',
-          wrapLabel && 'flex-1 overflow-visible'
-        )}
-      >
-        {badge}
-      </span>
-      <span
-        className={cn(
-          'inline-flex h-5 shrink-0 items-center rounded-full px-1.5 font-mono text-xs leading-none font-medium tabular-nums',
-          getGroupRatioClassName(ratio)
-        )}
-      >
-        <span>{ratio}x</span>
-      </span>
+      <span className='max-w-full min-w-0 overflow-hidden'>{badge}</span>
+      <GroupMultiplierBadge ratio={ratio} label={ratioLabel} />
     </span>
   )
 }

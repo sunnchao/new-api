@@ -2,6 +2,7 @@ package setting
 
 import (
 	"encoding/json"
+	"maps"
 	"sync"
 
 	"github.com/QuantumNous/new-api/common"
@@ -21,9 +22,7 @@ func GetUserUsableGroupsCopy() map[string]string {
 	defer userUsableGroupsMutex.RUnlock()
 
 	copyUserUsableGroups := make(map[string]string)
-	for k, v := range userUsableGroups {
-		copyUserUsableGroups[k] = v
-	}
+	maps.Copy(copyUserUsableGroups, userUsableGroups)
 	return copyUserUsableGroups
 }
 

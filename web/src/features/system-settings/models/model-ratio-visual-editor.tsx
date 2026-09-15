@@ -53,10 +53,10 @@ import {
   pricingOptions,
 } from '@/features/model-pricing/pricing'
 import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
+import { splitPluginBillingExprKey } from '@/features/pricing/lib/plugin-pricing'
 import { useMediaQuery } from '@/hooks'
 
 import { safeJsonParse } from '../utils/json-parser'
-import { upsertModelImageSpecPrices } from './image-spec-price'
 import type { PricingMode } from './model-pricing-core'
 import {
   ModelPricingEditorPanel,
@@ -86,7 +86,7 @@ type ModelRatioVisualEditorProps = {
   savedAudioCompletionRatio: string
   savedBillingMode: string
   savedBillingExpr: string
-  savedImageSpecPrice: string
+  savedPluginBillingExpr?: string
   modelPrice: string
   modelRatio: string
   cacheRatio: string
@@ -97,7 +97,7 @@ type ModelRatioVisualEditorProps = {
   audioCompletionRatio: string
   billingMode: string
   billingExpr: string
-  imageSpecPrice: string
+  pluginBillingExpr?: string
   candidateModelNames?: string[]
   candidateModelsLoading?: boolean
   filterMode?: 'all' | 'unset'
@@ -127,7 +127,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
     savedAudioCompletionRatio,
     savedBillingMode,
     savedBillingExpr,
-    savedImageSpecPrice,
+    savedPluginBillingExpr = '{}',
     modelPrice,
     modelRatio,
     cacheRatio,
@@ -138,7 +138,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
     audioCompletionRatio,
     billingMode,
     billingExpr,
-    imageSpecPrice,
+    pluginBillingExpr = '{}',
     candidateModelNames,
     candidateModelsLoading,
     filterMode = 'all',
@@ -232,7 +232,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio: savedAudioCompletionRatio,
       billingMode: savedBillingMode,
       billingExpr: savedBillingExpr,
-      imageSpecPrice: savedImageSpecPrice,
+      pluginBillingExpr: savedPluginBillingExpr,
     })
     const draftRows = buildModelSnapshots({
       modelPrice,
@@ -245,7 +245,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio,
       billingMode,
       billingExpr,
-      imageSpecPrice,
+      pluginBillingExpr,
     })
 
     const savedByName = new Map(savedRows.map((row) => [row.name, row]))
@@ -289,7 +289,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
     savedAudioCompletionRatio,
     savedBillingMode,
     savedBillingExpr,
-    savedImageSpecPrice,
+    savedPluginBillingExpr,
     modelPrice,
     modelRatio,
     cacheRatio,
@@ -300,7 +300,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
     audioCompletionRatio,
     billingMode,
     billingExpr,
-    imageSpecPrice,
+    pluginBillingExpr,
   ])
 
   const modeCounts = useMemo(() => {
@@ -334,11 +334,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
       let editBillingMode: PricingMode = 'per-token'
       if (editableModel.billingMode === 'tiered_expr') {
         editBillingMode = 'tiered_expr'
-      } else if (
-        (editableModel.price && editableModel.price !== '') ||
-        (editableModel.imageSpecPrices &&
-          Object.keys(editableModel.imageSpecPrices).length > 0)
-      ) {
+      } else if (editableModel.price && editableModel.price !== '') {
         editBillingMode = 'per-request'
       }
       setEditData({
@@ -353,8 +349,8 @@ const ModelRatioVisualEditorComponent = forwardRef<
         audioCompletionRatio: editableModel.audioCompletionRatio,
         billingMode: editBillingMode,
         billingExpr: editableModel.billingExpr,
+        pluginBillingExpr: editableModel.pluginBillingExpr,
         requestRuleExpr: editableModel.requestRuleExpr,
-        imageSpecPrices: editableModel.imageSpecPrices,
       })
       setEditorOpen(true)
       if (isMobile) setSheetOpen(true)
@@ -436,6 +432,19 @@ const ModelRatioVisualEditorComponent = forwardRef<
       delete audioCompletionMap[name]
       delete billingModeMap[name]
       delete billingExprMap[name]
+      const pluginExprMap = safeJsonParse<Record<string, string>>(
+        pluginBillingExpr,
+        { fallback: {} }
+      )
+      for (const variant of Object.keys(pluginExprMap)) {
+        if (splitPluginBillingExprKey(variant)?.[1] === name) {
+          delete pluginExprMap[variant]
+        }
+      }
+      onChange(
+        'billing_setting.plugin_billing_expr',
+        JSON.stringify(pluginExprMap)
+      )
 
       onChange('ModelPrice', JSON.stringify(priceMap, null, 2))
       onChange('ModelRatio', JSON.stringify(ratioMap, null, 2))
@@ -456,10 +465,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
         'billing_setting.billing_expr',
         JSON.stringify(billingExprMap, null, 2)
       )
-      onChange(
-        'billing_setting.image_spec_price',
-        upsertModelImageSpecPrices(imageSpecPrice, [name])
-      )
 
       if (editData?.name === name) {
         setEditData(null)
@@ -478,7 +483,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio,
       billingMode,
       billingExpr,
-      imageSpecPrice,
+      pluginBillingExpr,
       onChange,
       editData,
     ]
@@ -542,7 +547,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
         AudioCompletionRatio: audioCompletionRatio,
         BillingMode: billingMode,
         BillingExpr: billingExpr,
-          ImageSpecPrice: imageSpecPrice,
+        PluginBillingExpr: pluginBillingExpr,
       })
       const updated = applyPricingDraft(options, data, targetNames)
       for (const [key, value] of Object.entries(updated)) onChange(key, value)
@@ -558,7 +563,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio,
       billingMode,
       billingExpr,
-      imageSpecPrice,
+      pluginBillingExpr,
       onChange,
     ]
   )
@@ -627,8 +632,12 @@ const ModelRatioVisualEditorComponent = forwardRef<
   }
 
   return (
-    <div className='flex flex-col gap-4'>
-      <div className='grid h-[clamp(720px,calc(100vh-12rem),900px)] min-h-0 gap-4 md:grid-cols-[minmax(300px,0.72fr)_minmax(520px,1.28fr)] xl:grid-cols-[minmax(320px,0.68fr)_minmax(640px,1.32fr)]'>
+    <div className='flex min-h-0 flex-1 flex-col gap-4'>
+      <div
+        role='region'
+        aria-label={t('Model prices')}
+        className='grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] gap-4 md:grid-cols-[minmax(300px,0.72fr)_minmax(520px,1.28fr)] xl:grid-cols-[minmax(320px,0.68fr)_minmax(640px,1.32fr)]'
+      >
         <div className='flex min-h-0 min-w-0 flex-col gap-3'>
           <DataTableToolbar
             table={table}
@@ -640,12 +649,12 @@ const ModelRatioVisualEditorComponent = forwardRef<
                 title: t('Mode'),
                 options: [
                   {
-                    label: 'Per-token',
+                    label: 'Per-token (deprecated)',
                     value: 'per-token',
                     count: modeCounts['per-token'],
                   },
                   {
-                    label: 'Per-request',
+                    label: 'Per-request (deprecated)',
                     value: 'per-request',
                     count: modeCounts['per-request'],
                   },
@@ -734,6 +743,11 @@ const ModelRatioVisualEditorComponent = forwardRef<
             <ModelPricingEditorPanel
               ref={editorPanelRef}
               editData={editData}
+              pluginVariants={
+                pricingConfig.data?.entries.find(
+                  (entry) => entry.model_name === editData?.name
+                )?.plugin_variants
+              }
               usageSchema={
                 pricingConfig.data?.entries.find(
                   (entry) => entry.model_name === editData?.name
@@ -779,6 +793,11 @@ const ModelRatioVisualEditorComponent = forwardRef<
           open={sheetOpen}
           onOpenChange={setSheetOpen}
           editData={editData}
+          pluginVariants={
+            pricingConfig.data?.entries.find(
+              (entry) => entry.model_name === editData?.name
+            )?.plugin_variants
+          }
           usageSchema={
             pricingConfig.data?.entries.find(
               (entry) => entry.model_name === editData?.name
@@ -808,7 +827,7 @@ export const ModelRatioVisualEditor = memo(
         nextProps.savedAudioCompletionRatio &&
       prevProps.savedBillingMode === nextProps.savedBillingMode &&
       prevProps.savedBillingExpr === nextProps.savedBillingExpr &&
-      prevProps.savedImageSpecPrice === nextProps.savedImageSpecPrice &&
+      prevProps.savedPluginBillingExpr === nextProps.savedPluginBillingExpr &&
       prevProps.modelPrice === nextProps.modelPrice &&
       prevProps.modelRatio === nextProps.modelRatio &&
       prevProps.cacheRatio === nextProps.cacheRatio &&
@@ -819,7 +838,7 @@ export const ModelRatioVisualEditor = memo(
       prevProps.audioCompletionRatio === nextProps.audioCompletionRatio &&
       prevProps.billingMode === nextProps.billingMode &&
       prevProps.billingExpr === nextProps.billingExpr &&
-      prevProps.imageSpecPrice === nextProps.imageSpecPrice &&
+      prevProps.pluginBillingExpr === nextProps.pluginBillingExpr &&
       prevProps.candidateModelNames === nextProps.candidateModelNames &&
       prevProps.candidateModelsLoading === nextProps.candidateModelsLoading &&
       prevProps.filterMode === nextProps.filterMode &&

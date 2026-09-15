@@ -17,51 +17,46 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
+import { t } from 'i18next'
 
 import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
 import { API_KEY_STATUS } from '@/features/keys/constants'
-import type { ApiKey } from '@/features/keys/types'
+import {
+  requireServerSuccess,
+  createServerError,
+} from '@/lib/server-error-message'
 import { useAuthStore } from '@/stores/auth-store'
 
-/**
- * Get the list of enabled API keys available for chat selection.
- */
-export function useEnabledChatTokens(enabled: boolean) {
-  const userId = useAuthStore((state) => state.auth.user?.id)
+export async function fetchActiveChatKey() {
+  const result = await getApiKeys({ p: 1, size: 50 })
+  if (!result.success) {
+    throw createServerError(result, t('Failed to load API keys'))
+  }
 
-  return useQuery<ApiKey[]>({
-    queryKey: ['chat-enabled-tokens', userId],
-    queryFn: async () => {
-      const result = await getApiKeys({ p: 1, size: 50 })
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to load API keys')
-      }
-      const items = result.data?.items ?? []
-      return items.filter((item) => item.status === API_KEY_STATUS.ENABLED)
-    },
-    enabled: enabled && Boolean(userId),
-    staleTime: 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-  })
+  const items = result.data?.items ?? []
+  const active = items.find((item) => item.status === API_KEY_STATUS.ENABLED)
+  if (!active) {
+    throw new Error('No enabled API keys found. Create or enable one first.')
+  }
+
+  const keyResult = await fetchTokenKey(active.id)
+  if (!keyResult.success || !keyResult.data?.key) {
+    throw createServerError(keyResult, t('Failed to load API keys'))
+  }
+
+  return `sk-${keyResult.data.key}`
 }
 
 /**
- * Fetch the unmasked key for the given token id.
+ * Get the currently active API key for chat links
  */
-export function useChatTokenKey(tokenId: number | null) {
+export function useActiveChatKey(enabled: boolean) {
   const userId = useAuthStore((state) => state.auth.user?.id)
 
-  return useQuery<string>({
-    queryKey: ['chat-token-key', userId, tokenId],
-    queryFn: async () => {
-      if (tokenId == null) throw new Error('No token selected')
-      const keyResult = await fetchTokenKey(tokenId)
-      if (!keyResult.success || !keyResult.data?.key) {
-        throw new Error(keyResult.message || 'Failed to load API key')
-      }
-      return `sk-${keyResult.data.key}`
-    },
-    enabled: tokenId != null && Boolean(userId),
+  return useQuery({
+    queryKey: ['chat-active-key', userId],
+    queryFn: async () => requireServerSuccess(await fetchActiveChatKey()),
+    enabled: enabled && Boolean(userId),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })

@@ -43,20 +43,23 @@ import {
 } from '../lib/model-list-price'
 import { stripTrailingZeros } from '../lib/price'
 import type { PricingModel, TokenUnit } from '../types'
+import { CachedPriceCell } from './cached-price-cell'
 import { ModelBillingModeBadge } from './model-billing-mode-badge'
+import { ModelPriceCell, type ModelPriceCellOptions } from './model-price-cell'
 
 // ----------------------------------------------------------------------------
 // Pricing Table Columns
 // ----------------------------------------------------------------------------
 
-export interface PricingColumnsOptions {
-  tokenUnit?: TokenUnit
-  priceRate?: number
-  usdExchangeRate?: number
-  showRechargePrice?: boolean
-  selectedGroup?: string
-  groupFilter?: string
-}
+// export interface PricingColumnsOptions {
+//   tokenUnit?: TokenUnit
+//   priceRate?: number
+//   usdExchangeRate?: number
+//   showRechargePrice?: boolean
+//   selectedGroup?: string
+//   groupFilter?: string
+// }
+export type PricingColumnsOptions = ModelPriceCellOptions
 
 export function usePricingColumns(
   options: PricingColumnsOptions = {}
@@ -134,139 +137,9 @@ export function usePricingColumns(
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('Price')} />
       ),
-      cell: ({ row }) => {
-        const model = row.original
-        const pricingContext = getModelListPricingContext({
-          model,
-          groupFilter,
-          tokenUnit,
-          showWithRecharge: showRechargePrice,
-          priceRate,
-          usdExchangeRate,
-        })
-        const requestPriceDisplay = pricingContext.requestPriceDisplay
-
-        if (requestPriceDisplay) {
-          const requestItem = requestPriceDisplay.items[0]
-          const specCount = requestPriceDisplay.items.filter((item) =>
-            item.key.startsWith('spec:')
-          ).length
-          return (
-            <div className='min-w-[100px]'>
-              <span className='font-mono text-sm tabular-nums'>
-                {stripTrailingZeros(requestItem?.value ?? '-')}
-              </span>
-              <div className='text-muted-foreground/50 text-[10px]'>
-                {t(requestItem?.suffixKey || 'per request')}
-                {specCount > 0 &&
-                  ` · ${t('{{count}} specs', { count: specCount })}`}
-              </div>
-            </div>
-          )
-        }
-
-        const dynamicSummary = pricingContext.dynamicSummary
-
-        if (dynamicSummary) {
-          if (dynamicSummary.isSpecialExpression) {
-            return (
-              <div className='max-w-full min-w-0'>
-                <div className='text-xs font-medium text-amber-700 dark:text-amber-300'>
-                  {t('Special billing expression')}
-                </div>
-                <div className='text-muted-foreground text-[11px]'>
-                  {t('Unable to parse structured pricing')}
-                </div>
-                <code className='text-muted-foreground/70 mt-1 line-clamp-2 block font-mono text-[10px] leading-relaxed break-all'>
-                  {dynamicSummary.rawExpression}
-                </code>
-              </div>
-            )
-          }
-
-          const primaryEntries = dynamicSummary.primaryEntries.slice(0, 2)
-          if (primaryEntries.length === 0) {
-            return (
-              <span className='text-muted-foreground text-xs'>
-                {t('Dynamic Pricing')}
-              </span>
-            )
-          }
-
-          return (
-            <div className='max-w-full min-w-0'>
-              <span className='font-mono text-sm tabular-nums'>
-                {primaryEntries.map((entry, index) => {
-                  const unitLabelKey = getDynamicPriceUnitLabelKey(entry)
-                  return (
-                    <span key={entry.key}>
-                      {index > 0 && (
-                        <span className='text-muted-foreground/40 mx-1'>/</span>
-                      )}
-                      {stripTrailingZeros(
-                        entry.formattedRange ?? entry.formatted
-                      )}
-                      {unitLabelKey && <>/{t(unitLabelKey)}</>}
-                    </span>
-                  )
-                })}
-              </span>
-              <div className='text-muted-foreground/50 text-[10px]'>
-                {!dynamicSummary.isTaskUsage && `/ ${tokenUnitLabel} tokens`}
-                {dynamicSummary.isTaskUsage && dynamicSummary.tier?.label}
-                {dynamicSummary.tierCount > 1 &&
-                  ` · ${t('{{count}} tiers', {
-                    count: dynamicSummary.tierCount,
-                  })}`}
-              </div>
-            </div>
-          )
-        }
-
-        if (isUnconfiguredTaskUsageModel(model)) {
-          return (
-            <div className='max-w-full min-w-0'>
-              <div className='text-sm font-medium'>{t('Not configured')}</div>
-              <div className='text-muted-foreground/50 text-[10px]'>
-                {t('Usage-based billing')}
-              </div>
-            </div>
-          )
-        }
-
-        const isTokenBased = isTokenBasedModel(model)
-
-        if (isTokenBased) {
-          const inputPrice = stripTrailingZeros(
-            formatModelListTokenPrice(pricingContext, 'input')
-          )
-          const outputPrice = stripTrailingZeros(
-            formatModelListTokenPrice(pricingContext, 'output')
-          )
-
-          return (
-            <div className='max-w-full min-w-0'>
-              <span className='font-mono text-sm tabular-nums'>
-                {inputPrice}
-                <span className='text-muted-foreground/40 mx-1'>/</span>
-                {outputPrice}
-              </span>
-              <div className='text-muted-foreground/50 text-[10px]'>
-                / {tokenUnitLabel} tokens
-              </div>
-            </div>
-          )
-        }
-
-        return (
-          <div className='max-w-full min-w-0'>
-            <span className='font-mono text-sm tabular-nums'>-</span>
-            <div className='text-muted-foreground/50 text-[10px]'>
-              / {t('request')}
-            </div>
-          </div>
-        )
-      },
+      cell: ({ row }) => (
+        <ModelPriceCell model={row.original} options={options} />
+      ),
       size: 180,
       enableSorting: false,
     },
@@ -275,76 +148,9 @@ export function usePricingColumns(
     {
       id: 'cached_price',
       header: t('Cached'),
-      cell: ({ row }) => {
-        const model = row.original
-        const pricingContext = getModelListPricingContext({
-          model,
-          groupFilter,
-          tokenUnit,
-          showWithRecharge: showRechargePrice,
-          priceRate,
-          usdExchangeRate,
-        })
-
-        if (pricingContext.requestPriceDisplay) {
-          return <span className='text-muted-foreground/30 text-xs'>—</span>
-        }
-
-        const dynamicSummary = pricingContext.dynamicSummary
-
-        if (dynamicSummary) {
-          if (dynamicSummary.isSpecialExpression) {
-            return (
-              <span className='text-muted-foreground/50 text-xs'>
-                {t('Special billing expression')}
-              </span>
-            )
-          }
-
-          const cacheEntry = dynamicSummary.entries.find(
-            (entry) => entry.field === 'cacheReadPrice'
-          )
-          if (!cacheEntry) {
-            return <span className='text-muted-foreground/30 text-xs'>—</span>
-          }
-
-          return (
-            <div className='max-w-full min-w-0'>
-              <span className='font-mono text-sm tabular-nums'>
-                {stripTrailingZeros(cacheEntry.formatted)}
-              </span>
-              <div className='text-muted-foreground/50 text-[10px]'>
-                / {tokenUnitLabel}
-              </div>
-            </div>
-          )
-        }
-
-        if (isUnconfiguredTaskUsageModel(model)) {
-          return <span className='text-muted-foreground/30 text-xs'>—</span>
-        }
-
-        const isTokenBased = isTokenBasedModel(model)
-
-        if (!isTokenBased || model.cache_ratio == null) {
-          return <span className='text-muted-foreground/30 text-xs'>—</span>
-        }
-
-        const cachedPrice = stripTrailingZeros(
-          formatModelListTokenPrice(pricingContext, 'cache')
-        )
-
-        return (
-          <div className='max-w-full min-w-0'>
-            <span className='font-mono text-sm tabular-nums'>
-              {cachedPrice}
-            </span>
-            <div className='text-muted-foreground/50 text-[10px]'>
-              / {tokenUnitLabel}
-            </div>
-          </div>
-        )
-      },
+      cell: ({ row }) => (
+        <CachedPriceCell model={row.original} options={options} />
+      ),
       size: 110,
       enableSorting: false,
     },

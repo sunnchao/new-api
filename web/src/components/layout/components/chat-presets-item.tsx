@@ -50,6 +50,7 @@ import {
   type ChatPreset,
 } from '@/features/chat/lib/chat-links'
 import { fetchTokenKey } from '@/features/keys/api'
+import { handleServerError } from '@/lib/handle-server-error'
 
 import { normalizeHref } from '../lib/url-utils'
 import type { NavChatPresets } from '../types'
@@ -192,6 +193,25 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
         toast.error(t('Invalid chat link. Please contact the administrator.'))
         return
       }
+
+      // if (needsKey) {
+      //   loadingPresetIdRef.current = preset.id
+      //   setLoadingPresetId(preset.id)
+      //   try {
+      //     activeKey = await fetchActiveChatKey()
+      //   } catch (error) {
+      //     const message =
+      //         error instanceof Error
+      //             ? error.message
+      //             : t(
+      //                 'Unable to prepare chat link. Please ensure you have an enabled API key.'
+      //             )
+      //     handleServerError(error, message)
+      //     return
+      //   } finally {
+      //     loadingPresetIdRef.current = null
+      //     setLoadingPresetId(null)
+      //   }
 
       if (typeof window === 'undefined') return
 

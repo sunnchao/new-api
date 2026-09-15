@@ -17,12 +17,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { splitBillingExprAndRequestRules } from '@/features/pricing/lib/billing-expr'
+import { splitPluginBillingExprKey } from '@/features/pricing/lib/plugin-pricing'
 
 import { safeJsonParse } from '../utils/json-parser'
-import {
-  hasImageSpecPrices,
-  parseImageSpecPriceMap,
-} from './image-spec-price'
 import { formatPricingNumber } from './pricing-format'
 
 export type ModelPricingSnapshotInput = {
@@ -36,10 +33,11 @@ export type ModelPricingSnapshotInput = {
   audioCompletionRatio: string
   billingMode: string
   billingExpr: string
-  imageSpecPrice: string
+  pluginBillingExpr?: string
 }
 
 export type ModelPricingSnapshot = {
+  pluginBillingExpr?: Record<string, string>
   name: string
   price?: string
   ratio?: string
@@ -52,7 +50,6 @@ export type ModelPricingSnapshot = {
   billingMode?: string
   billingExpr?: string
   requestRuleExpr?: string
-  imageSpecPrices?: Record<string, number>
   hasConflict: boolean
 }
 
@@ -71,8 +68,7 @@ export const isBasePricingUnset = (snapshot?: ModelPricingSnapshot) =>
   !snapshot ||
   (snapshot.billingMode !== 'tiered_expr' &&
     !hasPricingValue(snapshot.price) &&
-    !hasPricingValue(snapshot.ratio) &&
-    !hasImageSpecPrices(snapshot.imageSpecPrices))
+    !hasPricingValue(snapshot.ratio))
 
 const toNumberOrNull = (value?: string) => {
   if (!hasPricingValue(value)) return null
@@ -88,9 +84,9 @@ const ratioToPrice = (ratio?: string, denominator?: string) => {
 }
 
 export const getModeLabel = (mode?: string) => {
-  if (mode === 'per-request') return 'Per-request'
+  if (mode === 'per-request') return 'Per-request (deprecated)'
   if (mode === 'tiered_expr') return 'Expression'
-  return 'Per-token'
+  return 'Per-token (deprecated)'
 }
 
 export const getModeVariant = (
@@ -120,11 +116,7 @@ export const getPriceSummary = (
     return getExpressionSummary(row, t)
   }
   if (row.billingMode === 'per-request') {
-    const specCount = Object.keys(row.imageSpecPrices || {}).length
-    if (!row.price && specCount === 0) return t('Unset price')
-    if (!row.price) return `${specCount} ${t('image specs')}`
-    if (specCount === 0) return `$${row.price} / ${t('request')}`
-    return `$${row.price} / ${t('request')} · ${specCount} ${t('image specs')}`
+    return row.price ? `$${row.price} / ${t('request')}` : t('Unset price')
   }
 
   const inputPrice = ratioToPrice(row.ratio)
@@ -143,9 +135,7 @@ export const getPriceDetail = (
       : t('Expression based')
   }
   if (row.billingMode === 'per-request') {
-    return hasImageSpecPrices(row.imageSpecPrices)
-      ? t('Includes resolution/quality prices')
-      : t('Fixed request price')
+    return t('Fixed request price')
   }
 
   const inputPrice = ratioToPrice(row.ratio)
@@ -176,7 +166,7 @@ export const buildModelSnapshots = ({
   audioCompletionRatio,
   billingMode,
   billingExpr,
-  imageSpecPrice,
+  pluginBillingExpr = '{}',
 }: ModelPricingSnapshotInput): ModelPricingSnapshot[] => {
   const priceMap = safeJsonParse<Record<string, number>>(modelPrice, {
     fallback: {},
@@ -218,9 +208,23 @@ export const buildModelSnapshots = ({
     fallback: {},
     context: 'billing expression',
   })
-  const imageSpecMap = parseImageSpecPriceMap(imageSpecPrice)
 
+  const pluginExprMap = safeJsonParse<Record<string, string>>(
+    pluginBillingExpr,
+    { fallback: {}, context: 'plugin billing expressions' }
+  )
+  const pluginExpressionsByModel = new Map<string, Record<string, string>>()
+  for (const [key, expression] of Object.entries(pluginExprMap)) {
+    const parts = splitPluginBillingExprKey(key)
+    if (!parts) continue
+    const [plugin, model] = parts
+    pluginExpressionsByModel.set(model, {
+      ...pluginExpressionsByModel.get(model),
+      [plugin]: expression,
+    })
+  }
   const modelNames = new Set([
+    ...pluginExpressionsByModel.keys(),
     ...Object.keys(priceMap),
     ...Object.keys(ratioMap),
     ...Object.keys(cacheMap),
@@ -231,7 +235,6 @@ export const buildModelSnapshots = ({
     ...Object.keys(audioCompletionMap),
     ...Object.keys(billingModeMap),
     ...Object.keys(billingExprMap),
-    ...Object.keys(imageSpecMap),
   ])
 
   return [...modelNames].map((name) => {
@@ -251,6 +254,7 @@ export const buildModelSnapshots = ({
         splitBillingExprAndRequestRules(fullExpr)
       return {
         name,
+        pluginBillingExpr: pluginExpressionsByModel.get(name),
         billingMode: 'tiered_expr',
         billingExpr: pureExpr,
         requestRuleExpr,
@@ -262,13 +266,13 @@ export const buildModelSnapshots = ({
         imageRatio: image,
         audioRatio: audio,
         audioCompletionRatio: audioCompletion,
-        imageSpecPrices: imageSpecMap[name],
         hasConflict: false,
       }
     }
 
     return {
       name,
+      pluginBillingExpr: pluginExpressionsByModel.get(name),
       price,
       ratio,
       cacheRatio: cache,
@@ -277,11 +281,7 @@ export const buildModelSnapshots = ({
       imageRatio: image,
       audioRatio: audio,
       audioCompletionRatio: audioCompletion,
-      billingMode:
-        price !== '' || hasImageSpecPrices(imageSpecMap[name])
-          ? 'per-request'
-          : 'per-token',
-      imageSpecPrices: imageSpecMap[name],
+      billingMode: price !== '' ? 'per-request' : 'per-token',
       hasConflict:
         price !== '' &&
         (ratio !== '' ||
@@ -309,6 +309,8 @@ export const getSnapshotSignature = (snapshot?: ModelPricingSnapshot) => {
     billingMode: snapshot.billingMode || 'per-token',
     billingExpr: snapshot.billingExpr || '',
     requestRuleExpr: snapshot.requestRuleExpr || '',
-    imageSpecPrices: snapshot.imageSpecPrices || {},
+    pluginBillingExpr: Object.entries(snapshot.pluginBillingExpr ?? {}).sort(
+      ([a], [b]) => a.localeCompare(b)
+    ),
   })
 }
