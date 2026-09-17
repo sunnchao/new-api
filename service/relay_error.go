@@ -73,6 +73,11 @@ func ProcessChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		other.SetPublic("error_type", err.GetErrorType())
 		other.SetPublic("error_code", err.GetErrorCode())
 		other.SetPublic("status_code", err.StatusCode)
+		if c != nil && c.Request != nil {
+			if ua := c.Request.UserAgent(); ua != "" {
+				other.SetAdmin("user_agent", ua)
+			}
+		}
 		AppendRelayLogAdminInfo(c, relayInfo, other)
 		AppendTaskPluginContextAuditInfo(c, other)
 		startTime := common.GetContextKeyTime(c, constant.ContextKeyRequestStartTime)

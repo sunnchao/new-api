@@ -72,6 +72,9 @@ func AppendRelayLogAdminInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo,
 		return
 	}
 	other.SetAdmin("use_channel", ctx.GetStringSlice("use_channel"))
+	other.SetAdmin("channel_id", ctx.GetInt("channel_id"))
+	other.SetAdmin("channel_type", ctx.GetInt("channel_type"))
+	other.SetAdmin("use_channel", ctx.GetStringSlice("use_channel"))
 	if relayInfo != nil {
 		if billingModel := relayInfo.GetBillingModelName(); billingModel != "" && billingModel != relayInfo.OriginModelName {
 			other.SetAdmin("billing_model", billingModel)

@@ -579,10 +579,10 @@ func checkAndSendSubscriptionQuotaNotify(relayInfo *relaycommon.RelayInfo) {
 
 		if notifyType == dto.NotifyTypeBark {
 			content = "{{value}}，{{value}}：{{value}}，请及时充值"
-			values = []any{}{prompt, remainingLabel, remainingText}
+			values = []any{prompt, remainingLabel, remainingText}
 		} else if notifyType == dto.NotifyTypeGotify {
 			content = "{{value}}，当前{{value}}为 {{value}}，请及时充值。"
-			values = []any{}{prompt, remainingLabel, remainingText}
+			values = []any{prompt, remainingLabel, remainingText}
 		} else {
 			content = "{{value}}，当前剩余额度为 {{value}}，为了不影响您的使用，请及时充值。<br/>充值链接：<a href='{{value}}'>{{value}}</a>"
 			values = []any{prompt, logger.FormatQuota(int(remaining)), topUpLink, topUpLink}

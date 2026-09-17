@@ -18,12 +18,12 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useAuthStore } from '@/stores/auth-store'
-import { getFreshModuleAccess } from '@/lib/nav-modules'
+import { getModuleAccessForGuard} from '@/lib/nav-modules'
 import { SubscriptionPlans } from '@/features/subscription-plans'
 
 export const Route = createFileRoute('/subscription-plans/')({
-  beforeLoad: async ({ location }) => {
-    const access = await getFreshModuleAccess('subscriptions')
+  beforeLoad: async ({ context, location }) => {
+    const access = await getModuleAccessForGuard(context.queryClient, 'subscriptions')
     if (!access.enabled) {
       throw redirect({ to: '/' })
     }

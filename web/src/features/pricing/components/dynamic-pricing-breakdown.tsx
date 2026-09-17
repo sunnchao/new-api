@@ -300,18 +300,6 @@ function nextOccurrenceKey(
   return `${baseKey}:${occurrence}`
 }
 
-function describeGroupAction(
-  group: RequestRuleGroup,
-  symbol: string,
-  rate: number
-): string {
-  if (group.actionType === REQUEST_RULE_ACTION_FIXED) {
-    const fixedPrice = Number(group.fixedPrice || 0)
-    return `${symbol}${(fixedPrice * rate).toFixed(4)}/request`
-  }
-  return `${group.multiplier}x`
-}
-
 export function DynamicPricingBreakdown({
   billingExpr,
   matchedTierLabel,

@@ -154,6 +154,26 @@ export function parseHeaderNavModulesFromStatus(
   return parseHeaderNavModules(status?.HeaderNavModules)
 }
 
+function getCachedStatus(): Record<string, unknown> | null {
+  try {
+    if (typeof window === 'undefined') return null
+    const raw = window.localStorage.getItem('status')
+    return raw ? (JSON.parse(raw) as Record<string, unknown>) : null
+  } catch {
+    return null
+  }
+}
+
+function cacheStatus(status: Record<string, unknown> | null): void {
+  try {
+    if (typeof window !== 'undefined' && status) {
+      window.localStorage.setItem('status', JSON.stringify(status))
+    }
+  } catch {
+    /* empty */
+  }
+}
+
 /**
  * Resolve one module's access flags from an already-loaded status payload.
  *
@@ -176,6 +196,18 @@ export function getModuleAccessFromStatus(
  */
 export function getModuleAccess(module: HeaderNavModule): ModuleAccess {
   return getModuleAccessFromStatus(readCachedStatus(), module)
+}
+
+export async function getFreshModuleAccess(
+    module: HeaderNavModule
+): Promise<ModuleAccess> {
+  try {
+    const status = (await getStatus()) as Record<string, unknown> | null
+    cacheStatus(status)
+    return getModuleAccessFromStatus(status, module)
+  } catch {
+    return { enabled: false, requireAuth: true }
+  }
 }
 
 /**

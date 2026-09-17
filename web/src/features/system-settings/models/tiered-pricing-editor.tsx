@@ -111,14 +111,6 @@ import { DraftNumberInput } from './draft-number-input'
 import { RequestSimulation } from './request-simulation'
 import { VisualBillingDocumentEditor } from './visual-billing-document-editor'
 
-// Token path options for SOURCE_TOKENS request rule conditions.
-// Reuses CONDITION_INPUT_OPTIONS labels for len/p/c, and BILLING_EXTRA_VARS
-// shortLabels for the remaining sub-category variables.
-const TOKEN_PATH_OPTIONS: { value: string; labelKey: string }[] = [
-  ...CONDITION_INPUT_OPTIONS,
-  ...BILLING_EXTRA_VARS.map((v) => ({ value: v.key, labelKey: v.shortLabel })),
-]
-
 type Preset = {
   key: string
   label: string
@@ -496,21 +488,22 @@ function RuleConditionRow({
           </div>
         ) : phCond.source === SOURCE_TOKENS ? (
           <Select
-            value={phCond.path || 'len'}
-            onValueChange={(v) => v !== null && onChange({ ...phCond, path: v })}
+              items={matchOptions.map((option) => ({
+                value: option.value,
+                label: getMatchLabel(option.value),
+              }))}
+              value={phCond.mode}
+              onValueChange={(v) => v !== null && handleModeChange(v)}
           >
-            <SelectTrigger className='w-40' size='sm'>
-              <SelectValue>
-                {t(TOKEN_PATH_OPTIONS.find((o) => o.value === (phCond.path || 'len'))?.labelKey ?? phCond.path)}
-              </SelectValue>
+            <SelectTrigger className='w-32' size='sm'>
+              <SelectValue>{getMatchLabel(phCond.mode)}</SelectValue>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               <SelectGroup>
-                {TOKEN_PATH_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    <span className='text-muted-foreground mr-1 font-mono text-xs'>{o.value}</span>
-                    {t(o.labelKey)}
-                  </SelectItem>
+                {matchOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {getMatchLabel(option.value)}
+                    </SelectItem>
                 ))}
               </SelectGroup>
             </SelectContent>

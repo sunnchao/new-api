@@ -335,8 +335,8 @@ func ApplyGroupFilter(query *gorm.DB, group string) *gorm.DB {
 	return query.Where(groupCondition, "%,"+group+",%")
 }
 
-func (channel *Channel) GetOtherInfo() map[string]any{} {
-	otherInfo := make(map[string]any{})
+func (channel *Channel) GetOtherInfo() map[string]any {
+	otherInfo := make(map[string]any)
 	if channel.OtherInfo != "" {
 		err := common.Unmarshal([]byte(channel.OtherInfo), &otherInfo)
 		if err != nil {
