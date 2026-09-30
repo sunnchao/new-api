@@ -59,6 +59,7 @@ export function getApiKeyFormSchema(t: TFunction, maxAutoGroups = 5) {
       auto_groups_mode: z.enum(['inherit', 'custom']),
       auto_groups: z.array(z.string()),
       cross_group_retry: z.boolean().optional(),
+      backup_group: z.array(z.string()).optional(),
       tokenCount: z.number().min(1).optional(),
     })
     .superRefine((data, ctx) => {
