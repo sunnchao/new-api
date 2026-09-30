@@ -55,6 +55,7 @@ func TestMain(m *testing.M) {
 		&model.TopUp{},
 		&model.SubscriptionPlan{},
 		&model.UserSubscription{},
+		&model.UserGiftQuota{},
 		&model.SystemTask{},
 		&model.SystemTaskLock{},
 		&model.SubscriptionPreConsumeRecord{},

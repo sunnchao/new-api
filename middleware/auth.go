@@ -457,8 +457,18 @@ func TokenAuth() func(c *gin.Context) {
 		if tokenGroup != "" {
 			// check common.UserUsableGroups[userGroup]
 			if _, ok := service.GetUserUsableGroups(userGroup)[tokenGroup]; !ok {
-				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
-				return
+				// 订阅专属分组：持有明确列出该分组的有效订阅时放行，订阅过期后同一令牌会重新被拒绝
+				unlocked, unlockErr := service.IsGroupUnlockedBySubscription(token.UserId, userGroup, tokenGroup)
+				if unlockErr != nil {
+					common.SysLog(fmt.Sprintf("TokenAuth subscription group check error for user %d: %v", token.UserId, unlockErr))
+					abortWithOpenAiMessage(c, http.StatusInternalServerError,
+						common.TranslateMessage(c, i18n.MsgDatabaseError))
+					return
+				}
+				if !unlocked {
+					abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
+					return
+				}
 			}
 			// check group in common.GroupRatio
 			if !ratio_setting.ContainsGroupRatio(tokenGroup) {

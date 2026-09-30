@@ -46,7 +46,7 @@ import {
   sideDrawerHeaderClassName,
 } from '@/components/drawer-layout'
 import { EmptyState } from '@/components/empty-state'
-import { StatusBadge } from '@/components/status-badge'
+import { StatusBadge, type StatusVariant } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -83,13 +83,19 @@ import { toIntlLocale } from '@/i18n/languages'
 import { formatNumber } from '@/lib/format'
 
 import { safeJsonParse } from '../utils/json-parser'
+import { GroupClientRestrictionsEditor } from './group-client-restrictions-editor'
 import { GroupSpecialUsableRulesEditor } from './group-special-usable-editor'
+import {
+  parseSpecialGroupKey,
+  type SpecialGroupMode,
+} from './special-group-key'
 
 export type GroupSettingsSection =
   | 'pricing'
   | 'overrides'
   | 'visibility'
   | 'auto'
+  | 'restrictions'
 
 type GroupRatioVisualEditorProps = {
   section: GroupSettingsSection
@@ -103,6 +109,7 @@ type GroupRatioVisualEditorProps = {
   autoGroups: string
   maxTokenAutoGroupsField: ReactNode
   groupSpecialUsableGroup: string
+  groupClientRestrictions: string
   onChange: (field: string, value: string) => void
 }
 
@@ -155,7 +162,6 @@ function parseUserUnUsableMap(value: string): Record<string, string> {
     silent: true,
   })
 }
-
 
 function parseNestedRatioMap(
   value: string
@@ -297,6 +303,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
   autoGroups,
   maxTokenAutoGroupsField,
   groupSpecialUsableGroup,
+  groupClientRestrictions,
   onChange,
 }: GroupRatioVisualEditorProps) {
   const { t, i18n } = useTranslation()
@@ -382,6 +389,9 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
           </TabsTrigger>
           <TabsTrigger value='auto' className='px-3'>
             {t('Auto group order')}
+          </TabsTrigger>
+          <TabsTrigger value='restrictions' className='px-3'>
+            {t('Client restrictions')}
           </TabsTrigger>
         </TabsList>
       </div>
@@ -475,6 +485,13 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
           </CardContent>
         </Card>
       </TabsContent>
+      <TabsContent value='restrictions' keepMounted>
+        <GroupClientRestrictionsEditor
+          value={groupClientRestrictions}
+          groupOptions={registryNames}
+          onChange={(value) => onChange('GroupClientRestrictions', value)}
+        />
+      </TabsContent>
 
       <GroupDetailSheet
         groupName={detailGroup}
@@ -512,7 +529,12 @@ function GroupPricingTable({
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [rows, setRows] = useState<GroupPricingRow[]>(() =>
-    buildGroupPricingRows(groupRatio, userUsableGroups, topupGroupRatio, userUnselectableGroups)
+    buildGroupPricingRows(
+      groupRatio,
+      userUsableGroups,
+      topupGroupRatio,
+      userUnselectableGroups
+    )
   )
 
   useEffect(() => {
@@ -530,7 +552,7 @@ function GroupPricingTable({
         groupRatio,
         userUsableGroups,
         topupGroupRatio,
-          userUnselectableGroups
+        userUnselectableGroups
       )
     })
   }, [groupRatio, userUsableGroups, topupGroupRatio, userUnselectableGroups])
@@ -743,7 +765,6 @@ function GroupPricingTable({
                       }
                       aria-label={t('User selectable')}
                     />
-
                   </div>
                 ),
               },
@@ -752,26 +773,27 @@ function GroupPricingTable({
                 header: t('Hidden group'),
                 className: 'w-28 text-center',
                 cell: (row) => (
-                    <div className='flex justify-center'>
-                      <Checkbox
-                          checked={row.hidden}
-                          onCheckedChange={(checked) => {
-                            const isHidden = checked === true
-                            updateRow(row._id, 'hidden', isHidden)
-                            if (isHidden && row.selectable) {
-                            updateRow(row._id, 'selectable', false)
-                          }
-                          }}
-                          aria-label={t('Hidden group')}
-                      />
-                    </div>
+                  <div className='flex justify-center'>
+                    <Checkbox
+                      checked={row.hidden}
+                      onCheckedChange={(checked) => {
+                        const isHidden = checked === true
+                        updateRow(row._id, 'hidden', isHidden)
+                        if (isHidden && row.selectable) {
+                          updateRow(row._id, 'selectable', false)
+                        }
+                      }}
+                      aria-label={t('Hidden group')}
+                    />
+                  </div>
                 ),
               },
               {
                 id: 'description',
                 header: t('Description'),
                 className: 'min-w-56',
-                cell: (row) => (row.selectable || row.hidden) ? (
+                cell: (row) =>
+                  row.selectable || row.hidden ? (
                     <Input
                       value={row.description}
                       aria-label={t('Group description')}
@@ -1314,26 +1336,38 @@ type GroupDetailSheetProps = {
 
 type VisibilityRule = {
   userGroup: string
-  visible: boolean
+  mode: SpecialGroupMode
   description: string
-}
-
-function parseSpecialGroupKey(rawKey: string): {
-  visible: boolean
-  groupName: string
-} {
-  if (rawKey.startsWith('-:')) {
-    return { visible: false, groupName: rawKey.slice(2) }
-  }
-  if (rawKey.startsWith('+:')) {
-    return { visible: true, groupName: rawKey.slice(2) }
-  }
-  return { visible: true, groupName: rawKey }
 }
 
 function GroupDetailSheet(props: GroupDetailSheetProps) {
   const { t } = useTranslation()
   const name = props.groupName
+  const visibilityRuleDisplay: Record<
+    SpecialGroupMode,
+    {
+      summary: (group: string) => string
+      label: string
+      variant: StatusVariant
+    }
+  > = {
+    visible: {
+      summary: (group) => t('Extra visible to {{group}}', { group }),
+      label: t('Visible'),
+      variant: 'info',
+    },
+    hidden: {
+      summary: (group) => t('Hidden from {{group}}', { group }),
+      label: t('Hidden'),
+      variant: 'danger',
+    },
+    subscription: {
+      summary: (group) =>
+        t('Unlocked by subscription for {{group}}', { group }),
+      label: t('Subscription unlock'),
+      variant: 'warning',
+    },
+  }
 
   const detail = useMemo(() => {
     if (!name) return null
@@ -1369,7 +1403,7 @@ function GroupDetailSheet(props: GroupDetailSheetProps) {
         if (parsed.groupName !== name) continue
         visibilityRules.push({
           userGroup,
-          visible: parsed.visible,
+          mode: parsed.mode,
           description: typeof desc === 'string' ? desc : '',
         })
       }
@@ -1517,28 +1551,20 @@ function GroupDetailSheet(props: GroupDetailSheetProps) {
                 <p className='text-muted-foreground text-sm'>{t('None')}</p>
               ) : (
                 <ul className='space-y-1 text-sm'>
-                  {detail.visibilityRules.map((rule) => (
-                    <li
-                      key={`${rule.userGroup}-${rule.visible}`}
-                      className='flex items-center justify-between rounded-md border px-3 py-1.5'
-                    >
-                      <span>
-                        {rule.visible
-                          ? t('Extra visible to {{group}}', {
-                              group: rule.userGroup,
-                            })
-                          : t('Hidden from {{group}}', {
-                              group: rule.userGroup,
-                            })}
-                      </span>
-                      <StatusBadge
-                        variant={rule.visible ? 'info' : 'danger'}
-                        copyable={false}
+                  {detail.visibilityRules.map((rule) => {
+                    const display = visibilityRuleDisplay[rule.mode]
+                    return (
+                      <li
+                        key={`${rule.userGroup}-${rule.mode}`}
+                        className='flex items-center justify-between gap-2 rounded-md border px-3 py-1.5'
                       >
-                        {rule.visible ? t('Visible') : t('Hidden')}
-                      </StatusBadge>
-                    </li>
-                  ))}
+                        <span>{display.summary(rule.userGroup)}</span>
+                        <StatusBadge variant={display.variant} copyable={false}>
+                          {display.label}
+                        </StatusBadge>
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </section>

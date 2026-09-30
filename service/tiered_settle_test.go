@@ -326,6 +326,10 @@ func (*recordingBillingSettler) Refund(*gin.Context) {}
 
 func (*recordingBillingSettler) NeedsRefund() bool { return false }
 
+func (*recordingBillingSettler) GetWalletQuotaAllocation() relaycommon.WalletQuotaAllocation {
+	return relaycommon.WalletQuotaAllocation{}
+}
+
 func (s *recordingBillingSettler) GetPreConsumedQuota() int {
 	return s.preConsumedQuota
 }

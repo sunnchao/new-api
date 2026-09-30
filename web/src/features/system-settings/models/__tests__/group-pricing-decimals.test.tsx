@@ -38,10 +38,12 @@ function PricingFixture() {
         groupRatio={settings.GroupRatio}
         topupGroupRatio={settings.TopupGroupRatio}
         userUsableGroups={settings.UserUsableGroups}
+        userUnselectableGroups='{}'
         groupGroupRatio='{}'
         autoGroups='[]'
         maxTokenAutoGroupsField={null}
         groupSpecialUsableGroup='{}'
+        groupClientRestrictions='{}'
         onChange={(field, value) =>
           setSettings((current) => ({ ...current, [field]: value }))
         }

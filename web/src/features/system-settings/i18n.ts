@@ -31,6 +31,13 @@ export const systemSettingsI18nResources = {
       'Client restrictions': 'Client restrictions',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.',
+      'Limit which clients can use each group. A group with no client selected is unrestricted.':
+        'Limit which clients can use each group. A group with no client selected is unrestricted.',
+      'No client restrictions configured': 'No client restrictions configured',
+      'Add a group to allow only specific clients to use it.':
+        'Add a group to allow only specific clients to use it.',
+      Unrestricted: 'Unrestricted',
+      'Allowed clients for {{group}}': 'Allowed clients for {{group}}',
       'Image spec price': 'Image spec price',
       'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
         'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.',
@@ -51,6 +58,12 @@ export const systemSettingsI18nResources = {
       'image specs': 'image specs',
       'Includes resolution/quality prices':
         'Includes resolution/quality prices',
+      'Subscription unlock': 'Subscription unlock',
+      'Unlocked by subscription for {{group}}':
+        'Unlocked by subscription for {{group}}',
+      'Subscribers only': 'Subscribers only',
+      'A sub: rule (Subscription unlock) keeps the group hidden until the user has an active subscription whose Allowed Groups explicitly list it. An empty Allowed Groups list does not unlock it, and usage of that group is billed only from the subscription.':
+        'A sub: rule (Subscription unlock) keeps the group hidden until the user has an active subscription whose Allowed Groups explicitly list it. An empty Allowed Groups list does not unlock it, and usage of that group is billed only from the subscription.',
     },
   },
   zhCN: {
@@ -80,6 +93,13 @@ export const systemSettingsI18nResources = {
       'Client restrictions': '客户端限制',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         '分组到允许客户端的 JSON 映射。允许的客户端 ID 为 claude_code 和 codex；未配置或空列表的分组不限制。',
+      'Limit which clients can use each group. A group with no client selected is unrestricted.':
+        '限制每个分组可使用的客户端。未选择任何客户端的分组不受限制。',
+      'No client restrictions configured': '尚未配置客户端限制',
+      'Add a group to allow only specific clients to use it.':
+        '添加分组，仅允许指定客户端使用。',
+      Unrestricted: '不限制',
+      'Allowed clients for {{group}}': '{{group}} 允许的客户端',
       'Image spec price': '图片规格价格',
       'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
         '模型到分辨率/画质单价的 JSON 映射。覆盖 ModelPrice；查找顺序为 resolution/quality、resolution，然后 quality。',
@@ -99,6 +119,11 @@ export const systemSettingsI18nResources = {
         '每次请求的美元价格，与 token 用量无关。未匹配到图片规格时使用该保底价。',
       'image specs': '图片规格',
       'Includes resolution/quality prices': '包含分辨率/画质价格',
+      'Subscription unlock': '订阅解锁',
+      'Unlocked by subscription for {{group}}': '对 {{group}} 订阅后可见',
+      'Subscribers only': '仅限订阅用户',
+      'A sub: rule (Subscription unlock) keeps the group hidden until the user has an active subscription whose Allowed Groups explicitly list it. An empty Allowed Groups list does not unlock it, and usage of that group is billed only from the subscription.':
+        'sub: 规则（订阅解锁）会让该分组保持隐藏，直到用户拥有有效订阅，且该订阅的“允许分组”中明确列出了它。“允许分组”为空不会解锁，使用该分组时只会从订阅中扣费。',
     },
   },
   zhTW: {
@@ -113,6 +138,14 @@ export const systemSettingsI18nResources = {
       'Validity period': '有效期時長',
       Days: '天',
       Months: '個月',
+      'Client restrictions': '客戶端限制',
+      'Limit which clients can use each group. A group with no client selected is unrestricted.':
+        '限制每個分組可使用的客戶端。未選擇任何客戶端的分組不受限制。',
+      'No client restrictions configured': '尚未設定客戶端限制',
+      'Add a group to allow only specific clients to use it.':
+        '新增分組，僅允許指定客戶端使用。',
+      Unrestricted: '不限制',
+      'Allowed clients for {{group}}': '{{group}} 允許的客戶端',
       'Image spec price': '圖片規格價格',
       'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
         '模型到解析度／畫質單價的 JSON 對應。覆蓋 ModelPrice；查找順序為 resolution/quality、resolution，然後 quality。',
@@ -132,6 +165,11 @@ export const systemSettingsI18nResources = {
         '每次請求的美元價格，與 token 用量無關。未匹配到圖片規格時使用該保底價。',
       'image specs': '圖片規格',
       'Includes resolution/quality prices': '包含解析度／畫質價格',
+      'Subscription unlock': '訂閱解鎖',
+      'Unlocked by subscription for {{group}}': '對 {{group}} 訂閱後可見',
+      'Subscribers only': '僅限訂閱用戶',
+      'A sub: rule (Subscription unlock) keeps the group hidden until the user has an active subscription whose Allowed Groups explicitly list it. An empty Allowed Groups list does not unlock it, and usage of that group is billed only from the subscription.':
+        'sub: 規則（訂閱解鎖）會讓該分組保持隱藏，直到用戶擁有有效訂閱，且該訂閱的「允許分組」中明確列出了它。「允許分組」為空不會解鎖，使用該分組時只會從訂閱中扣費。',
     },
   },
   fr: {
@@ -165,9 +203,17 @@ export const systemSettingsI18nResources = {
       'Client restrictions': 'Restrictions de client',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         'Objet JSON associant chaque groupe aux clients autorisés. Les IDs autorisés sont claude_code et codex ; les groupes absents ou vides ne sont pas restreints.',
+      'Limit which clients can use each group. A group with no client selected is unrestricted.':
+        'Limitez les clients pouvant utiliser chaque groupe. Un groupe sans client sélectionné n’est pas restreint.',
+      'No client restrictions configured':
+        'Aucune restriction de client configurée',
+      'Add a group to allow only specific clients to use it.':
+        'Ajoutez un groupe pour n’autoriser que certains clients à l’utiliser.',
+      Unrestricted: 'Non restreint',
+      'Allowed clients for {{group}}': 'Clients autorisés pour {{group}}',
       'Image spec price': "Prix par spécification d'image",
       'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
-        "Objet JSON modèle → prix par résolution/qualité. Superpose ModelPrice ; ordre : resolution/quality, puis resolution, puis quality.",
+        'Objet JSON modèle → prix par résolution/qualité. Superpose ModelPrice ; ordre : resolution/quality, puis resolution, puis quality.',
       'Image spec prices': "Prix par spécification d'image",
       'Overlay on the fallback price. Lookup order is resolution/quality, then resolution, then quality.':
         'Superpose le prix de repli. Ordre : resolution/quality, puis resolution, puis quality.',
@@ -185,6 +231,12 @@ export const systemSettingsI18nResources = {
       'image specs': "spécifications d'image",
       'Includes resolution/quality prices':
         'Inclut les prix par résolution/qualité',
+      'Subscription unlock': 'Via abonnement',
+      'Unlocked by subscription for {{group}}':
+        'Débloqué par abonnement pour {{group}}',
+      'Subscribers only': 'Réservé aux abonnés',
+      'A sub: rule (Subscription unlock) keeps the group hidden until the user has an active subscription whose Allowed Groups explicitly list it. An empty Allowed Groups list does not unlock it, and usage of that group is billed only from the subscription.':
+        "Une règle sub: (Via abonnement) garde le groupe masqué tant que l'utilisateur n'a pas d'abonnement actif dont les Groupes autorisés le listent explicitement. Une liste de Groupes autorisés vide ne le débloque pas, et l'utilisation de ce groupe n'est facturée que sur l'abonnement.",
     },
   },
   ja: {
@@ -218,6 +270,14 @@ export const systemSettingsI18nResources = {
       'Client restrictions': 'クライアント制限',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         'グループから許可クライアントへの JSON マップです。許可されるクライアント ID は claude_code と codex です。未設定または空のグループは制限されません。',
+      'Limit which clients can use each group. A group with no client selected is unrestricted.':
+        'グループごとに使用できるクライアントを制限します。クライアントを選択していないグループは制限されません。',
+      'No client restrictions configured':
+        'クライアント制限は設定されていません',
+      'Add a group to allow only specific clients to use it.':
+        'グループを追加して、特定のクライアントだけが使えるようにします。',
+      Unrestricted: '制限なし',
+      'Allowed clients for {{group}}': '{{group}} の許可クライアント',
       'Image spec price': '画像スペック価格',
       'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
         'モデルから解像度／品質単価への JSON マップです。ModelPrice を上書きし、検索順は resolution/quality、resolution、quality です。',
@@ -237,6 +297,12 @@ export const systemSettingsI18nResources = {
         'トークン数に関係なく、リクエストあたりの USD 価格です。画像スペックに一致しない場合のフォールバック単価として使います。',
       'image specs': '画像スペック',
       'Includes resolution/quality prices': '解像度／品質価格を含む',
+      'Subscription unlock': 'サブスクで解放',
+      'Unlocked by subscription for {{group}}':
+        '{{group}} にサブスクリプションで解放',
+      'Subscribers only': 'サブスクリプション利用者限定',
+      'A sub: rule (Subscription unlock) keeps the group hidden until the user has an active subscription whose Allowed Groups explicitly list it. An empty Allowed Groups list does not unlock it, and usage of that group is billed only from the subscription.':
+        'sub: ルール（サブスクで解放）は、有効なサブスクリプションの許可グループにこのグループが明示的に含まれるまで、グループを非表示のままにします。許可グループが空の場合は解放されず、このグループの利用料金はサブスクリプションからのみ差し引かれます。',
     },
   },
   ru: {
@@ -271,6 +337,13 @@ export const systemSettingsI18nResources = {
       'Client restrictions': 'Ограничения клиентов',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         'JSON-объект, сопоставляющий группы с разрешенными клиентами. Допустимые ID клиентов: claude_code и codex; отсутствующие группы или пустые списки не ограничиваются.',
+      'Limit which clients can use each group. A group with no client selected is unrestricted.':
+        'Ограничьте клиентов, которые могут использовать каждую группу. Группа без выбранных клиентов не ограничивается.',
+      'No client restrictions configured': 'Ограничения клиентов не настроены',
+      'Add a group to allow only specific clients to use it.':
+        'Добавьте группу, чтобы разрешить её использование только определённым клиентам.',
+      Unrestricted: 'Без ограничений',
+      'Allowed clients for {{group}}': 'Разрешённые клиенты для {{group}}',
       'Image spec price': 'Цена по спецификации изображения',
       'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
         'JSON-объект модели к ценам по разрешению/качеству. Перекрывает ModelPrice; порядок поиска: resolution/quality, затем resolution, затем quality.',
@@ -291,6 +364,12 @@ export const systemSettingsI18nResources = {
       'image specs': 'спецификации изображения',
       'Includes resolution/quality prices':
         'Включает цены по разрешению/качеству',
+      'Subscription unlock': 'По подписке',
+      'Unlocked by subscription for {{group}}':
+        'Открыта по подписке для {{group}}',
+      'Subscribers only': 'Только для подписчиков',
+      'A sub: rule (Subscription unlock) keeps the group hidden until the user has an active subscription whose Allowed Groups explicitly list it. An empty Allowed Groups list does not unlock it, and usage of that group is billed only from the subscription.':
+        'Правило sub: (По подписке) скрывает группу, пока у пользователя нет активной подписки, в разрешённых группах которой она указана явно. Пустой список разрешённых групп не открывает доступ, а использование этой группы оплачивается только за счёт подписки.',
     },
   },
   vi: {
@@ -323,6 +402,13 @@ export const systemSettingsI18nResources = {
       'Client restrictions': 'Giới hạn client',
       'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.':
         'Bản đồ JSON từ nhóm sang các client được phép. ID client hợp lệ là claude_code và codex; nhóm bị thiếu hoặc có danh sách rỗng sẽ không bị giới hạn.',
+      'Limit which clients can use each group. A group with no client selected is unrestricted.':
+        'Giới hạn client được dùng cho từng nhóm. Nhóm chưa chọn client nào sẽ không bị giới hạn.',
+      'No client restrictions configured': 'Chưa cấu hình giới hạn client',
+      'Add a group to allow only specific clients to use it.':
+        'Thêm nhóm để chỉ cho phép một số client nhất định sử dụng.',
+      Unrestricted: 'Không giới hạn',
+      'Allowed clients for {{group}}': 'Client được phép cho {{group}}',
       'Image spec price': 'Giá theo thông số ảnh',
       'JSON map of model → resolution/quality prices. Overlay on ModelPrice; lookup order is resolution/quality, then resolution, then quality.':
         'Bản đồ JSON từ mô hình tới giá theo độ phân giải/chất lượng. Ghi đè ModelPrice; thứ tự tra cứu là resolution/quality, rồi resolution, rồi quality.',
@@ -343,6 +429,12 @@ export const systemSettingsI18nResources = {
       'image specs': 'thông số ảnh',
       'Includes resolution/quality prices':
         'Bao gồm giá theo độ phân giải/chất lượng',
+      'Subscription unlock': 'Mở khóa qua đăng ký',
+      'Unlocked by subscription for {{group}}':
+        'Mở khóa qua đăng ký cho {{group}}',
+      'Subscribers only': 'Chỉ dành cho người đăng ký',
+      'A sub: rule (Subscription unlock) keeps the group hidden until the user has an active subscription whose Allowed Groups explicitly list it. An empty Allowed Groups list does not unlock it, and usage of that group is billed only from the subscription.':
+        'Quy tắc sub: (Mở khóa qua đăng ký) giữ nhóm ở trạng thái ẩn cho đến khi người dùng có đăng ký còn hiệu lực mà mục Nhóm được phép liệt kê rõ nhóm đó. Danh sách Nhóm được phép để trống sẽ không mở khóa, và việc dùng nhóm này chỉ được tính phí từ đăng ký.',
     },
   },
 } as const

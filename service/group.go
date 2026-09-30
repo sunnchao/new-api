@@ -32,11 +32,18 @@ func GetUserUsableGroups(userGroup string) map[string]string {
 					// 添加分组
 					groupToAdd := after
 					groupsCopy[groupToAdd] = desc
+				} else if strings.HasPrefix(specialGroup, ratio_setting.SubscriptionGroupRulePrefix) {
+					// 订阅专属分组在下方统一隐藏，避免与同组的 +: 规则因 map 遍历顺序产生冲突
+					continue
 				} else {
 					// 直接添加分组
 					groupsCopy[specialGroup] = desc
 				}
 			}
+		}
+		// 订阅专属分组默认不可见，只有持有明确列出该分组的订阅时才由 GetUserUsableGroupsForUser 放开
+		for gatedGroup := range ratio_setting.GetSubscriptionGatedGroups(userGroup) {
+			delete(groupsCopy, gatedGroup)
 		}
 		// 如果userGroup不在UserUsableGroups中，返回UserUsableGroups + userGroup
 		if _, ok := groupsCopy[userGroup]; !ok {
@@ -44,6 +51,40 @@ func GetUserUsableGroups(userGroup string) map[string]string {
 		}
 	}
 	return groupsCopy
+}
+
+// GetUserUsableGroupsForUser 在 GetUserUsableGroups 的基础上，加入用户通过订阅解锁的订阅专属分组。
+// 订阅的允许分组为空（代表全部分组）时不会解锁，必须明确列出该分组。
+func GetUserUsableGroupsForUser(userId int, userGroup string) (map[string]string, error) {
+	groups := GetUserUsableGroups(userGroup)
+	gatedGroups := ratio_setting.GetSubscriptionGatedGroups(userGroup)
+	if len(gatedGroups) == 0 {
+		return groups, nil
+	}
+	explicitGroups, err := model.GetActiveUserSubscriptionExplicitGroups(userId)
+	if err != nil {
+		return nil, err
+	}
+	for gatedGroup, desc := range gatedGroups {
+		if _, ok := explicitGroups[gatedGroup]; ok {
+			groups[gatedGroup] = desc
+		}
+	}
+	return groups, nil
+}
+
+// IsGroupUnlockedBySubscription 判断 group 是否是 userGroup 的订阅专属分组，且用户持有明确列出它的有效订阅。
+// 非订阅专属分组一律返回 false，且不会查询数据库。
+func IsGroupUnlockedBySubscription(userId int, userGroup, group string) (bool, error) {
+	if _, gated := ratio_setting.GetSubscriptionGatedGroups(userGroup)[group]; !gated {
+		return false, nil
+	}
+	explicitGroups, err := model.GetActiveUserSubscriptionExplicitGroups(userId)
+	if err != nil {
+		return false, err
+	}
+	_, unlocked := explicitGroups[group]
+	return unlocked, nil
 }
 
 func GroupInUserUsableGroups(userGroup, groupName string) bool {

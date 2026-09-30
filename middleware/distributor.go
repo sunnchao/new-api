@@ -89,8 +89,16 @@ func Distribute() func(c *gin.Context) {
 					}
 					if playgroundRequest.Group != "" {
 						if !service.GroupInUserUsableGroups(usingGroup, playgroundRequest.Group) && playgroundRequest.Group != usingGroup {
-							abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
-							return
+							unlocked, unlockErr := service.IsGroupUnlockedBySubscription(c.GetInt("id"), usingGroup, playgroundRequest.Group)
+							if unlockErr != nil {
+								common.SysLog(fmt.Sprintf("Distribute subscription group check error for user %d: %v", c.GetInt("id"), unlockErr))
+								abortWithOpenAiMessage(c, http.StatusInternalServerError, i18n.T(c, i18n.MsgDatabaseError))
+								return
+							}
+							if !unlocked {
+								abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
+								return
+							}
 						}
 						common.SetContextKey(c, constant.ContextKeyUsingGroup, playgroundRequest.Group)
 					}
@@ -101,11 +109,11 @@ func Distribute() func(c *gin.Context) {
 			usingGroup := common.GetContextKeyString(c, constant.ContextKeyUsingGroup)
 			var selectErr *service.ChannelSelectError
 			channel, _, selectErr = service.SelectChannelForRequest(c, modelRequest.Model, &service.RetryParam{
-				Ctx:         c,
-				ModelName:   modelRequest.Model,
-				TokenGroup:  usingGroup,
-				RequestPath: c.Request.URL.Path,
-				Retry:       common.GetPointer(0),
+				Ctx:              c,
+				ModelName:        modelRequest.Model,
+				TokenGroup:       usingGroup,
+				RequestPath:      c.Request.URL.Path,
+				Retry:            common.GetPointer(0),
 				TokenBackupGroup: common.GetContextKeyString(c, constant.ContextKeyBackupTokenGroup),
 			})
 			if selectErr != nil {

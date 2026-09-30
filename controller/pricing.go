@@ -86,6 +86,15 @@ func GetPricing(c *gin.Context) {
 	}
 
 	usableGroup = service.GetUserUsableGroups(group)
+	if exists {
+		// 订阅解锁的分组仅对已登录用户可见；查询失败时保守地只返回默认可用分组
+		unlockedGroups, err := service.GetUserUsableGroupsForUser(userId.(int), group)
+		if err != nil {
+			common.SysError("GetPricing subscription groups error: " + err.Error())
+		} else {
+			usableGroup = unlockedGroups
+		}
+	}
 	autoGroups := service.GetUserAutoGroup(group)
 	if !isAdmin {
 		userUnselectableGroups := setting.GetUserUnselectableGroupsCopy()

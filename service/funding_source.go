@@ -17,7 +17,7 @@ type FundingSource interface {
 	// Source 返回资金来源标识："wallet" 或 "subscription"
 	Source() string
 	// PreConsume 从该资金来源预扣 amount 额度
-	PreConsume(amount int, usingGroup string) error
+	PreConsume(amount int) error
 	// Settle 根据差额调整资金来源（正数补扣，负数退还）
 	Settle(delta int) error
 	// Refund 退还所有预扣费
@@ -41,7 +41,7 @@ type WalletFunding struct {
 
 func (w *WalletFunding) Source() string { return BillingSourceWallet }
 
-func (w *WalletFunding) PreConsume(amount int, usingGroup string) error {
+func (w *WalletFunding) PreConsume(amount int) error {
 	if amount <= 0 {
 		return nil
 	}
@@ -102,6 +102,7 @@ type SubscriptionFunding struct {
 	requestId      string
 	userId         int
 	modelName      string
+	usingGroup     string
 	amount         int64 // 预扣的订阅额度（subConsume）
 	BillingMode    string
 	subscriptionId int
@@ -111,14 +112,21 @@ type SubscriptionFunding struct {
 	AmountUsedAfter int64
 	PlanId          int
 	PlanTitle       string
+
+	// 订阅专属分组只能由明确列出该分组的订阅支付，"全部分组"的订阅不能代付
+	requireExplicitGroup bool
+	subscriptionOnly     bool
 }
 
 func (s *SubscriptionFunding) Source() string { return BillingSourceSubscription }
 
-func (s *SubscriptionFunding) PreConsume(_ int, usingGroup string) error {
+func (s *SubscriptionFunding) PreConsume(_ int) error {
 	// amount 参数被忽略，使用内部 s.amount（已在构造时根据 preConsumedQuota 计算）
-	res, err := model.PreConsumeUserSubscription(s.requestId, s.userId, s.modelName, 0, s.amount, usingGroup)
+	res, err := model.PreConsumeUserSubscription(s.requestId, s.userId, s.modelName, 0, s.amount, s.usingGroup, s.requireExplicitGroup)
 	if err != nil {
+		if s.subscriptionOnly && errors.Is(err, model.ErrNoActiveSubscription) {
+			return model.ErrNoValidSubscriptionForGroup
+		}
 		return err
 	}
 	s.subscriptionId = res.UserSubscriptionId

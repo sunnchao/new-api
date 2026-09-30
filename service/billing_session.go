@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -231,7 +232,7 @@ func (s *BillingSession) preConsume(c *gin.Context, quota int) *types.NewAPIErro
 	}
 
 	// ---- 2) 预扣资金来源 ----
-	if err := s.funding.PreConsume(effectiveQuota, s.relayInfo.UsingGroup); err != nil {
+	if err := s.funding.PreConsume(effectiveQuota); err != nil {
 		// 预扣费失败，回滚令牌额度
 		if s.tokenConsumed > 0 && !s.relayInfo.IsPlayground {
 			if rollbackErr := model.IncreaseTokenQuota(s.relayInfo.TokenId, s.relayInfo.TokenKey, s.tokenConsumed); rollbackErr != nil {
@@ -271,16 +272,28 @@ func (s *BillingSession) preConsume(c *gin.Context, quota int) *types.NewAPIErro
 	return nil
 }
 
-func (s *BillingSession) reserveFunding(delta int) error {
+func (s *BillingSession) reserveFunding(delta int, requireAvailableQuota bool) error {
 	switch funding := s.funding.(type) {
 	case *WalletFunding:
+		if requireAvailableQuota {
+			// Image quantity is known before submission, including retries and
+			// overrides. Reserve atomically instead of admitting wallet debt.
+			if err := funding.PreConsume(delta); err != nil {
+				if errors.Is(err, ErrInsufficientWalletQuota) {
+					return types.NewErrorWithStatusCode(err, types.ErrorCodeInsufficientUserQuota, http.StatusForbidden, types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
+				}
+				return types.NewError(err, types.ErrorCodeUpdateDataError, types.ErrOptionWithSkipRetry())
+			}
+			return nil
+		}
 		// 与结算补扣（SettleBilling 正差额 → WalletFunding.Settle）语义一致：
 		// 全额无条件扣减，余额不足的部分记为欠费（余额可为负），不中断请求，
 		// 保证日志记录的预扣额度与用户余额的实际变动始终对账一致。
 		// DecreaseUserQuota 仅在数据库错误时失败。
-		if err := funding.Settle(delta); err != nil {
+		if err := model.DecreaseUserQuota(funding.userId, delta, false); err != nil {
 			return types.NewError(err, types.ErrorCodeUpdateDataError, types.ErrOptionWithSkipRetry())
 		}
+		funding.consumed += delta
 		return nil
 	case *SubscriptionFunding:
 		if err := model.PostConsumeUserSubscriptionDelta(funding.subscriptionId, int64(delta)); err != nil {
@@ -301,8 +314,10 @@ func (s *BillingSession) reserveFunding(delta int) error {
 func (s *BillingSession) rollbackFundingReserve(delta int) {
 	switch funding := s.funding.(type) {
 	case *WalletFunding:
-		if err := funding.Settle(-delta); err != nil {
+		if err := model.IncreaseUserQuota(funding.userId, delta, false); err != nil {
 			common.SysLog("error rolling back wallet funding reserve: " + err.Error())
+		} else {
+			funding.consumed -= delta
 		}
 	case *SubscriptionFunding:
 		if err := model.PostConsumeUserSubscriptionDelta(funding.subscriptionId, -int64(delta)); err != nil {
@@ -477,15 +492,10 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 		pref = billingSource
 	}
 
-	// 钱包路径需要先检查用户额度
-	checkGroupSubscription := func() (bool, *types.NewAPIError) {
-		// 使用最终 UsingGroup 做 group-aware 判断，避免 token_plan 这类分组在
-		// subscription_only 场景下因“用户有其他分组订阅”而错误放行。
-		hasSub, err := model.HasActiveUserSubscriptionForGroup(relayInfo.UserId, relayInfo.UsingGroup)
-		if err != nil {
-			return false, types.NewError(err, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
-		}
-		return hasSub, nil
+	// 订阅专属分组只能从明确列出该分组的订阅扣费，优先级高于用户偏好和 GroupModelBilling。
+	_, subscriptionGatedGroup := ratio_setting.GetSubscriptionGatedGroups(relayInfo.UserGroup)[relayInfo.UsingGroup]
+	if subscriptionGatedGroup {
+		pref = "subscription_only"
 	}
 
 	checkAnySubscription := func() (bool, *types.NewAPIError) {
@@ -494,44 +504,6 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 			return false, types.NewError(err, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
 		}
 		return hasSub, nil
-	}
-
-	logGroupSubscriptionMiss := func(reason string) {
-		if !common.DebugEnabled {
-			return
-		}
-		summary, err := model.DescribeActiveUserSubscriptionGroups(relayInfo.UserId)
-		if err != nil {
-			logger.LogDebug(c, "subscription group check miss: reason=%s user_id=%d using_group=%s model=%s billing_pref=%s summary_error=%v",
-				reason,
-				relayInfo.UserId,
-				relayInfo.UsingGroup,
-				relayInfo.OriginModelName,
-				pref,
-				err,
-			)
-			return
-		}
-		// Keep this debug log close to the billing decision so token_plan/group
-		// misconfiguration can be located without stepping into model pre-consume.
-		logger.LogDebug(c, "subscription group check miss: reason=%s user_id=%d using_group=%s model=%s billing_pref=%s active_subscriptions=[%s]",
-			reason,
-			relayInfo.UserId,
-			relayInfo.UsingGroup,
-			relayInfo.OriginModelName,
-			pref,
-			summary,
-		)
-	}
-
-	missingValidSubscription := func() *types.NewAPIError {
-		return types.NewErrorWithStatusCode(
-			fmt.Errorf("未包含有效的订阅套餐"),
-			types.ErrorCodeInsufficientUserQuota,
-			http.StatusForbidden,
-			types.ErrOptionWithSkipRetry(),
-			types.ErrOptionWithNoRecordErrorLog(),
-		)
 	}
 
 	tryWallet := func() (*BillingSession, *types.NewAPIError) {
@@ -565,10 +537,13 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 		session := &BillingSession{
 			relayInfo: relayInfo,
 			funding: &SubscriptionFunding{
-				requestId: relayInfo.RequestId,
-				userId:    relayInfo.UserId,
-				modelName: relayInfo.GetBillingModelName(),
-				amount:    subConsume,
+				requestId:            relayInfo.RequestId,
+				userId:               relayInfo.UserId,
+				modelName:            relayInfo.GetBillingModelName(),
+				usingGroup:           relayInfo.UsingGroup,
+				amount:               subConsume,
+				requireExplicitGroup: subscriptionGatedGroup,
+				subscriptionOnly:     pref == "subscription_only",
 			},
 		}
 		// token 额度仍按预估额度预扣；订阅资金源会在 model 层按 billing_mode
@@ -581,15 +556,6 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 
 	switch pref {
 	case "subscription_only":
-		// 仅在“只能由订阅消费”时做按分组的严格前置校验；否则仍允许后续回退到钱包。
-		hasSub, subCheckErr := checkGroupSubscription()
-		if subCheckErr != nil {
-			return nil, subCheckErr
-		}
-		if !hasSub {
-			logGroupSubscriptionMiss("subscription_only")
-			return nil, missingValidSubscription()
-		}
 		return trySubscription()
 	case "wallet_only":
 		return tryWallet()

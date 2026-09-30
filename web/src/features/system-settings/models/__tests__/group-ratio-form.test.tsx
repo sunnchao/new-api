@@ -73,6 +73,7 @@ function GroupRatioFormHarness() {
       GroupGroupRatio: '{}',
       GroupClientRestrictions: '{}',
       AutoGroups: '[]',
+      MaxTokenAutoGroups: 5,
       DefaultUseAutoGroup: false,
       GroupSpecialUsableGroup: '{}',
     },
@@ -101,7 +102,7 @@ describe('GroupRatioForm JSON editors', () => {
       root.render(<GroupRatioFormHarness />)
     })
 
-    assert.equal(container.querySelectorAll('.json-code-editor-yace').length, 1)
+    assert.equal(container.querySelectorAll('.json-code-editor-yace').length, 0)
 
     const switchButton = [...container.querySelectorAll('button')].find(
       (button) => button.textContent?.includes('Switch to JSON')

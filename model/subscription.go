@@ -1150,7 +1150,7 @@ func PurchaseSubscriptionWithBalance(userId int, planId int, clientIP string) er
 	otherParam := map[string]interface{}{
 		"RequestIp": clientIP,
 	}
-	RecordLog(userId, LogTypeTopup, msg, otherParam)
+	RecordLog(userId, LogTypeSubscriptionPay, msg, otherParam)
 	return nil
 }
 
@@ -1204,32 +1204,6 @@ func UserActiveSubscriptionsAllowWalletOverflow(userId int) (bool, error) {
 	return strictCount == 0, nil
 }
 
-// HasActiveUserSubscriptionForGroup returns whether the user has any active
-// subscription that can be used by the current request group.
-func HasActiveUserSubscriptionForGroup(userId int, group string) (bool, error) {
-	if userId <= 0 {
-		return false, errors.New("invalid userId")
-	}
-	group = strings.TrimSpace(group)
-	if group == "" {
-		return HasActiveUserSubscription(userId)
-	}
-	now := common.GetTimestamp()
-	var subs []UserSubscription
-	if err := DB.Select("id", "allowed_groups").
-		Where("user_id = ? AND status = ? AND end_time > ?", userId, "active", now).
-		Order("end_time desc, id desc").
-		Find(&subs).Error; err != nil {
-		return false, err
-	}
-	for _, sub := range subs {
-		if sub.IsGroupAllowed(group) {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
 func formatActiveSubscriptionGroupDebug(subs []UserSubscription) string {
 	if len(subs) == 0 {
 		return "none"
@@ -1243,23 +1217,6 @@ func formatActiveSubscriptionGroupDebug(subs []UserSubscription) string {
 		items = append(items, fmt.Sprintf("sub_id=%d plan_id=%d allowed_groups=%s end_time=%d", sub.Id, sub.PlanId, allowedGroups, sub.EndTime))
 	}
 	return strings.Join(items, "; ")
-}
-
-// DescribeActiveUserSubscriptionGroups returns a compact summary string for
-// debug logging when a request group does not match any active subscription.
-func DescribeActiveUserSubscriptionGroups(userId int) (string, error) {
-	if userId <= 0 {
-		return "", errors.New("invalid userId")
-	}
-	now := common.GetTimestamp()
-	var subs []UserSubscription
-	if err := DB.Select("id", "plan_id", "allowed_groups", "end_time").
-		Where("user_id = ? AND status = ? AND end_time > ?", userId, "active", now).
-		Order("end_time asc, id asc").
-		Find(&subs).Error; err != nil {
-		return "", err
-	}
-	return formatActiveSubscriptionGroupDebug(subs), nil
 }
 
 func logSubscriptionGroupMismatchDebug(requestId string, userId int, group string, subs []UserSubscription) {
@@ -1853,18 +1810,48 @@ func maybeResetMonthlyLimit(tx *gorm.DB, sub *UserSubscription, now int64) error
 }
 
 // IsGroupAllowed checks whether the subscription allows the given group.
+// An empty AllowedGroups means every group is allowed.
 func (s *UserSubscription) IsGroupAllowed(group string) bool {
-	group = strings.TrimSpace(group)
-	allowedGroups := strings.TrimSpace(s.AllowedGroups)
-	if allowedGroups == "" {
+	if strings.TrimSpace(s.AllowedGroups) == "" {
 		return true
 	}
-	for _, item := range strings.Split(allowedGroups, ",") {
+	return s.IsGroupExplicitlyAllowed(group)
+}
+
+// IsGroupExplicitlyAllowed checks whether the given group is listed in
+// AllowedGroups. Unlike IsGroupAllowed, an empty list does not match.
+func (s *UserSubscription) IsGroupExplicitlyAllowed(group string) bool {
+	group = strings.TrimSpace(group)
+	for item := range strings.SplitSeq(s.AllowedGroups, ",") {
 		if strings.TrimSpace(item) == group {
-			return true
+			return group != ""
 		}
 	}
 	return false
+}
+
+// GetActiveUserSubscriptionExplicitGroups returns the groups listed in the
+// AllowedGroups of the user's active subscriptions. Subscriptions with an empty
+// list (all groups) contribute nothing.
+func GetActiveUserSubscriptionExplicitGroups(userId int) (map[string]struct{}, error) {
+	if userId <= 0 {
+		return nil, errors.New("invalid userId")
+	}
+	var allowedGroupsList []string
+	if err := DB.Model(&UserSubscription{}).
+		Where("user_id = ? AND status = ? AND end_time > ?", userId, "active", common.GetTimestamp()).
+		Pluck("allowed_groups", &allowedGroupsList).Error; err != nil {
+		return nil, err
+	}
+	groups := make(map[string]struct{})
+	for _, allowedGroups := range allowedGroupsList {
+		for item := range strings.SplitSeq(allowedGroups, ",") {
+			if group := strings.TrimSpace(item); group != "" {
+				groups[group] = struct{}{}
+			}
+		}
+	}
+	return groups, nil
 }
 
 func newSubscriptionQuotaInsufficientError(sub *UserSubscription, consumeAmount int64, scope string, remain int64, resetTime int64) *SubscriptionQuotaInsufficientError {
@@ -1903,7 +1890,10 @@ func betterSubscriptionInsufficientError(current *SubscriptionQuotaInsufficientE
 }
 
 // PreConsumeUserSubscription pre-consumes from any active subscription total quota.
-func PreConsumeUserSubscription(requestId string, userId int, modelName string, quotaType int, amount int64, group string) (*SubscriptionPreConsumeResult, error) {
+// requireExplicitGroup limits candidates to subscriptions that list group in
+// AllowedGroups, so an "all groups" subscription cannot pay for a
+// subscription-gated group.
+func PreConsumeUserSubscription(requestId string, userId int, modelName string, quotaType int, amount int64, group string, requireExplicitGroup bool) (*SubscriptionPreConsumeResult, error) {
 	if userId <= 0 {
 		return nil, errors.New("invalid userId")
 	}
@@ -1955,7 +1945,11 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 		var insufficientErr *SubscriptionQuotaInsufficientError
 		for _, candidate := range subs {
 			sub := candidate
-			if !sub.IsGroupAllowed(group) {
+			groupAllowed := sub.IsGroupAllowed(group)
+			if requireExplicitGroup {
+				groupAllowed = sub.IsGroupExplicitlyAllowed(group)
+			}
+			if !groupAllowed {
 				logSubscriptionCandidateDebug(requestId, userId, group, amount, subs,
 					"skip sub_id=%d reason=group_mismatch allowed_groups=%q",
 					sub.Id,

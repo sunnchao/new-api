@@ -166,7 +166,6 @@ export const GroupRatioForm = memo(function GroupRatioForm({
           </Button>
         </SettingsPageActionsPortal>
         {editMode === 'visual' ? (
-            <div className='space-y-6'>
           <GroupRatioVisualEditor
             section={section}
             onSectionChange={setSection}
@@ -229,67 +228,11 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               />
             }
             groupSpecialUsableGroup={values.GroupSpecialUsableGroup ?? ''}
+            groupClientRestrictions={values.GroupClientRestrictions ?? ''}
             onChange={(field, value) =>
               handleFieldChange(field as keyof GroupFormValues, value)
             }
           />
-              <GroupSpecialUsableRulesEditor
-                  value={form.watch('GroupSpecialUsableGroup')}
-                  groupOptions={groupNames}
-                  onChange={(value) =>
-                      handleFieldChange('GroupSpecialUsableGroup', value)
-                  }
-              />
-
-              <FormField
-                  control={form.control}
-                  name='GroupClientRestrictions'
-                  render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Client restrictions')}</FormLabel>
-                        <FormControl>
-                          <JsonCodeEditor
-                              value={field.value}
-                              onChange={field.onChange}
-                              name={field.name}
-                              onBlur={field.onBlur}
-                              textareaRef={field.ref}
-                              heightClassName='h-40 min-h-40 max-h-40'
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                              'JSON map of group to allowed clients. Allowed client IDs are claude_code and codex; missing or empty groups are unrestricted.'
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                  )}
-              />
-
-              <FormField
-                  control={form.control}
-                  name='DefaultUseAutoGroup'
-                  render={({ field }) => (
-                      <SettingsSwitchItem>
-                        <SettingsSwitchContent>
-                          <FormLabel>{t('Default to auto groups')}</FormLabel>
-                          <FormDescription>
-                            {t(
-                                'When enabled, newly created tokens start in the first auto group.'
-                            )}
-                          </FormDescription>
-                        </SettingsSwitchContent>
-                        <FormControl>
-                          <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </SettingsSwitchItem>
-                  )}
-              />
-            </div>
         ) : (
           <SettingsForm onSubmit={form.handleSubmit(onSave)}>
             <FormField
@@ -880,12 +823,18 @@ vip          0.5     ${t('No')}                ${t('Assigned by administrator on
   "vip": {
     "+:premium": "${t('Premium plan, half price')}",
     "-:default": "remove",
+    "sub:ultra": "${t('Subscribers only')}",
     "special": "${t('Special group')}"
   }
 }`}</GuideCodeBlock>
                 <p className='text-muted-foreground text-sm leading-6'>
                   {t(
                     'In the visual editor these appear as Extra visible and Hidden. In JSON, +: (or no prefix) adds a group and -: removes one.'
+                  )}
+                </p>
+                <p className='text-muted-foreground text-sm leading-6'>
+                  {t(
+                    'A sub: rule (Subscription unlock) keeps the group hidden until the user has an active subscription whose Allowed Groups explicitly list it. An empty Allowed Groups list does not unlock it, and usage of that group is billed only from the subscription.'
                   )}
                 </p>
               </AccordionContent>

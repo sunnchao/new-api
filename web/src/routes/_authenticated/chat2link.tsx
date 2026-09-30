@@ -33,7 +33,6 @@ import {
   chatLinkRequiresApiKey,
   resolveChatUrl,
 } from '@/features/chat/lib/chat-links'
-import { resolveChatUrl } from '@/features/chat/lib/chat-links'
 import { handleServerError } from '@/lib/handle-server-error'
 
 export const Route = createFileRoute('/_authenticated/chat2link')({

@@ -3,6 +3,7 @@ package ratio_setting
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting/config"
@@ -88,6 +89,30 @@ func GetGroupRatioSetting() *GroupRatioSetting {
 	return &groupRatioSetting
 }
 
+// SubscriptionGroupRulePrefix marks a group_special_usable_group entry whose
+// target group stays hidden from users of the rule's owner group until they
+// hold an active subscription that explicitly lists the target group.
+const SubscriptionGroupRulePrefix = "sub:"
+
+// GetSubscriptionGatedGroups returns the groups, with their descriptions, that
+// users of userGroup may only use through a subscription that explicitly lists
+// them. A user's own group is never gated.
+func GetSubscriptionGatedGroups(userGroup string) map[string]string {
+	rules, ok := GetGroupRatioSetting().GroupSpecialUsableGroup.Get(userGroup)
+	if !ok {
+		return nil
+	}
+	gated := make(map[string]string)
+	for rawKey, desc := range rules {
+		group, isGated := strings.CutPrefix(rawKey, SubscriptionGroupRulePrefix)
+		if !isGated || group == "" || group == userGroup {
+			continue
+		}
+		gated[group] = desc
+	}
+	return gated
+}
+
 func GetGroupRatioCopy() map[string]float64 {
 	return groupRatioMap.ReadAll()
 }
@@ -148,63 +173,18 @@ func CheckGroupRatio(jsonStr string) error {
 	return nil
 }
 
-// GetGroupModelBilling 获取指定分组和模型的计费配置
-func GetGroupModelBilling(group, modelName string) (*GroupModelBilling, bool) {
-	groupModels, ok := groupModelBillingMap.Get(group)
-	if !ok {
-		return nil, false
-	}
-	billing, ok := groupModels[modelName]
-	if !ok {
-		return nil, false
-	}
-	return &billing, true
-}
-
-// GetEffectiveGroupModelBilling returns the merged billing config for a group
-// and model. Model-level fields override group defaults, while omitted model
-// fields inherit from the reserved __default__ entry.
-func GetEffectiveGroupModelBilling(group, modelName string) (*GroupModelBilling, bool) {
-	groupModels, ok := groupModelBillingMap.Get(group)
-	if !ok {
-		return nil, false
-	}
-
-	defaultBilling, hasDefault := groupModels[GroupModelBillingDefaultKey]
-	modelBilling, hasModel := groupModels[modelName]
-	if !hasDefault && !hasModel {
-		return nil, false
-	}
-
-	effective := GroupModelBilling{}
-	if hasDefault {
-		effective = defaultBilling
-	}
-
-	if hasModel {
-		// quota_type/model_price only become explicit when the model entry is set
-		// to per-request. Otherwise the model entry keeps inheriting the group
-		// default pricing behavior.
-		if modelBilling.QuotaType == 1 {
-			effective.QuotaType = 1
-			effective.ModelPrice = modelBilling.ModelPrice
-		}
-		if modelBilling.BillingSource != "" {
-			effective.BillingSource = modelBilling.BillingSource
-		}
-	}
-
-	return &effective, true
-}
-
 // GetGroupModelBillingSource 获取指定分组+模型的资金来源限制，若模型未单独配置，
 // 则回退到分组默认 billing_source（通过保留键 __default__ 存储）。
 func GetGroupModelBillingSource(group, modelName string) (string, bool) {
-	billing, ok := GetEffectiveGroupModelBilling(group, modelName)
-	if !ok || billing == nil || billing.BillingSource == "" {
+	groupModels, ok := groupModelBillingMap.Get(group)
+	if !ok {
 		return "", false
 	}
-	return billing.BillingSource, true
+	if billing := groupModels[modelName]; billing.BillingSource != "" {
+		return billing.BillingSource, true
+	}
+	billingSource := groupModels[GroupModelBillingDefaultKey].BillingSource
+	return billingSource, billingSource != ""
 }
 
 // GroupModelBilling2JSONString 将分组模型计费配置转为 JSON 字符串
@@ -215,9 +195,4 @@ func GroupModelBilling2JSONString() string {
 // UpdateGroupModelBillingByJSONString 通过 JSON 字符串更新分组模型计费配置
 func UpdateGroupModelBillingByJSONString(jsonStr string) error {
 	return types.LoadFromJsonString(groupModelBillingMap, jsonStr)
-}
-
-// GetGroupModelBillingCopy 获取分组模型计费配置的副本
-func GetGroupModelBillingCopy() map[string]map[string]GroupModelBilling {
-	return groupModelBillingMap.ReadAll()
 }

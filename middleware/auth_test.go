@@ -13,6 +13,8 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/golang-jwt/jwt/v5"
@@ -333,4 +335,74 @@ func TestApplyWebSocketSubprotocolAuthorizationReadsRepeatedHeaders(t *testing.T
 
 	assert.True(t, applyWebSocketSubprotocolAuthorization(header))
 	assert.Equal(t, "Bearer sk-later-field", header.Get("Authorization"))
+}
+
+func TestTokenAuthSubscriptionGatedGroupRequiresExplicitActiveSubscription(t *testing.T) {
+	setupDashboardAuthMiddlewareTest(t)
+	// InitLogDB is the exported path that initializes the reserved-word column names used by token lookups.
+	require.NoError(t, model.InitLogDB())
+	require.NoError(t, model.DB.AutoMigrate(&model.Token{}, &model.SubscriptionPlan{}, &model.UserSubscription{}, &model.UserGiftQuota{}))
+
+	originalUsableGroups := setting.UserUsableGroups2JSONString()
+	originalRatios := ratio_setting.GroupRatio2JSONString()
+	specialGroups := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup
+	originalRules := specialGroups.ReadAll()
+	t.Cleanup(func() {
+		require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(originalUsableGroups))
+		require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(originalRatios))
+		specialGroups.Clear()
+		specialGroups.AddAll(originalRules)
+	})
+	require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(`{"default":"Default","vip":"VIP"}`))
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"default":1,"vip":1}`))
+	specialGroups.Clear()
+	specialGroups.Set("default", map[string]string{"sub:vip": "VIP by subscription"})
+
+	subscribers := []struct {
+		userID        int
+		allowedGroups string
+		subscribed    bool
+		wantStatus    int
+	}{
+		{userID: 1, subscribed: true, allowedGroups: "vip", wantStatus: http.StatusOK},
+		{userID: 2, subscribed: true, allowedGroups: "", wantStatus: http.StatusForbidden},
+		{userID: 3, wantStatus: http.StatusForbidden},
+	}
+	require.NoError(t, model.DB.Create(&model.SubscriptionPlan{Id: 1, Title: "plan", Enabled: true}).Error)
+	for _, s := range subscribers {
+		require.NoError(t, model.DB.Create(&model.User{
+			Id: s.userID, Username: fmt.Sprintf("gated-user-%d", s.userID), AffCode: fmt.Sprintf("gated%d", s.userID),
+			Group: "default", Status: common.UserStatusEnabled,
+		}).Error)
+		require.NoError(t, model.DB.Create(&model.Token{
+			Id: s.userID, UserId: s.userID, Key: fmt.Sprintf("gatedkey%d", s.userID), Name: "gated",
+			Status: common.TokenStatusEnabled, ExpiredTime: -1, UnlimitedQuota: true, Group: "vip",
+		}).Error)
+		if s.subscribed {
+			require.NoError(t, model.DB.Create(&model.UserSubscription{
+				Id: s.userID, UserId: s.userID, PlanId: 1, AllowedGroups: s.allowedGroups, Status: "active",
+				EndTime: time.Now().Add(time.Hour).Unix(),
+			}).Error)
+		}
+	}
+
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(TokenAuth())
+	router.GET("/v1/models", func(c *gin.Context) { c.Status(http.StatusOK) })
+	requestStatus := func(userID int) int {
+		req := httptest.NewRequest(http.MethodGet, "/v1/models", nil)
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer sk-gatedkey%d", userID))
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
+		return recorder.Code
+	}
+
+	for _, s := range subscribers {
+		assert.Equal(t, s.wantStatus, requestStatus(s.userID), "user %d", s.userID)
+	}
+
+	require.NoError(t, model.DB.Model(&model.UserSubscription{}).Where("id = ?", 1).
+		Update("end_time", time.Now().Add(-time.Minute).Unix()).Error)
+	assert.Equal(t, http.StatusForbidden, requestStatus(1), "the same token is rejected once the subscription expires")
 }

@@ -81,6 +81,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
   const { meta: currency } = getCurrencyDisplay()
   const quotaUnit = currency.kind === 'tokens' ? t('Tokens') : currency.symbol
   const groupRatios = useGroupRatios()
+  const shouldReduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const justNowLabel = t('Just now')
   return useMemo<ColumnDef<ApiKey>[]>(
@@ -161,18 +162,17 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
         cell: ({ row }) => {
           const apiKey = row.original
           const group = row.getValue('group') as string
-          return (
-            <ApiKeyGroupCell
-              group={group}
-              ratio={groupRatios[group]}
-              crossGroupRetry={apiKey.cross_group_retry}
-              shouldReduceMotion={shouldReduceMotion}
-              apiKey={row.original}
-              groupRatios={groupRatios}
-            />
-          )
+          return [
+            // <ApiKeyGroupCell
+            //     group={group}
+            //     ratio={groupRatios[group]}
+            //     crossGroupRetry={apiKey.cross_group_retry}
+            //     shouldReduceMotion={shouldReduceMotion}
+            // />,
+            <ApiKeyGroupRouteCell apiKey={row.original} groupRatios={groupRatios} />
+          ]
         },
-        size: 220,
+        size: 350,
         meta: { mobileHidden: true },
       },
       {
