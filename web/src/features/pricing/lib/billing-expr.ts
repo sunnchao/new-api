@@ -283,6 +283,7 @@ export type TaskTierCondition = {
 }
 
 export type ParsedTaskTier = {
+  conditionText?: string
   label: string
   conditions: TaskTierCondition[]
   constant: number
