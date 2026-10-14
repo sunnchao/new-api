@@ -2,7 +2,6 @@ package model
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
@@ -128,7 +127,7 @@ func SearchRedemptions(keyword string, status string, startIdx int, num int) (re
 
 func GetRedemptionById(id int) (*Redemption, error) {
 	if id == 0 {
-		return nil, errors.New("id 为空！")
+		return nil, common.NewMessage("ID is empty")
 	}
 	redemption := Redemption{Id: id}
 	var err error = nil
@@ -138,10 +137,10 @@ func GetRedemptionById(id int) (*Redemption, error) {
 
 func Redeem(key string, userId int) (*RedemptionResult, error) {
 	if key == "" {
-		return nil, errors.New("未提供兑换码")
+		return nil, errors.New("redemption code not provided")
 	}
 	if userId == 0 {
-		return nil, errors.New("无效的 user id")
+		return nil, errors.New("invalid user id")
 	}
 	redemption := &Redemption{}
 	result := &RedemptionResult{}
@@ -154,13 +153,13 @@ func Redeem(key string, userId int) (*RedemptionResult, error) {
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		err := lockForUpdate(tx).Where(keyCol+" = ?", key).First(redemption).Error
 		if err != nil {
-			return errors.New("无效的兑换码")
+			return errors.New("invalid redemption code")
 		}
 		if redemption.Status != common.RedemptionCodeStatusEnabled {
-			return errors.New("该兑换码已被使用")
+			return errors.New("redemption code already used")
 		}
 		if redemption.ExpiredTime != 0 && redemption.ExpiredTime < common.GetTimestamp() {
-			return errors.New("该兑换码已过期")
+			return errors.New("redemption code expired")
 		}
 		redemptionType := normalizeRedemptionType(redemption.Type)
 		result.Type = redemptionType
@@ -188,7 +187,7 @@ func Redeem(key string, userId int) (*RedemptionResult, error) {
 			return cas.Error
 		}
 		if cas.RowsAffected == 0 {
-			return errors.New("该兑换码已被使用")
+			return errors.New("redemption code already used")
 		}
 		if redemptionType == RedemptionTypeSubscription {
 			subscription, err := CreateUserSubscriptionFromPlanTx(tx, userId, plan, "redemption")
@@ -203,7 +202,7 @@ func Redeem(key string, userId int) (*RedemptionResult, error) {
 		return tx.Model(&User{}).Where("id = ?", userId).Update("quota", gorm.Expr("quota + ?", redemption.Quota)).Error
 	})
 	if err != nil {
-		common.SysError("redemption failed: " + err.Error())
+		common.SysError(common.LogText("redemption failed: %s", err.Error()))
 		return nil, wrapRedeemFailedError(err)
 	}
 	if result.Type == RedemptionTypeSubscription {
@@ -213,8 +212,8 @@ func Redeem(key string, userId int) (*RedemptionResult, error) {
 		}
 		RecordLog(userId, LogTypeSubscriptionPay, fmt.Sprintf("通过兑换码获取订阅 %s，兑换码ID %d", planTitle, redemption.Id), nil)
 	} else {
-		syncCreditUserQuotaCache(userId, redemption.Quota, "redemption")
-		RecordLog(userId, LogTypeTopup, fmt.Sprintf("通过兑换码充值 %s，兑换码ID %d", logger.LogQuota(redemption.Quota), redemption.Id), nil)
+		syncCreditUserQuotaCache(userId, redemption.Quota, common.LogText("redemption"))
+		RecordLog(userId, LogTypeTopup, common.NewMessage("Topped up {{quota}} with a redemption code, code ID {{id}}", map[string]any{"quota": logger.FormatQuota(redemption.Quota), "id": redemption.Id}), nil)
 	}
 	return result, nil
 }
@@ -259,7 +258,7 @@ func (redemption *Redemption) Delete() error {
 
 func DeleteRedemptionById(id int) (err error) {
 	if id == 0 {
-		return errors.New("id 为空！")
+		return common.NewMessage("ID is empty")
 	}
 	redemption := Redemption{Id: id}
 	err = DB.Where(redemption).First(&redemption).Error
