@@ -210,7 +210,8 @@ func Redeem(key string, userId int) (*RedemptionResult, error) {
 		if result.Plan != nil {
 			planTitle = result.Plan.Title
 		}
-		RecordLog(userId, LogTypeSubscriptionPay, fmt.Sprintf("通过兑换码获取订阅 %s，兑换码ID %d", planTitle, redemption.Id), nil)
+		// fmt.Sprintf("通过兑换码获取订阅 %s，兑换码ID %d", planTitle, redemption.Id)
+		RecordLog(userId, LogTypeSubscriptionPay, common.NewMessage("通过兑换码获取订阅 {{planTitle}}，兑换码ID {{id}}", map[string]any{"planTitle": planTitle, "id": redemption.Id}), nil)
 	} else {
 		syncCreditUserQuotaCache(userId, redemption.Quota, common.LogText("redemption"))
 		RecordLog(userId, LogTypeTopup, common.NewMessage("Topped up {{quota}} with a redemption code, code ID {{id}}", map[string]any{"quota": logger.FormatQuota(redemption.Quota), "id": redemption.Id}), nil)

@@ -52,5 +52,5 @@ func abortWithMidjourneyMessage(c *gin.Context, statusCode int, code int, descri
 		"code":        code,
 	})
 	c.Abort()
-	logger.LogError(c.Request.Context(), fmt.Sprintf("user %d | %s", userId, description))
+	logger.LogError(c.Request.Context(), common.LogText("user %d | %s", userId, description))
 }

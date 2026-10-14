@@ -944,12 +944,14 @@ func CompleteSubscriptionOrder(tradeNo string, providerPayload string, expectedP
 		refreshSubscriptionUserGroupCache(logUserId, common.LogText("subscription payment completion"))
 	}
 	if logUserId > 0 {
+
+		other := NewLogOther()
+		other.SetAdmin("RequestIp", clientIP)
 		RecordLog(logUserId, LogTypeTopup, common.NewMessage("Subscription purchased, plan: {{plan}}, payment amount: {{amount}}, payment method: {{method}}", map[string]any{
 			"plan":   logPlanTitle,
 			"amount": fmt.Sprintf("%.2f", logMoney),
 			"method": logPaymentMethod,
-			"RequestIp": clientIP,
-		}))
+		}), other)
 	}
 	return nil
 }
@@ -1147,12 +1149,13 @@ func PurchaseSubscriptionWithBalance(userId int, planId int, clientIP string) er
 	if upgradeGroup != "" {
 		refreshSubscriptionUserGroupCache(userId, common.LogText("subscription balance purchase"))
 	}
+	other := NewLogOther()
+	other.SetAdmin("RequestIp", clientIP)
 	RecordLog(userId, LogTypeTopup, common.NewMessage("Subscription purchased with balance, plan: {{plan}}, payment amount: {{amount}}, quota deducted: {{quota}}", map[string]any{
 		"plan":   logPlanTitle,
 		"amount": fmt.Sprintf("%.2f", logMoney),
 		"quota":  chargedQuota,
-		"RequestIp": clientIP,
-	}))
+	}), other)
 	return nil
 }
 
@@ -1892,10 +1895,7 @@ func betterSubscriptionInsufficientError(current *SubscriptionQuotaInsufficientE
 }
 
 // PreConsumeUserSubscription pre-consumes from any active subscription total quota.
-// requireExplicitGroup limits candidates to subscriptions that list group in
-// AllowedGroups, so an "all groups" subscription cannot pay for a
-// subscription-gated group.
-func PreConsumeUserSubscription(requestId string, userId int, modelName string, quotaType int, amount int64, group string, requireExplicitGroup bool) (*SubscriptionPreConsumeResult, error) {
+func PreConsumeUserSubscription(requestId string, userId int, modelName string, quotaType int, amount int64, group string) (*SubscriptionPreConsumeResult, error) {
 	if userId <= 0 {
 		return nil, errors.New("invalid userId")
 	}
@@ -1937,21 +1937,17 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 			Where("user_id = ? AND status = ? AND end_time > ?", userId, "active", now).
 			Order("end_time asc, id asc").
 			Find(&subs).Error; err != nil {
-			return err
+			return errors.New("no active subscription")
 		}
 		if len(subs) == 0 {
-			return ErrNoActiveSubscription
+			return errors.New("no active subscription")
 		}
 		logSubscriptionCandidateDebug(requestId, userId, group, amount, subs, "loaded active subscriptions")
 		hasMatchedGroup := false
 		var insufficientErr *SubscriptionQuotaInsufficientError
 		for _, candidate := range subs {
 			sub := candidate
-			groupAllowed := sub.IsGroupAllowed(group)
-			if requireExplicitGroup {
-				groupAllowed = sub.IsGroupExplicitlyAllowed(group)
-			}
-			if !groupAllowed {
+			if !sub.IsGroupAllowed(group) {
 				logSubscriptionCandidateDebug(requestId, userId, group, amount, subs,
 					"skip sub_id=%d reason=group_mismatch allowed_groups=%q",
 					sub.Id,

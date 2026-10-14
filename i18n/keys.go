@@ -13,12 +13,6 @@ const (
 	MsgTokenNotProvided       = "token.not_provided"
 	MsgTokenStatusUnavailable = "token.status_unavailable"
 
-	MsgTokenMjModelInvalid       = "token.mj_model_invalid"
-	MsgTokenLimitReached         = "token.limit_reached"
-	MsgTokenAdminOwnerRequired   = "token.admin_owner_required"
-	MsgTokenAdminOwnerNotFound   = "token.admin_owner_not_found"
-	MsgTokenAdminOwnerImmutable  = "token.admin_owner_immutable"
-
 	MsgAuthClientIPUnresolved     = "auth.client_ip_unresolved"
 	MsgAuthTokenIPNotAllowed      = "auth.token_ip_not_allowed"
 	MsgAuthTokenGroupForbidden    = "auth.token_group_forbidden"
@@ -98,4 +92,22 @@ const (
 	MsgChannelUpstreamUpdateRemovedModels   = "channel.upstream_update_removed_models"
 	MsgChannelUpstreamUpdateFailedChannels  = "channel.upstream_update_failed_channels"
 	MsgChannelUpstreamUpdateMoreOmitted     = "channel.upstream_update_more_omitted"
+)
+
+const (
+	MsgInvalidParams             = "common.invalid_params"
+	MsgTokenNameTooLong          = "token.name_too_long"
+	MsgTokenQuotaNegative        = "token.quota_negative"
+	MsgTokenQuotaExceedMax       = "token.quota_exceed_max"
+	MsgTokenGenerateFailed       = "token.generate_failed"
+	MsgTokenExpiredCannotEnable  = "token.expired_cannot_enable"
+	MsgTokenExhaustedCannotEable = "token.exhausted_cannot_enable"
+
+	MsgTokenMjModelInvalid      = "token.mj_model_invalid"
+	MsgTokenLimitReached        = "token.limit_reached"
+	MsgTokenAdminOwnerRequired  = "token.admin_owner_required"
+	MsgTokenAdminOwnerNotFound  = "token.admin_owner_not_found"
+	MsgTokenAdminOwnerImmutable = "token.admin_owner_immutable"
+	MsgSettingWebhookEmpty      = "setting.webhook_empty"
+	MsgSettingWebhookInvalid    = "setting.webhook_invalid"
 )

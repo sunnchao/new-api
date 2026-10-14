@@ -150,12 +150,12 @@ func GetLogByTokenId(tokenId int) (logs []*Log, err error) {
 	return logs, err
 }
 
-func RecordLog(userId int, logType int, content *common.Message, other map[string]interface{}) {
+func RecordLog(userId int, logType int, content *common.Message, other *LogOther) {
 	if logType == LogTypeConsume && !common.LogConsumeEnabled {
 		return
 	}
 	username, _ := GetUsernameById(userId, false)
-	other := NewLogOther()
+	other = NewLogOther()
 	log := &Log{
 		UserId:    userId,
 		Username:  username,
@@ -163,11 +163,6 @@ func RecordLog(userId int, logType int, content *common.Message, other map[strin
 		Type:      logType,
 		Content:   other.setContent([]*common.Message{content}),
 		Other:     other.JSONString(),
-	}
-	if other != nil {
-		if other["RequestIp"] != "" {
-			log.RequestIp = other["RequestIp"].(string)
-		}
 	}
 	err := createLog(log)
 	if err != nil {

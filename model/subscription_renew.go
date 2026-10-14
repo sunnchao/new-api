@@ -118,11 +118,13 @@ func CompleteRenewalOrder(tradeNo string, providerPayload string, expectedPaymen
 	}
 
 	if logUserId > 0 {
-		msg := fmt.Sprintf("订阅续费成功，已创建待生效订阅，套餐: %s，支付金额: %.2f，支付方式: %s", logPlanTitle, logMoney, logPaymentMethod)
-		otherParam := map[string]interface{}{
-			"RequestIp": clientIP,
-		}
-		RecordLog(logUserId, LogTypeSubscriptionPay, msg, otherParam)
+		otherParam := NewLogOther()
+		otherParam.SetAdmin("RequestIp", clientIP)
+		RecordLog(logUserId, LogTypeSubscriptionPay, common.NewMessage("订阅续费成功，已创建待生效订阅，套餐: {{PlanTitle}}，支付金额: {{Money}}，支付方式: {{PaymentMethod}}", map[string]interface{}{
+			"PlanTitle":     logPlanTitle,
+			"Money":         logMoney,
+			"PaymentMethod": logPaymentMethod,
+		}), otherParam)
 	}
 	return nil
 }

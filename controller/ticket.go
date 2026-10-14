@@ -329,7 +329,7 @@ func buildTicketUserContext(userId int) gin.H {
 		return gin.H{"error": "用户不存在"}
 	}
 	// 最近 5 条 API 日志摘要
-	logs, _, _ := model.GetUserLogs(userId, 0, 0, 0, "", "", 0, 5, "", "", "")
+	logs, _, _ := model.GetUserLogs(userId, model.LogFilter{Type: model.LogTypeConsume}, 0, 20)
 	context := gin.H{
 		"username":    user.Username,
 		"email":       user.Email,

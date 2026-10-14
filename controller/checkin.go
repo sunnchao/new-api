@@ -56,9 +56,8 @@ func DoCheckin(c *gin.Context) {
 		return
 	}
 
-	otherParam := map[string]interface{}{
-		"RequestIp": requestIP,
-	}
+	otherParam := model.NewLogOther()
+	otherParam.SetAdmin("RequestIp", requestIP)
 
 	model.RecordLog(userId, model.LogTypeSystem, common.NewMessage("Daily check-in, received {{quota}}", map[string]any{"quota": logger.FormatQuota(checkin.QuotaAwarded)}), otherParam)
 	common.ApiSuccessT(c, "Check-in successful", gin.H{

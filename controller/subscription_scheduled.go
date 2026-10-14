@@ -38,11 +38,13 @@ func UserActivateScheduledSubscription(c *gin.Context) {
 	if info != nil {
 		planTitle = info.PlanTitle
 	}
-	msg := fmt.Sprintf("订阅立即生效，套餐: %s，订阅ID: %d，到期时间: %d",
-		planTitle, sub.Id, sub.EndTime)
-	model.RecordLog(userId, model.LogTypeSubscriptionPay, msg, map[string]interface{}{
-		"RequestIp": c.ClientIP(),
-	})
+	other := model.NewLogOther()
+	other.SetAdmin("RequestIp", c.ClientIP())
+	model.RecordLog(userId, model.LogTypeSubscriptionPay, common.NewMessage("订阅立即生效，套餐: {{planTitle}}，订阅ID: {{subId}}，到期时间: {{subEndTime}}", map[string]any{
+		"planTitle":  planTitle,
+		"subId":      sub.Id,
+		"subEndTime": sub.EndTime,
+	}), other)
 
 	common.ApiSuccess(c, gin.H{
 		"user_subscription_id": sub.Id,

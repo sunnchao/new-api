@@ -75,7 +75,7 @@ func runSubscriptionQuotaResetOnce() {
 	for {
 		n, err := model.ActivateDueScheduledSubscriptions(subscriptionResetBatchSize)
 		if err != nil {
-			logger.LogWarn(ctx, fmt.Sprintf("subscription scheduled activation task failed: %v", err))
+			logger.LogWarn(ctx, common.LogText("subscription scheduled activation task failed: %v", err))
 			return
 		}
 		if n == 0 {
@@ -111,7 +111,7 @@ func runSubscriptionQuotaResetOnce() {
 		for {
 			n, err := fn(subscriptionResetBatchSize)
 			if err != nil {
-				logger.LogWarn(ctx, fmt.Sprintf("subscription limit reset task failed: %v", err))
+				logger.LogWarn(ctx, common.LogText("subscription limit reset task failed: %v", err))
 				return
 			}
 			if n == 0 {

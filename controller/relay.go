@@ -681,12 +681,7 @@ func executeTaskSubmissionWith(
 	task.PrivateData.SubscriptionId = relayInfo.SubscriptionId
 	task.PrivateData.TokenId = relayInfo.TokenId
 	task.PrivateData.NodeName = common.NodeName
-	if relayInfo.Billing != nil {
-		allocation := relayInfo.Billing.GetWalletQuotaAllocation()
-		if allocation.Total() > 0 {
-			task.PrivateData.WalletQuotaAllocation = &allocation
-		}
-	}
+
 	task.PrivateData.BillingContext = &model.TaskBillingContext{
 		ModelPrice:      relayInfo.PriceData.ModelPrice,
 		GroupRatio:      relayInfo.PriceData.GroupRatioInfo.GroupRatio,

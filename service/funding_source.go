@@ -45,15 +45,13 @@ func (w *WalletFunding) PreConsume(amount int) error {
 	if amount <= 0 {
 		return nil
 	}
-	//reserved, err := model.TryReserveUserQuota(w.userId, amount)
-	allocation, err := model.ConsumeWalletQuota(w.userId, amount)
+	reserved, err := model.TryReserveUserQuota(w.userId, amount)
 	if err != nil {
 		return err
 	}
-	//if !reserved {
-	//	return ErrInsufficientWalletQuota
-	//}
-	w.appendAllocation(allocation)
+	if !reserved {
+		return ErrInsufficientWalletQuota
+	}
 	w.consumed = amount
 	return nil
 }
@@ -63,35 +61,18 @@ func (w *WalletFunding) Settle(delta int) error {
 		return nil
 	}
 	if delta > 0 {
-		allocation, err := model.ConsumeWalletQuota(w.userId, delta)
-		if err != nil {
-			return err
-		}
-		w.appendAllocation(allocation)
-		w.consumed += delta
-		return nil
+		return model.DecreaseUserQuota(w.userId, delta, false)
 	}
-	if err := model.RefundWalletQuota(w.userId, &w.allocation, -delta); err != nil {
-		return err
-	}
-	w.consumed += delta
-	return nil
+	return model.IncreaseUserQuota(w.userId, -delta, false)
 }
 
 func (w *WalletFunding) Refund() error {
 	if w.consumed <= 0 {
 		return nil
 	}
-	if err := model.RefundWalletQuota(w.userId, &w.allocation, w.allocation.Total()); err != nil {
-		return err
-	}
-	w.consumed = 0
-	return nil
-}
-
-func (w *WalletFunding) appendAllocation(incoming relaycommon.WalletQuotaAllocation) {
-	w.allocation.RegularQuota += incoming.RegularQuota
-	w.allocation.GiftQuotas = append(w.allocation.GiftQuotas, incoming.GiftQuotas...)
+	// IncreaseUserQuota 是 quota += N 的非幂等操作，不能重试，否则会多退额度。
+	// 订阅的 RefundSubscriptionPreConsume 有 requestId 幂等保护所以可以重试。
+	return model.IncreaseUserQuota(w.userId, w.consumed, false)
 }
 
 // ---------------------------------------------------------------------------
@@ -122,11 +103,8 @@ func (s *SubscriptionFunding) Source() string { return BillingSourceSubscription
 
 func (s *SubscriptionFunding) PreConsume(_ int) error {
 	// amount 参数被忽略，使用内部 s.amount（已在构造时根据 preConsumedQuota 计算）
-	res, err := model.PreConsumeUserSubscription(s.requestId, s.userId, s.modelName, 0, s.amount, s.usingGroup, s.requireExplicitGroup)
+	res, err := model.PreConsumeUserSubscription(s.requestId, s.userId, s.modelName, 0, s.amount, s.usingGroup)
 	if err != nil {
-		if s.subscriptionOnly && errors.Is(err, model.ErrNoActiveSubscription) {
-			return model.ErrNoValidSubscriptionForGroup
-		}
 		return err
 	}
 	s.subscriptionId = res.UserSubscriptionId

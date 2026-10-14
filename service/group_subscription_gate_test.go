@@ -37,6 +37,12 @@ func configureSubscriptionGatedGroups(t *testing.T, rules map[string]map[string]
 }
 
 func TestSubscriptionGatedGroupUnlocksOnlyWithExplicitSubscription(t *testing.T) {
+	runSubscriptionGatedGroupVisibilityCases(t)
+}
+
+func runSubscriptionGatedGroupVisibilityCases(t *testing.T) {
+	t.Helper()
+	t.Cleanup(func() { resetGroupBillingRecords(t) })
 	configureSubscriptionGatedGroups(t, map[string]map[string]string{
 		"default": {"sub:vip": "VIP by subscription"},
 	})
@@ -45,29 +51,41 @@ func TestSubscriptionGatedGroupUnlocksOnlyWithExplicitSubscription(t *testing.T)
 		name          string
 		subscribed    bool
 		allowedGroups string
+		amountUsed    int64
+		status        string
 		expired       bool
 		wantUnlocked  bool
 	}{
 		{name: "subscription listing the group unlocks it", subscribed: true, allowedGroups: "svip, vip", wantUnlocked: true},
+		{name: "exhausted subscription still unlocks the group", subscribed: true, allowedGroups: "vip", amountUsed: 1000, wantUnlocked: true},
 		{name: "all-groups subscription does not unlock", subscribed: true, allowedGroups: ""},
 		{name: "subscription for another group does not unlock", subscribed: true, allowedGroups: "svip"},
 		{name: "expired subscription does not unlock", subscribed: true, allowedGroups: "vip", expired: true},
-		{name: "no subscription does not unlock"},
+		{name: "cancelled subscription does not unlock", subscribed: true, allowedGroups: "vip", status: "cancelled"},
+		{name: "available plan without a purchased subscription does not unlock"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			truncate(t)
+			resetGroupBillingRecords(t)
 			const userID = 1
 			seedUser(t, userID, 0)
+			seedSubscriptionPlan(t, 1, model.SubscriptionBillingModeQuota)
+			planGroups := tt.allowedGroups
+			if !tt.subscribed {
+				planGroups = "vip"
+			}
+			require.NoError(t, model.DB.Model(&model.SubscriptionPlan{}).Where("id = ?", 1).
+				Update("allowed_groups", planGroups).Error)
 			if tt.subscribed {
-				seedSubscriptionPlan(t, 1, model.SubscriptionBillingModeQuota)
 				sub := &model.UserSubscription{
 					Id:            1,
 					UserId:        userID,
 					PlanId:        1,
 					AmountTotal:   1000,
+					AmountUsed:    tt.amountUsed,
 					BillingMode:   model.SubscriptionBillingModeQuota,
 					AllowedGroups: tt.allowedGroups,
+					Status:        tt.status,
 				}
 				if tt.expired {
 					sub.EndTime = time.Now().Add(-time.Minute).Unix()
@@ -155,7 +173,8 @@ func TestNewBillingSessionGroupBillingDatabaseMatrix(t *testing.T) {
 			var version string
 			require.NoError(t, db.Raw(versionQuery).Scan(&version).Error)
 			t.Logf("database version: %s", version)
-			t.Run("subscription gate", runSubscriptionGatedGroupBillingCases)
+			t.Run("subscription gate visibility", runSubscriptionGatedGroupVisibilityCases)
+			t.Run("subscription gate funding independence", runSubscriptionGatedGroupFundingCases)
 			t.Run("funding source precedence", runGroupBillingSourceCases)
 		})
 	}
@@ -169,7 +188,7 @@ func resetGroupBillingRecords(t *testing.T) {
 	}
 }
 
-func runSubscriptionGatedGroupBillingCases(t *testing.T) {
+func runSubscriptionGatedGroupFundingCases(t *testing.T) {
 	t.Helper()
 	const (
 		userID      = 201
@@ -180,62 +199,79 @@ func runSubscriptionGatedGroupBillingCases(t *testing.T) {
 	tests := []struct {
 		name          string
 		preference    string
+		config        string
 		subscriptions []model.UserSubscription
+		wantSource    string
 		wantUsed      map[int]int64
 		wantErr       bool
-		wantMessage   string
 	}{
 		{
-			name:          "explicit subscription pays even when the user prefers the wallet",
+			name:          "unlocked group respects wallet first",
 			preference:    "wallet_first",
 			subscriptions: []model.UserSubscription{{Id: 1, AllowedGroups: "vip"}},
+			wantSource:    BillingSourceWallet,
+			wantUsed:      map[int]int64{1: 0},
+		},
+		{
+			name:          "unlocked group respects wallet only even with an exhausted subscription",
+			preference:    "wallet_only",
+			subscriptions: []model.UserSubscription{{Id: 1, AllowedGroups: "vip", AmountTotal: needQuota - 1}},
+			wantSource:    BillingSourceWallet,
+			wantUsed:      map[int]int64{1: 0},
+		},
+		{
+			name:          "unlocked group respects subscription first",
+			preference:    "subscription_first",
+			subscriptions: []model.UserSubscription{{Id: 1, AllowedGroups: "vip"}},
+			wantSource:    BillingSourceSubscription,
 			wantUsed:      map[int]int64{1: needQuota},
 		},
 		{
-			name:       "explicit subscription is charged instead of an earlier expiring all-groups one",
+			name:          "unlocked group respects subscription only",
+			preference:    "subscription_only",
+			subscriptions: []model.UserSubscription{{Id: 1, AllowedGroups: "vip"}},
+			wantSource:    BillingSourceSubscription,
+			wantUsed:      map[int]int64{1: needQuota},
+		},
+		{
+			name:       "unlocking does not exclude an earlier expiring all-groups subscription from payment",
 			preference: "subscription_first",
 			subscriptions: []model.UserSubscription{
 				{Id: 1, AllowedGroups: "", EndTime: time.Now().Add(24 * time.Hour).Unix()},
 				{Id: 2, AllowedGroups: "vip"},
 			},
-			wantUsed: map[int]int64{1: 0, 2: needQuota},
+			wantSource: BillingSourceSubscription,
+			wantUsed:   map[int]int64{1: needQuota, 2: 0},
 		},
 		{
-			name:          "all-groups subscription cannot pay for the group",
+			name:          "unlocked group retains enabled wallet overflow",
 			preference:    "subscription_first",
-			subscriptions: []model.UserSubscription{{Id: 1, AllowedGroups: ""}},
+			subscriptions: []model.UserSubscription{{Id: 1, AllowedGroups: "vip", AmountTotal: needQuota - 1, AllowWalletOverflow: true}},
+			wantSource:    BillingSourceWallet,
 			wantUsed:      map[int]int64{1: 0},
-			wantErr:       true,
-			wantMessage:   "未包含有效的订阅套餐",
 		},
 		{
-			name:        "without any subscription the request is rejected instead of using the wallet",
-			preference:  "wallet_only",
-			wantErr:     true,
-			wantMessage: "未包含有效的订阅套餐",
-		},
-		{
-			name:          "subscription for another group cannot pay",
-			preference:    "wallet_only",
-			subscriptions: []model.UserSubscription{{Id: 1, AllowedGroups: "svip"}},
-			wantUsed:      map[int]int64{1: 0},
-			wantErr:       true,
-			wantMessage:   "未包含有效的订阅套餐",
-		},
-		{
-			name:          "expired explicit subscription cannot pay",
-			preference:    "wallet_only",
-			subscriptions: []model.UserSubscription{{Id: 1, AllowedGroups: "vip", EndTime: time.Now().Add(-time.Hour).Unix()}},
-			wantUsed:      map[int]int64{1: 0},
-			wantErr:       true,
-			wantMessage:   "未包含有效的订阅套餐",
-		},
-		{
-			name:          "exhausted explicit subscription does not fall back to the wallet",
-			preference:    "wallet_first",
+			name:          "unlocked group retains disabled wallet overflow",
+			preference:    "subscription_first",
 			subscriptions: []model.UserSubscription{{Id: 1, AllowedGroups: "vip", AmountTotal: needQuota - 1}},
 			wantUsed:      map[int]int64{1: 0},
 			wantErr:       true,
+		},
+		{
+			name:          "group funding source remains effective after unlocking",
+			preference:    "subscription_first",
+			config:        `{"vip":{"__default__":{"billing_source":"wallet_only"}}}`,
+			subscriptions: []model.UserSubscription{{Id: 1, AllowedGroups: "vip"}},
+			wantSource:    BillingSourceWallet,
+			wantUsed:      map[int]int64{1: 0},
+		},
+		{
+			name:          "model funding source remains effective after unlocking",
+			preference:    "wallet_first",
+			config:        `{"vip":{"__default__":{"billing_source":"wallet_only"},"test-model":{"billing_source":"subscription_only"}}}`,
+			subscriptions: []model.UserSubscription{{Id: 1, AllowedGroups: "vip"}},
+			wantSource:    BillingSourceSubscription,
+			wantUsed:      map[int]int64{1: needQuota},
 		},
 	}
 	for _, tt := range tests {
@@ -244,9 +280,11 @@ func runSubscriptionGatedGroupBillingCases(t *testing.T) {
 			configureSubscriptionGatedGroups(t, map[string]map[string]string{
 				"default": {"sub:vip": "VIP by subscription"},
 			})
-			// The gate must take precedence over an explicit per-group funding source.
-			require.NoError(t, ratio_setting.UpdateGroupModelBillingByJSONString(
-				`{"vip":{"__default__":{"billing_source":"wallet_only"}}}`))
+			config := tt.config
+			if config == "" {
+				config = `{}`
+			}
+			require.NoError(t, ratio_setting.UpdateGroupModelBillingByJSONString(config))
 			seedUser(t, userID, walletQuota)
 			seedToken(t, userID, userID, "group-gated-key", 1000)
 			seedSubscriptionPlan(t, planID, model.SubscriptionBillingModeQuota)
@@ -259,6 +297,9 @@ func runSubscriptionGatedGroupBillingCases(t *testing.T) {
 				}
 				seedActiveSubscription(t, &sub)
 			}
+			groups, err := GetUserUsableGroupsForUser(userID, "default")
+			require.NoError(t, err)
+			require.Contains(t, groups, "vip", "visibility depends on the active subscription, not remaining quota")
 			relayInfo := newBillingTestRelayInfo(userID, tt.preference)
 			relayInfo.UserGroup = "default"
 			relayInfo.UsingGroup = "vip"
@@ -273,12 +314,9 @@ func runSubscriptionGatedGroupBillingCases(t *testing.T) {
 				require.NotNil(t, apiErr)
 				assert.Equal(t, types.ErrorCodeInsufficientUserQuota, apiErr.GetErrorCode())
 				assert.Equal(t, http.StatusForbidden, apiErr.StatusCode)
-				if tt.wantMessage != "" {
-					assert.Equal(t, tt.wantMessage, apiErr.Error())
-				}
 			} else {
 				require.Nil(t, apiErr)
-				assert.Equal(t, BillingSourceSubscription, relayInfo.BillingSource)
+				assert.Equal(t, tt.wantSource, relayInfo.BillingSource)
 			}
 			for id, wantUsed := range tt.wantUsed {
 				var sub model.UserSubscription
@@ -287,7 +325,11 @@ func runSubscriptionGatedGroupBillingCases(t *testing.T) {
 			}
 			var user model.User
 			require.NoError(t, model.DB.First(&user, userID).Error)
-			assert.Equal(t, walletQuota, user.Quota, "the wallet must never pay for a subscription-gated group")
+			wantWalletQuota := walletQuota
+			if tt.wantSource == BillingSourceWallet {
+				wantWalletQuota -= needQuota
+			}
+			assert.Equal(t, wantWalletQuota, user.Quota)
 			var token model.Token
 			require.NoError(t, model.DB.First(&token, userID).Error)
 			wantTokenRemaining := 1000 - needQuota
@@ -350,7 +392,7 @@ func runGroupBillingSourceCases(t *testing.T) {
 			preference: "subscription_only", wantSource: BillingSourceSubscription,
 		},
 		{
-			name:   "subscription only rejects missing subscription with the existing message",
+			name:   "subscription only rejects missing subscription",
 			config: `{}`, preference: "subscription_only", noSubscription: true,
 		},
 		{
@@ -380,7 +422,11 @@ func runGroupBillingSourceCases(t *testing.T) {
 				require.NotNil(t, apiErr)
 				assert.Equal(t, types.ErrorCodeInsufficientUserQuota, apiErr.GetErrorCode())
 				assert.Equal(t, http.StatusForbidden, apiErr.StatusCode)
-				assert.Equal(t, "未包含有效的订阅套餐", apiErr.Error())
+				if test.noSubscription {
+					assert.Equal(t, "未开通有效订阅套餐", apiErr.Error())
+				} else {
+					assert.Equal(t, "未包含有效的订阅套餐", apiErr.Error())
+				}
 			} else {
 				require.Nil(t, apiErr)
 				assert.Equal(t, test.wantSource, relayInfo.BillingSource)

@@ -87,7 +87,7 @@ func UserCheckin(userId int, requestIP string) (*Checkin, error) {
 		return nil, err
 	}
 	if hasIPChecked {
-		return nil, errors.New("当前 IP 今日已存在签到记录")
+		return nil, common.NewMessage("当前 IP 今日已存在签到记录")
 	}
 
 	// 计算随机额度奖励

@@ -113,17 +113,17 @@ type User struct {
 	LastLoginAt          int64                      `json:"last_login_at" gorm:"default:0;column:last_login_at"`
 	AuthVersion          int64                      `json:"-" gorm:"type:bigint;not null;default:1;column:auth_version"`
 	AdminPermissions     map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
-	GitHubUserName   string                     `json:"github_username" gorm:"column:github_username;type:string"`
-	GitHubEmail      string                     `json:"github_email" gorm:"column:github_email;type:string"`
-	GitHubCreatedAt  string                     `json:"github_created_at" gorm:"column:github_created_at;type:string"`
-	LinuxDoLevel     int                        `json:"linuxdo_level" gorm:"column:linuxdo_level;type:int;default:0"`
-	LinuxDoUserName  string                     `json:"linuxdo_username" gorm:"column:linuxdo_username;type:string"`
-	LinuxDoName      string                     `json:"linuxdo_name" gorm:"column:linuxdo_name;type:string"`
-	AvatarUrl        string                     `json:"avatar_url" gorm:"type:varchar(500);column:avatar_url;default:''"`
-	GitHubIdNew      int                        `json:"github_id_new" gorm:"column:github_id_new;index"`
-	LastLoginTime    int64                      `json:"last_login_time" gorm:"bigint;default:0"`
-	LastLoginIp      string                     `json:"last_login_ip" gorm:"type:varchar(128);default:''"`
-	CreatedTime      int64                      `json:"created_time" gorm:"bigint"`
+	GitHubUserName       string                     `json:"github_username" gorm:"column:github_username;type:string"`
+	GitHubEmail          string                     `json:"github_email" gorm:"column:github_email;type:string"`
+	GitHubCreatedAt      string                     `json:"github_created_at" gorm:"column:github_created_at;type:string"`
+	LinuxDoLevel         int                        `json:"linuxdo_level" gorm:"column:linuxdo_level;type:int;default:0"`
+	LinuxDoUserName      string                     `json:"linuxdo_username" gorm:"column:linuxdo_username;type:string"`
+	LinuxDoName          string                     `json:"linuxdo_name" gorm:"column:linuxdo_name;type:string"`
+	AvatarUrl            string                     `json:"avatar_url" gorm:"type:varchar(500);column:avatar_url;default:''"`
+	GitHubIdNew          int                        `json:"github_id_new" gorm:"column:github_id_new;index"`
+	LastLoginTime        int64                      `json:"last_login_time" gorm:"bigint;default:0"`
+	LastLoginIp          string                     `json:"last_login_ip" gorm:"type:varchar(128);default:''"`
+	CreatedTime          int64                      `json:"created_time" gorm:"bigint"`
 }
 
 func (user *User) ToBaseUser() *UserBase {
@@ -783,9 +783,9 @@ func (user *User) FinalizeOAuthUserCreation(inviterId int, requestIP string) {
 		}
 	}
 
-	otherParam := map[string]interface{}{
-		"RequestIp": requestIP,
-	}
+	otherParam := NewLogOther()
+	otherParam.SetAdmin("RequestIp", requestIP)
+
 	if common.QuotaForNewUser > 0 {
 		RecordLog(user.Id, LogTypeSystem, common.NewMessage("New user sign-up bonus {{quota}}", map[string]any{"quota": logger.FormatQuota(common.QuotaForNewUser)}), otherParam)
 	}
