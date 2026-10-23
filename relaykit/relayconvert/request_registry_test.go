@@ -2,6 +2,7 @@ package relayconvert
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/QuantumNous/new-api/relaykit/dto"
@@ -300,7 +301,7 @@ func TestConvertRequestClaudeToResponsesPreservesMixedBlockOrder(t *testing.T) {
 		Tools: []dto.Tool{{
 			Name:        "lookup",
 			Description: "Look up a value",
-			InputSchema: map[string]any{"type": "object", "properties": map[string]any{"q": map[string]any{"type": "string"}}},
+			InputSchema: json.RawMessage(`{"type":"object","properties":{"q":{"type":"string"}}}`),
 			Strict:      &strict,
 		}},
 		ToolChoice: dto.ClaudeToolChoice{Type: "tool", Name: "lookup", DisableParallelToolUse: true},
@@ -346,6 +347,43 @@ func TestConvertRequestClaudeToResponsesPreservesMixedBlockOrder(t *testing.T) {
 	assert.Equal(t, "result", input[4]["output"])
 	assert.Equal(t, "user", input[5]["role"])
 	assert.Equal(t, "continue", inputContentText(t, input[5]))
+}
+
+func TestConvertRequestClaudeToResponsesDefaultsImageDetail(t *testing.T) {
+	const imageData = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+Xoy8AAAAASUVORK5CYII="
+	req := &dto.ClaudeRequest{
+		Model: "gpt-test",
+		Messages: []dto.ClaudeMessage{
+			{Role: "user", Content: []dto.ClaudeMediaMessage{{
+				Type:   "image",
+				Source: &dto.ClaudeMessageSource{Type: "url", Url: "https://example.test/a.png"},
+			}}},
+			{Role: "assistant", Content: []dto.ClaudeMediaMessage{{
+				Type: "tool_use", Id: "call_1", Name: "screenshot", Input: map[string]any{},
+			}}},
+			{Role: "user", Content: []dto.ClaudeMediaMessage{{
+				Type: "tool_result", ToolUseId: "call_1",
+				Content: []dto.ClaudeMediaMessage{{
+					Type:   "image",
+					Source: &dto.ClaudeMessageSource{Type: "base64", MediaType: "image/png", Data: imageData},
+				}},
+			}}},
+		},
+	}
+
+	result, err := ConvertRequestByID(context.Background(), nil, ConverterClaudeMessagesToOpenAIResponses, req)
+	require.NoError(t, err)
+	responsesReq, ok := result.Value.(*dto.OpenAIResponsesRequest)
+	require.True(t, ok)
+	assert.JSONEq(t, `[
+		{"role":"user","content":[
+			{"type":"input_image","image_url":"https://example.test/a.png","detail":"auto"}
+		]},
+		{"type":"function_call","call_id":"call_1","name":"screenshot","arguments":"{}"},
+		{"type":"function_call_output","call_id":"call_1","output":[
+			{"type":"input_image","image_url":"data:image/png;base64,`+imageData+`","detail":"auto"}
+		]}
+	]`, string(responsesReq.Input))
 }
 
 func TestConvertRequestClaudeToResponsesDropsIncompatibleContextManagement(t *testing.T) {
@@ -715,8 +753,8 @@ func TestConvertRequestResponsesToGeminiUsesDirectConverter(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, functions, 1)
 	assert.Equal(t, "lookup", functions[0].Name)
-	params, ok := functions[0].Parameters.(map[string]any)
-	require.True(t, ok)
+	var params map[string]any
+	require.NoError(t, kitutil.Unmarshal(functions[0].Parameters, &params))
 	assert.Equal(t, "OBJECT", params["type"])
 	assert.NotContains(t, params, "additionalProperties")
 	assert.NotContains(t, params, "propertyNames")
@@ -817,7 +855,7 @@ func TestConvertRequestOpenAIChatToGeminiAddsThoughtSignatureForAdvancedCustom(t
 				Type: "function",
 				Function: dto.FunctionRequest{
 					Name:       "lookup",
-					Parameters: map[string]any{"type": "object"},
+					Parameters: json.RawMessage(`{"type":"object"}`),
 				},
 			},
 		},
