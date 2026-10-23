@@ -343,6 +343,28 @@ func buildTicketUserContext(userId int) gin.H {
 
 var notifyUser = service.NotifyUser
 
+func rootAdminUser() (*model.User, error) {
+	var admin model.User
+	if err := model.DB.Where("role = ?", common.RoleRootUser).First(&admin).Error; err != nil || admin.Id == 0 {
+		return nil, fmt.Errorf("root admin not found")
+	}
+	return &admin, nil
+}
+
+func notifyRootAdmin(notification dto.Notify, event string) {
+	admin, err := rootAdminUser()
+	if err != nil {
+		common.SysLog(fmt.Sprintf("failed to notify root admin for %s: %s", event, err.Error()))
+		return
+	}
+	rendered := notification
+	rendered.Content = renderNotifyContent(notification)
+	rendered.Values = nil
+	if err := notifyUser(admin.Id, admin.Email, admin.GetSetting(), rendered); err != nil {
+		common.SysLog(fmt.Sprintf("failed to notify admin %d for %s: %s", admin.Id, event, err.Error()))
+	}
+}
+
 // notifyTicketCreated 工单创建通知
 func notifyTicketCreated(ticket *model.Ticket) {
 	user, err := model.GetUserById(ticket.UserId, false)
@@ -350,8 +372,8 @@ func notifyTicketCreated(ticket *model.Ticket) {
 		common.SysLog(fmt.Sprintf("failed to load ticket owner for ticket created notification: %s", err.Error()))
 		return
 	}
-	admin := model.GetRootUser()
-	if admin == nil || admin.Id == 0 {
+	admin, err := rootAdminUser()
+	if err != nil {
 		common.SysLog("failed to notify ticket created: root admin not found")
 		return
 	}
@@ -415,7 +437,7 @@ func notifyTicketMessage(ticket *model.Ticket, message *model.TicketMessage, isA
 	} else {
 		// 用户回复 → 通知分配的管理员
 		if ticket.AssignedAdminId <= 0 {
-			service.NotifyRootUser(notification.Type, notification.Title, renderNotifyContent(notification))
+			notifyRootAdmin(notification, "ticket reply")
 			return
 		}
 		admin, err := model.GetUserById(ticket.AssignedAdminId, false)
@@ -455,7 +477,7 @@ func notifyTicketStatusChange(ticketId int) {
 func notifyTicketClosed(ticket *model.Ticket) {
 	notification := buildTicketClosedNotify(ticket)
 	if ticket.AssignedAdminId <= 0 {
-		service.NotifyRootUser(notification.Type, notification.Title, renderNotifyContent(notification))
+		notifyRootAdmin(notification, "ticket closed")
 		return
 	}
 	admin, err := model.GetUserById(ticket.AssignedAdminId, false)
