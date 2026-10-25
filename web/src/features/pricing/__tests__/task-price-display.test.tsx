@@ -32,6 +32,7 @@ import { DynamicPricingBreakdown } from '../components/dynamic-pricing-breakdown
 import { ModelCard } from '../components/model-card'
 import { ModelDetailsContent } from '../components/model-details'
 import { ModelPriceCell } from '../components/model-price-cell'
+import { buildRequestRuleExpr, combineBillingExpr } from '../lib/billing-expr'
 import { getTaskPricingDisplayTiers } from '../lib/task-matrix-display'
 import {
   hasSimpleTaskPricing,
@@ -43,6 +44,40 @@ import {
 import type { PricingModel, BillingUsageSchema } from '../types'
 
 vi.mock('@visactor/react-vchart', () => ({ VChart: () => null }))
+
+it.each([
+  { actionType: 'fixed' as const, value: '0.2', expected: 'Fixed price $0.2' },
+  { actionType: 'fixed' as const, value: '0', expected: 'Fixed price $0' },
+  { actionType: 'multiplier' as const, value: '0.5', expected: '0.5x' },
+  { actionType: 'multiplier' as const, value: '0', expected: '0x' },
+])(
+  'request rule $actionType=$value displays its configured numeric action',
+  ({ actionType, value, expected }) => {
+    const expression = combineBillingExpr(
+      'tier("standard", p * 5) * image_count',
+      buildRequestRuleExpr([
+        {
+          conditions: [
+            {
+              source: 'token_group',
+              path: '',
+              mode: 'eq',
+              value: 'image_reverse',
+            },
+          ],
+          actionType,
+          multiplier: actionType === 'multiplier' ? value : '',
+          fixedPrice: actionType === 'fixed' ? value : '',
+        },
+      ])
+    )
+    render(<DynamicPricingBreakdown billingExpr={expression} />)
+
+    const rule = within(screen.getByRole('listitem'))
+    expect(rule.getByText(expected)).toBeVisible()
+    expect(rule.queryByText('x')).not.toBeInTheDocument()
+  }
+)
 
 it('shows an explicit free request price alongside token prices with distinct units', () => {
   render(

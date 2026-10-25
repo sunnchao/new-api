@@ -144,7 +144,8 @@ Gemini 音频输入使用旧结算实际采用的美元单价生成 `ai`，不�
 DALL·E 尺寸/质量规则按原始请求模型名生成，模型映射不会额外引入这些规则。
 OpenAI 已于 2026-05-12 下线 DALL·E 2/3；其校验、默认值和倍率保留在独立 legacy 文件，
 仅用于历史配置及兼容上游。转换从 DTO 的旧计费逻辑获取倍率，不维护第二份价格表。
-图片 token 定价不额外乘数量。所有金额和倍率固化在表达式中，不再叠加旧 OtherRatios。
+旧定价转换后的图片 token 定价默认不额外乘数量。需要按图片数量放大 token 费用时，表达式必须显式包含
+`* image_count`；内置 `gpt-image-2.5-sunburst` 使用这一形式。所有金额和倍率固化在表达式中，不再叠加旧 OtherRatios。
 
 ### Image Quantity
 
@@ -249,6 +250,15 @@ tier("base", p * 5 + c * 25)|||when(header("anthropic-beta") has "fast-mode") * 
 ```
 
 These factors are stored as ordinary multiplication in the final expression (for example, `(tier(...)) * (condition ? 6 : 1)`) and run in the same billing program.
+
+The visual editor may instead store request rules in `apply_request_rules(base, payload)`.
+Its `fixed` action defaults to per-request pricing. A task plugin's
+`meta.billing.requestRules.fixedPriceUnit: "image"` changes only that action to
+per-image pricing on ordinary relay requests. The policy is resolved by billing
+model name without changing transport. An unmatched fixed rule keeps the base
+expression unchanged. Plugin `image` policies and base expressions using
+`image_count` reserve the requested count and settle the validated returned
+count.
 
 ### Request Rule Tracing
 

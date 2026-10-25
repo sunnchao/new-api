@@ -65,6 +65,40 @@ func TestValidateV1MetaEnforcesTaskPluginKeyLength(t *testing.T) {
 	require.ErrorContains(t, ValidateV1Meta(meta), "must not exceed 30 characters")
 }
 
+func TestRegistryBillingPolicies(t *testing.T) {
+	for _, tc := range []struct {
+		name, metadata, unit string
+	}{
+		{"image policy without driver", `billing:{requestRules:{fixedPriceUnit:"image"}},`, "image"},
+		{"request policy without driver", `billing:{requestRules:{fixedPriceUnit:"request"}},`, "request"},
+		{"missing policy still requires driver", "", ""},
+		{"null policy", `billing:null,`, ""},
+		{"missing rules", `billing:{},`, ""},
+		{"missing unit", `billing:{requestRules:{}},`, ""},
+		{"unknown unit", `billing:{requestRules:{fixedPriceUnit:"token"}},`, ""},
+		{"unknown billing field", `billing:{requestRules:{fixedPriceUnit:"image"},other:true},`, ""},
+		{"unknown rule field", `billing:{requestRules:{fixedPriceUnit:"image",other:true}},`, ""},
+		{"SSE still requires driver hooks", `billing:{requestRules:{fixedPriceUnit:"image"}},submitResponseTypes:["sse"],`, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			source := `export const meta = {apiVersion:1,key:"billing-test",name:"Billing",version:"1.0.0",author:{name:"Test"},models:["image-model"],fetchMode:"per_task",` + tc.metadata + `};`
+			registry := NewRegistry()
+			_, err := registry.Register(source, Options{})
+			if tc.unit == "" {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.unit, registry.Generation().FixedRequestPriceUnit("image-model"))
+			assert.Equal(t, "request", registry.Generation().FixedRequestPriceUnit("other-model"))
+			snapshot := registry.Snapshot()
+			require.Len(t, snapshot.Override, 1)
+			snapshot.Override[0].Billing.RequestRules.FixedPriceUnit = "changed"
+			assert.Equal(t, tc.unit, registry.Generation().FixedRequestPriceUnit("image-model"))
+		})
+	}
+}
+
 func TestRegistryDecodesAndValidatesIcon(t *testing.T) {
 	absent, err := CompilePlugin(routingTestPluginSource("icon-absent", 0, `["model"]`, "", ""), Options{})
 	require.NoError(t, err)

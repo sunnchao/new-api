@@ -185,7 +185,42 @@ func refreshTieredBillingGroup(relayInfo *relaycommon.RelayInfo) (*billingexpr.B
 	}
 
 	groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
-	if snap.GroupRatio == groupRatio {
+	requestInputChanged := relayInfo.BillingRequestInput != nil &&
+		relayInfo.BillingRequestInput.UsingGroup != relayInfo.UsingGroup
+	if snap.GroupRatio == groupRatio && !requestInputChanged {
+		return snap, nil
+	}
+
+	if requestInputChanged {
+		requestInput := *relayInfo.BillingRequestInput
+		requestInput.UsingGroup = relayInfo.UsingGroup
+		if snap.EstimatedImageCount != nil {
+			requestInput.ImageCount = snap.EstimatedImageCount
+		}
+		cost, trace, err := billingexpr.RunExprByHashWithRequest(snap.ExprString, snap.ExprHash, billingexpr.TokenParams{
+			P: float64(snap.EstimatedPromptTokens), C: float64(snap.EstimatedCompletionTokens), Len: float64(snap.EstimatedPromptTokens),
+		}, requestInput)
+		if err != nil {
+			return nil, err
+		}
+		quotaBeforeGroup := cost / 1_000_000 * snap.QuotaPerUnit
+		if snap.TaskUsageBilling {
+			quotaBeforeGroup = cost * snap.QuotaPerUnit
+		} else if trace.BillingUnit != billingexpr.BillingUnitRequest && snap.PreConsumeMultiplier != 0 {
+			quotaBeforeGroup *= snap.PreConsumeMultiplier
+		}
+		estimatedQuota, err := billingexpr.QuotaRoundStrict(quotaBeforeGroup * groupRatio)
+		if err != nil {
+			return nil, err
+		}
+		relayInfo.BillingRequestInput = &requestInput
+		snap.GroupRatio = groupRatio
+		snap.EstimatedImageCount = trace.ImageCount
+		snap.EstimatedQuotaBeforeGroup = quotaBeforeGroup
+		snap.EstimatedQuotaAfterGroup = estimatedQuota
+		snap.EstimatedTier = trace.MatchedTier
+		snap.EstimatedBillingUnit = trace.BillingUnit
+		snap.EstimatedFixedPrice = trace.FixedPrice
 		return snap, nil
 	}
 
@@ -251,6 +286,7 @@ func TryTieredSettle(relayInfo *relaycommon.RelayInfo, params billingexpr.TokenP
 	if relayInfo.BillingRequestInput != nil {
 		requestInput = *relayInfo.BillingRequestInput
 	}
+	requestInput.UsingGroup = relayInfo.UsingGroup
 	if relayInfo.BillingImageCount != nil {
 		requestInput.ImageCount = relayInfo.BillingImageCount
 	} else if snap.EstimatedImageCount != nil {

@@ -392,7 +392,8 @@ func modelPriceHelperTiered(c *gin.Context, info *relaycommon.RelayInfo, billing
 	if err != nil {
 		return hosttypes.PriceData{}, err
 	}
-	if usedVars["image_count"] {
+	requestInput.FixedPriceUnit = jsplugin.DefaultRegistry.Generation().FixedRequestPriceUnit(billingModelName)
+	if usedVars["image_count"] || requestInput.FixedPriceUnit == billingexpr.RequestPriceUnitImage {
 		requestInput, err = ResolveImageBillingRequestInput(c, info, requestInput)
 		if err != nil {
 			return hosttypes.PriceData{}, err

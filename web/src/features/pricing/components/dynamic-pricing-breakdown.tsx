@@ -35,9 +35,7 @@ import {
   MATCH_RANGE,
   REQUEST_RULE_ACTION_FIXED,
   SOURCE_TIME,
-  parseTaskTiersFromExpr,
   SOURCE_TOKEN_GROUP,
-  normalizeTierLabel,
   parseTiersFromExpr,
   requestRuleGroupsFromTrace,
   splitBillingExprAndRequestRules,
@@ -732,7 +730,7 @@ export function DynamicPricingBreakdown({
             {t('Request pricing rules')}
           </div>
           <ul className='space-y-1.5'>
-            {ruleGroups.map((group, gi) => {
+            {ruleGroups.map((group) => {
               const isMatched = group.matched === true
               const rowKey = nextOccurrenceKey(
                 `${group.conditionText || JSON.stringify(group.conditions)}:${group.multiplier}`,
@@ -762,7 +760,10 @@ export function DynamicPricingBreakdown({
                         'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
                     )}
                   >
-                    {group.multiplier}x{isMatched && ` · ${t('Matched')}`}
+                    {group.actionType === REQUEST_RULE_ACTION_FIXED
+                      ? `${t('Fixed price')} ${formatTaskUsageUnitPrice(Number(group.fixedPrice), { tokenUnit: 'M', ...taskPriceOptions })}`
+                      : `${group.multiplier}x`}
+                    {isMatched && ` · ${t('Matched')}`}
                   </Badge>
                 </li>
               )

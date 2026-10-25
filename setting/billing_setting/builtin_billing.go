@@ -15,7 +15,7 @@ var builtinBillingExpr = map[string]string{
 	// https://developers.openai.com/api/docs/pricing (Standard, 2026-09-09).
 	// The Images API reports image output in output_tokens, normalized to c.
 	"gpt-image-2":            `tier("standard", p * 5 + cr * 1.25 + img * 8 + img_cr * 2 + c * 30)`,
-	"gpt-image-2.5-sunburst": `tier("standard", p * 5 + cr * 1.25 + img * 8 + img_cr * 2 + c * 30)`,
+	"gpt-image-2.5-sunburst": `tier("standard", p * 5 + cr * 1.25 + img * 8 + img_cr * 2 + c * 30) * image_count`,
 	"gpt-image-2.5-flare":    `tier("standard", p * 5 + cr * 1.25 + img * 8 + img_cr * 2 + c * 30)`,
 	// https://developers.openai.com/api/docs/models/gpt-6-astra
 	// https://developers.openai.com/api/docs/pricing (Standard, 2026-10-22):

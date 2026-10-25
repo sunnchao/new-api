@@ -941,6 +941,9 @@ func buildRoutingGenerationFromPlugins(effective map[string]*LoadedPlugin, numbe
 		plugin := effective[key]
 		generation.byKey[key] = plugin
 		generation.plugins = append(generation.plugins, plugin)
+		if plugin.Meta.BillingOnly() {
+			continue
+		}
 		for _, model := range plugin.Meta.Models {
 			generation.modelPlugins[model] = append(generation.modelPlugins[model], plugin)
 			if _, exists := generation.byModel[model]; !exists {

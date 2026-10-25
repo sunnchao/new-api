@@ -80,7 +80,7 @@ func TestFixedPriceBillingDatabaseMatrix(t *testing.T) {
 			model.DB, model.LOG_DB = db, logDB
 			common.SetDatabaseTypes(dialect.name, dialect.name)
 			t.Cleanup(func() { model.DB, model.LOG_DB = oldDB, oldLogDB; common.SetDatabaseTypes(oldMainType, oldLogType) })
-			require.NoError(t, db.AutoMigrate(&model.User{}, &model.Token{}, &model.Channel{}))
+			require.NoError(t, db.AutoMigrate(&model.User{}, &model.Token{}, &model.Channel{}, &model.UserGiftQuota{}))
 			require.NoError(t, logDB.AutoMigrate(&model.Log{}))
 			versionQuery := "select version()"
 			if dialect.name == common.DatabaseTypeSQLite {
@@ -100,12 +100,14 @@ func runFixedPriceAccountingCases(t *testing.T, db, logDB *gorm.DB) {
 	const flat = `tier("request", fixed(0.01))`
 	const startingQuota = 2_000_000
 	const imageExpression = `tier("standard", p * 5 + cr * 1.25 + img * 8 + img_cr * 2 + c * 30)`
+	const fixedImageRule = `apply_request_rules(tier("image", p * 5) * image_count, "eyJ2ZXJzaW9uIjoxLCJncm91cHMiOlt7ImNvbmRpdGlvbnMiOlt7InNvdXJjZSI6InBhcmFtIiwicGF0aCI6ImZhc3QiLCJtb2RlIjoiZXEiLCJ2YWx1ZSI6InRydWUifV0sImFjdGlvbl90eXBlIjoiZml4ZWQiLCJmaXhlZF9wcmljZSI6IjAuMiJ9XX0=")`
+	const unmatchedImageRule = `apply_request_rules(tier("image", p * 5) * image_count, "eyJ2ZXJzaW9uIjoxLCJncm91cHMiOlt7ImNvbmRpdGlvbnMiOlt7InNvdXJjZSI6InBhcmFtIiwicGF0aCI6Im5vX21hdGNoIiwibW9kZSI6ImVxIiwidmFsdWUiOiJ0cnVlIn1dLCJhY3Rpb25fdHlwZSI6ImZpeGVkIiwiZml4ZWRfcHJpY2UiOiIwLjIifV19")`
 	imageUsage := &dto.Usage{PromptTokens: 1000, CompletionTokens: 100, TotalTokens: 1100,
 		PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 300, ImageTokens: 600, CachedTokensDetails: &dto.CachedTokenDetails{ImageTokens: common.GetPointer(200)}}}
 	operation_setting.SetToolPriceForTest("fixed_billing_tool", 4)
 	t.Cleanup(func() { operation_setting.DeleteToolPriceForTest("fixed_billing_tool") })
 	for index, tc := range []struct {
-		name, expression                          string
+		name, expression, fixedPriceUnit          string
 		estimate                                  int
 		usage                                     *dto.Usage
 		audio, stream, refund, insufficient, tool bool
@@ -136,6 +138,9 @@ func runFixedPriceAccountingCases(t *testing.T, db, logDB *gorm.DB) {
 		{name: "image quantity refunds missing images", expression: `tier("image", fixed(0.04)) * image_count`, requestedImages: 3, actualImages: 2, want: 40000, unit: billingexpr.BillingUnitRequest},
 		{name: "image quantity keeps request when actual missing", expression: `tier("image", fixed(0.04)) * image_count`, requestedImages: 3, want: 60000, unit: billingexpr.BillingUnitRequest},
 		{name: "image quantity zero price stays free", expression: `tier("image", fixed(0)) * image_count`, requestedImages: 3, actualImages: 2, unit: billingexpr.BillingUnitRequest},
+		{name: "plugin request rule fixed price settles actual images", expression: fixedImageRule, fixedPriceUnit: "image", usage: &dto.Usage{PromptTokens: 100000, TotalTokens: 100000}, requestedImages: 3, actualImages: 2, want: 200000, unit: billingexpr.BillingUnitRequest},
+		{name: "plugin fixed rule charges images without token usage", expression: fixedImageRule, fixedPriceUnit: "image", requestedImages: 3, actualImages: 2, want: 200000, unit: billingexpr.BillingUnitRequest},
+		{name: "unmatched rule settles token price times actual images", expression: unmatchedImageRule, fixedPriceUnit: "image", usage: &dto.Usage{PromptTokens: 100000, TotalTokens: 100000}, requestedImages: 3, actualImages: 2, want: 500000, unit: billingexpr.BillingUnitToken},
 		{name: "image quantity failure refunds reservation", expression: `tier("image", fixed(0.04)) * image_count`, requestedImages: 3, refund: true},
 		{name: "image quantity exceeds one-image wallet before submission", expression: `tier("image", fixed(0.04)) * image_count`, requestedImages: 4, wallet: 20000, insufficient: true},
 		{name: "image override reserves extra quantity", expression: `tier("image", fixed(0.04)) * image_count`, requestedImages: 1, outboundImages: 4, want: 80000, unit: billingexpr.BillingUnitRequest},
@@ -168,6 +173,7 @@ func runFixedPriceAccountingCases(t *testing.T, db, logDB *gorm.DB) {
 				group = 1
 			}
 			request := &billingexpr.RequestInput{Body: []byte(`{"fast":true}`)}
+			request.FixedPriceUnit = tc.fixedPriceUnit
 			if tc.requestedImages > 0 {
 				request.ImageCount = &tc.requestedImages
 			}

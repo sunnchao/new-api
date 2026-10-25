@@ -68,6 +68,7 @@ function makeLog(other: LogOtherData, type = 2): UsageLog {
     token_id: 1,
     group: 'default',
     ip: '',
+    request_ip: '',
     other: JSON.stringify(other),
     request_id: 'req-1',
     upstream_request_id: '',
@@ -103,7 +104,7 @@ const i18n = createInstance()
 beforeEach(async () => {
   await i18n.init({
     lng: 'en',
-    resources: { en },
+    resources: { en, zh },
     interpolation: { escapeValue: false },
   })
   useSystemConfigStore
@@ -147,6 +148,48 @@ test('keeps log details open when the parent refreshes with unchanged data', asy
   rerender(<DetailPreview other={other} isAdmin />)
   expect(screen.getByRole('dialog')).toBeVisible()
 })
+
+test.each([
+  {
+    name: 'recorded fixed image price',
+    expression: 'tier("standard", p * 5) * image_count',
+    language: 'en',
+    tierLabel: 'Matched Tier',
+    pricingLabel: 'Dynamic Pricing',
+  },
+  {
+    name: 'localized fixed image price',
+    expression: 'tier("standard", p * 5) * image_count',
+    language: 'zh',
+    tierLabel: '命中阶梯',
+    pricingLabel: '动态计费',
+  },
+  {
+    name: 'missing expression',
+    expression: undefined,
+    language: 'en',
+    tierLabel: 'Matched Tier',
+    pricingLabel: 'Dynamic Pricing',
+  },
+])(
+  'request-rule tier with $name displays dynamic pricing instead of its internal identifier',
+  async ({ expression, language, tierLabel, pricingLabel }) => {
+    await i18n.changeLanguage(language)
+    const preview = renderPreview({
+      billing_mode: 'tiered_expr',
+      billing_unit: 'request',
+      fixed_price: 0.2,
+      image_count: 2,
+      matched_tier: 'request_fixed_1',
+      expr_b64: expression ? btoa(expression) : undefined,
+    })
+    fireEvent.click(preview)
+    const dialog = within(await screen.findByRole('dialog'))
+    expect(dialog.queryByText('request_fixed_1')).not.toBeInTheDocument()
+    expect(dialog.getByText(tierLabel)).toBeVisible()
+    expect(dialog.getAllByText(pricingLabel).length).toBeGreaterThan(1)
+  }
+)
 
 test.each([
   {

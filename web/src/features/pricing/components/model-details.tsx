@@ -82,12 +82,6 @@ import {
     getDefaultRequestPriceDisplay,
     getGroupPriceDisplay,
 } from '../lib/group-price'
-import {
-  getAvailableGroups,
-  isTokenBasedModel,
-  replaceModelInPath,
-} from '../lib/model-helpers'
-import { inferModelMetadata } from '../lib/model-metadata'
 import { getAvailableGroups, isTokenBasedModel } from '../lib/model-helpers'
 import { withPluginPricing } from '../lib/plugin-pricing'
 import { formatFixedPrice, formatGroupPrice } from '../lib/price'
@@ -1192,10 +1186,6 @@ function ProviderGroupPricingSection(
           }),
         ])
     )
-    const hasDynamicTokenRows = availableGroups.some(
-        (group) => groupPriceRowMap.get(group)?.billingType !== 'request'
-    )
-
     if (dynamicTiers.length === 0) {
       return (
         <section>

@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func encodeRulePayload(raw string) string {
@@ -85,5 +87,54 @@ func TestApplyRequestRulesInvalidPayloadReturnsError(t *testing.T) {
 	)
 	if err == nil {
 		t.Fatal("expected invalid request rule payload error")
+	}
+}
+
+func TestPluginFixedPriceUnitAppliesOnlyToMatchedImageRules(t *testing.T) {
+	exprStr := `apply_request_rules(tier("base", p * 2) * image_count, "` + encodeRulePayload(`{"version":1,"groups":[{"conditions":[{"source":"token_group","mode":"eq","value":"vip"}],"action_type":"fixed","fixed_price":"0.2"}]}`) + `")`
+	count := 3
+	for _, tc := range []struct {
+		group     string
+		priceUnit string
+		wantCost  float64
+		wantUnit  billingexpr.BillingUnit
+	}{
+		{group: "vip", priceUnit: "image", wantCost: 600000, wantUnit: billingexpr.BillingUnitRequest},
+		{group: "vip", priceUnit: "request", wantCost: 200000, wantUnit: billingexpr.BillingUnitRequest},
+		{group: "default", priceUnit: "image", wantCost: 6000, wantUnit: billingexpr.BillingUnitToken},
+	} {
+		t.Run(tc.group+"_"+tc.priceUnit, func(t *testing.T) {
+			cost, trace, err := billingexpr.RunExprWithRequest(exprStr, billingexpr.TokenParams{P: 1000}, billingexpr.RequestInput{
+				UsingGroup: tc.group, ImageCount: &count, FixedPriceUnit: tc.priceUnit,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantCost, cost)
+			require.NotNil(t, trace.ImageCount)
+			assert.Equal(t, count, *trace.ImageCount)
+			assert.Equal(t, tc.wantUnit, trace.BillingUnit)
+			if tc.wantUnit == billingexpr.BillingUnitRequest {
+				require.NotNil(t, trace.FixedPrice)
+				assert.Equal(t, 0.2, *trace.FixedPrice)
+			} else {
+				assert.Nil(t, trace.FixedPrice)
+			}
+		})
+	}
+}
+
+func TestPluginFixedImageRuleValidatesQuantityWithoutImageVariable(t *testing.T) {
+	expression := `apply_request_rules(tier("base", p * 2), "` + encodeRulePayload(`{"version":1,"groups":[{"conditions":[{"source":"token_group","mode":"eq","value":"vip"}],"action_type":"fixed","fixed_price":"0.2"}]}`) + `")`
+	for _, count := range []int{0, 3, 129} {
+		cost, trace, err := billingexpr.RunExprWithRequest(expression, billingexpr.TokenParams{}, billingexpr.RequestInput{
+			UsingGroup: "vip", FixedPriceUnit: billingexpr.RequestPriceUnitImage, ImageCount: &count,
+		})
+		if count != 3 {
+			require.ErrorContains(t, err, "image_count must be between 1 and 128")
+			continue
+		}
+		require.NoError(t, err)
+		assert.Equal(t, 600000.0, cost)
+		require.NotNil(t, trace.ImageCount)
+		assert.Equal(t, count, *trace.ImageCount)
 	}
 }

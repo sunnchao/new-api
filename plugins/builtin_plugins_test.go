@@ -11,7 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedKeys = []string{"alibaba", "doubao", "google", "hailuo", "jimeng", "kling", "sora", "sunoapi", "vertex-ai", "vidu", "xai"}
+var expectedDriverKeys = []string{"alibaba", "doubao", "google", "hailuo", "jimeng", "kling", "sora", "sunoapi", "vertex-ai", "vidu", "xai"}
+var expectedKeys = []string{"alibaba", "doubao", "google", "hailuo", "jimeng", "kling", "sora", "sunburst", "sunoapi", "vertex-ai", "vidu", "xai"}
 
 func TestBuiltInVendorPluginsDeclareNativeRoutesAndLegacyChannelTypes(t *testing.T) {
 	generation := jsplugin.DefaultRegistry.Generation()
@@ -92,7 +93,6 @@ func TestBuiltInVendorPluginsDeclareNativeRoutesAndLegacyChannelTypes(t *testing
 }
 
 func TestBuiltInTaskPluginResponsesAndUsageContracts(t *testing.T) {
-	expectedKeys := []string{"alibaba", "doubao", "google", "hailuo", "jimeng", "kling", "sora", "sunoapi", "vertex-ai", "vidu", "xai"}
 	generation := jsplugin.DefaultRegistry.Generation()
 	require.NotNil(t, generation)
 
@@ -106,7 +106,7 @@ func TestBuiltInTaskPluginResponsesAndUsageContracts(t *testing.T) {
 	}
 	assert.Equal(t, expectedKeys, actualKeys)
 
-	for _, key := range expectedKeys {
+	for _, key := range expectedDriverKeys {
 		t.Run(key, func(t *testing.T) {
 			_, found := generation.Get(key)
 			require.True(t, found, "factory plugin was excluded from the active generation")
@@ -151,7 +151,7 @@ func TestBuiltInTaskPluginResponsesAndUsageContracts(t *testing.T) {
 
 func TestBuiltInResponsesDecodersEchoChannelMappedAlias(t *testing.T) {
 	bodyOverrides := map[string]map[string]any{}
-	for _, key := range expectedKeys {
+	for _, key := range expectedDriverKeys {
 		t.Run(key, func(t *testing.T) {
 			source, sourceErr := Source(key)
 			require.NoError(t, sourceErr)
@@ -178,6 +178,24 @@ func TestBuiltInResponsesDecodersEchoChannelMappedAlias(t *testing.T) {
 			assert.Equal(t, "submit", decoded["kind"])
 			assert.Equal(t, alias, decoded["model"])
 		})
+	}
+}
+
+func TestSunburstBillingPolicyNeedsNoTaskDriver(t *testing.T) {
+	source, err := Source("sunburst")
+	require.NoError(t, err)
+	plugin, err := jsplugin.CompilePlugin(source, jsplugin.Options{Key: "sunburst"})
+	require.NoError(t, err)
+	assert.Empty(t, plugin.Meta.Routes)
+	assert.Empty(t, plugin.Meta.Protocols)
+	assert.True(t, plugin.Meta.BillingOnly())
+	generation := jsplugin.DefaultRegistry.Generation()
+	require.Contains(t, plugin.Meta.Models, "gpt-image-2.5-sunburst")
+	for _, model := range plugin.Meta.Models {
+		assert.Equal(t, "image", generation.FixedRequestPriceUnit(model))
+		_, taskModel := generation.GetByModel(model)
+		assert.False(t, taskModel)
+		assert.Empty(t, generation.PluginsByModel(model))
 	}
 }
 

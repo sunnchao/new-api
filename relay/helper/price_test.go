@@ -1,15 +1,18 @@
 package helper
 
 import (
-	"fmt"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/i18n"
+	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
+	_ "github.com/QuantumNous/new-api/plugins"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
@@ -70,6 +73,85 @@ func TestModelPriceHelperTieredUsesPreloadedRequestInput(t *testing.T) {
 	require.Equal(t, "stream", info.TieredBillingSnapshot.EstimatedTier)
 	require.Equal(t, billing_setting.BillingModeTieredExpr, info.TieredBillingSnapshot.BillingMode)
 	require.Equal(t, common.QuotaPerUnit, info.TieredBillingSnapshot.QuotaPerUnit)
+}
+
+func TestSunburstPluginImagePricing(t *testing.T) {
+	previous := config.GlobalConfig.ExportAllConfigs()
+	previousRatios, previousPrices := ratio_setting.ModelRatio2JSONString(), ratio_setting.ModelPrice2JSONString()
+	previousQuotaPerUnit := common.QuotaPerUnit
+	t.Cleanup(func() {
+		require.NoError(t, config.GlobalConfig.LoadFromDB(previous))
+		require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(previousRatios))
+		require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(previousPrices))
+		common.QuotaPerUnit = previousQuotaPerUnit
+	})
+	common.QuotaPerUnit = 500000
+	require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(`{}`))
+	require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(`{}`))
+	require.NoError(t, config.GlobalConfig.LoadFromDB(map[string]string{
+		"billing_setting.billing_mode":          `{"gpt-image-2.5-sunburst":"tiered_expr","gpt-image-2":"tiered_expr"}`,
+		"group_ratio_setting.group_ratio":       `{"default":1,"vip":1}`,
+		"group_ratio_setting.group_group_ratio": `{}`,
+		"quota_setting.pre_consume_multiplier":  "2",
+	}))
+	payload := base64.StdEncoding.EncodeToString([]byte(`{"version":1,"groups":[{"conditions":[{"source":"token_group","mode":"eq","value":"vip"}],"action_type":"fixed","fixed_price":"0.2"}]}`))
+	for _, tc := range []struct {
+		name, model, group, finalGroup string
+		rule                           bool
+		outbound, actual               int
+		preConsume, reserved, quota    int
+		unit                           billingexpr.BillingUnit
+	}{
+		{name: "default token price times count", model: "gpt-image-2.5-sunburst", group: "default", outbound: 3, actual: 2, preConsume: 15000, reserved: 15000, quota: 5000, unit: billingexpr.BillingUnitToken},
+		{name: "matched fixed rule reserves outbound count", model: "gpt-image-2.5-sunburst", group: "vip", rule: true, outbound: 4, actual: 2, preConsume: 300000, reserved: 400000, quota: 200000, unit: billingexpr.BillingUnitRequest},
+		{name: "unmatched rule retains token pricing", model: "gpt-image-2.5-sunburst", group: "default", rule: true, outbound: 3, actual: 2, preConsume: 15000, reserved: 15000, quota: 5000, unit: billingexpr.BillingUnitToken},
+		{name: "retry matches fixed rule at same group ratio", model: "gpt-image-2.5-sunburst", group: "default", finalGroup: "vip", rule: true, outbound: 3, actual: 2, preConsume: 15000, reserved: 300000, quota: 200000, unit: billingexpr.BillingUnitRequest},
+		{name: "retry returns to token pricing", model: "gpt-image-2.5-sunburst", group: "vip", finalGroup: "default", rule: true, outbound: 3, actual: 2, preConsume: 300000, reserved: 300000, quota: 5000, unit: billingexpr.BillingUnitToken},
+		{name: "missing actual count keeps outbound quantity", model: "gpt-image-2.5-sunburst", group: "vip", rule: true, outbound: 4, preConsume: 300000, reserved: 400000, quota: 400000, unit: billingexpr.BillingUnitRequest},
+		{name: "policy tracks quantity without expression variable", model: "gpt-image-2.5-flare", group: "vip", rule: true, outbound: 4, actual: 2, preConsume: 300000, reserved: 400000, quota: 200000, unit: billingexpr.BillingUnitRequest},
+		{name: "retry tracks quantity without expression variable", model: "gpt-image-2.5-flare", group: "default", finalGroup: "vip", rule: true, outbound: 4, actual: 2, preConsume: 5000, reserved: 400000, quota: 200000, unit: billingexpr.BillingUnitRequest},
+		{name: "other models keep per-request fixed rules", model: "gpt-image-2", group: "vip", rule: true, outbound: 3, actual: 2, preConsume: 100000, reserved: 100000, quota: 100000, unit: billingexpr.BillingUnitRequest},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			expression, exists := billing_setting.GetBuiltinBillingExpr(tc.model)
+			require.True(t, exists)
+			if tc.rule {
+				expression = `apply_request_rules(` + expression + `, "` + payload + `")`
+			}
+			encoded, err := common.Marshal(map[string]string{tc.model: expression})
+			require.NoError(t, err)
+			require.NoError(t, model.ValidateModelPricing(tc.model, model.PricingValues{"billing_setting.billing_mode": "tiered_expr", "billing_setting.billing_expr": expression}))
+			require.NoError(t, config.GlobalConfig.LoadFromDB(map[string]string{"billing_setting.billing_expr": string(encoded)}))
+			ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+			ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/images/generations", nil)
+			info := &relaycommon.RelayInfo{
+				OriginModelName: tc.model, UserGroup: "default", UsingGroup: tc.group, RelayFormat: types.RelayFormatOpenAI,
+				Request: &dto.ImageRequest{Model: tc.model, N: common.GetPointer(uint(3))},
+			}
+			price, err := ModelPriceHelper(ctx, info, 1000, &types.TokenCountMeta{})
+			require.NoError(t, err)
+			assert.Equal(t, tc.preConsume, price.QuotaToPreConsume)
+			reservation := &priceTestReservation{held: price.QuotaToPreConsume}
+			info.Billing = reservation
+			if tc.finalGroup != "" {
+				info.UsingGroup = tc.finalGroup
+				require.Nil(t, service.PrepareTieredBillingForSelectedGroup(ctx, info))
+				assert.Equal(t, tc.unit, info.TieredBillingSnapshot.EstimatedBillingUnit)
+			}
+			require.Nil(t, service.PrepareImageBillingForRequest(ctx, info, tc.outbound))
+			assert.Equal(t, tc.reserved, reservation.held)
+			info.UpdateImageCount(int64(tc.actual))
+			ok, quota, result := service.TryTieredSettle(info, billingexpr.TokenParams{P: 1000, Len: 1000})
+			require.True(t, ok)
+			require.NotNil(t, result)
+			assert.Equal(t, tc.quota, quota)
+			assert.Equal(t, tc.unit, result.BillingUnit)
+			if info.BillingRequestInput.FixedPriceUnit == billingexpr.RequestPriceUnitImage {
+				require.NotNil(t, info.BillingRequestInput.ImageCount)
+				assert.Equal(t, 3, *info.BillingRequestInput.ImageCount)
+			}
+		})
+	}
 }
 
 func TestFixedPricePreConsumeAndRealtimeRejection(t *testing.T) {

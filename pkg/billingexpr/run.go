@@ -59,12 +59,11 @@ func runProgram(prog *vm.Program, requestRules []RequestRuleTrace, usedVars map[
 	var helperErr error
 
 	imageCount := 1
-	if usedVars["image_count"] {
-		if request.ImageCount != nil {
-			imageCount = *request.ImageCount
-		}
-		if imageCount < 1 || imageCount > dto.MaxImageN {
-			return 0, trace, fmt.Errorf("image_count must be between 1 and %d", dto.MaxImageN)
+	if usedVars["image_count"] || request.FixedPriceUnit == RequestPriceUnitImage {
+		var err error
+		imageCount, err = resolveRequestImageCount(request)
+		if err != nil {
+			return 0, trace, err
 		}
 		trace.ImageCount = &imageCount
 	}
@@ -174,6 +173,17 @@ func runProgram(prog *vm.Program, requestRules []RequestRuleTrace, usedVars map[
 		return 0, trace, fmt.Errorf("expr result is %T, want float64", out)
 	}
 	return f, trace, nil
+}
+
+func resolveRequestImageCount(request RequestInput) (int, error) {
+	imageCount := 1
+	if request.ImageCount != nil {
+		imageCount = *request.ImageCount
+	}
+	if imageCount < 1 || imageCount > dto.MaxImageN {
+		return 0, fmt.Errorf("image_count must be between 1 and %d", dto.MaxImageN)
+	}
+	return imageCount, nil
 }
 
 func timeInZone(tz string) time.Time {

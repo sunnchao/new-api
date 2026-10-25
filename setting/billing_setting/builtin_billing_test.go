@@ -123,7 +123,7 @@ func TestImageModelBuiltinPricesAndOverrides(t *testing.T) {
 		require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(savedRatios))
 		require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(savedPrices))
 	})
-	for _, name := range []string{"gpt-image-2", "gpt-image-2.5-sunburst", "gpt-image-2.5-flare"} {
+	for name, threeImageQuota := range map[string]int{"gpt-image-2": 4113, "gpt-image-2.5-sunburst": 12338, "gpt-image-2.5-flare": 4113} {
 		t.Run(name, func(t *testing.T) {
 			*settings = billing_setting.BillingSetting{BillingMode: map[string]string{}, BillingExpr: map[string]string{}}
 			require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(`{}`))
@@ -133,10 +133,14 @@ func TestImageModelBuiltinPricesAndOverrides(t *testing.T) {
 			usage := &dto.Usage{PromptTokens: 1000, CompletionTokens: 100, PromptTokensDetails: dto.InputTokenDetails{
 				CachedTokens: 300, ImageTokens: 600, CachedTokensDetails: &dto.CachedTokenDetails{ImageTokens: common.GetPointer(200)},
 			}}
-			result, err := billingexpr.ComputeTieredQuota(&billingexpr.BillingSnapshot{ExprString: expression, ExprHash: billingexpr.ExprHashString(expression), GroupRatio: 1, QuotaPerUnit: 500000},
-				service.BuildTieredTokenParams(usage, false, billingexpr.UsedVars(expression)))
+			snapshot := &billingexpr.BillingSnapshot{ExprString: expression, ExprHash: billingexpr.ExprHashString(expression), GroupRatio: 1, QuotaPerUnit: 500000}
+			params := service.BuildTieredTokenParams(usage, false, billingexpr.UsedVars(expression))
+			result, err := billingexpr.ComputeTieredQuota(snapshot, params)
 			require.NoError(t, err)
 			assert.Equal(t, 4113, result.ActualQuotaAfterGroup)
+			result, err = billingexpr.ComputeTieredQuotaWithRequest(snapshot, params, billingexpr.RequestInput{ImageCount: common.GetPointer(3)})
+			require.NoError(t, err)
+			assert.Equal(t, threeImageQuota, result.ActualQuotaAfterGroup)
 			encoded, err := common.Marshal(map[string]float64{name: 0})
 			require.NoError(t, err)
 			require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(string(encoded)))

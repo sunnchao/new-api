@@ -180,6 +180,11 @@ function BillingBreakdown(props: {
   const isTieredExpr = other.billing_mode === 'tiered_expr'
   const tieredSummary = getTieredBillingSummary(other)
   const matchedFixedRequestRule = getMatchedFixedRequestRule(other)
+  const requestRuleTierLabel = /^request_fixed_\d+$/.test(
+    other.matched_tier || ''
+  )
+    ? t('Dynamic Pricing')
+    : undefined
 
   const rows: Array<{ label: string; value: string }> = []
   const priceOpts = { digitsLarge: 4, digitsSmall: 6, abbreviate: false }
@@ -195,7 +200,7 @@ function BillingBreakdown(props: {
       if (tieredSummary.tier.label) {
         rows.push({
           label: t('Matched Tier'),
-          value: tieredSummary.tier.label,
+          value: requestRuleTierLabel || tieredSummary.tier.label,
         })
       }
       for (const entry of tieredSummary.priceEntries) {
@@ -216,7 +221,10 @@ function BillingBreakdown(props: {
     } else {
       rows.push({
         label: t('Matched Tier'),
-        value: other.matched_tier || t('No matching results'),
+        value:
+          requestRuleTierLabel ||
+          other.matched_tier ||
+          t('No matching results'),
       })
     }
   } else if (isPerCall) {

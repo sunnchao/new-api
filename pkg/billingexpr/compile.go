@@ -156,6 +156,7 @@ var compileEnvPrototypeV1 = map[string]any{
 	"abs":         math.Abs,
 	"ceil":        math.Ceil,
 	"floor":       math.Floor,
+
 	"apply_request_rules": func(float64, string) float64 { return 0 },
 }
 
@@ -209,6 +210,9 @@ func compileEntryFromCacheByHash(exprStr, hash string) (*cachedEntry, error) {
 		if err := validateFixedPricingTree(tree.Node); err != nil {
 			return nil, fmt.Errorf("expr compile error: %w", err)
 		}
+	}
+	if !fixedPricing {
+		fixedPricing = ast.Find(tree.Node, requestRuleUsesFixedPrice) != nil
 	}
 	patcher := &requestRulePatcher{}
 	prog, err := expr.Compile(body, expr.Env(getCompileEnv(version)), expr.Patch(patcher), expr.AsFloat64())

@@ -3,10 +3,12 @@ package billingexpr
 import (
 	"encoding/base64"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/expr-lang/expr/ast"
 	"github.com/tidwall/gjson"
 )
 
@@ -53,22 +55,17 @@ type requestRuleCondition struct {
 }
 
 // ApplyRequestPricingRules applies serialized request rule groups to a base
-// billing expression result. Fixed-price rules replace the base cost with
-// $/request pricing (converted to the expression's $/1M-token unit), while
-// multiplier rules continue to scale the chosen base cost.
+// billing expression result. Fixed-price rules replace the base cost, and a
+// plugin billing policy can make that price apply to each image. Multiplier
+// rules continue to scale the chosen base cost.
 func ApplyRequestPricingRules(baseCost float64, payload string, request RequestInput, params TokenParams, trace *TraceResult) (float64, error) {
 	if strings.TrimSpace(payload) == "" {
 		return baseCost, nil
 	}
 
-	decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(payload))
+	parsed, err := decodeRequestRulePayload(payload)
 	if err != nil {
-		return 0, fmt.Errorf("decode request pricing rules: %w", err)
-	}
-
-	var parsed requestRulePayload
-	if err := common.Unmarshal(decoded, &parsed); err != nil {
-		return 0, fmt.Errorf("parse request pricing rules: %w", err)
+		return 0, err
 	}
 	if len(parsed.Groups) == 0 {
 		return baseCost, nil
@@ -105,7 +102,27 @@ func ApplyRequestPricingRules(baseCost float64, payload string, request RequestI
 			if err != nil {
 				return 0, fmt.Errorf("invalid fixed price in request rule %d: %w", index+1, err)
 			}
-			finalCost = price * 1_000_000
+			if price < 0 || math.IsNaN(price) || math.IsInf(price, 0) {
+				return 0, fmt.Errorf("invalid fixed price in request rule %d: must be finite and non-negative", index+1)
+			}
+			priceCount := 1
+			if request.FixedPriceUnit == RequestPriceUnitImage {
+				priceCount, err = resolveRequestImageCount(request)
+				if err != nil {
+					return 0, fmt.Errorf("request rule %d: %w", index+1, err)
+				}
+				if trace != nil {
+					trace.ImageCount = &priceCount
+				}
+			}
+			finalCost = price * 1_000_000 * float64(priceCount)
+			if math.IsNaN(finalCost) || math.IsInf(finalCost, 0) {
+				return 0, fmt.Errorf("fixed price in request rule %d exceeds the supported range", index+1)
+			}
+			if trace != nil {
+				trace.BillingUnit = BillingUnitRequest
+				trace.FixedPrice = &price
+			}
 			fixedIndex = index
 		case requestRuleActionMultiplier:
 			value, err := strconv.ParseFloat(strings.TrimSpace(group.Multiplier), 64)
@@ -128,6 +145,43 @@ func ApplyRequestPricingRules(baseCost float64, payload string, request RequestI
 	}
 
 	return finalCost, nil
+}
+
+func decodeRequestRulePayload(payload string) (requestRulePayload, error) {
+	decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(payload))
+	if err != nil {
+		return requestRulePayload{}, fmt.Errorf("decode request pricing rules: %w", err)
+	}
+	var parsed requestRulePayload
+	if err := common.Unmarshal(decoded, &parsed); err != nil {
+		return requestRulePayload{}, fmt.Errorf("parse request pricing rules: %w", err)
+	}
+	return parsed, nil
+}
+
+func requestRuleUsesFixedPrice(node ast.Node) bool {
+	call, ok := node.(*ast.CallNode)
+	if !ok || len(call.Arguments) != 2 {
+		return false
+	}
+	callee, ok := call.Callee.(*ast.IdentifierNode)
+	if !ok || callee.Value != "apply_request_rules" {
+		return false
+	}
+	payload, ok := call.Arguments[1].(*ast.StringNode)
+	if !ok {
+		return false
+	}
+	parsed, err := decodeRequestRulePayload(payload.Value)
+	if err != nil {
+		return false
+	}
+	for _, group := range parsed.Groups {
+		if strings.TrimSpace(group.ActionType) == requestRuleActionFixed {
+			return true
+		}
+	}
+	return false
 }
 
 func requestRuleGroupMatches(group requestRuleGroup, request RequestInput, headers map[string]string, params TokenParams) (bool, error) {

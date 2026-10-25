@@ -106,6 +106,7 @@ type Meta struct {
 	UsageSchema          map[string]UsageFieldSchema `json:"usageSchema,omitempty"`
 	UsageExamples        []UsageExample              `json:"usageExamples,omitempty"`
 	UsageProfiles        []UsageProfile              `json:"usageProfiles,omitempty"`
+	Billing              *BillingMeta                `json:"billing,omitempty"`
 	Auth                 AuthMeta                    `json:"auth"`
 }
 
@@ -360,6 +361,9 @@ func CompilePlugin(source string, options Options) (*LoadedPlugin, error) {
 		requiredHooks = append(requiredHooks, "buildBatchQueryRequest", "parseBatchResult")
 	} else {
 		requiredHooks = append(requiredHooks, "buildQueryRequest")
+	}
+	if meta.BillingOnly() && !slices.Contains(meta.SubmitResponseTypes, "sse") {
+		requiredHooks = nil
 	}
 	for _, hook := range requiredHooks {
 		has, hasErr := engine.HasCallablePath(context.Background(), hook)
@@ -881,6 +885,10 @@ func cloneMeta(meta Meta) Meta {
 	meta.Models = append([]string(nil), meta.Models...)
 	meta.AllowedHosts = append([]string(nil), meta.AllowedHosts...)
 	meta.Upstreams = slices.Clone(meta.Upstreams)
+	if meta.Billing != nil {
+		billing := *meta.Billing
+		meta.Billing = &billing
+	}
 	meta.Routes = append([]Route(nil), meta.Routes...)
 	for index := range meta.Routes {
 		meta.Routes[index].Models = append([]string(nil), meta.Routes[index].Models...)
@@ -1022,7 +1030,7 @@ func decodeMeta(value any) (Meta, error) {
 	}
 	for field := range object {
 		switch field {
-		case "requiredCapabilities", "submitResponseTypes", "sortPriority", "website", "apiVersion", "key", "name", "icon", "description", "version", "author", "baseUrl", "channelTypes", "channelType", "compatibleChannelTypes", "models", "fetchMode", "allowedHosts", "upstreams", "routes", "protocols", "usageSchema", "usageExamples", "usageProfiles", "auth", "endpoints", "submitPaths", "actions":
+		case "requiredCapabilities", "submitResponseTypes", "sortPriority", "website", "apiVersion", "key", "name", "icon", "description", "version", "author", "baseUrl", "channelTypes", "channelType", "compatibleChannelTypes", "models", "fetchMode", "allowedHosts", "upstreams", "routes", "protocols", "usageSchema", "usageExamples", "usageProfiles", "billing", "auth", "endpoints", "submitPaths", "actions":
 		default:
 			return Meta{}, &UnknownMetaFieldError{Field: field}
 		}
@@ -1147,6 +1155,12 @@ func decodeMeta(value any) (Meta, error) {
 	}
 	if usageProfiles, exists := object["usageProfiles"]; exists {
 		meta.UsageProfiles, err = decodeUsageProfiles(usageProfiles)
+		if err != nil {
+			return Meta{}, err
+		}
+	}
+	if billing, exists := object["billing"]; exists {
+		meta.Billing, err = decodeBillingMeta(billing)
 		if err != nil {
 			return Meta{}, err
 		}
@@ -1452,6 +1466,9 @@ func normalizeV1Meta(meta *Meta) error {
 		if err := validateUsageExamples(profile.Schema, profile.Examples); err != nil {
 			return fmt.Errorf("plugin meta usageProfiles[%d]: %w", index, err)
 		}
+	}
+	if meta.Billing != nil && meta.Billing.RequestRules.FixedPriceUnit != "request" && meta.Billing.RequestRules.FixedPriceUnit != "image" {
+		return fmt.Errorf("plugin meta billing.requestRules.fixedPriceUnit must be request or image")
 	}
 	return nil
 }

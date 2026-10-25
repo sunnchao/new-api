@@ -14,8 +14,16 @@ type RequestInput struct {
 	// ImageCount is a validated billing quantity, separate from the frozen
 	// request's n. Settlement can replace it with the actual returned count.
 	ImageCount *int
-	UsingGroup string
+	// FixedPriceUnit controls what a matched request-rule fixed action prices.
+	// It is supplied by the model's plugin billing policy; empty means request.
+	FixedPriceUnit string
+	UsingGroup     string
 }
+
+const (
+	RequestPriceUnitRequest = "request"
+	RequestPriceUnitImage   = "image"
+)
 
 // TokenParams holds all token dimensions passed into an Expr evaluation.
 // Fields beyond P and C are optional — when absent they default to 0,
