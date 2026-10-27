@@ -43,6 +43,7 @@ const defaults: ComponentProps<typeof OAuthSection>['defaultValues'] = {
   GitHubOAuthEnabled: false,
   GitHubClientId: '',
   GitHubClientSecret: '',
+  GitHubMinimumAccountAgeDays: '0',
   'discord.enabled': false,
   'discord.client_id': '',
   'discord.client_secret': '',
@@ -303,6 +304,24 @@ describe('OAuth settings saves', () => {
       )
     }
   )
+
+  it('saves the GitHub minimum account age independently', async () => {
+    const user = userEvent.setup()
+    await renderSettings()
+    await user.type(
+      screen.getByRole('spinbutton', { name: 'Minimum Account Age (days)' }),
+      '7'
+    )
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+
+    await waitFor(() =>
+      expect(api.put).toHaveBeenCalledWith('/api/option/', {
+        key: 'GitHubMinimumAccountAgeDays',
+        value: '7',
+      })
+    )
+    expect(api.put).toHaveBeenCalledTimes(1)
+  })
 
   it('keeps edits available for retry when OIDC discovery fails', async () => {
     const client = axios.create()

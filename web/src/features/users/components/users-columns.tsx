@@ -290,6 +290,31 @@ export function useUsersColumns(): ColumnDef<User>[] {
         meta: { mobileHidden: true },
       },
       {
+        accessorKey: 'last_login_ip',
+        header: t('IP'),
+        cell: ({ row }) => {
+          const ip = row.original.last_login_ip
+
+          if (!ip) {
+            return <span className='text-muted-foreground text-sm'>—</span>
+          }
+
+          return (
+            <StatusBadge
+              type='text'
+              variant='neutral'
+              label={ip}
+              copyText={ip}
+              className='max-w-[180px] font-mono text-xs'
+            />
+          )
+        },
+        enableSorting: false,
+        size: 160,
+        minSize: 120,
+        meta: { mobileOrder: 50 },
+      },
+      {
         id: 'actions',
         header: () => t('Actions'),
         cell: ({ row }) => <DataTableRowActions row={row} />,

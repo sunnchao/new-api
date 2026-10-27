@@ -113,6 +113,7 @@ var SMTPToken = ""
 
 var GitHubClientId = ""
 var GitHubClientSecret = ""
+var GitHubMinimumAccountAgeDays = 90
 var LinuxDOClientId = ""
 var LinuxDOClientSecret = ""
 var LinuxDOMinimumTrustLevel = 0

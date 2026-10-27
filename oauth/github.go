@@ -162,11 +162,12 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*O
 		DisplayName:    githubUser.Name,
 		Email:          githubUser.Email,
 		Extra: map[string]any{
-			"legacy_id":        githubUser.Login, // Store login for migration from old accounts
-			"github_user_name": githubUser.Name,
-			"github_id_new":    githubUser.Id,
-			"github_email":     githubUser.Email,
-			"avatar_url":       githubUser.AvatarUrl,
+			"legacy_id":         githubUser.Login, // Store login for migration from old accounts
+			"github_user_name":  githubUser.Name,
+			"github_id_new":     githubUser.Id,
+			"github_email":      githubUser.Email,
+			"github_created_at": githubUser.CreatedAt,
+			"avatar_url":        githubUser.AvatarUrl,
 		},
 	}, nil
 }
@@ -214,6 +215,36 @@ func (p *GitHubProvider) GetVerifiedEmails(ctx context.Context, token *OAuthToke
 
 func (p *GitHubProvider) IsUserIDTaken(providerUserID string) bool {
 	return model.IsGitHubIdAlreadyTaken(providerUserID)
+}
+
+// CheckRegistrationEligibility rejects GitHub accounts younger than the
+// administrator-configured minimum. It only runs for new registrations, so
+// existing users keep their normal login path.
+func (p *GitHubProvider) CheckRegistrationEligibility(ctx context.Context, user *OAuthUser) error {
+	if common.GitHubMinimumAccountAgeDays <= 0 {
+		return nil
+	}
+	createdAt, _ := user.Extra["github_created_at"].(string)
+	created, err := time.Parse(time.RFC3339, createdAt)
+	if err != nil {
+		logger.LogWarn(ctx, common.LogText("[OAuth-GitHub] Cannot verify account age: created_at=%q, error=%v", createdAt, err))
+		return &AccountAgeError{RequiredDays: common.GitHubMinimumAccountAgeDays}
+	}
+	if time.Since(created) < time.Duration(common.GitHubMinimumAccountAgeDays)*24*time.Hour {
+		logger.LogWarn(ctx, common.LogText("[OAuth-GitHub] Account too new for registration: created_at=%s, required_days=%d", createdAt, common.GitHubMinimumAccountAgeDays))
+		return &AccountAgeError{RequiredDays: common.GitHubMinimumAccountAgeDays}
+	}
+	return nil
+}
+
+// AccountAgeError indicates that the provider account is younger than the
+// minimum age required for registration.
+type AccountAgeError struct {
+	RequiredDays int
+}
+
+func (e *AccountAgeError) Error() string {
+	return "provider account is too new for registration"
 }
 
 func (p *GitHubProvider) FillUserByProviderID(user *model.User, providerUserID string) error {

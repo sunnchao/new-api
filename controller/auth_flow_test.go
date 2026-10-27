@@ -651,6 +651,28 @@ func (*authFlowTestOAuthProvider) SetProviderUserID(*model.User, string)        
 func (*authFlowTestOAuthProvider) GetProviderPrefix() string                      { return "flow_" }
 func (*authFlowTestOAuthProvider) ProviderUserIDColumn() string                   { return "" }
 
+type registrationPolicyTestProvider struct {
+	authFlowTestOAuthProvider
+	userID      int
+	userTaken   bool
+	policyCalls int
+	policyErr   error
+}
+
+func (provider *registrationPolicyTestProvider) IsUserIDTaken(string) bool { return provider.userTaken }
+
+func (provider *registrationPolicyTestProvider) FillUserByProviderID(user *model.User, _ string) error {
+	if provider.userID == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return model.DB.First(user, provider.userID).Error
+}
+
+func (provider *registrationPolicyTestProvider) CheckRegistrationEligibility(context.Context, *oauth.OAuthUser) error {
+	provider.policyCalls++
+	return provider.policyErr
+}
+
 func setupAuthFlowControllerTest(t *testing.T) *authFlowTestOAuthProvider {
 	t.Helper()
 	previousDB, previousLogDB := model.DB, model.LOG_DB
@@ -790,6 +812,54 @@ func TestOAuthLoginConsumesFlowAfterProviderIdentityAndOnProviderError(t *testin
 	assert.ErrorIs(t, err, model.ErrAuthFlowConsumed)
 	assert.Equal(t, 1, provider.exchangeCalls)
 	assert.Equal(t, 1, provider.userInfoCalls)
+}
+
+func TestOAuthRegistrationPolicyOnlyRejectsNewUsers(t *testing.T) {
+	setupAuthFlowControllerTest(t)
+	previousRegisterEnabled := common.RegisterEnabled
+	common.RegisterEnabled = true
+	t.Cleanup(func() { common.RegisterEnabled = previousRegisterEnabled })
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/oauth/test", nil)
+
+	newUserProvider := &registrationPolicyTestProvider{policyErr: &oauth.AccountAgeError{RequiredDays: 7}}
+	user, migration, err := findOrCreateOAuthUser(c, newUserProvider, &oauth.OAuthUser{ProviderUserID: "new-user"}, &oauth.OAuthToken{}, "")
+	require.Nil(t, user)
+	require.Nil(t, migration)
+	var ageErr *oauth.AccountAgeError
+	require.ErrorAs(t, err, &ageErr)
+	assert.Equal(t, 1, newUserProvider.policyCalls)
+	var userCount int64
+	require.NoError(t, model.DB.Model(&model.User{}).Count(&userCount).Error)
+	assert.Zero(t, userCount)
+
+	existing := &model.User{Username: "existing-oauth", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AffCode: "existing-oauth", AuthVersion: 1, GitHubId: "existing-id"}
+	require.NoError(t, model.DB.Create(existing).Error)
+	existingProvider := &registrationPolicyTestProvider{userID: existing.Id, userTaken: true, policyErr: &oauth.AccountAgeError{RequiredDays: 7}}
+	user, migration, err = findOrCreateOAuthUser(c, existingProvider, &oauth.OAuthUser{ProviderUserID: "existing-id"}, &oauth.OAuthToken{}, "")
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.Nil(t, migration)
+	assert.Equal(t, existing.Id, user.Id)
+	assert.Zero(t, existingProvider.policyCalls, "existing users must not be blocked by registration policy")
+
+	// The login endpoint must surface the rejection to the web console.
+	oauth.Register("registration-policy-test", &registrationPolicyTestProvider{policyErr: &oauth.AccountAgeError{RequiredDays: 7}})
+	t.Cleanup(func() { oauth.Unregister("registration-policy-test") })
+	flowToken, _, err := model.CreateAuthFlow(model.AuthFlowCreate{
+		Purpose: model.AuthFlowPurposeOAuth, Provider: "registration-policy-test", Intent: model.AuthFlowIntentLogin,
+		Payload: `{}`, ExpiresAt: time.Now().Add(time.Minute),
+	})
+	require.NoError(t, err)
+	router := gin.New()
+	router.GET("/api/oauth/:provider", HandleOAuth)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/oauth/registration-policy-test?state="+flowToken+"&code=test", nil))
+	assert.Contains(t, response.Body.String(), "minimum account age requirement of 7 days")
+	require.NoError(t, model.DB.Model(&model.User{}).Count(&userCount).Error)
+	assert.EqualValues(t, 1, userCount, "the rejected attempt must not create a user")
 }
 
 func TestOAuthBindProviderErrorConsumesSessionBoundFlow(t *testing.T) {

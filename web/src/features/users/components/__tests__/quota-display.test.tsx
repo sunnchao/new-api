@@ -272,6 +272,7 @@ async function renderUsersList(emptyInvitation = false) {
             request_count: 0,
             created_at: Math.floor(Date.now() / 1000) - 86400,
             last_login_at: Math.floor(Date.now() / 1000) - 20,
+            last_login_ip: '203.0.113.42',
             group: 'default',
             aff_count: emptyInvitation ? 0 : 2,
             aff_history_quota: emptyInvitation ? 0 : 500000,
@@ -392,6 +393,15 @@ it('combines creation and last login into one column with full dates visible dir
   expect(
     screen.queryByRole('columnheader', { name: /Time/ })
   ).not.toBeInTheDocument()
+})
+
+it('shows the last login IP in its own column', async () => {
+  await renderUsersList()
+  expect(screen.getByRole('columnheader', { name: 'IP' })).toBeInTheDocument()
+  const row = screen.getByRole('row', {
+    name: /long-user-name-for-table-layout/,
+  })
+  expect(within(row).getByText('203.0.113.42')).toBeInTheDocument()
 })
 
 it('updates the header unit and converted amounts together when currency settings change', () => {

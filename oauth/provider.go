@@ -47,3 +47,11 @@ type Provider interface {
 type VerifiedEmailProvider interface {
 	GetVerifiedEmails(ctx context.Context, token *OAuthToken) ([]string, error)
 }
+
+// RegistrationPolicyProvider is implemented by providers that restrict new
+// account creation based on provider-side account attributes. It is only
+// checked when no existing account matches the provider identity, so existing
+// users can still sign in.
+type RegistrationPolicyProvider interface {
+	CheckRegistrationEligibility(ctx context.Context, user *OAuthUser) error
+}

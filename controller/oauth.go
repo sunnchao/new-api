@@ -318,6 +318,10 @@ func handleOAuthLogin(c *gin.Context, provider oauth.Provider, oauthUser *oauth.
 			common.ApiErrorT(c, "Email address is already in use")
 			return
 		}
+		if e, ok := err.(*oauth.AccountAgeError); ok {
+			common.ApiErrorT(c, "This {{provider}} account does not meet the minimum account age requirement of {{days}} days for registration", map[string]any{"provider": provider.GetName(), "days": e.RequiredDays})
+			return
+		}
 		switch err.(type) {
 		case *OAuthUserDeletedError:
 			common.ApiErrorT(c, "User has been deleted")
@@ -478,6 +482,12 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	// User doesn't exist, create new user if registration is enabled
 	if !common.RegisterEnabled {
 		return nil, nil, &OAuthRegistrationDisabledError{}
+	}
+
+	if policy, ok := provider.(oauth.RegistrationPolicyProvider); ok {
+		if err := policy.CheckRegistrationEligibility(c.Request.Context(), oauthUser); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	// Set up new user

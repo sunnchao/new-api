@@ -66,6 +66,7 @@ const oauthSchema = z.object({
   GitHubOAuthEnabled: z.boolean(),
   GitHubClientId: z.string(),
   GitHubClientSecret: z.string(),
+  GitHubMinimumAccountAgeDays: z.string(),
   discord: z.object({
     enabled: z.boolean(),
     client_id: z.string(),
@@ -99,6 +100,7 @@ type FlatOAuthDefaults = {
   GitHubOAuthEnabled: boolean
   GitHubClientId: string
   GitHubClientSecret: string
+  GitHubMinimumAccountAgeDays: string
   'discord.enabled': boolean
   'discord.client_id': string
   'discord.client_secret': string
@@ -179,6 +181,7 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
   GitHubOAuthEnabled: defaults.GitHubOAuthEnabled,
   GitHubClientId: defaults.GitHubClientId ?? '',
   GitHubClientSecret: defaults.GitHubClientSecret ?? '',
+  GitHubMinimumAccountAgeDays: defaults.GitHubMinimumAccountAgeDays ?? '0',
   discord: {
     enabled: defaults['discord.enabled'],
     client_id: defaults['discord.client_id'] ?? '',
@@ -213,6 +216,7 @@ const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
   GitHubOAuthEnabled: values.GitHubOAuthEnabled,
   GitHubClientId: values.GitHubClientId,
   GitHubClientSecret: values.GitHubClientSecret,
+  GitHubMinimumAccountAgeDays: values.GitHubMinimumAccountAgeDays,
   'discord.enabled': values.discord.enabled,
   'discord.client_id': values.discord.client_id,
   'discord.client_secret': values.discord.client_secret,
@@ -488,6 +492,38 @@ export function OAuthSection(props: OAuthSectionProps) {
                           ref={field.ref}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='GitHubMinimumAccountAgeDays'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Minimum Account Age (days)')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='number'
+                          min={0}
+                          step={1}
+                          placeholder='0'
+                          autoComplete='off'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'Minimum GitHub account age in days required for registration. Set to 0 to disable.'
+                        )}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

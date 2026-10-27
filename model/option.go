@@ -136,6 +136,7 @@ func InitOptionMap() {
 	common.OptionMap["PayMethods"] = operation_setting.PayMethods2JsonString()
 	common.OptionMap["GitHubClientId"] = ""
 	common.OptionMap["GitHubClientSecret"] = ""
+	common.OptionMap["GitHubMinimumAccountAgeDays"] = strconv.Itoa(common.GitHubMinimumAccountAgeDays)
 	common.OptionMap["LinuxDOClientId"] = ""
 	common.OptionMap["LinuxDOClientSecret"] = ""
 	common.OptionMap["LinuxDOMinimumTrustLevel"] = ""
@@ -650,6 +651,11 @@ func updateOptionMap(key string, value string) (err error) {
 		common.GitHubClientId = value
 	case "GitHubClientSecret":
 		common.GitHubClientSecret = value
+	case "GitHubMinimumAccountAgeDays":
+		common.GitHubMinimumAccountAgeDays, _ = strconv.Atoi(value)
+		if common.GitHubMinimumAccountAgeDays < 0 {
+			common.GitHubMinimumAccountAgeDays = 0
+		}
 	case "LinuxDOClientId":
 		common.LinuxDOClientId = value
 	case "LinuxDOClientSecret":

@@ -223,6 +223,12 @@ func UpdateOption(c *gin.Context) {
 			common.ApiErrorT(c, "Cannot enable {{provider}}. Enter the {{provider}} Client ID and Client Secret first.", map[string]any{"provider": "GitHub OAuth"})
 			return
 		}
+	case "GitHubMinimumAccountAgeDays":
+		days, err := strconv.Atoi(strings.TrimSpace(option.Value.(string)))
+		if err != nil || days < 0 {
+			common.ApiErrorT(c, "Minimum account age must be a whole number of days, 0 or greater")
+			return
+		}
 	case "discord.enabled":
 		if option.Value == "true" && system_setting.GetDiscordSettings().ClientId == "" {
 			common.ApiErrorT(c, "Cannot enable {{provider}}. Enter the {{provider}} Client ID and Client Secret first.", map[string]any{"provider": "Discord OAuth"})
