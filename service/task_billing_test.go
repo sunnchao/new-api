@@ -1815,3 +1815,27 @@ func TestSettle_TokenRecalcFallsBackToCompletionTokens(t *testing.T) {
 		})
 	}
 }
+
+func TestEvaluateTaskCompletionUsageUsesSnapshotGroup(t *testing.T) {
+	expression := `group() == "vip" ? tier("vip", u("image_count") * 0.05) : tier("base", u("image_count") * 0.07)`
+	snapshot := &billingexpr.BillingSnapshot{
+		ExprString:       expression,
+		ExprHash:         billingexpr.ExprHashString(expression),
+		BillingGroup:     "vip",
+		GroupRatio:       1,
+		QuotaPerUnit:     500000,
+		ExprVersion:      1,
+		TaskUsageBilling: true,
+		UsageFacts:       map[string]any{"image_count": float64(2)},
+	}
+	result, _, err := EvaluateTaskCompletionUsage(snapshot, map[string]any{"image_count": float64(2)})
+	require.NoError(t, err)
+	assert.Equal(t, "vip", result.MatchedTier)
+	assert.Equal(t, 50000, result.ActualQuotaAfterGroup)
+
+	snapshot.BillingGroup = "default"
+	result, _, err = EvaluateTaskCompletionUsage(snapshot, map[string]any{"image_count": float64(2)})
+	require.NoError(t, err)
+	assert.Equal(t, "base", result.MatchedTier)
+	assert.Equal(t, 70000, result.ActualQuotaAfterGroup)
+}

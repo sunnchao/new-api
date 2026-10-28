@@ -69,6 +69,9 @@ func LogTaskConsumption(c *gin.Context, info *relaycommon.RelayInfo, task *model
 		other.SetPublic("billing_mode", "tiered_expr")
 		other.SetPublic("expr_b64", base64.StdEncoding.EncodeToString([]byte(snap.ExprString)))
 		other.SetPublic("matched_tier", snap.EstimatedTier)
+		if snap.BillingGroup != "" {
+			other.SetPublic("billing_group", snap.BillingGroup)
+		}
 		if len(snap.UsageFacts) > 0 {
 			other.SetPublic("usage_facts", snap.UsageFacts)
 		}
@@ -194,6 +197,9 @@ func taskBillingOther(task *model.Task) *model.LogOther {
 			other.SetPublic("billing_mode", "tiered_expr")
 			other.SetPublic("expr_b64", base64.StdEncoding.EncodeToString([]byte(snap.ExprString)))
 			other.SetPublic("matched_tier", snap.EstimatedTier)
+			if snap.BillingGroup != "" {
+				other.SetPublic("billing_group", snap.BillingGroup)
+			}
 			if len(snap.UsageFacts) > 0 {
 				other.SetPublic("usage_facts", snap.UsageFacts)
 			}
@@ -472,7 +478,7 @@ func EvaluateTaskCompletionUsage(snap *billingexpr.BillingSnapshot, facts map[st
 	usage := make(map[string]any, len(snap.UsageFacts)+len(facts))
 	maps.Copy(usage, snap.UsageFacts)
 	maps.Copy(usage, facts)
-	result, err := billingexpr.ComputeTieredQuotaWithRequest(snap, billingexpr.TokenParams{}, billingexpr.RequestInput{Usage: usage})
+	result, err := billingexpr.ComputeTieredQuotaWithRequest(snap, billingexpr.TokenParams{}, billingexpr.RequestInput{Usage: usage, ExpressionGroup: snap.BillingGroup})
 	if err == nil && (result.ActualQuotaBeforeGroup < 0 || math.IsNaN(result.ActualQuotaBeforeGroup)) {
 		err = fmt.Errorf("task completion expression produced an invalid cost")
 	}

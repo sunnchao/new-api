@@ -60,6 +60,7 @@ export function CachedPriceCell(props: {
         priceRate,
         usdExchangeRate,
         groupRatioMultiplier: getDynamicDisplayGroupRatio(model, selectedGroup),
+        group: selectedGroup || 'default',
       }),
     // Currency is read indirectly by the price formatter.
     // eslint-disable-next-line react-hooks/exhaustive-deps

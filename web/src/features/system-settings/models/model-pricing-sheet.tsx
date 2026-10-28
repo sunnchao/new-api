@@ -86,8 +86,10 @@ import {
   generateTaskExprFromConfig,
 } from '@/features/pricing/lib/task-expr'
 import type { BillingUsageSchema } from '@/features/pricing/types'
+import { getGroups } from '@/features/users/api'
 import { useDebounce } from '@/hooks/use-debounce'
 import { handleServerError } from '@/lib/handle-server-error'
+import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 import { usePricingPreferencesStore } from '@/stores/pricing-preferences-store'
 import { useSystemConfigStore } from '@/stores/system-config-store'
@@ -264,7 +266,17 @@ export const ModelPricingEditorPanel = forwardRef<
   const initialBillingExpr =
     editData?.billingExpr ||
     (initialPricingMode === 'tiered_expr' ? DEFAULT_TOKEN_BILLING_EXPR : '')
-  const { models: pricingModels } = usePricingData()
+  const { models: pricingModels, groupRatio } = usePricingData()
+  const { data: groupData } = useQuery({
+    queryKey: ['groups'],
+    queryFn: async () => requireServerSuccess(await getGroups()),
+  })
+  const availableGroups = useMemo(() => {
+    const groups = groupData?.data?.length
+      ? groupData.data
+      : Object.keys(groupRatio)
+    return groups.filter((name) => name && name !== 'auto')
+  }, [groupData, groupRatio])
 
   const form = useForm<ModelPricingFormValues>({
     resolver: zodResolver(createModelPricingSchema(t)),
@@ -849,6 +861,7 @@ export const ModelPricingEditorPanel = forwardRef<
         requestRuleExpr={requestRuleExpr}
         usageSchema={taskUsageSchema}
         usageExamples={taskUsageExamples}
+        availableGroups={availableGroups}
         onBillingExprChange={setBillingExpr}
         onRequestRuleExprChange={setRequestRuleExpr}
       />
@@ -957,6 +970,7 @@ export const ModelPricingEditorPanel = forwardRef<
                     pricingMode === 'tiered_expr' ? 'tiered_expr' : 'ratio'
                   }
                   currency={currency}
+                  availableGroups={availableGroups}
                   ordinaryPricing={!usesTaskPricing}
                   onConfigureOrdinaryPricing={configureOrdinaryPricing}
                 >

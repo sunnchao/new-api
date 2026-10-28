@@ -291,6 +291,21 @@ describe('local billing expression evaluation', () => {
     expect(readTokenTierChain(compiled.ast)).toBeNull()
   })
 
+  test('resolves group branches from the simulation context', () => {
+    const expression = 'group() == "vip" ? tier("vip", 5) : tier("base", 7)'
+    expect(
+      evaluateBillingExpression(expression, { group: 'vip' })
+    ).toMatchObject({ status: 'success', cost: 5, matchedTier: 'vip' })
+    expect(
+      evaluateBillingExpression(expression, { group: 'default' })
+    ).toMatchObject({ status: 'success', cost: 7, matchedTier: 'base' })
+    expect(evaluateBillingExpression(expression)).toMatchObject({
+      status: 'success',
+      cost: 7,
+      matchedTier: 'base',
+    })
+  })
+
   test('distinguishes unknown requests from explicitly empty requests', () => {
     const expression = 'param("priority") == nil ? 2 : 3'
     expect(evaluateBillingExpression(expression).status).toBe('missing_context')

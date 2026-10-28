@@ -1169,6 +1169,25 @@ function ProviderGroupPricingSection(
             props.model.billing_usage_schema
         )
         : getDynamicPricingTiers(props.model)
+    const taskTiersByGroup = props.model.billing_usage_schema
+      ? new Map(
+          availableGroups.map((group) => [
+            group,
+            getTaskPricingDisplayTiers(
+              props.model.billing_expr,
+              props.model.billing_usage_schema,
+              group
+            ),
+          ])
+        )
+      : null
+    const allTaskTiers = taskTiersByGroup
+      ? [...taskTiersByGroup.values()].flat()
+      : []
+    const tierRowsForGroup = (group: string) => {
+      const tiers = taskTiersByGroup?.get(group)
+      return tiers?.length ? tiers : dynamicTiers
+    }
     const hasRequestPrice = dynamicTiers.some(
         (tier) => !('unitPrices' in tier) && tier.billingUnit === 'request'
     )
@@ -1244,7 +1263,20 @@ function ProviderGroupPricingSection(
       props.model.billing_usage_schema,
       props.model.billing_usage_examples
     )
-    const priceFields = getDynamicPriceFields(dynamicTiers, {
+    const usageExampleRowsByGroup = taskTiersByGroup
+      ? new Map(
+          availableGroups.map((group) => [
+            group,
+            evaluateTaskUsageExamples(
+              props.model.billing_expr,
+              props.model.billing_usage_schema,
+              props.model.billing_usage_examples,
+              group
+            ),
+          ])
+        )
+      : null
+    const priceFields = getDynamicPriceFields([...dynamicTiers, ...allTaskTiers], {
       tokenUnit: props.tokenUnit,
       showRechargePrice,
       priceRate: props.priceRate,
@@ -1257,7 +1289,7 @@ function ProviderGroupPricingSection(
         const ratio = props.groupRatio[group] || 1
         return [
           group,
-          getDynamicFormattedPricesByTier(dynamicTiers, {
+          getDynamicFormattedPricesByTier(tierRowsForGroup(group), {
             tokenUnit: props.tokenUnit,
             showRechargePrice,
             priceRate: props.priceRate,
@@ -1289,6 +1321,9 @@ function ProviderGroupPricingSection(
             }
 
             const ratio = props.groupRatio[group] || 1
+            const groupTiers = tierRowsForGroup(group)
+            const groupUsageExampleRows =
+              usageExampleRowsByGroup?.get(group) ?? usageExampleRows
             const formattedPricesByTier =
               formattedPricesByGroup.get(group) ??
               new Map<DynamicPricingTier, Map<string, string>>()
@@ -1305,7 +1340,7 @@ function ProviderGroupPricingSection(
                   className='rounded-none border-0'
                   tableClassName='text-sm'
                   headerRowClassName='hover:bg-transparent'
-                  data={dynamicTiers}
+                  data={groupTiers}
                   getRowKey={(tier, tierIndex) =>
                     `${group}-${tier.label}-${tierIndex}`
                   }
@@ -1331,7 +1366,7 @@ function ProviderGroupPricingSection(
                                     t
                                   ) ||
                                   t(
-                                    dynamicTiers.length > 1
+                                    groupTiers.length > 1
                                       ? 'Other cases'
                                       : 'All requests'
                                   )
@@ -1375,7 +1410,7 @@ function ProviderGroupPricingSection(
                         ),
                         className: `${thClass} text-right`,
                         cellClassName: 'py-2.5 text-right font-mono',
-                        cell: (tier: (typeof dynamicTiers)[number]) =>
+                        cell: (tier: (typeof groupTiers)[number]) =>
                           formattedPricesByTier
                             .get(tier)
                             ?.get(fieldEntry.field) ?? '-',
@@ -1383,7 +1418,7 @@ function ProviderGroupPricingSection(
                     }),
                   ]}
                 />
-                {usageExampleRows.length > 0 ? (
+                {groupUsageExampleRows.length > 0 ? (
                   <div className='border-t'>
                     <div className='text-muted-foreground px-3 pt-2 text-[10px] font-medium tracking-wider uppercase'>
                       {t('Price examples')}
@@ -1392,7 +1427,7 @@ function ProviderGroupPricingSection(
                       className='rounded-none border-0'
                       tableClassName='text-sm'
                       headerRowClassName='hover:bg-transparent'
-                      data={usageExampleRows}
+                      data={groupUsageExampleRows}
                       getRowKey={(row) => `${group}-${row.label}`}
                       columns={[
                         {
@@ -1427,7 +1462,7 @@ function ProviderGroupPricingSection(
             )
           })}
           <p className='text-muted-foreground/40 mt-1.5 text-[10px]'>
-            {dynamicTiers.some(
+            {[...dynamicTiers, ...allTaskTiers].some(
               (tier) => 'unitPrices' in tier || tier.billingUnit === 'request'
             )
               ? t('Prices shown per usage unit')

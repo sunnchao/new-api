@@ -89,9 +89,14 @@ type DynamicPricingBreakdownProps = {
    */
   compact?: boolean
   usageSchema?: BillingUsageSchema
+  /** Billing group used to resolve group() branches in task expressions. */
+  group?: string
   taskPriceOptions?: Pick<
     DynamicPriceOptions,
-    'showRechargePrice' | 'priceRate' | 'usdExchangeRate'
+    | 'showRechargePrice'
+    | 'priceRate'
+    | 'usdExchangeRate'
+    | 'groupRatioMultiplier'
   >
   /**
    * Settlement usage facts from the consume log. Used to highlight the
@@ -308,6 +313,7 @@ export function DynamicPricingBreakdown({
   hideCacheColumns = false,
   compact = false,
   usageSchema,
+  group,
   taskPriceOptions,
   usageFacts,
 }: DynamicPricingBreakdownProps) {
@@ -331,7 +337,7 @@ export function DynamicPricingBreakdown({
   const { tiers, ruleGroups } = useMemo(() => {
     const split = splitBillingExprAndRequestRules(expr)
     const parsedTiers = usageSchema
-      ? getTaskPricingDisplayTiers(split.billingExpr, usageSchema)
+      ? getTaskPricingDisplayTiers(split.billingExpr, usageSchema, group)
       : parseTiersFromExpr(split.billingExpr)
     let parsedRules =
       requestRules != null
@@ -353,7 +359,7 @@ export function DynamicPricingBreakdown({
       tiers: parsedTiers,
       ruleGroups: parsedRules || [],
     }
-  }, [expr, usageSchema, requestRules])
+  }, [expr, usageSchema, requestRules, group])
 
   const hasTiers = tiers.length > 0
   const hasRules = ruleGroups.length > 0

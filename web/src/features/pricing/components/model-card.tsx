@@ -83,6 +83,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
         props.model,
         props.selectedGroup
       ),
+      group: props.selectedGroup || 'default',
     }),
     [
       props.model,
@@ -100,6 +101,8 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.model, dynamicPriceOptions, currency]
   )
+  const additionalChargeEntry =
+    dynamicSummary?.entries.find((entry) => entry.field === 'constant') ?? null
   const cardExamplePrice = useMemo(
     () => getCardExamplePrice(props.model, dynamicPriceOptions),
     // Currency is read indirectly by the price formatter.
@@ -124,7 +127,8 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
       )
     } else if (
       dynamicSummary.primaryEntries.length > 0 ||
-      cacheReadEntries.length > 0
+      cacheReadEntries.length > 0 ||
+      additionalChargeEntry
     ) {
       priceSummary = (
         <>
@@ -176,6 +180,12 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                 </div>
               )
             })}
+          {additionalChargeEntry && (
+            <span className='text-muted-foreground col-span-full text-xs break-words'>
+              {t('Additional charge')}: {additionalChargeEntry.formatted} /{' '}
+              {t('request')}
+            </span>
+          )}
           {dynamicSummary.isTimePricing && (
             <span className='text-muted-foreground col-span-full text-xs'>
               {t('Current period price')}

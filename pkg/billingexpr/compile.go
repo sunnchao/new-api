@@ -145,6 +145,7 @@ var compileEnvPrototypeV1 = map[string]any{
 	"header":      func(string) string { return "" },
 	"param":       func(string) any { return nil },
 	"u":           func(string) any { return nil },
+	"group":       func() string { return "" },
 	"has":         func(any, string) bool { return false },
 	"hour":        func(string) int { return 0 },
 	"minute":      func(string) int { return 0 },

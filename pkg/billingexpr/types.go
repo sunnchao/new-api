@@ -18,6 +18,9 @@ type RequestInput struct {
 	// It is supplied by the model's plugin billing policy; empty means request.
 	FixedPriceUnit string
 	UsingGroup     string
+	// ExpressionGroup feeds group() without enabling token_group request rules
+	// on task expressions that never received a group before.
+	ExpressionGroup string
 }
 
 const (
@@ -78,6 +81,7 @@ type BillingSnapshot struct {
 	ExprString                string         `json:"expr_string"`
 	ExprHash                  string         `json:"expr_hash"`
 	GroupRatio                float64        `json:"group_ratio"`
+	BillingGroup              string         `json:"billing_group,omitempty"`
 	EstimatedPromptTokens     int            `json:"estimated_prompt_tokens"`
 	EstimatedCompletionTokens int            `json:"estimated_completion_tokens"`
 	PreConsumeMultiplier      float64        `json:"pre_consume_multiplier,omitempty"` // Reservation only; zero in older snapshots means 1.

@@ -401,7 +401,8 @@ function checkExpressionTypes(ast: ExpressionNode): void {
       if (['param', 'header', 'u', ...TIME_FUNCTIONS].includes(node.name)) {
         requireType(node.args[0], 'string')
       }
-      if (node.name === 'header') result = 'string'
+      if (node.name === 'group') result = 'string'
+      else if (node.name === 'header') result = 'string'
       else if (node.name === 'has') {
         requireType(node.args[1], 'string')
         result = 'boolean'

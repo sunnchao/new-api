@@ -109,3 +109,20 @@ func TestSmokeTestExprRejectsTaskUsageWithoutSchema(t *testing.T) {
 
 	require.NoError(t, SmokeTestExpr(`tier("base", p * 2 + c * 8)`))
 }
+
+func TestSmokeTestTaskExprAcceptsGroupBranches(t *testing.T) {
+	schema := map[string]jsplugin.UsageFieldSchema{
+		"image_count":  {Type: "number", Unit: "count"},
+		"input_images": {Type: "number", Unit: "count"},
+		"resolution":   {Enum: []string{"1k", "1.5k", "2k"}},
+		"quality":      {Enum: []string{"low", "medium"}},
+	}
+	expression := `group() == "vip"
+		? (u("resolution") == "2k" && u("quality") == "medium"
+			? tier("vip-2k-medium", u("image_count") * 0.05 + u("input_images") * 0.01)
+			: tier("vip", u("image_count") * 0.02 + u("input_images") * 0.01))
+		: (u("resolution") == "2k" && u("quality") == "medium"
+			? tier("base-2k-medium", u("image_count") * 0.07 + u("input_images") * 0.02)
+			: tier("base", u("image_count") * 0.03 + u("input_images") * 0.02))`
+	require.NoError(t, SmokeTestTaskExpr(expression, schema))
+}

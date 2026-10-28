@@ -53,6 +53,7 @@ export type DynamicPriceOptions = {
   usdExchangeRate?: number
   groupRatioMultiplier?: number
   usageSchema?: BillingUsageSchema
+  group?: string
   now?: Date
 }
 
@@ -247,11 +248,12 @@ export function formatTaskUsageUnitPrice(
 }
 
 export function getDynamicPricingTiers(
-  model: PricingModel
+  model: PricingModel,
+  options?: DynamicPriceOptions
 ): DynamicPricingTier[] {
   if (model.billing_plugin_variants?.length) {
     return model.billing_plugin_variants.flatMap((variant) =>
-      getDynamicPricingTiers(withPluginPricing(model, variant))
+      getDynamicPricingTiers(withPluginPricing(model, variant), options)
     )
   }
   if (!isDynamicPricingModel(model)) return []
@@ -259,7 +261,11 @@ export function getDynamicPricingTiers(
     model.billing_expr || ''
   )
   if (isTaskUsagePricingModel(model)) {
-    return getTaskPricingDisplayTiers(billingExpr, model.billing_usage_schema)
+    return getTaskPricingDisplayTiers(
+      billingExpr,
+      model.billing_usage_schema,
+      options?.group ?? ''
+    )
   }
   return parseTiersFromExpr(billingExpr)
 }
@@ -498,7 +504,7 @@ export function getDynamicPricingSummary(
   }
   if (!isDynamicPricingModel(model)) return null
 
-  const tiers = getDynamicPricingTiers(model)
+  const tiers = getDynamicPricingTiers(model, options)
   const isTaskUsage = isTaskUsagePricingModel(model)
   const baseExpression = splitBillingExprAndRequestRules(
     model.billing_expr || ''
@@ -616,7 +622,7 @@ export function getCardExamplePrice(
   const { billingExpr } = splitBillingExprAndRequestRules(
     model.billing_expr || ''
   )
-  const config = tryParseTaskVisualConfig(billingExpr, schema)
+  const config = tryParseTaskVisualConfig(billingExpr, schema, options.group)
   if (!config) return null
 
   const result = evaluateTaskVisualConfig(config, firstExample.facts, schema)

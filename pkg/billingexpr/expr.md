@@ -172,6 +172,7 @@ OpenAI 已于 2026-05-12 下线 DALL·E 2/3；其校验、默认值和倍率保�
 | `fixed` | `fixed(amount) → float64` | A USD price per request, used only as the complete price in `tier(name, fixed(amount))` |
 | `param` | `param(path) → any` | Reads a JSON path from the request body (uses gjson) |
 | `header` | `header(key) → string` | Reads a request header value |
+| `group` | `group() → string` | Resolved billing group, for group-specific tiers |
 | `has` | `has(source, substr) → bool` | Substring check |
 | `hour` | `hour(tz) → int` | Current hour in timezone (0-23) |
 | `minute` | `minute(tz) → int` | Current minute (0-59) |
@@ -294,6 +295,12 @@ must be declared by the plugin schema before the expression can be saved. A
 single-plugin model's unchanged stored expression, and its unchanged provider
 override, stay saveable after the plugin narrows the model's profile; any edit
 must follow the current profile.
+
+`group()` returns the billing group resolved for the request, including the
+final auto group. Use it to select group-specific task tiers, for example
+`group() == "vip" ? tier("vip", u("seconds") * 0.5) : tier("base", u("seconds") * 0.4)`.
+The selected group is stored in the billing snapshot and reused for completion
+settlement.
 
 Multiple plugins may serve the same model with different usage schemas. The
 executing channel identifies the plugin; clients do not select a billing

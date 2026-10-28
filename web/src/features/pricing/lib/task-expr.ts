@@ -190,10 +190,11 @@ export function taskMatrixToTiers(
 
 export function tryParseTaskMatrixConfig(
   expression: string | null | undefined,
-  schema: BillingUsageSchema
+  schema: BillingUsageSchema,
+  group = ''
 ): TaskMatrixConfig | null {
   if (!expression) return null
-  const tiers = parseTaskTiersFromExpr(expression, schema)
+  const tiers = parseTaskTiersFromExpr(expression, schema, false, group)
   if (tiers.length === 0) return null
 
   const numberFields = getTaskNumberFields(schema)
@@ -289,11 +290,12 @@ export function evaluateTaskVisualConfig(
 export function evaluateTaskUsageExamples(
   expression: string | null | undefined,
   schema: BillingUsageSchema | null | undefined,
-  examples: BillingUsageExample[] | null | undefined
+  examples: BillingUsageExample[] | null | undefined,
+  group = ''
 ): { label: string; total: number }[] {
   if (!expression || !schema || !examples?.length) return []
   const { billingExpr } = splitBillingExprAndRequestRules(expression)
-  const config = tryParseTaskVisualConfig(billingExpr, schema)
+  const config = tryParseTaskVisualConfig(billingExpr, schema, group)
   if (!config) return []
   const rows: { label: string; total: number }[] = []
   for (const example of examples) {
@@ -403,10 +405,11 @@ export function generateTaskExprFromConfig(
 
 export function tryParseTaskVisualConfig(
   expression: string | null | undefined,
-  schema: BillingUsageSchema
+  schema: BillingUsageSchema,
+  group = ''
 ): TaskVisualConfig | null {
   if (!expression) return null
-  const tiers = parseTaskTiersFromExpr(expression, schema)
+  const tiers = parseTaskTiersFromExpr(expression, schema, false, group)
   if (tiers.length === 0) return null
   return normalizeTaskVisualConfig(
     {

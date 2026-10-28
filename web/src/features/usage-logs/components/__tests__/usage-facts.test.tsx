@@ -58,6 +58,7 @@ function makeLog(other: LogOtherData): UsageLog {
     token_id: 1,
     group: 'default',
     ip: '',
+    request_ip: '',
     other: JSON.stringify(other),
     request_id: 'req-1',
     upstream_request_id: '',
@@ -274,4 +275,67 @@ describe('usage facts billing details', () => {
     expect(screen.queryByText('seconds')).toBeNull()
     expect(screen.getByText('Total Cost')).toBeInTheDocument()
   })
+})
+
+test('resolves the log billing group and additional charge in the breakdown', () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  const freshAt = Date.now() + 60_000
+  queryClient.setQueryData(['status'], {}, { updatedAt: freshAt })
+  queryClient.setQueryData(
+    ['pricing'],
+    {
+      data: [
+        {
+          model_name: 'grok-imagine-image-2.0',
+          billing_usage_schema: {
+            image_count: {
+              type: 'number',
+              unit: 'count',
+              unitLabel: { en: 'image', zh: '张' },
+            },
+            input_images: {
+              type: 'number',
+              unit: 'count',
+              unitLabel: { en: 'image', zh: '张' },
+            },
+            resolution: { enum: ['1k', '2k'] },
+          },
+        },
+      ],
+      vendors: [],
+    },
+    { updatedAt: freshAt }
+  )
+  const expression =
+    'group() == "default" ? tier("default-1k", u("image_count") * 0.04) : (group() == "token_plan" ? tier("token_plan-1k", 1 + u("image_count") * 0.04) : tier("other-1k", u("image_count") * 0.06))'
+
+  render(
+    <QueryClientProvider client={queryClient}>
+      <DetailsDialog
+        log={{
+          ...makeLog({
+            billing_mode: 'tiered_expr',
+            billing_group: 'token_plan',
+            group_ratio: 2,
+            expr_b64: Buffer.from(expression, 'utf8').toString('base64'),
+            matched_tier: 'token_plan-1k',
+            usage_facts: { image_count: 1, resolution: '1k' },
+          }),
+          model_name: 'grok-imagine-image-2.0',
+          group: 'token_plan',
+        }}
+        isAdmin={false}
+        isRoot={false}
+        open
+        onOpenChange={() => undefined}
+      />
+    </QueryClientProvider>
+  )
+
+  expect(screen.getAllByText('Additional charge').length).toBeGreaterThan(0)
+  expect(screen.getAllByText('$2/request').length).toBeGreaterThan(0)
+  expect(screen.getAllByText('$0.08/image').length).toBeGreaterThan(0)
+  queryClient.clear()
 })

@@ -1,0 +1,302 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import type { BillingUsageSchema } from '../types'
+import {
+  parseTaskTiersFromExpr,
+  splitBillingExprAndRequestRules,
+} from './billing-expr'
+import { compileBillingExpression } from './billing-expression/parser'
+import type { ExpressionNode } from './billing-expression/types'
+import {
+  generateTaskExprFromConfig,
+  taskMatrixRowLabel,
+  taskMatrixToTiers,
+  tryParseTaskMatrixConfig,
+  type TaskMatrixConfig,
+  type TaskMatrixRow,
+  type TaskVisualTier,
+} from './task-expr'
+
+export type TaskGroupPricingMode = 'price' | 'multiplier'
+
+/** `multiplier` is only meaningful in multiplier mode. */
+export type TaskGroupPricingRow = TaskMatrixRow & { multiplier: number }
+
+export type TaskGroupPricingOverride = {
+  mode: TaskGroupPricingMode
+  rows: TaskGroupPricingRow[]
+}
+
+export type TaskGroupPricingConfig = {
+  base: TaskMatrixConfig
+  groups: Record<string, TaskGroupPricingOverride>
+}
+
+const MULTIPLIER_LABEL = /^×([0-9]+(?:\.[0-9]+)?) · /
+
+export function roundTaskGroupPrice(value: number): number {
+  return Number(value.toFixed(12))
+}
+
+function cloneRow(row: TaskMatrixRow): TaskMatrixRow {
+  return {
+    combination: { ...row.combination },
+    constant: row.constant,
+    unitPrices: { ...row.unitPrices },
+  }
+}
+
+export function cloneTaskGroupPricingRows(
+  rows: TaskMatrixRow[]
+): TaskGroupPricingRow[] {
+  return rows.map((row) => ({ ...cloneRow(row), multiplier: 1 }))
+}
+
+function rowKey(row: TaskMatrixRow): string {
+  return Object.entries(row.combination)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([field, value]) => `${field}=${value}`)
+    .join('|')
+}
+
+function scaleRow(row: TaskMatrixRow, multiplier: number): TaskMatrixRow {
+  return {
+    combination: { ...row.combination },
+    constant: roundTaskGroupPrice(row.constant * multiplier),
+    unitPrices: Object.fromEntries(
+      Object.entries(row.unitPrices).map(([field, value]) => [
+        field,
+        roundTaskGroupPrice(value * multiplier),
+      ])
+    ),
+  }
+}
+
+function rowMatches(
+  left: TaskMatrixRow,
+  right: TaskMatrixRow,
+  multiplier: number
+): boolean {
+  const expected = scaleRow(left, multiplier)
+  if (rowKey(expected) !== rowKey(right)) return false
+  if (Math.abs(expected.constant - right.constant) > 1e-9) return false
+  const fields = new Set([
+    ...Object.keys(expected.unitPrices),
+    ...Object.keys(right.unitPrices),
+  ])
+  for (const field of fields) {
+    if (
+      Math.abs(
+        (expected.unitPrices[field] ?? 0) - (right.unitPrices[field] ?? 0)
+      ) > 1e-9
+    ) {
+      return false
+    }
+  }
+  return true
+}
+
+function groupConditionName(node: ExpressionNode): string | null {
+  if (node.kind !== 'binary' || node.operator !== '==') return null
+  const [probe, literal] =
+    node.left.kind === 'call' && node.left.name === 'group'
+      ? [node.left, node.right]
+      : [node.right, node.left]
+  if (
+    probe.kind !== 'call' ||
+    probe.name !== 'group' ||
+    probe.args.length !== 0 ||
+    literal.kind !== 'literal' ||
+    typeof literal.value !== 'string'
+  ) {
+    return null
+  }
+  const group = literal.value.trim()
+  return group || null
+}
+
+function splitGroupBranches(
+  expression: string
+): { base: string; groups: { name: string; source: string }[] } | null {
+  const compiled = compileBillingExpression(expression)
+  if (compiled.status !== 'ready') return null
+  const branches: { name: string; source: string }[] = []
+  let node = compiled.ast
+  while (node.kind === 'conditional') {
+    const name = groupConditionName(node.condition)
+    if (!name) break
+    branches.push({
+      name,
+      source: expression.slice(node.yes.start, node.yes.end),
+    })
+    node = node.no
+  }
+  return {
+    base: expression.slice(node.start, node.end),
+    groups: branches,
+  }
+}
+
+function multiplierFromLabels(labels: string[]): number[] | null {
+  if (labels.length === 0) return null
+  const multipliers: number[] = []
+  for (const label of labels) {
+    const match = label.match(MULTIPLIER_LABEL)
+    if (!match) return null
+    const value = Number(match[1])
+    if (!Number.isFinite(value) || value <= 0) return null
+    multipliers.push(roundTaskGroupPrice(value))
+  }
+  return multipliers
+}
+
+/**
+ * Parses the group branches generated by this module. A branch is a normal
+ * canonical task matrix; multiplier mode additionally marks every tier label
+ * with its multiplier and stores the effective prices in the body.
+ */
+export function parseTaskGroupPricingConfig(
+  expression: string | null | undefined,
+  schema: BillingUsageSchema
+): TaskGroupPricingConfig | null {
+  if (!expression || !schema) return null
+  const { billingExpr } = splitBillingExprAndRequestRules(expression)
+  const split = splitGroupBranches(billingExpr)
+  if (!split) return null
+  const base = tryParseTaskMatrixConfig(split.base, schema)
+  if (!base) return null
+
+  const groups: Record<string, TaskGroupPricingOverride> = {}
+  for (const branch of split.groups) {
+    if (Object.hasOwn(groups, branch.name)) return null
+    const matrix = tryParseTaskMatrixConfig(branch.source, schema)
+    if (!matrix || matrix.rows.length !== base.rows.length) return null
+    const tiers = parseTaskTiersFromExpr(branch.source, schema)
+    const multipliers = multiplierFromLabels(tiers.map((tier) => tier.label))
+    if (multipliers && multipliers.length === matrix.rows.length) {
+      const matches = matrix.rows.every((row, index) =>
+        rowMatches(base.rows[index], row, multipliers[index])
+      )
+      if (matches) {
+        groups[branch.name] = {
+          mode: 'multiplier',
+          rows: cloneTaskGroupPricingRows(base.rows).map((row, index) => ({
+            ...row,
+            multiplier: multipliers[index],
+          })),
+        }
+        continue
+      }
+    }
+    groups[branch.name] = {
+      mode: 'price',
+      rows: matrix.rows.map((row) => ({ ...cloneRow(row), multiplier: 1 })),
+    }
+  }
+  return { base, groups }
+}
+
+function groupTierLabel(
+  group: string,
+  row: TaskMatrixRow,
+  multiplier: number | null
+): string {
+  const rowLabel = taskMatrixRowLabel(row.combination)
+  const name = `${group}·${rowLabel}`
+  return multiplier === null
+    ? name
+    : `×${roundTaskGroupPrice(multiplier)} · ${name}`
+}
+
+function groupTiers(
+  group: string,
+  rows: TaskMatrixRow[],
+  multipliers: number[] | null
+): TaskVisualTier[] {
+  return rows.map((row, index) => ({
+    label: groupTierLabel(
+      group,
+      row,
+      multipliers === null ? null : multipliers[index]
+    ),
+    conditions:
+      index === rows.length - 1
+        ? []
+        : Object.entries(row.combination)
+            .sort(([left], [right]) => left.localeCompare(right))
+            .map(([field, value]) => ({ field, value })),
+    constant: row.constant,
+    unitPrices: { ...row.unitPrices },
+  }))
+}
+
+function generateGroupBranch(
+  group: string,
+  override: TaskGroupPricingOverride,
+  baseRows: TaskMatrixRow[],
+  schema: BillingUsageSchema
+): string {
+  const rowsByKey = new Map(
+    override.rows.map((row) => [rowKey(row), row] as const)
+  )
+  const rows = baseRows.map(
+    (baseRow) =>
+      rowsByKey.get(rowKey(baseRow)) ?? { ...cloneRow(baseRow), multiplier: 1 }
+  )
+  if (override.mode === 'multiplier') {
+    const multipliers = rows.map((row) => row.multiplier ?? 1)
+    const effectiveRows = rows.map((row, index) =>
+      scaleRow(row, multipliers[index])
+    )
+    return generateTaskExprFromConfig(
+      {
+        tiers: groupTiers(group, effectiveRows, multipliers),
+      },
+      schema
+    )
+  }
+  return generateTaskExprFromConfig(
+    {
+      tiers: groupTiers(group, rows, null),
+    },
+    schema
+  )
+}
+
+export function generateTaskGroupPricingExpr(
+  config: TaskGroupPricingConfig,
+  schema: BillingUsageSchema
+): string {
+  const baseExpr = generateTaskExprFromConfig(
+    { tiers: taskMatrixToTiers(config.base, schema) },
+    schema
+  )
+  if (!baseExpr) return ''
+
+  const names = Object.keys(config.groups).sort()
+  let expression = baseExpr
+  for (const name of names.reverse()) {
+    const override = config.groups[name]
+    if (!override.rows.length) continue
+    const branch = generateGroupBranch(name, override, config.base.rows, schema)
+    if (!branch) continue
+    expression = `group() == ${JSON.stringify(name)} ? (${branch}) : (${expression})`
+  }
+  return expression
+}

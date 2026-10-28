@@ -1256,6 +1256,10 @@ export function DetailsDialog(props: DetailsDialogProps) {
               requestRules={other.request_rules}
               hideCacheColumns={!hasAnyCacheTokens(other)}
               usageSchema={billingUsageSchema}
+              group={other.billing_group || props.log.group}
+              taskPriceOptions={{
+                groupRatioMultiplier: other.group_ratio,
+              }}
               usageFacts={other.usage_facts}
             />
           </DetailSection>

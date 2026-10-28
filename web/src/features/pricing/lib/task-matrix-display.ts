@@ -38,12 +38,13 @@ import {
  */
 export function getTaskMatrixDisplayTiers(
   expression: string | null | undefined,
-  schema: BillingUsageSchema | null | undefined
+  schema: BillingUsageSchema | null | undefined,
+  group = ''
 ): ParsedTaskTier[] | null {
   if (!schema) return null
   if (getTaskEnumFields(schema).length === 0) return null
 
-  const matrix = tryParseTaskMatrixConfig(expression, schema)
+  const matrix = tryParseTaskMatrixConfig(expression, schema, group)
   if (!matrix) return null
 
   return matrix.rows.map((row) => ({
@@ -62,9 +63,10 @@ export function getTaskMatrixDisplayTiers(
  */
 export function getTaskPricingDisplayTiers(
   expression: string | null | undefined,
-  schema: BillingUsageSchema | null | undefined
+  schema: BillingUsageSchema | null | undefined,
+  group = ''
 ): ParsedTaskTier[] {
-  const tiers = readTaskPricingTiers(expression, schema)
+  const tiers = readTaskPricingTiers(expression, schema, group)
   const pricedFields = new Set(
     tiers.flatMap((tier) =>
       Object.keys(tier.unitPrices).filter((field) => tier.unitPrices[field] > 0)
@@ -86,9 +88,10 @@ export function getTaskPricingDisplayTiers(
  */
 function readTaskPricingTiers(
   expression: string | null | undefined,
-  schema: BillingUsageSchema | null | undefined
+  schema: BillingUsageSchema | null | undefined,
+  group = ''
 ): ParsedTaskTier[] {
-  const tiers = parseTaskTiersFromExpr(expression || '', schema, true)
+  const tiers = parseTaskTiersFromExpr(expression || '', schema, true, group)
   if (tiers.length === 0 && expression && schema) {
     const { billingExpr } = splitBillingExprAndRequestRules(expression)
     return readConditionalTaskPricing(billingExpr, schema) ?? []

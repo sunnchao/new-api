@@ -470,6 +470,8 @@ class BillingRuntime {
           : null
         return { value }
       }
+      case 'group':
+        return { value: (this.context.group ?? '').trim() }
       case 'has': {
         const source = this.evaluate(args[0]).value
         const substring = this.string(args[1])

@@ -58,11 +58,16 @@ import {
   getTaskEnumFields,
   getTaskNumberFields,
   taskMatrixToTiers,
-  tryParseTaskMatrixConfig,
   tryParseTaskVisualConfig,
   type TaskMatrixRow,
   type TaskVisualConfig,
 } from '@/features/pricing/lib/task-expr'
+import {
+  generateTaskGroupPricingExpr,
+  parseTaskGroupPricingConfig,
+  type TaskGroupPricingConfig,
+  type TaskGroupPricingOverride,
+} from '@/features/pricing/lib/task-group-expr'
 import {
   taskPriceLabel,
   taskUsageUnitLabel,
@@ -76,6 +81,7 @@ import type {
 
 import { formatPricingNumber } from './pricing-format'
 import { RequestSimulation } from './request-simulation'
+import { TaskGroupPricingEditor } from './task-group-pricing-editor'
 import { TaskPricingMatrix } from './task-pricing-matrix'
 
 type TaskUsagePricingEditorProps = {
@@ -84,6 +90,7 @@ type TaskUsagePricingEditorProps = {
   requestRuleExpr: string
   usageSchema: BillingUsageSchema
   usageExamples?: BillingUsageExample[]
+  availableGroups?: string[]
   onBillingExprChange: (next: string) => void
   onRequestRuleExprChange: (next: string) => void
 }
@@ -280,19 +287,20 @@ export const TaskUsagePricingEditor = memo(function TaskUsagePricingEditor(
   props: TaskUsagePricingEditorProps
 ) {
   const { t, i18n } = useTranslation()
-  const [editorMode, setEditorMode] = useState<EditorMode>(() =>
-    props.billingExpr &&
-    !tryParseTaskMatrixConfig(props.billingExpr, props.usageSchema)
-      ? 'raw'
-      : 'visual'
+  const [initialConfig] = useState(() =>
+    parseTaskGroupPricingConfig(props.billingExpr, props.usageSchema)
   )
-  const [matrixRows, setMatrixRows] = useState<TaskMatrixRow[]>(() => {
-    const parsed = tryParseTaskMatrixConfig(
-      props.billingExpr,
-      props.usageSchema
-    )
-    return (parsed ?? createDefaultTaskMatrixConfig(props.usageSchema)).rows
-  })
+  const [editorMode, setEditorMode] = useState<EditorMode>(() =>
+    props.billingExpr && !initialConfig ? 'raw' : 'visual'
+  )
+  const [matrixRows, setMatrixRows] = useState<TaskMatrixRow[]>(
+    () =>
+      (initialConfig?.base ?? createDefaultTaskMatrixConfig(props.usageSchema))
+        .rows
+  )
+  const [groupOverrides, setGroupOverrides] = useState<
+    Record<string, TaskGroupPricingOverride>
+  >(() => initialConfig?.groups ?? {})
   const [confirmVisualSwitch, setConfirmVisualSwitch] = useState(false)
   const [rawExpr, setRawExpr] = useState(() =>
     combineBillingExpr(props.billingExpr, props.requestRuleExpr)
@@ -343,16 +351,22 @@ export const TaskUsagePricingEditor = memo(function TaskUsagePricingEditor(
     previewRequestRuleExpr = split.requestRuleExpr
   }
 
+  const publishConfig = (config: TaskGroupPricingConfig) => {
+    props.onBillingExprChange(
+      generateTaskGroupPricingExpr(config, props.usageSchema)
+    )
+  }
+
   const publishRows = (nextRows: TaskMatrixRow[]) => {
     setMatrixRows(nextRows)
-    props.onBillingExprChange(
-      generateTaskExprFromConfig(
-        {
-          tiers: taskMatrixToTiers({ rows: nextRows }, props.usageSchema),
-        },
-        props.usageSchema
-      )
-    )
+    publishConfig({ base: { rows: nextRows }, groups: groupOverrides })
+  }
+
+  const handleGroupOverridesChange = (
+    next: Record<string, TaskGroupPricingOverride>
+  ) => {
+    setGroupOverrides(next)
+    publishConfig({ base: { rows: matrixRows }, groups: next })
   }
 
   const handleRowChange = (index: number, next: TaskMatrixRow) => {
@@ -380,7 +394,7 @@ export const TaskUsagePricingEditor = memo(function TaskUsagePricingEditor(
   }
 
   const rawSplit = splitBillingExprAndRequestRules(rawExpr)
-  const rawMatrix = tryParseTaskMatrixConfig(
+  const rawConfig = parseTaskGroupPricingConfig(
     rawSplit.billingExpr,
     props.usageSchema
   )
@@ -396,17 +410,14 @@ export const TaskUsagePricingEditor = memo(function TaskUsagePricingEditor(
   }
 
   const handleConfirmVisualSwitch = () => {
-    const nextRows = (
-      rawMatrix ?? createDefaultTaskMatrixConfig(props.usageSchema)
-    ).rows
-    setMatrixRows(nextRows)
-    props.onBillingExprChange(
-      generateTaskExprFromConfig(
-        { tiers: taskMatrixToTiers({ rows: nextRows }, props.usageSchema) },
-        props.usageSchema
-      )
-    )
-    props.onRequestRuleExprChange(rawMatrix ? rawSplit.requestRuleExpr : '')
+    const nextConfig = rawConfig ?? {
+      base: createDefaultTaskMatrixConfig(props.usageSchema),
+      groups: {},
+    }
+    setMatrixRows(nextConfig.base.rows)
+    setGroupOverrides(nextConfig.groups)
+    publishConfig(nextConfig)
+    props.onRequestRuleExprChange(rawConfig ? rawSplit.requestRuleExpr : '')
     setConfirmVisualSwitch(false)
     setEditorMode('visual')
   }
@@ -428,7 +439,7 @@ export const TaskUsagePricingEditor = memo(function TaskUsagePricingEditor(
         onOpenChange={setConfirmVisualSwitch}
         title={t('Switch to visual pricing?')}
         desc={
-          rawMatrix
+          rawConfig
             ? t(
                 'Switching regenerates the expression from the price table and replaces its original formatting and tier names. Changes apply only after saving.'
               )
@@ -437,7 +448,7 @@ export const TaskUsagePricingEditor = memo(function TaskUsagePricingEditor(
               )
         }
         confirmText={t('Switch to visual editor')}
-        destructive={!rawMatrix}
+        destructive={!rawConfig}
         handleConfirm={handleConfirmVisualSwitch}
       />
       <div className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end'>
@@ -610,6 +621,17 @@ export const TaskUsagePricingEditor = memo(function TaskUsagePricingEditor(
               </>
             )}
 
+            {numberFields.length > 0 ? (
+              <TaskGroupPricingEditor
+                currency={props.currency}
+                usageSchema={props.usageSchema}
+                baseRows={matrixRows}
+                groups={groupOverrides}
+                availableGroups={props.availableGroups}
+                onChange={handleGroupOverridesChange}
+              />
+            ) : null}
+
             <TaskBillingPreview
               currency={props.currency}
               config={previewConfig}
@@ -653,9 +675,10 @@ export const TaskUsagePricingEditor = memo(function TaskUsagePricingEditor(
                 </div>
                 <div>
                   {t('Functions')}: <code>tier(name, value)</code>,{' '}
-                  <code>header(name)</code>, <code>param(path)</code>
+                  <code>header(name)</code>, <code>param(path)</code>,{' '}
+                  <code>group()</code>
                 </div>
-                {!rawMatrix ? (
+                {!rawConfig ? (
                   <div>
                     {t(
                       'This expression cannot be represented by the price table. You can switch to visual editing by confirming that the expression will be discarded.'
@@ -691,8 +714,8 @@ export const TaskUsagePricingEditor = memo(function TaskUsagePricingEditor(
           editorMode === 'raw'
             ? rawExpr
             : combineBillingExpr(
-                generateTaskExprFromConfig(
-                  { tiers: visualTiers },
+                generateTaskGroupPricingExpr(
+                  { base: { rows: matrixRows }, groups: groupOverrides },
                   props.usageSchema
                 ),
                 props.requestRuleExpr

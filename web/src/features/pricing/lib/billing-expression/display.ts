@@ -425,6 +425,33 @@ function taskTier(
   return { label: node.args[0].value, conditions, constant, unitPrices }
 }
 
+function taskGroupCondition(
+  node: ExpressionNode,
+  group: string
+): boolean | null {
+  if (
+    node.kind !== 'binary' ||
+    (node.operator !== '==' && node.operator !== '!=')
+  ) {
+    return null
+  }
+  const [probe, literal] =
+    node.left.kind === 'call' && node.left.name === 'group'
+      ? [node.left, node.right]
+      : [node.right, node.left]
+  if (
+    probe.kind !== 'call' ||
+    probe.name !== 'group' ||
+    probe.args.length !== 0 ||
+    literal.kind !== 'literal' ||
+    typeof literal.value !== 'string'
+  ) {
+    return null
+  }
+  const matches = literal.value.trim() === group.trim()
+  return node.operator === '==' ? matches : !matches
+}
+
 /** Keep task summaries limited to schema-backed enum tiers and canonical scaled units.
  * Unreachable branches and branches an earlier one shadows are dropped, and a
  * branch left without conditions ends the chain as its fallback, so a narrowed
@@ -432,11 +459,17 @@ function taskTier(
 export function readTaskTierChain(
   node: ExpressionNode,
   schema: BillingUsageSchema,
-  includeBoolean: boolean
+  includeBoolean: boolean,
+  group = ''
 ): TaskTier[] | null {
   const tiers: TaskTier[] = []
   let remaining = node
   while (remaining.kind === 'conditional') {
+    const groupMatches = taskGroupCondition(remaining.condition, group)
+    if (groupMatches !== null) {
+      remaining = groupMatches ? remaining.yes : remaining.no
+      continue
+    }
     const conditions = taskConditions(
       remaining.condition,
       schema,

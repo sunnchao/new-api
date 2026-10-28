@@ -699,3 +699,34 @@ it('shows provider count, price range and missing-price status in both list and 
   expect(screen.getByText('0.4 – 0.8/s')).toBeVisible()
   expect(screen.getByText('$0.4 – $0.8')).toBeVisible()
 })
+
+it('resolves the group branch and additional charge in the pricing breakdown', () => {
+  const schema: BillingUsageSchema = {
+    image_count: {
+      type: 'number',
+      unit: 'count',
+      unitLabel: { en: 'image', zh: '张' },
+    },
+    input_images: {
+      type: 'number',
+      unit: 'count',
+      unitLabel: { en: 'image', zh: '张' },
+    },
+    resolution: { enum: ['1k', '2k'] },
+  }
+  render(
+    <DynamicPricingBreakdown
+      billingExpr={
+        'group() == "default" ? tier("default-1k", u("image_count") * 0.04) : (group() == "token_plan" ? tier("token_plan-1k", 1 + u("image_count") * 0.04) : tier("other-1k", u("image_count") * 0.06))'
+      }
+      usageSchema={schema}
+      group='token_plan'
+      matchedTierLabel='token_plan-1k'
+      usageFacts={{ image_count: 1, resolution: '1k' }}
+      taskPriceOptions={{ groupRatioMultiplier: 2 }}
+    />
+  )
+  expect(screen.getAllByText('Additional charge').length).toBeGreaterThan(0)
+  expect(screen.getAllByText('$2/request').length).toBeGreaterThan(0)
+  expect(screen.getAllByText('$0.08/image').length).toBeGreaterThan(0)
+})

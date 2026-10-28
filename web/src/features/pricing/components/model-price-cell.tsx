@@ -69,6 +69,7 @@ export function ModelPriceCell(props: {
           props.model,
           options.selectedGroup
         ),
+        group: options.selectedGroup || 'default',
       }),
     // Currency is read indirectly by the price formatter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -141,6 +142,17 @@ export function ModelPriceCell(props: {
           value: `${entry.formattedRange ?? entry.formatted}${suffix}`,
         }
       })
+    if (dynamic.isTaskUsage) {
+      const additionalCharge = dynamic.entries.find(
+        (entry) => entry.field === 'constant'
+      )
+      if (additionalCharge) {
+        metrics.push({
+          label: t('Additional charge'),
+          value: `${additionalCharge.formatted}/${t('request')}`,
+        })
+      }
+    }
     if (metrics.length === 0) {
       return (
         <span className='text-muted-foreground text-sm'>

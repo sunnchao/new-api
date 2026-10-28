@@ -51,6 +51,7 @@ type TaskPluginPricingEditorProps = {
   modelExpression: string
   modelBillingMode?: 'ratio' | 'tiered_expr'
   currency: PricingCurrency
+  availableGroups?: string[]
   children: ReactNode
   ordinaryPricing?: boolean
   onConfigureOrdinaryPricing?: () => void
@@ -283,6 +284,7 @@ export function TaskPluginPricingEditor(props: TaskPluginPricingEditorProps) {
                 requestRuleExpr={split.requestRuleExpr}
                 usageSchema={variant.usage_schema}
                 usageExamples={variant.usage_examples}
+                availableGroups={props.availableGroups}
                 onBillingExprChange={(value) =>
                   props.onChange((current) => ({
                     ...current,

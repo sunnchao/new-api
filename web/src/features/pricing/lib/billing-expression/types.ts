@@ -48,6 +48,7 @@ export const BILLING_FUNCTIONS: Readonly<Record<string, number>> = {
   header: 1,
   has: 2,
   u: 1,
+  group: 0,
   hour: 1,
   minute: 1,
   weekday: 1,
@@ -132,6 +133,8 @@ export type BillingSimulationContext = {
   /** Absent means unknown. An explicitly provided empty request means empty. */
   request?: { body?: unknown; headers?: Record<string, string> }
   usage?: Record<string, unknown>
+  /** Billing group used to resolve group() branches; empty means the fallback branch. */
+  group?: string
   now?: Date
 }
 export type BillingEvaluationResult =

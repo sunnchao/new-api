@@ -143,6 +143,12 @@ func runProgram(prog *vm.Program, requestRules []RequestRuleTrace, usedVars map[
 			}
 			return request.Usage[strings.TrimSpace(name)]
 		},
+		"group": func() string {
+			if group := strings.TrimSpace(request.ExpressionGroup); group != "" {
+				return group
+			}
+			return strings.TrimSpace(request.UsingGroup)
+		},
 		"has": func(source any, substr string) bool {
 			if source == nil || substr == "" {
 				return false
