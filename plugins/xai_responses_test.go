@@ -70,7 +70,7 @@ func TestXAIResponsesProtocol(t *testing.T) {
 			"resolution":   "720p",
 			"aspect_ratio": "16:9",
 		},
-		wantUsageKeys:       []string{"input_images", "input_video_seconds", "moderated", "resolution", "seconds"},
+		wantUsageKeys:       []string{"image_count", "input_images", "input_video_seconds", "moderated", "quality", "resolution", "seconds"},
 		wantSubmitUsageKeys: []string{"input_images", "moderated", "resolution", "seconds"},
 		wantVendorName:      "xai",
 	})
@@ -481,4 +481,391 @@ func TestXAIEditSettlesOnOutputResolution(t *testing.T) {
 	}
 	moov := len(ftyp) + len(mdat)
 	assert.Equal(t, []string{"bytes=0-65535", fmt.Sprintf("bytes=%d-%d", moov, moov+65535)}, ranges, "the file is read in pieces, never whole")
+}
+
+func TestXAIImageModelsAndProtocols(t *testing.T) {
+	plugin := newXAIPlugin(t)
+	for _, model := range []string{
+		"grok-imagine-image-2.0",
+		"grok-imagine-image-quality",
+		"grok-imagine-image-pro",
+		"grok-imagine-image",
+	} {
+		schema, examples := plugin.Meta.UsageForModel(model)
+		require.NotNil(t, schema, model)
+		require.Contains(t, schema, "image_count", model)
+		require.Contains(t, schema, "resolution", model)
+		require.Contains(t, schema, "input_images", model)
+		require.NotEmpty(t, examples, model)
+		require.Contains(t, plugin.Meta.Models, model)
+	}
+	schema, _ := plugin.Meta.UsageForModel("grok-imagine-image-2.0")
+	assert.Contains(t, schema, "quality")
+	assert.NotContains(t, schema, "seconds")
+	videoSchema, _ := plugin.Meta.UsageForModel("grok-imagine-video-1.5")
+	assert.NotContains(t, videoSchema, "image_count")
+	assert.NotContains(t, videoSchema, "quality")
+
+	generation := jsplugin.DefaultRegistry.Generation()
+	binding, found := generation.LookupEndpoint("POST", "/v1/images/generations", "grok-imagine-image-2.0")
+	require.True(t, found)
+	assert.Equal(t, "xai", binding.Plugin.Meta.Key)
+	assert.Equal(t, "openai_image", binding.Protocol)
+	editBinding, found := generation.LookupEndpoint("POST", "/v1/images/edits", "grok-imagine-image-2.0")
+	require.True(t, found)
+	assert.Equal(t, "openai_image", editBinding.Protocol)
+	for _, endpoint := range []struct {
+		method string
+		path   string
+		model  string
+	}{
+		{"POST", "/v1/images/generations", "grok-imagine-video-1.5"},
+		{"POST", "/v1/videos", "grok-imagine-image-2.0"},
+		{"POST", "/v1/responses", "grok-imagine-image-2.0"},
+	} {
+		_, found := generation.LookupEndpoint(endpoint.method, endpoint.path, endpoint.model)
+		assert.False(t, found, "%s %s must not claim %s", endpoint.method, endpoint.path, endpoint.model)
+	}
+	for _, route := range []struct {
+		path   string
+		render string
+	}{
+		{"/xai/v1/images/generations", "imageCreated"},
+		{"/xai/v1/images/edits", "imageCreated"},
+	} {
+		declared, found := generation.LookupDeclaredRoute("POST", route.path)
+		require.True(t, found, route.path)
+		assert.Equal(t, "xai", declared.Plugin.Meta.Key)
+		assert.Equal(t, jsplugin.RouteTypeSubmit, declared.Route.Type)
+		assert.Equal(t, route.render, declared.Route.Render)
+		require.NotNil(t, declared.Route.RetainResult)
+		assert.False(t, *declared.Route.RetainResult)
+	}
+}
+
+func TestXAIImageRequests(t *testing.T) {
+	plugin := newXAIPlugin(t)
+	jsonBody := func(value map[string]any) map[string]any { return map[string]any{"kind": "json", "value": value} }
+	uploadBody := map[string]any{
+		"kind": "multipart",
+		"fields": map[string]any{
+			"model":  []any{"grok-imagine-image-2.0"},
+			"prompt": []any{"paint it blue"},
+		},
+		"files": []any{map[string]any{"ref": "request_file:image", "field": "image", "filename": "in.png", "mimeType": "image/png", "size": 10}},
+	}
+	upload := map[string]any{
+		"url": map[string]any{
+			"__fileRef": "request_file:image", "encoding": "dataUrl", "mimeType": "image/png", "maxBytes": float64(20971520),
+		},
+	}
+
+	for _, tc := range []struct {
+		name       string
+		operation  string
+		model      string
+		body       map[string]any
+		wantAction string
+		wantPath   string
+		wantBody   map[string]any
+		wantFacts  map[string]any
+	}{
+		{
+			name: "generate defaults to 1k and low", operation: "generate", model: "grok-imagine-image-2.0",
+			body:       jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox"}),
+			wantAction: "text_to_image", wantPath: "/v1/images/generations",
+			wantBody:  map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox", "n": float64(1), "resolution": "1k"},
+			wantFacts: map[string]any{"image_count": float64(1), "resolution": "1k", "quality": "low", "input_images": float64(0)},
+		},
+		{
+			name: "generate pins resolution and quality", operation: "generate", model: "grok-imagine-image-2.0",
+			body:       jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox", "n": 3, "resolution": "2K", "quality": "medium"}),
+			wantAction: "text_to_image", wantPath: "/v1/images/generations",
+			wantBody:  map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox", "n": float64(3), "resolution": "2k", "quality": "medium"},
+			wantFacts: map[string]any{"image_count": float64(3), "resolution": "2k", "quality": "medium", "input_images": float64(0)},
+		},
+		{
+			name: "OpenAI size and quality aliases", operation: "generate", model: "grok-imagine-image-2.0",
+			body:       jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox", "n": 2, "size": "1024x1792", "quality": "hd"}),
+			wantAction: "text_to_image", wantPath: "/v1/images/generations",
+			wantBody: map[string]any{
+				"model": "grok-imagine-image-2.0", "prompt": "a fox", "n": float64(2),
+				"resolution": "1k", "aspect_ratio": "9:16", "quality": "medium",
+			},
+			wantFacts: map[string]any{"image_count": float64(2), "resolution": "1k", "quality": "medium", "input_images": float64(0)},
+		},
+		{
+			name: "auto quality bills as served", operation: "generate", model: "grok-imagine-image-2.0",
+			body:       jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox", "quality": "auto"}),
+			wantAction: "text_to_image", wantPath: "/v1/images/generations",
+			wantBody:  map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox", "n": float64(1), "resolution": "1k", "quality": "auto"},
+			wantFacts: map[string]any{"image_count": float64(1), "resolution": "1k", "quality": "low", "input_images": float64(0)},
+		},
+		{
+			name: "edit defaults to medium", operation: "edit", model: "grok-imagine-image-2.0",
+			body:       jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "paint it blue", "image": "https://cdn.example/in.png"}),
+			wantAction: "image_to_image", wantPath: "/v1/images/edits",
+			wantBody: map[string]any{
+				"model": "grok-imagine-image-2.0", "prompt": "paint it blue", "n": float64(1), "resolution": "1k",
+				"image": map[string]any{"url": "https://cdn.example/in.png"},
+			},
+			wantFacts: map[string]any{"image_count": float64(1), "resolution": "1k", "quality": "medium", "input_images": float64(1)},
+		},
+		{
+			name: "edit accepts an image array", operation: "edit", model: "grok-imagine-image-2.0",
+			body: jsonBody(map[string]any{
+				"model": "grok-imagine-image-2.0", "prompt": "merge", "resolution": "2k", "quality": "low",
+				"images": []any{map[string]any{"url": "https://cdn.example/a.png"}, map[string]any{"image_url": "https://cdn.example/b.png"}},
+			}),
+			wantAction: "image_to_image", wantPath: "/v1/images/edits",
+			wantBody: map[string]any{
+				"model": "grok-imagine-image-2.0", "prompt": "merge", "n": float64(1), "resolution": "2k", "quality": "low",
+				"images": []any{map[string]any{"url": "https://cdn.example/a.png"}, map[string]any{"url": "https://cdn.example/b.png"}},
+			},
+			wantFacts: map[string]any{"image_count": float64(1), "resolution": "2k", "quality": "low", "input_images": float64(2)},
+		},
+		{
+			name: "edit accepts five input images", operation: "edit", model: "grok-imagine-image-2.0",
+			body: jsonBody(map[string]any{
+				"model": "grok-imagine-image-2.0", "prompt": "merge",
+				"images": []any{
+					map[string]any{"url": "https://cdn.example/1.png"},
+					map[string]any{"url": "https://cdn.example/2.png"},
+					map[string]any{"url": "https://cdn.example/3.png"},
+					map[string]any{"url": "https://cdn.example/4.png"},
+					map[string]any{"url": "https://cdn.example/5.png"},
+				},
+			}),
+			wantAction: "image_to_image", wantPath: "/v1/images/edits",
+			wantBody: map[string]any{
+				"model": "grok-imagine-image-2.0", "prompt": "merge", "n": float64(1), "resolution": "1k",
+				"images": []any{
+					map[string]any{"url": "https://cdn.example/1.png"},
+					map[string]any{"url": "https://cdn.example/2.png"},
+					map[string]any{"url": "https://cdn.example/3.png"},
+					map[string]any{"url": "https://cdn.example/4.png"},
+					map[string]any{"url": "https://cdn.example/5.png"},
+				},
+			},
+			wantFacts: map[string]any{"image_count": float64(1), "resolution": "1k", "quality": "medium", "input_images": float64(5)},
+		},
+		{
+			name: "edit multipart upload becomes a data URL", operation: "edit", model: "grok-imagine-image-2.0",
+			body:       uploadBody,
+			wantAction: "image_to_image", wantPath: "/v1/images/edits",
+			wantBody:  map[string]any{"model": "grok-imagine-image-2.0", "prompt": "paint it blue", "n": float64(1), "resolution": "1k", "image": upload},
+			wantFacts: map[string]any{"image_count": float64(1), "resolution": "1k", "quality": "medium", "input_images": float64(1)},
+		},
+		{
+			name: "older image models ignore quality", operation: "generate", model: "grok-imagine-image",
+			body:       jsonBody(map[string]any{"model": "grok-imagine-image", "prompt": "a fox", "quality": "standard"}),
+			wantAction: "text_to_image", wantPath: "/v1/images/generations",
+			wantBody:  map[string]any{"model": "grok-imagine-image", "prompt": "a fox", "n": float64(1), "resolution": "1k"},
+			wantFacts: map[string]any{"image_count": float64(1), "resolution": "1k", "input_images": float64(0)},
+		},
+		{
+			name: "quality alias accepts 1.5k", operation: "generate", model: "grok-imagine-image-quality",
+			body:       jsonBody(map[string]any{"model": "grok-imagine-image-quality", "prompt": "a fox", "resolution": "1.5k"}),
+			wantAction: "text_to_image", wantPath: "/v1/images/generations",
+			wantBody:  map[string]any{"model": "grok-imagine-image-quality", "prompt": "a fox", "n": float64(1), "resolution": "1.5k"},
+			wantFacts: map[string]any{"image_count": float64(1), "resolution": "1.5k", "input_images": float64(0)},
+		},
+		{
+			name: "host image protocol owns response_format", operation: "generate", model: "grok-imagine-image-2.0",
+			body:       jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox", "response_format": "b64_json"}),
+			wantAction: "text_to_image", wantPath: "/v1/images/generations",
+			wantBody:  map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox", "n": float64(1), "resolution": "1k"},
+			wantFacts: map[string]any{"image_count": float64(1), "resolution": "1k", "quality": "low", "input_images": float64(0)},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			intent, err := callXAI(t, plugin, []string{"protocols", "openai_image", "decodeRequest"}, map[string]any{
+				"protocol": "openai_image", "operation": tc.operation, "model": tc.model, "body": tc.body,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tc.model, intent["model"])
+			assert.Equal(t, tc.wantAction, intent["action"])
+			driver := map[string]any{
+				"model": tc.model, "upstreamModel": tc.model, "action": intent["action"], "requestBody": intent["requestBody"],
+				"baseUrl": "https://api.x.ai", "apiKey": "xai-key", "upstream": map[string]any{"kind": "vendor"},
+			}
+			descriptor, err := callXAI(t, plugin, []string{"buildSubmitRequest"}, driver)
+			require.NoError(t, err)
+			assert.Equal(t, "https://api.x.ai"+tc.wantPath, descriptor["url"])
+			assert.Equal(t, tc.wantBody, descriptor["body"])
+			facts, err := callXAI(t, plugin, []string{"extractUsage"}, driver)
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantFacts, facts)
+		})
+	}
+
+	// Another New API gateway serves the xAI wire format on this plugin's
+	// prefixed native images route.
+	descriptor, err := callXAI(t, plugin, []string{"buildSubmitRequest"}, map[string]any{
+		"model": "grok-imagine-image-2.0", "upstreamModel": "grok-imagine-image-2.0", "action": "text_to_image",
+		"requestBody": map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox", "n": 1, "resolution": "1k"},
+		"baseUrl":     "https://gateway.example", "apiKey": "gateway-key", "upstream": map[string]any{"kind": "new_api"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "https://gateway.example/xai/v1/images/generations", descriptor["url"])
+
+	// The native xAI route keeps the vendor response_format.
+	nativeIntent, err := callXAI(t, plugin, []string{"native", "createImageGeneration"}, map[string]any{
+		"body": jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox", "response_format": "b64_json"}),
+	})
+	require.NoError(t, err)
+	nativeBody, ok := nativeIntent["requestBody"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "b64_json", nativeBody["response_format"])
+
+	ratios, err := callXAI(t, plugin, []string{"extractUsage"}, map[string]any{
+		"model": "grok-imagine-image-2.0", "upstreamModel": "grok-imagine-image-2.0", "action": "text_to_image",
+		"requestBody":  map[string]any{"model": "grok-imagine-image-2.0", "prompt": "a fox", "n": 4, "resolution": "2k"},
+		"usagePurpose": "billing_ratios",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{"image_count": float64(4)}, ratios)
+}
+
+func TestXAIImageRequestErrors(t *testing.T) {
+	plugin := newXAIPlugin(t)
+	jsonBody := func(value map[string]any) map[string]any { return map[string]any{"kind": "json", "value": value} }
+	for _, tc := range []struct {
+		name      string
+		operation string
+		model     string
+		body      map[string]any
+		wantErr   string
+	}{
+		{"n too small", "generate", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "n": 0}), "n must be an integer between 1 and 10"},
+		{"n too large", "generate", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "n": 11}), "n must be an integer between 1 and 10"},
+		{"unknown resolution", "generate", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "resolution": "3k"}), "resolution must be one of 1k, 2k"},
+		{"unsupported 1.5k tier", "generate", "grok-imagine-image", jsonBody(map[string]any{"model": "grok-imagine-image", "prompt": "x", "resolution": "1.5k"}), "resolution must be one of 1k, 2k"},
+		{"unknown quality", "generate", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "quality": "high"}), "quality must be low, medium, auto, standard, or hd"},
+		{"generate rejects image input", "generate", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "image": "https://cdn.example/in.png"}), "image input is only supported on /v1/images/edits"},
+		{"edit needs an image", "edit", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x"}), "image is required"},
+		{"edit rejects both image forms", "edit", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "image": "https://cdn.example/a.png", "images": []any{map[string]any{"url": "https://cdn.example/b.png"}}}), "image and images are mutually exclusive"},
+		{"edit accepts at most five input images", "edit", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "images": []any{
+			map[string]any{"url": "https://cdn.example/1.png"},
+			map[string]any{"url": "https://cdn.example/2.png"},
+			map[string]any{"url": "https://cdn.example/3.png"},
+			map[string]any{"url": "https://cdn.example/4.png"},
+			map[string]any{"url": "https://cdn.example/5.png"},
+			map[string]any{"url": "https://cdn.example/6.png"},
+		}}), "at most 5 input images are supported"},
+		{"gateway files are unreachable", "edit", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "image": map[string]any{"file_id": "file-1"}}), "image must be a URL; file_id is not supported"},
+		{"stream is unsupported", "generate", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "stream": true}), "stream is not supported"},
+		{"deferred is unsupported", "generate", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "deferred": true}), "deferred image generation is not supported"},
+		{"mask is unsupported", "edit", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "image": "https://cdn.example/in.png", "mask": "https://cdn.example/mask.png"}), "mask is not supported"},
+		{"response format must be url or b64", "generate", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "response_format": "png"}), "response_format must be url or b64_json"},
+		{"prompt is required", "generate", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0"}), "prompt is required"},
+		{"size must be pixels or a tier", "generate", "grok-imagine-image-2.0", jsonBody(map[string]any{"model": "grok-imagine-image-2.0", "prompt": "x", "size": "large"}), "size must be WIDTHxHEIGHT"},
+		{"video models do not decode as images", "generate", "grok-imagine-video-1.5", jsonBody(map[string]any{"model": "grok-imagine-video-1.5", "prompt": "x"}), "is not a supported xAI image model"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := callXAI(t, plugin, []string{"protocols", "openai_image", "decodeRequest"}, map[string]any{
+				"protocol": "openai_image", "operation": tc.operation, "model": tc.model, "body": tc.body,
+			})
+			require.ErrorContains(t, err, tc.wantErr)
+		})
+	}
+}
+
+func TestXAIImageImmediateResult(t *testing.T) {
+	plugin := newXAIPlugin(t)
+	body := map[string]any{
+		"data": []any{
+			map[string]any{"url": "https://cdn.example/1.png", "mime_type": "image/png"},
+			map[string]any{"url": "https://cdn.example/2.png"},
+			map[string]any{"b64_json": "QUFB"},
+			map[string]any{"revised_prompt": "text only"},
+		},
+		"usage": map[string]any{"cost_in_usd_ticks": float64(400000000)},
+	}
+	parsed, err := callXAI(t, plugin, []string{"parseSubmitResponse"},
+		map[string]any{"action": "text_to_image", "publicTaskId": "task_public"},
+		map[string]any{"body": body},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "task_public", parsed["taskId"])
+	assert.Equal(t, map[string]any{"status": "SUCCESS", "progress": "100%", "url": "https://cdn.example/1.png"}, parsed["immediate"])
+
+	facts, err := callXAI(t, plugin, []string{"extractUsageOnComplete"},
+		map[string]any{"action": "text_to_image"}, map[string]any{"status": "SUCCESS"}, body,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{"image_count": float64(2)}, facts)
+
+	ratios, err := callXAI(t, plugin, []string{"extractUsageOnSubmit"}, map[string]any{"action": "text_to_image"}, body)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{"image_count": float64(2)}, ratios)
+
+	rendered, err := callXAI(t, plugin, []string{"protocols", "openai_image", "render"}, map[string]any{}, map[string]any{"data": body})
+	require.NoError(t, err)
+	assert.Equal(t, []any{
+		map[string]any{"url": "https://cdn.example/1.png"},
+		map[string]any{"url": "https://cdn.example/2.png"},
+		map[string]any{"b64_json": "QUFB"},
+	}, rendered["data"], "payloads are preserved and the upstream cost is dropped")
+
+	native, err := callXAI(t, plugin, []string{"native", "imageCreated"}, map[string]any{}, map[string]any{"created_at": float64(1700000000), "data": body})
+	require.NoError(t, err)
+	assert.Equal(t, float64(1700000000), native["created"])
+	assert.Len(t, native["data"], 3)
+
+	for _, tc := range []struct {
+		name string
+		body map[string]any
+		want map[string]any
+	}{
+		{"object-shaped data is one image", map[string]any{"data": map[string]any{"url": "https://cdn.example/one.png"}}, map[string]any{"image_count": float64(1)}},
+		{"a split image bills once", map[string]any{"data": []any{map[string]any{"url": "https://cdn.example/one.png"}, map[string]any{"b64_json": "QUFB"}}}, map[string]any{"image_count": float64(1)}},
+		{"payload-less entries bill nothing", map[string]any{"data": []any{map[string]any{"revised_prompt": "text"}}}, map[string]any{}},
+		{"an empty result keeps the reservation", map[string]any{"data": []any{}}, map[string]any{}},
+		{"a reported count is trusted", map[string]any{"data": []any{map[string]any{"url": "a"}, map[string]any{"url": "b"}}, "usage": map[string]any{"image_count": float64(2)}}, map[string]any{"image_count": float64(2)}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			facts, err := callXAI(t, plugin, []string{"extractUsageOnComplete"}, map[string]any{"action": "text_to_image"}, map[string]any{"status": "SUCCESS"}, tc.body)
+			require.NoError(t, err)
+			if len(tc.want) == 0 {
+				assert.Empty(t, facts)
+				return
+			}
+			assert.Equal(t, tc.want, facts)
+		})
+	}
+	for _, invalid := range []map[string]any{
+		{"data": []any{map[string]any{"url": "a"}}, "usage": map[string]any{"image_count": float64(0)}},
+		{"data": []any{}, "usage": map[string]any{"image_count": float64(11)}},
+		{"data": []any{}, "usage": map[string]any{"image_count": 1.5}},
+	} {
+		_, err := callXAI(t, plugin, []string{"extractUsageOnComplete"}, map[string]any{"action": "text_to_image"}, map[string]any{"status": "SUCCESS"}, invalid)
+		require.ErrorContains(t, err, "invalid upstream image count")
+	}
+
+	empty, err := callXAI(t, plugin, []string{"parseSubmitResponse"},
+		map[string]any{"action": "text_to_image", "publicTaskId": "task_public"},
+		map[string]any{"body": map[string]any{"data": []any{}}},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{"status": "SUCCESS", "progress": "100%", "url": ""}, empty["immediate"])
+	_, err = callXAI(t, plugin, []string{"parseSubmitResponse"},
+		map[string]any{"action": "text_to_image", "publicTaskId": "task_public"},
+		map[string]any{"body": map[string]any{"error": map[string]any{"message": "blocked by moderation"}}},
+	)
+	require.ErrorContains(t, err, "blocked by moderation")
+
+	// A blocked generation xAI still billed settles as a charged success.
+	charged, err := callXAI(t, plugin, []string{"parseSubmitResponse"},
+		map[string]any{"action": "text_to_image", "publicTaskId": "task_public"},
+		map[string]any{"body": map[string]any{
+			"error": map[string]any{"message": "blocked by moderation"},
+			"usage": map[string]any{"cost_in_usd_ticks": float64(400000000)},
+		}},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{"status": "SUCCESS", "progress": "100%", "url": ""}, charged["immediate"])
+	facts, err = callXAI(t, plugin, []string{"extractUsageOnComplete"}, map[string]any{"action": "text_to_image"}, map[string]any{"status": "SUCCESS"}, charged["taskData"])
+	require.NoError(t, err)
+	assert.Empty(t, facts, "a charged blocked image keeps the reservation")
 }

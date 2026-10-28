@@ -32,7 +32,13 @@ func testVideoResponsesProtocol(t *testing.T, testCase videoResponsesTestCase) {
 	require.NoError(t, err)
 
 	t.Run("claims every model", func(t *testing.T) {
-		for _, model := range plugin.Meta.Models {
+		responsesModels := plugin.Meta.Models
+		for _, claim := range plugin.Meta.Protocols {
+			if claim.Name == "openai_responses" && len(claim.Models) > 0 {
+				responsesModels = claim.Models
+			}
+		}
+		for _, model := range responsesModels {
 			binding, found := registry.Generation().LookupEndpoint("POST", "/v1/responses", model)
 			require.True(t, found, model)
 			assert.Same(t, plugin, binding.Plugin)
