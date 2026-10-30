@@ -11,13 +11,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedDriverKeys = []string{"alibaba", "doubao", "google", "hailuo", "jimeng", "kling", "sora", "sunoapi", "vertex-ai", "vidu", "xai"}
-var expectedKeys = []string{"alibaba", "doubao", "google", "hailuo", "jimeng", "kling", "sora", "sunburst", "sunoapi", "vertex-ai", "vidu", "xai"}
+var expectedKeys = []string{"alibaba", "doubao", "google", "hailuo", "jimeng", "kling", "sora", "sunoapi", "vertex-ai", "vidu", "xai"}
 
 func TestBuiltInVendorPluginsDeclareNativeRoutesAndLegacyChannelTypes(t *testing.T) {
 	generation := jsplugin.DefaultRegistry.Generation()
 	require.NotNil(t, generation)
 
+	// Each declared vendor path is also served under /{key} (pinned); a route
+	// whose first segment is the key or a proper prefix of it (/ali, /suno)
+	// is the plugin's own address and gets no copy.
+	const vertexModel = "/projects/:project/locations/:location/publishers/google/models/:model"
 	routes := []struct {
 		method    string
 		path      string
@@ -25,36 +28,54 @@ func TestBuiltInVendorPluginsDeclareNativeRoutesAndLegacyChannelTypes(t *testing
 		routeType jsplugin.RouteType
 		action    string
 		renderer  string
+		pinned    bool
+		ownPrefix bool
 	}{
-		{"POST", "/kling/v1/videos/text2video", "kling", jsplugin.RouteTypeSubmit, "text_to_video", "taskCreated"},
-		{"POST", "/kling/v1/videos/image2video", "kling", jsplugin.RouteTypeSubmit, "image_to_video", "taskCreated"},
-		{"GET", "/kling/v1/videos/text2video/:task_id", "kling", jsplugin.RouteTypeQuery, "", "taskStatus"},
-		{"GET", "/kling/v1/videos/image2video/:task_id", "kling", jsplugin.RouteTypeQuery, "", "taskStatus"},
-		{"POST", "/jimeng/", "jimeng", jsplugin.RouteTypeDynamic, "", "renderTask"},
-		{"POST", "/suno/submit/:action", "sunoapi", jsplugin.RouteTypeSubmit, "", "renderSubmit"},
-		{"POST", "/suno/fetch", "sunoapi", jsplugin.RouteTypeDynamic, "", "renderTasks"},
-		{"GET", "/suno/fetch/:task_id", "sunoapi", jsplugin.RouteTypeQuery, "", "renderTask"},
-		{"POST", "/doubao/api/v3/contents/generations/tasks", "doubao", jsplugin.RouteTypeSubmit, "", "taskCreated"},
-		{"GET", "/doubao/api/v3/contents/generations/tasks/:task_id", "doubao", jsplugin.RouteTypeQuery, "", "taskStatus"},
-		{"POST", "/doubao/api/v3/images/generations", "doubao", jsplugin.RouteTypeSubmit, "", "imageCreated"},
-		{"POST", "/xai/v1/images/generations", "xai", jsplugin.RouteTypeSubmit, "", "imageCreated"},
-		{"POST", "/xai/v1/images/edits", "xai", jsplugin.RouteTypeSubmit, "", "imageCreated"},
-		{"POST", "/xai/v1/videos/generations", "xai", jsplugin.RouteTypeSubmit, "", "videoCreated"},
-		{"POST", "/xai/v1/videos/edits", "xai", jsplugin.RouteTypeSubmit, "", "videoCreated"},
-		{"POST", "/xai/v1/videos/extensions", "xai", jsplugin.RouteTypeSubmit, "", "videoCreated"},
-		{"GET", "/xai/v1/videos/:request_id", "xai", jsplugin.RouteTypeQuery, "", "videoStatus"},
-		{"POST", "/hailuo/v1/video_generation", "hailuo", jsplugin.RouteTypeSubmit, "", "taskCreated"},
-		{"GET", "/hailuo/v1/query/video_generation/:task_id", "hailuo", jsplugin.RouteTypeQuery, "", "taskStatus"},
-		{"POST", "/hailuo/v2/video_generation", "hailuo", jsplugin.RouteTypeSubmit, "", "taskCreated"},
-		{"GET", "/hailuo/v2/query/video_generation/:task_id", "hailuo", jsplugin.RouteTypeQuery, "", "h3TaskStatus"},
-		{"POST", "/vidu/ent/v2/text2video", "vidu", jsplugin.RouteTypeSubmit, "", "taskCreated"},
-		{"POST", "/vidu/ent/v2/img2video", "vidu", jsplugin.RouteTypeSubmit, "", "taskCreated"},
-		{"POST", "/vidu/ent/v2/start-end2video", "vidu", jsplugin.RouteTypeSubmit, "", "taskCreated"},
-		{"POST", "/vidu/ent/v2/reference2video", "vidu", jsplugin.RouteTypeSubmit, "", "taskCreated"},
-		{"GET", "/vidu/ent/v2/tasks/:task_id/creations", "vidu", jsplugin.RouteTypeQuery, "", "taskStatus"},
-		{"POST", "/google/v1beta/models/:model", "google", jsplugin.RouteTypeSubmit, "", "operation"},
-		{"GET", "/google/v1beta/models/:model/operations/:task_id", "google", jsplugin.RouteTypeQuery, "", "operation"},
-		{"POST", "/vertex-ai/v1/projects/:project/locations/:location/publishers/google/models/:model", "vertex-ai", jsplugin.RouteTypeDynamic, "", "operation"},
+		{"POST", "/v1/videos/text2video", "kling", jsplugin.RouteTypeSubmit, "text_to_video", "taskCreated", false, false},
+		{"POST", "/kling/v1/videos/text2video", "kling", jsplugin.RouteTypeSubmit, "text_to_video", "taskCreated", true, false},
+		{"POST", "/v1/videos/image2video", "kling", jsplugin.RouteTypeSubmit, "image_to_video", "taskCreated", false, false},
+		{"GET", "/v1/videos/text2video/:task_id", "kling", jsplugin.RouteTypeQuery, "", "taskStatus", false, false},
+		{"GET", "/kling/v1/videos/image2video/:task_id", "kling", jsplugin.RouteTypeQuery, "", "taskStatus", true, false},
+		{"POST", "/api/common/v3/submit_task_v2", "jimeng", jsplugin.RouteTypeSubmit, "", "taskSubmitted", false, false},
+		{"POST", "/api/common/v3/get_result_v2", "jimeng", jsplugin.RouteTypeDynamic, "", "taskResult", false, false},
+		{"POST", "/jimeng/api/common/v3/submit_task_v2", "jimeng", jsplugin.RouteTypeSubmit, "", "taskSubmitted", true, false},
+		{"POST", "/suno/submit/:action", "sunoapi", jsplugin.RouteTypeSubmit, "", "renderSubmit", false, true},
+		{"POST", "/suno/fetch", "sunoapi", jsplugin.RouteTypeDynamic, "", "renderTasks", false, true},
+		{"GET", "/suno/fetch/:task_id", "sunoapi", jsplugin.RouteTypeQuery, "", "renderTask", false, true},
+		{"POST", "/api/v3/contents/generations/tasks", "doubao", jsplugin.RouteTypeSubmit, "", "taskCreated", false, false},
+		{"GET", "/api/v3/contents/generations/tasks/:task_id", "doubao", jsplugin.RouteTypeQuery, "", "taskStatus", false, false},
+		{"POST", "/api/v3/images/generations", "doubao", jsplugin.RouteTypeSubmit, "", "imageCreated", false, false},
+		{"GET", "/doubao/api/v3/contents/generations/tasks/:task_id", "doubao", jsplugin.RouteTypeQuery, "", "taskStatus", true, false},
+		{"POST", "/api/v1/services/aigc/video-generation/video-synthesis", "alibaba", jsplugin.RouteTypeSubmit, "", "taskCreated", false, false},
+		{"POST", "/alibaba/api/v1/services/aigc/video-generation/video-synthesis", "alibaba", jsplugin.RouteTypeSubmit, "", "taskCreated", true, false},
+		{"POST", "/ali/api/v1/services/aigc/video-generation/video-synthesis", "alibaba", jsplugin.RouteTypeSubmit, "", "taskCreated", false, true},
+		{"GET", "/api/v1/tasks/:task_id", "alibaba", jsplugin.RouteTypeQuery, "", "taskStatus", false, false},
+		{"GET", "/ali/api/v1/tasks/:task_id", "alibaba", jsplugin.RouteTypeQuery, "", "taskStatus", false, true},
+		{"POST", "/v1/videos/generations", "xai", jsplugin.RouteTypeSubmit, "", "videoCreated", false, false},
+		{"POST", "/v1/videos/edits", "xai", jsplugin.RouteTypeSubmit, "", "videoCreated", false, false},
+		{"POST", "/v1/videos/extensions", "xai", jsplugin.RouteTypeSubmit, "", "videoCreated", false, false},
+		{"GET", "/v1/videos/:request_id", "xai", jsplugin.RouteTypeQuery, "", "videoStatus", false, false},
+		{"GET", "/xai/v1/videos/:request_id", "xai", jsplugin.RouteTypeQuery, "", "videoStatus", true, false},
+		{"POST", "/v1/video_generation", "hailuo", jsplugin.RouteTypeSubmit, "", "taskCreated", false, false},
+		{"GET", "/v1/query/video_generation", "hailuo", jsplugin.RouteTypeQuery, "", "taskStatus", false, false},
+		{"GET", "/hailuo/v1/query/video_generation", "hailuo", jsplugin.RouteTypeQuery, "", "taskStatus", true, false},
+		{"GET", "/hailuo/v1/query/video_generation/:task_id", "hailuo", jsplugin.RouteTypeQuery, "", "taskStatus", false, true},
+		{"GET", "/v1/files/retrieve", "hailuo", jsplugin.RouteTypeQuery, "", "fileRetrieve", false, false},
+		{"GET", "/hailuo/v1/files/retrieve", "hailuo", jsplugin.RouteTypeQuery, "", "fileRetrieve", true, false},
+		{"POST", "/v2/video_generation", "hailuo", jsplugin.RouteTypeSubmit, "", "taskCreated", false, false},
+		{"GET", "/v2/query/video_generation/:task_id", "hailuo", jsplugin.RouteTypeQuery, "", "h3TaskStatus", false, false},
+		{"POST", "/ent/v2/text2video", "vidu", jsplugin.RouteTypeSubmit, "", "taskCreated", false, false},
+		{"POST", "/ent/v2/img2video", "vidu", jsplugin.RouteTypeSubmit, "", "taskCreated", false, false},
+		{"POST", "/ent/v2/start-end2video", "vidu", jsplugin.RouteTypeSubmit, "", "taskCreated", false, false},
+		{"POST", "/ent/v2/reference2video", "vidu", jsplugin.RouteTypeSubmit, "", "taskCreated", false, false},
+		{"GET", "/ent/v2/tasks/:task_id/creations", "vidu", jsplugin.RouteTypeQuery, "", "taskStatus", false, false},
+		{"POST", "/vidu/ent/v2/text2video", "vidu", jsplugin.RouteTypeSubmit, "", "taskCreated", true, false},
+		{"POST", "/v1beta/models/:model", "google", jsplugin.RouteTypeSubmit, "", "operation", false, false},
+		{"GET", "/v1beta/models/:model/operations/:task_id", "google", jsplugin.RouteTypeQuery, "", "operation", false, false},
+		{"POST", "/google/v1beta/models/:model", "google", jsplugin.RouteTypeSubmit, "", "operation", true, false},
+		{"POST", "/v1" + vertexModel, "vertex-ai", jsplugin.RouteTypeDynamic, "", "operation", false, false},
+		{"POST", "/v1beta1" + vertexModel, "vertex-ai", jsplugin.RouteTypeDynamic, "", "operation", false, false},
+		{"POST", "/vertex-ai/v1beta1" + vertexModel, "vertex-ai", jsplugin.RouteTypeDynamic, "", "operation", true, false},
 	}
 	for _, expected := range routes {
 		t.Run(expected.method+" "+expected.path, func(t *testing.T) {
@@ -64,15 +85,37 @@ func TestBuiltInVendorPluginsDeclareNativeRoutesAndLegacyChannelTypes(t *testing
 			require.Equal(t, expected.routeType, binding.Route.Type)
 			require.Equal(t, expected.action, binding.Route.Action)
 			require.Equal(t, expected.renderer, binding.Route.Render)
+			assert.Equal(t, expected.pinned, binding.Pinned)
+			assert.Equal(t, expected.ownPrefix, binding.OwnPrefix)
 		})
+	}
+	for _, missing := range []struct{ method, path string }{
+		{"POST", "/jimeng/"},
+		{"POST", "/sunoapi/suno/fetch"},
+		{"POST", "/alibaba/ali/api/v1/services/aigc/video-generation/video-synthesis"},
+		{"GET", "/v1/query/video_generation/:task_id"},
+	} {
+		_, found := generation.LookupDeclaredRoute(missing.method, missing.path)
+		assert.False(t, found, missing.method+" "+missing.path)
+	}
+	// MiniMax's v1 query and file retrieval take their ids from the query
+	// string.
+	for path, param := range map[string]string{"/v1/query/video_generation": "task_id", "/v1/files/retrieve": "file_id"} {
+		binding, found := generation.LookupDeclaredRoute("GET", path)
+		require.True(t, found, path)
+		assert.True(t, binding.Route.TaskIDInQuery(), path)
+		assert.Equal(t, param, binding.Route.TaskIDParam, path)
 	}
 
 	// The legacy Wan edit route serves both the wan2.5 image-list body and the
-	// wanx2.1-imageedit function API.
-	imageEdit, found := generation.LookupDeclaredRoute("POST", "/ali/api/v1/services/aigc/image2image/image-synthesis")
-	require.True(t, found)
-	assert.Equal(t, "alibaba", imageEdit.Plugin.Meta.Key)
-	assert.ElementsMatch(t, []string{"wan2.5-i2i-preview", "wanx2.1-imageedit"}, imageEdit.Route.Models)
+	// wanx2.1-imageedit function API, under the /ali prefix and at the
+	// DashScope path.
+	for _, path := range []string{"/ali/api/v1/services/aigc/image2image/image-synthesis", "/api/v1/services/aigc/image2image/image-synthesis"} {
+		imageEdit, found := generation.LookupDeclaredRoute("POST", path)
+		require.True(t, found, path)
+		assert.Equal(t, "alibaba", imageEdit.Plugin.Meta.Key)
+		assert.ElementsMatch(t, []string{"wan2.5-i2i-preview", "wanx2.1-imageedit"}, imageEdit.Route.Models)
+	}
 
 	channelTypes := []struct {
 		value int
@@ -108,7 +151,7 @@ func TestBuiltInTaskPluginResponsesAndUsageContracts(t *testing.T) {
 	}
 	assert.Equal(t, expectedKeys, actualKeys)
 
-	for _, key := range expectedDriverKeys {
+	for _, key := range expectedKeys {
 		t.Run(key, func(t *testing.T) {
 			_, found := generation.Get(key)
 			require.True(t, found, "factory plugin was excluded from the active generation")
@@ -130,11 +173,7 @@ func TestBuiltInTaskPluginResponsesAndUsageContracts(t *testing.T) {
 			}
 			require.True(t, foundResponses, "openai_responses claim must be present")
 			assert.Equal(t, []string{"stream", "sync", "background"}, responsesClaim.Supports)
-			responsesModels := plugin.Meta.Models
-			if len(responsesClaim.Models) > 0 {
-				responsesModels = responsesClaim.Models
-			}
-			for _, model := range responsesModels {
+			for _, model := range plugin.Meta.Models {
 				binding, claimed := registry.Generation().LookupEndpoint("POST", "/v1/responses", model)
 				require.True(t, claimed, model)
 				assert.Same(t, plugin, binding.Plugin)
@@ -157,7 +196,7 @@ func TestBuiltInTaskPluginResponsesAndUsageContracts(t *testing.T) {
 
 func TestBuiltInResponsesDecodersEchoChannelMappedAlias(t *testing.T) {
 	bodyOverrides := map[string]map[string]any{}
-	for _, key := range expectedDriverKeys {
+	for _, key := range expectedKeys {
 		t.Run(key, func(t *testing.T) {
 			source, sourceErr := Source(key)
 			require.NoError(t, sourceErr)
@@ -184,24 +223,6 @@ func TestBuiltInResponsesDecodersEchoChannelMappedAlias(t *testing.T) {
 			assert.Equal(t, "submit", decoded["kind"])
 			assert.Equal(t, alias, decoded["model"])
 		})
-	}
-}
-
-func TestSunburstBillingPolicyNeedsNoTaskDriver(t *testing.T) {
-	source, err := Source("sunburst")
-	require.NoError(t, err)
-	plugin, err := jsplugin.CompilePlugin(source, jsplugin.Options{Key: "sunburst"})
-	require.NoError(t, err)
-	assert.Empty(t, plugin.Meta.Routes)
-	assert.Empty(t, plugin.Meta.Protocols)
-	assert.True(t, plugin.Meta.BillingOnly())
-	generation := jsplugin.DefaultRegistry.Generation()
-	require.Contains(t, plugin.Meta.Models, "gpt-image-2.5-sunburst")
-	for _, model := range plugin.Meta.Models {
-		assert.Equal(t, "image", generation.FixedRequestPriceUnit(model))
-		_, taskModel := generation.GetByModel(model)
-		assert.False(t, taskModel)
-		assert.Empty(t, generation.PluginsByModel(model))
 	}
 }
 
@@ -259,9 +280,9 @@ func TestBuiltInPluginsAddressNewAPIUpstreamOnNativeRoutes(t *testing.T) {
 			vendorKey:          "ak|sk",
 			vendorAuthPrefix:   "HMAC-SHA256",
 			vendorSubmit:       "/?Action=CVSync2AsyncSubmitTask&Version=2022-08-31",
-			gatewaySubmit:      "/jimeng/?Action=CVSync2AsyncSubmitTask&Version=2022-08-31",
+			gatewaySubmit:      "/jimeng/api/common/v3/submit_task_v2",
 			vendorQuery:        "/?Action=CVSync2AsyncGetResult&Version=2022-08-31",
-			gatewayQuery:       "/jimeng/?Action=CVSync2AsyncGetResult&Version=2022-08-31",
+			gatewayQuery:       "/jimeng/api/common/v3/get_result_v2",
 			legacyKeyHeuristic: true,
 		},
 		{
@@ -403,7 +424,8 @@ func TestBuiltInPluginsAddressNewAPIUpstreamOnNativeRoutes(t *testing.T) {
 		})
 	}
 
-	t.Run("alibaba asks only DashScope for an interleaved image stream", func(t *testing.T) {
+	// A gateway's native route streams interleaved output as DashScope does.
+	t.Run("alibaba asks for an interleaved image stream", func(t *testing.T) {
 		plugin, found := generation.Get("alibaba")
 		require.True(t, found)
 		for _, variant := range []struct {
@@ -413,7 +435,7 @@ func TestBuiltInPluginsAddressNewAPIUpstreamOnNativeRoutes(t *testing.T) {
 			wantSSEHeader    bool
 		}{
 			{"vendor", map[string]any{"kind": "vendor"}, "sse", true},
-			{"new_api", map[string]any{"kind": "new_api"}, "json", false},
+			{"new_api", map[string]any{"kind": "new_api"}, "sse", true},
 		} {
 			t.Run(variant.name, func(t *testing.T) {
 				value, err := plugin.Engine.Call(t.Context(), "buildSubmitRequest", map[string]any{
@@ -430,7 +452,7 @@ func TestBuiltInPluginsAddressNewAPIUpstreamOnNativeRoutes(t *testing.T) {
 					Headers      map[string]string `json:"headers"`
 				}
 				require.NoError(t, common.Unmarshal(encoded, &descriptor))
-				assert.Equal(t, variant.wantResponseType, descriptor.ResponseType, "a gateway native route aggregates the vendor stream and answers with JSON")
+				assert.Equal(t, variant.wantResponseType, descriptor.ResponseType)
 				_, hasSSEHeader := descriptor.Headers["X-DashScope-Sse"]
 				assert.Equal(t, variant.wantSSEHeader, hasSSEHeader)
 			})
