@@ -215,6 +215,36 @@ func GetTokenKey(c *gin.Context) {
 	})
 }
 
+// ResetTokenKey 重新生成令牌密钥：令牌本身、用量与配置保持不变，旧密钥立即失效。
+func ResetTokenKey(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	token, err := model.GetTokenByIds(id, c.GetInt("id"))
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	newKey, err := common.GenerateKey()
+	if err != nil {
+		common.ApiErrorT(c, "Failed to generate token")
+		common.SysLog(common.LogText("failed to generate token key: %s", err.Error()))
+		return
+	}
+	if err := token.ResetKey(newKey); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	params := tokenAuditParams(c)
+	params["id"], params["name"] = token.Id, token.Name
+	common.SetContextKey(c, constant.ContextKeyTokenAuditSucceeded, true)
+	common.ApiSuccess(c, gin.H{
+		"key": token.GetFullKey(),
+	})
+}
+
 func GetTokenStatus(c *gin.Context) {
 	tokenId := c.GetInt("token_id")
 	userId := c.GetInt("id")

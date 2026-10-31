@@ -114,4 +114,5 @@ export type ApiKeysDialogType =
   | 'update'
   | 'delete'
   | 'batch-delete'
+  | 'reset-key'
   | 'cc-switch'

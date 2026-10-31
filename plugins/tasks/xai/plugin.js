@@ -1,12 +1,47 @@
 // xAI bills each output second by model and resolution, each input image, and
 // on grok-imagine-video each input video second of an edit or extension
-// (docs.x.ai/developers/models/<model>). xAI checks which inputs a model takes.
+// (docs.x.ai/developers/models/<model>). Images are billed per output image by
+// resolution, and grok-imagine-image-2.0 also by the quality xAI serves. xAI
+// checks which inputs a model takes.
 const VIDEO_MODELS = {
   // The only model that takes video input, so edits and extensions use it.
   "grok-imagine-video": { resolutions: ["480p", "720p"], videoInput: true },
   "grok-imagine-video-1.5": { resolutions: ["480p", "720p", "1080p"] },
   "grok-imagine-video-1.5-lite": { resolutions: ["480p", "720p", "1080p"] },
 };
+
+// grok-imagine-image-2.0 is the only image model that accepts quality; auto
+// serves low for generation and medium for editing. The API reference also
+// lists 1.5k, which the quality alias uses.
+const IMAGE_MODELS = {
+  "grok-imagine-image-2.0": { resolutions: ["1k", "2k"], quality: true },
+  "grok-imagine-image-quality": { resolutions: ["1k", "1.5k", "2k"] },
+  "grok-imagine-image-pro": { resolutions: ["1k", "1.5k", "2k"] },
+  "grok-imagine-image": { resolutions: ["1k", "2k"] },
+};
+const IMAGE_ASPECT_RATIOS = [
+  "1:1",
+  "3:4",
+  "4:3",
+  "9:16",
+  "16:9",
+  "2:3",
+  "3:2",
+  "9:19.5",
+  "19.5:9",
+  "9:20",
+  "20:9",
+  "1:2",
+  "2:1",
+  "21:9",
+  "5:2",
+  "auto",
+];
+const IMAGE_DEFAULT_RESOLUTION = "1k";
+const IMAGE_MAX_N = 10;
+// xAI multi-image editing accepts up to five source images.
+const MAX_IMAGE_INPUTS = 5;
+const MAX_INPUT_IMAGE_BYTES = 20971520;
 
 const ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9", "5:2"];
 const DEFAULT_RESOLUTION = "480p";
@@ -24,6 +59,7 @@ const MAX_EXTENSION_INPUT_SECONDS = 15;
 // the output file's MP4 header settles the resolution.
 const EDIT_RESOLUTION_CAP = "720p";
 
+const IMAGE_UNIT_LABEL = { en: "image", zh: "张", "zh-TW": "張" };
 const SECONDS_FIELD = {
   type: "number",
   unit: "second",
@@ -32,8 +68,14 @@ const SECONDS_FIELD = {
 const INPUT_IMAGES_FIELD = {
   type: "number",
   unit: "count",
-  unitLabel: { en: "image", zh: "张", "zh-TW": "張" },
+  unitLabel: IMAGE_UNIT_LABEL,
   description: { en: "Input image unit price", zh: "输入图片单价" },
+};
+const IMAGE_COUNT_FIELD = {
+  type: "number",
+  unit: "count",
+  unitLabel: IMAGE_UNIT_LABEL,
+  description: { en: "Image generation or editing unit price", zh: "图片生成或编辑单价" },
 };
 const INPUT_VIDEO_SECONDS_FIELD = {
   type: "number",
@@ -48,11 +90,14 @@ const MODERATED_FIELD = {
   type: "boolean",
   description: { en: "Blocked by content moderation", zh: "被内容审核拦截" },
 };
-const RESOLUTION_DESCRIPTION = { en: "Output video resolution", zh: "输出视频分辨率" };
+const OUTPUT_RESOLUTION_DESCRIPTION = { en: "Output resolution", zh: "输出分辨率" };
+const VIDEO_RESOLUTION_DESCRIPTION = { en: "Output video resolution", zh: "输出视频分辨率" };
+const IMAGE_RESOLUTION_DESCRIPTION = { en: "Output image resolution", zh: "输出图片分辨率" };
+const IMAGE_QUALITY_DESCRIPTION = { en: "Output image quality", zh: "输出图片质量" };
 
 const GROK_IMAGINE_VIDEO_USAGE_SCHEMA = {
   seconds: SECONDS_FIELD,
-  resolution: { enum: VIDEO_MODELS["grok-imagine-video"].resolutions, description: RESOLUTION_DESCRIPTION },
+  resolution: { enum: VIDEO_MODELS["grok-imagine-video"].resolutions, description: VIDEO_RESOLUTION_DESCRIPTION },
   input_images: INPUT_IMAGES_FIELD,
   input_video_seconds: INPUT_VIDEO_SECONDS_FIELD,
   moderated: MODERATED_FIELD,
@@ -60,9 +105,28 @@ const GROK_IMAGINE_VIDEO_USAGE_SCHEMA = {
 
 const GROK_IMAGINE_VIDEO_1_5_USAGE_SCHEMA = {
   seconds: SECONDS_FIELD,
-  resolution: { enum: VIDEO_MODELS["grok-imagine-video-1.5"].resolutions, description: RESOLUTION_DESCRIPTION },
+  resolution: { enum: VIDEO_MODELS["grok-imagine-video-1.5"].resolutions, description: VIDEO_RESOLUTION_DESCRIPTION },
   input_images: INPUT_IMAGES_FIELD,
   moderated: MODERATED_FIELD,
+};
+
+const GROK_IMAGINE_IMAGE_2_0_USAGE_SCHEMA = {
+  image_count: IMAGE_COUNT_FIELD,
+  resolution: { enum: IMAGE_MODELS["grok-imagine-image-2.0"].resolutions, description: IMAGE_RESOLUTION_DESCRIPTION },
+  quality: { enum: ["low", "medium"], description: IMAGE_QUALITY_DESCRIPTION },
+  input_images: INPUT_IMAGES_FIELD,
+};
+
+const GROK_IMAGINE_IMAGE_QUALITY_USAGE_SCHEMA = {
+  image_count: IMAGE_COUNT_FIELD,
+  resolution: { enum: IMAGE_MODELS["grok-imagine-image-quality"].resolutions, description: IMAGE_RESOLUTION_DESCRIPTION },
+  input_images: INPUT_IMAGES_FIELD,
+};
+
+const GROK_IMAGINE_IMAGE_USAGE_SCHEMA = {
+  image_count: IMAGE_COUNT_FIELD,
+  resolution: { enum: IMAGE_MODELS["grok-imagine-image"].resolutions, description: IMAGE_RESOLUTION_DESCRIPTION },
+  input_images: INPUT_IMAGES_FIELD,
 };
 
 export const meta = {
@@ -71,28 +135,35 @@ export const meta = {
   name: "xAI",
   icon: "XAI",
   description: {
-    en: "xAI Grok Imagine video generation (text-to-video, image-to-video, reference-to-video, video editing, and video extension)",
-    zh: "xAI Grok Imagine 视频生成（文生视频、图生视频、参考生视频、视频编辑、视频延长）",
+    en: "xAI Grok Imagine image and video generation (text-to-image, image editing, text-to-video, image-to-video, reference-to-video, video editing, and video extension)",
+    zh: "xAI Grok Imagine 图片与视频生成（文生图、图片编辑、文生视频、图生视频、参考生视频、视频编辑、视频延长）",
   },
-  version: "1.2.0",
+  version: "1.3.0",
   author: { name: "QuantumNous" },
-  channelTypes: [48], // xAI-type channels serve the video API with the same key
+  channelTypes: [48], // xAI-type channels serve the image and video APIs with the same key
   baseUrl: "https://api.x.ai",
   // Result videos, whose headers settle the resolution of edits and extensions.
   allowedHosts: ["vidgen.x.ai"],
-  models: Object.keys(VIDEO_MODELS),
+  models: Object.keys(VIDEO_MODELS).concat(Object.keys(IMAGE_MODELS)),
   fetchMode: "per_task",
   upstreams: ["vendor", "new_api"],
   // Fallback for a channel alias that resolves to more than one model: the
   // union of every model's fields and resolutions.
   usageSchema: Object.assign({}, GROK_IMAGINE_VIDEO_USAGE_SCHEMA, {
-    resolution: { enum: ["480p", "720p", "1080p"], description: RESOLUTION_DESCRIPTION },
+    resolution: {
+      enum: ["480p", "720p", "1080p", "1k", "1.5k", "2k"],
+      description: OUTPUT_RESOLUTION_DESCRIPTION,
+    },
+    image_count: IMAGE_COUNT_FIELD,
+    quality: { enum: ["low", "medium"], description: IMAGE_QUALITY_DESCRIPTION },
   }),
   usageExamples: [
-    { label: "1.5 480p 8s", facts: { seconds: 8, resolution: "480p", input_images: 0, input_video_seconds: 0, moderated: false } },
-    { label: "1.5 1080p 8s · image", facts: { seconds: 8, resolution: "1080p", input_images: 1, input_video_seconds: 0, moderated: false } },
-    { label: "edit 8s · 720p", facts: { seconds: 8, resolution: "720p", input_images: 0, input_video_seconds: 8, moderated: false } },
-    { label: "480p 8s · blocked", facts: { seconds: 8, resolution: "480p", input_images: 0, input_video_seconds: 0, moderated: true } },
+    { label: "1.5 480p 8s", facts: { seconds: 8, resolution: "480p", input_images: 0, input_video_seconds: 0, moderated: false, image_count: 0, quality: "low" } },
+    { label: "1.5 1080p 8s · image", facts: { seconds: 8, resolution: "1080p", input_images: 1, input_video_seconds: 0, moderated: false, image_count: 0, quality: "low" } },
+    { label: "edit 8s · 720p", facts: { seconds: 8, resolution: "720p", input_images: 0, input_video_seconds: 8, moderated: false, image_count: 0, quality: "low" } },
+    { label: "480p 8s · blocked", facts: { seconds: 8, resolution: "480p", input_images: 0, input_video_seconds: 0, moderated: true, image_count: 0, quality: "low" } },
+    { label: "image 2k · 1", facts: { seconds: 0, resolution: "2k", input_images: 0, input_video_seconds: 0, moderated: false, image_count: 1, quality: "medium" } },
+    { label: "image edit 1k · 2 inputs", facts: { seconds: 0, resolution: "1k", input_images: 2, input_video_seconds: 0, moderated: false, image_count: 1, quality: "medium" } },
   ],
   usageProfiles: [
     {
@@ -116,9 +187,58 @@ export const meta = {
         { label: "480p 8s · blocked", facts: { seconds: 8, resolution: "480p", input_images: 0, moderated: true } },
       ],
     },
+    {
+      models: ["grok-imagine-image-2.0"],
+      schema: GROK_IMAGINE_IMAGE_2_0_USAGE_SCHEMA,
+      examples: [
+        { label: "1k · 1 image", facts: { image_count: 1, resolution: "1k", quality: "low", input_images: 0 } },
+        { label: "2k · 1 image · medium", facts: { image_count: 1, resolution: "2k", quality: "medium", input_images: 0 } },
+        { label: "2k · 4 images", facts: { image_count: 4, resolution: "2k", quality: "low", input_images: 0 } },
+        { label: "edit 1k · 1 image · 2 inputs", facts: { image_count: 1, resolution: "1k", quality: "medium", input_images: 2 } },
+      ],
+    },
+    {
+      models: ["grok-imagine-image-quality", "grok-imagine-image-pro"],
+      schema: GROK_IMAGINE_IMAGE_QUALITY_USAGE_SCHEMA,
+      examples: [
+        { label: "1k · 1 image", facts: { image_count: 1, resolution: "1k", input_images: 0 } },
+        { label: "1.5k · 1 image", facts: { image_count: 1, resolution: "1.5k", input_images: 0 } },
+        { label: "2k · 2 images", facts: { image_count: 2, resolution: "2k", input_images: 0 } },
+        { label: "edit 2k · 1 image · 3 inputs", facts: { image_count: 1, resolution: "2k", input_images: 3 } },
+      ],
+    },
+    {
+      models: ["grok-imagine-image"],
+      schema: GROK_IMAGINE_IMAGE_USAGE_SCHEMA,
+      examples: [
+        { label: "1k · 1 image", facts: { image_count: 1, resolution: "1k", input_images: 0 } },
+        { label: "2k · 2 images", facts: { image_count: 2, resolution: "2k", input_images: 0 } },
+        { label: "edit 1k · 1 image · 1 input", facts: { image_count: 1, resolution: "1k", input_images: 1 } },
+      ],
+    },
   ],
-  // xAI's own paths; the gateway also serves each under /xai.
+  // xAI's own paths; the gateway also serves each under /xai. Images are
+  // addressed under /xai only, because the host's own /v1/images routes answer
+  // first. xAI answers images synchronously, so those routes retain no result.
   routes: [
+    {
+      method: "POST",
+      path: "/xai/v1/images/generations",
+      type: "submit",
+      decode: "createImageGeneration",
+      render: "imageCreated",
+      retainResult: false,
+      models: Object.keys(IMAGE_MODELS),
+    },
+    {
+      method: "POST",
+      path: "/xai/v1/images/edits",
+      type: "submit",
+      decode: "createImageEdit",
+      render: "imageCreated",
+      retainResult: false,
+      models: Object.keys(IMAGE_MODELS),
+    },
     { method: "POST", path: "/v1/videos/generations", type: "submit", decode: "createGeneration", render: "videoCreated" },
     { method: "POST", path: "/v1/videos/edits", type: "submit", decode: "createEdit", render: "videoCreated", models: ["grok-imagine-video"] },
     { method: "POST", path: "/v1/videos/extensions", type: "submit", decode: "createExtension", render: "videoCreated", models: ["grok-imagine-video"] },
@@ -126,7 +246,11 @@ export const meta = {
     // routes to this query; other tasks keep the OpenAI video object there.
     { method: "GET", path: "/v1/videos/:request_id", type: "query", taskIdParam: "request_id", render: "videoStatus" },
   ],
-  protocols: [{ name: "openai_responses", supports: ["stream", "sync", "background"] }, "openai_video"],
+  protocols: [
+    { name: "openai_responses", supports: ["stream", "sync", "background"], models: Object.keys(VIDEO_MODELS) },
+    { name: "openai_video", models: Object.keys(VIDEO_MODELS) },
+    { name: "openai_image", models: Object.keys(IMAGE_MODELS) },
+  ],
 };
 
 function trimmed(value) {
@@ -149,6 +273,14 @@ function videoModel(identity) {
     if (VIDEO_MODELS[name]) return name;
   }
   throw new Error((names[0] || "model") + " is not a supported xAI video model");
+}
+
+function imageModel(identity) {
+  const names = [identity.upstreamModel, identity.model].map(trimmed).filter(Boolean);
+  for (const name of names) {
+    if (IMAGE_MODELS[name]) return name;
+  }
+  throw new Error((names[0] || "model") + " is not a supported xAI image model");
 }
 
 function integerField(value, name, minimum, maximum) {
@@ -191,6 +323,197 @@ function commonFields(source, body) {
     body.output = { upload_url: output.upload_url.trim() };
   }
   return body;
+}
+
+// OpenAI image sizes select the nearest xAI aspect ratio and the resolution
+// tier by the longest side, matching the legacy image-spec pricing overlay.
+function imageSizeOptions(size) {
+  const text = trimmed(size).toLowerCase();
+  if (!text) return {};
+  if (["1k", "1.5k", "2k"].includes(text)) return { resolution: text };
+  if (text === "auto") return { aspect_ratio: "auto" };
+  const parts = text.replace("*", "x").split("x");
+  const width = Number(parts[0]);
+  const height = Number(parts[1]);
+  if (parts.length !== 2 || !(width > 0) || !(height > 0)) throw new Error("size must be WIDTHxHEIGHT, auto, or one of 1k, 1.5k, 2k");
+  let aspectRatio = "1:1";
+  let nearest = Infinity;
+  for (const ratio of IMAGE_ASPECT_RATIOS) {
+    if (ratio === "auto") continue;
+    const sides = ratio.split(":").map(Number);
+    const distance = Math.abs(Math.log(width / height) - Math.log(sides[0] / sides[1]));
+    if (distance < nearest) {
+      nearest = distance;
+      aspectRatio = ratio;
+    }
+  }
+  return { aspect_ratio: aspectRatio, resolution: Math.max(width, height) >= 2048 ? "2k" : "1k" };
+}
+
+// The quality xAI serves. auto means low for generation and medium for
+// editing; the fact lets a price differ from a pinned quality.
+function imageServedQuality(body, action) {
+  const quality = trimmed(body && body.quality).toLowerCase();
+  if (quality === "low" || quality === "medium") return quality;
+  return action === "image_to_image" ? "medium" : "low";
+}
+
+// Validates an xAI image request and keeps only documented fields. The
+// resolved resolution is always sent so the reserved charge matches what xAI
+// serves. A native decoder passes no identity: it sees the client's model
+// name, so only the model channel sends is checked when the request is built.
+function imageRequest(operation, source, identity) {
+  const model = identity ? imageModel(identity) : "";
+  const options = model ? IMAGE_MODELS[model] : null;
+  if (source.stream !== undefined && source.stream !== null && source.stream !== false && source.stream !== "false")
+    throw new Error("stream is not supported; the complete image response is returned once all images are generated");
+  if (source.deferred !== undefined && source.deferred !== null && source.deferred !== false && source.deferred !== "false")
+    throw new Error("deferred image generation is not supported");
+  if (source.mask !== undefined && source.mask !== null) throw new Error("mask is not supported");
+
+  const body = { prompt: promptField(source, true) };
+  body.n = source.n === undefined || source.n === null || source.n === "" ? 1 : integerField(source.n, "n", 1, IMAGE_MAX_N);
+  const size = source.size === undefined || source.size === null ? {} : imageSizeOptions(source.size);
+  const resolution =
+    source.resolution === undefined || source.resolution === null || trimmed(source.resolution) === ""
+      ? size.resolution || IMAGE_DEFAULT_RESOLUTION
+      : trimmed(source.resolution).toLowerCase();
+  if (options && !options.resolutions.includes(resolution)) throw new Error(model + " resolution must be one of " + options.resolutions.join(", "));
+  body.resolution = resolution;
+  const aspectRatio =
+    source.aspect_ratio === undefined || source.aspect_ratio === null || trimmed(source.aspect_ratio) === ""
+      ? size.aspect_ratio
+      : trimmed(source.aspect_ratio);
+  if (aspectRatio !== undefined) {
+    if (!IMAGE_ASPECT_RATIOS.includes(aspectRatio)) throw new Error("aspect_ratio must be one of " + IMAGE_ASPECT_RATIOS.join(", "));
+    body.aspect_ratio = aspectRatio;
+  }
+
+  const quality = trimmed(source.quality).toLowerCase();
+  if (quality) {
+    let normalized = quality;
+    if (normalized === "standard") normalized = "low";
+    else if (normalized === "hd") normalized = "medium";
+    if (!["low", "medium", "auto"].includes(normalized)) throw new Error("quality must be low, medium, auto, standard, or hd");
+    // Older image models ignore quality; only grok-imagine-image-2.0 bills it.
+    // Without an identity the decoded body keeps it and the build drops it.
+    if (!options || options.quality) body.quality = normalized;
+  }
+
+  if (source.response_format !== undefined && source.response_format !== null && trimmed(source.response_format) !== "") {
+    const format = trimmed(source.response_format).toLowerCase();
+    if (format !== "url" && format !== "b64_json") throw new Error("response_format must be url or b64_json");
+    body.response_format = format;
+  }
+  if (source.user !== undefined && source.user !== null) {
+    if (typeof source.user !== "string") throw new Error("user must be a string");
+    body.user = source.user;
+  }
+
+  const image =
+    source.image === undefined || source.image === null || (typeof source.image === "string" && trimmed(source.image) === "")
+      ? null
+      : mediaInput(source.image, "image");
+  if (source.images !== undefined && source.images !== null && !Array.isArray(source.images)) throw new Error("images must be an array");
+  const images = (source.images || []).map(function (item, index) {
+    return mediaInput(item, "images[" + index + "]");
+  });
+  if (operation === "edit") {
+    if (image && images.length) throw new Error("image and images are mutually exclusive");
+    if (!image && !images.length) throw new Error("image is required");
+    if ((image ? 1 : 0) + images.length > MAX_IMAGE_INPUTS)
+      throw new Error("at most " + MAX_IMAGE_INPUTS + " input images are supported");
+    if (image) body.image = image;
+    else body.images = images;
+  } else if (image || images.length) {
+    throw new Error("image input is only supported on /v1/images/edits");
+  }
+  return { action: operation === "edit" ? "image_to_image" : "text_to_image", body: body };
+}
+
+// Billing counts image payloads, never JSON entries: an object-shaped data is
+// one image when it carries a URL or base64 body, and an array counts the
+// larger of its URL and base64 payload counts.
+function imagePayloads(body) {
+  const data = plainObject(body) ? body.data : null;
+  const payload = function (item) {
+    return plainObject(item) && ((typeof item.url === "string" && item.url.trim()) || (typeof item.b64_json === "string" && item.b64_json));
+  };
+  if (Array.isArray(data)) return data.filter(payload);
+  return payload(data) ? [data] : [];
+}
+
+function imageData(body) {
+  return imagePayloads(body).map(function (item) {
+    const output = {};
+    if (typeof item.url === "string" && item.url.trim()) output.url = item.url.trim();
+    if (typeof item.b64_json === "string" && item.b64_json) output.b64_json = item.b64_json;
+    if (typeof item.revised_prompt === "string" && item.revised_prompt) output.revised_prompt = item.revised_prompt;
+    return output;
+  });
+}
+
+// Completion facts prefer a bounded upstream count, then count payloads. A
+// missing or payload-less result returns no fact, so the reservation stays.
+function imageUsageCount(body) {
+  const data = plainObject(body);
+  const usage = data && plainObject(data.usage) ? data.usage : {};
+  const payloads = imagePayloads(data);
+  if (payloads.length > IMAGE_MAX_N) throw new Error("too many output images");
+  let count = payloads.length
+    ? Math.max(
+        payloads.filter(function (item) {
+          return typeof item.url === "string" && item.url.trim();
+        }).length,
+        payloads.filter(function (item) {
+          return typeof item.b64_json === "string" && item.b64_json;
+        }).length,
+      )
+    : 0;
+  const reported = usage.image_count;
+  if (reported !== undefined) {
+    if (!Number.isInteger(reported) || reported < 0 || reported > IMAGE_MAX_N || (payloads.length && reported === 0))
+      throw new Error("invalid upstream image count");
+    count = reported;
+  }
+  return count;
+}
+
+// OpenAI image edits may arrive as multipart; xAI reads images as URL or
+// base64 data URL entries, so uploads become request file placeholders.
+function multipartImageSource(ctx, operation) {
+  const source = {};
+  const fields = ctx.body.fields || {};
+  for (const name of Object.keys(fields)) {
+    if (fields[name].length > 1) throw new Error(name + " must be provided once");
+    source[name] = fields[name][0];
+  }
+  if (source.n !== undefined) source.n = Number(source.n);
+  for (const key of ["stream", "deferred"]) {
+    if (source[key] === undefined) continue;
+    if (source[key] !== "true" && source[key] !== "false") throw new Error(key + " must be true or false");
+    source[key] = source[key] === "true";
+  }
+  const uploads = [];
+  for (const file of ctx.body.files || []) {
+    if (file.field === "mask") throw new Error("mask is not supported");
+    if (!/^images?(\[\d*\])?$/.test(file.field)) throw new Error(file.field + " is not supported");
+    uploads.push({
+      url: {
+        __fileRef: file.ref,
+        encoding: "dataUrl",
+        mimeType: trimmed(file.mimeType) || "image/png",
+        maxBytes: MAX_INPUT_IMAGE_BYTES,
+      },
+    });
+  }
+  if (uploads.length) {
+    if (operation !== "edit") throw new Error("image uploads are only supported on /v1/images/edits");
+    if (source.image !== undefined || source.images !== undefined) throw new Error("image must be provided once");
+    if (uploads.length === 1) source.image = uploads[0];
+    else source.images = uploads;
+  }
+  return source;
 }
 
 // Validates a /v1/videos/generations request and keeps only documented
@@ -415,7 +738,25 @@ function nativeRequest(ctx, action) {
   return { kind: "submit", model: model, action: request.action, requestBody: Object.assign(request.body, { model: model }) };
 }
 
+// The native images routes keep xAI's own response_format; the host-owned
+// openai_image protocol takes it over there instead.
+function nativeImageRequest(ctx, operation) {
+  if (!ctx.body || ctx.body.kind !== "json") throw new Error("JSON body required");
+  const body = plainObject(ctx.body.value);
+  if (!body) throw new Error("request body must be an object");
+  const model = typeof body.model === "string" ? body.model.trim() : "";
+  if (!model) throw new Error("model is required");
+  const request = imageRequest(operation, body, null);
+  return { kind: "submit", model: model, action: request.action, requestBody: Object.assign(request.body, { model: model }) };
+}
+
 export const native = {
+  createImageGeneration: function (ctx) {
+    return nativeImageRequest(ctx, "generate");
+  },
+  createImageEdit: function (ctx) {
+    return nativeImageRequest(ctx, "edit");
+  },
   createGeneration: function (ctx) {
     return nativeRequest(ctx, "generation");
   },
@@ -424,6 +765,9 @@ export const native = {
   },
   createExtension: function (ctx) {
     return nativeRequest(ctx, "video_extension");
+  },
+  imageCreated: function (ctx, task) {
+    return { created: task.created_at, data: imageData(task.data) };
   },
   videoCreated: function (ctx, task) {
     return { request_id: task.task_id };
@@ -450,6 +794,17 @@ export const native = {
 };
 
 export function buildSubmitRequest(ctx) {
+  if (ctx.action === "text_to_image" || ctx.action === "image_to_image") {
+    const request = imageRequest(ctx.action === "image_to_image" ? "edit" : "generate", ctx.requestBody || {}, ctx);
+    const paths = { image_to_image: "/v1/images/edits", text_to_image: "/v1/images/generations" };
+    return {
+      url: apiRoot(ctx) + paths[request.action],
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: "Bearer " + ctx.apiKey },
+      body: Object.assign({}, request.body, { model: ctx.upstreamModel || ctx.model }),
+      action: request.action,
+    };
+  }
   const request = videoRequest(ctx.action, ctx.requestBody || {}, ctx);
   const paths = { video_edit: "/v1/videos/edits", video_extension: "/v1/videos/extensions" };
   return {
@@ -463,6 +818,29 @@ export function buildSubmitRequest(ctx) {
 
 export function parseSubmitResponse(ctx, resp) {
   const body = plainObject(resp.body);
+  // Image generation is synchronous: the response already contains the image
+  // payloads, so no vendor task exists to poll.
+  if (ctx.action === "text_to_image" || ctx.action === "image_to_image") {
+    const error = body && plainObject(body.error);
+    const usage = body && plainObject(body.usage);
+    const charged = Boolean(usage && Number(usage.cost_in_usd_ticks) > 0);
+    if (!body || (!Array.isArray(body.data) && !plainObject(body.data))) {
+      // A blocked or failed generation xAI still billed settles as a charged
+      // success with no payload, so the reservation is not refunded.
+      if (!charged) {
+        if (error && trimmed(error.message)) throw new Error(trimmed(error.message));
+        throw new Error("xAI returned no image data");
+      }
+    }
+    const taskId = trimmed(ctx.publicTaskId) || trimmed(body.request_id);
+    if (!taskId) throw new Error("missing synchronous image request id");
+    const images = imageData(body);
+    return {
+      taskId: taskId,
+      taskData: body,
+      immediate: { status: "SUCCESS", progress: "100%", url: images.length && images[0].url ? images[0].url : "" },
+    };
+  }
   const taskId = body && typeof body.request_id === "string" ? body.request_id.trim() : "";
   if (!taskId) throw new Error("xAI did not return a request_id");
   const result = { taskId: taskId, taskData: body };
@@ -473,6 +851,16 @@ export function parseSubmitResponse(ctx, resp) {
 }
 
 export function extractUsage(ctx) {
+  if (ctx.action === "text_to_image" || ctx.action === "image_to_image") {
+    const request = imageRequest(ctx.action === "image_to_image" ? "edit" : "generate", ctx.requestBody || {}, ctx);
+    const body = request.body;
+    // Legacy per-call prices scale with the number of output images only.
+    if (ctx.usagePurpose === "billing_ratios") return { image_count: body.n };
+    const inputImages = (body.image ? 1 : 0) + (body.images || []).length;
+    const facts = { image_count: body.n, resolution: body.resolution, input_images: inputImages };
+    if (IMAGE_MODELS[imageModel(ctx)].quality) facts.quality = imageServedQuality(body, request.action);
+    return facts;
+  }
   const request = videoRequest(ctx.action, ctx.requestBody || {}, ctx);
   const body = request.body;
   const videoInput = VIDEO_MODELS[videoModel(ctx)].videoInput;
@@ -530,7 +918,21 @@ export function parseTaskResult(ctx, body, response) {
   return { status: "UNKNOWN", reason: "unrecognized status: " + String(status || "") };
 }
 
+export function extractUsageOnSubmit(ctx, body) {
+  // Only image responses report their final payload count at submit; video
+  // results are settled by extractUsageOnComplete.
+  if (ctx.action !== "text_to_image" && ctx.action !== "image_to_image") return null;
+  const count = imageUsageCount(plainObject(body) || {});
+  return count ? { image_count: count } : null;
+}
+
 export function extractUsageOnComplete(task, result, body) {
+  // Image responses have no task status: the completed body is the result.
+  const taskAction = task && task.action;
+  if (taskAction === "text_to_image" || taskAction === "image_to_image") {
+    const count = imageUsageCount(plainObject(body) || {});
+    return count ? { image_count: count } : {};
+  }
   // Legacy ratio pricing calls this hook without a poll body.
   const data = plainObject(body);
   if (!data || typeof data.status !== "string") return null;
@@ -737,6 +1139,33 @@ export const protocols = {
         ],
         metadata: { vendor: "xai" },
       };
+    },
+  },
+  // OpenAI Images API. xAI answers synchronously, so parseSubmitResponse
+  // returns a terminal result and the host renders data[] inline.
+  openai_image: {
+    decodeRequest: function (ctx) {
+      if (!ctx.body || (ctx.body.kind !== "json" && ctx.body.kind !== "multipart")) throw new Error("JSON or multipart body required");
+      const operation = ctx.operation === "edit" ? "edit" : "generate";
+      let source;
+      if (ctx.body.kind === "json") {
+        source = plainObject(ctx.body.value);
+        if (!source) throw new Error("request body must be an object");
+      } else {
+        source = multipartImageSource(ctx, operation);
+      }
+      const model = trimmed(ctx.model) || trimmed(source.model);
+      if (!model) throw new Error("model is required");
+      const request = imageRequest(operation, source, { upstreamModel: ctx.upstreamModel, model: model });
+      // The host owns response_format: it returns URLs and inlines base64 on
+      // request, so the upstream response stays in one shape.
+      delete request.body.response_format;
+      return { kind: "submit", model: model, action: request.action, requestBody: Object.assign(request.body, { model: model }) };
+    },
+    // The host owns created and response_format; the plugin returns the
+    // validated image payloads only, never the upstream cost.
+    render: function (ctx, task) {
+      return { data: imageData(task.data) };
     },
   },
   openai_video: {

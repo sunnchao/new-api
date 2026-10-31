@@ -11,7 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedKeys = []string{"alibaba", "doubao", "google", "hailuo", "jimeng", "kling", "sora", "sunoapi", "vertex-ai", "vidu", "xai"}
+var expectedDriverKeys = []string{"alibaba", "doubao", "google", "hailuo", "jimeng", "kling", "sora", "sunoapi", "vertex-ai", "vidu", "xai"}
+var expectedKeys = []string{"alibaba", "doubao", "google", "hailuo", "jimeng", "kling", "sora", "sunburst", "sunoapi", "vertex-ai", "vidu", "xai"}
 
 func TestBuiltInVendorPluginsDeclareNativeRoutesAndLegacyChannelTypes(t *testing.T) {
 	generation := jsplugin.DefaultRegistry.Generation()
@@ -51,6 +52,8 @@ func TestBuiltInVendorPluginsDeclareNativeRoutesAndLegacyChannelTypes(t *testing
 		{"POST", "/ali/api/v1/services/aigc/video-generation/video-synthesis", "alibaba", jsplugin.RouteTypeSubmit, "", "taskCreated", false, true},
 		{"GET", "/api/v1/tasks/:task_id", "alibaba", jsplugin.RouteTypeQuery, "", "taskStatus", false, false},
 		{"GET", "/ali/api/v1/tasks/:task_id", "alibaba", jsplugin.RouteTypeQuery, "", "taskStatus", false, true},
+		{"POST", "/xai/v1/images/generations", "xai", jsplugin.RouteTypeSubmit, "", "imageCreated", false, true},
+		{"POST", "/xai/v1/images/edits", "xai", jsplugin.RouteTypeSubmit, "", "imageCreated", false, true},
 		{"POST", "/v1/videos/generations", "xai", jsplugin.RouteTypeSubmit, "", "videoCreated", false, false},
 		{"POST", "/v1/videos/edits", "xai", jsplugin.RouteTypeSubmit, "", "videoCreated", false, false},
 		{"POST", "/v1/videos/extensions", "xai", jsplugin.RouteTypeSubmit, "", "videoCreated", false, false},
@@ -151,7 +154,7 @@ func TestBuiltInTaskPluginResponsesAndUsageContracts(t *testing.T) {
 	}
 	assert.Equal(t, expectedKeys, actualKeys)
 
-	for _, key := range expectedKeys {
+	for _, key := range expectedDriverKeys {
 		t.Run(key, func(t *testing.T) {
 			_, found := generation.Get(key)
 			require.True(t, found, "factory plugin was excluded from the active generation")
@@ -173,7 +176,13 @@ func TestBuiltInTaskPluginResponsesAndUsageContracts(t *testing.T) {
 			}
 			require.True(t, foundResponses, "openai_responses claim must be present")
 			assert.Equal(t, []string{"stream", "sync", "background"}, responsesClaim.Supports)
-			for _, model := range plugin.Meta.Models {
+			// A claim narrowed to a subset of meta.models leaves the other
+			// models (xAI's image models) to their own protocol.
+			responsesModels := plugin.Meta.Models
+			if len(responsesClaim.Models) > 0 {
+				responsesModels = responsesClaim.Models
+			}
+			for _, model := range responsesModels {
 				binding, claimed := registry.Generation().LookupEndpoint("POST", "/v1/responses", model)
 				require.True(t, claimed, model)
 				assert.Same(t, plugin, binding.Plugin)
@@ -196,7 +205,7 @@ func TestBuiltInTaskPluginResponsesAndUsageContracts(t *testing.T) {
 
 func TestBuiltInResponsesDecodersEchoChannelMappedAlias(t *testing.T) {
 	bodyOverrides := map[string]map[string]any{}
-	for _, key := range expectedKeys {
+	for _, key := range expectedDriverKeys {
 		t.Run(key, func(t *testing.T) {
 			source, sourceErr := Source(key)
 			require.NoError(t, sourceErr)
@@ -223,6 +232,24 @@ func TestBuiltInResponsesDecodersEchoChannelMappedAlias(t *testing.T) {
 			assert.Equal(t, "submit", decoded["kind"])
 			assert.Equal(t, alias, decoded["model"])
 		})
+	}
+}
+
+func TestSunburstBillingPolicyNeedsNoTaskDriver(t *testing.T) {
+	source, err := Source("sunburst")
+	require.NoError(t, err)
+	plugin, err := jsplugin.CompilePlugin(source, jsplugin.Options{Key: "sunburst"})
+	require.NoError(t, err)
+	assert.Empty(t, plugin.Meta.Routes)
+	assert.Empty(t, plugin.Meta.Protocols)
+	assert.True(t, plugin.Meta.BillingOnly())
+	generation := jsplugin.DefaultRegistry.Generation()
+	require.Contains(t, plugin.Meta.Models, "gpt-image-2.5-sunburst")
+	for _, model := range plugin.Meta.Models {
+		assert.Equal(t, "image", generation.FixedRequestPriceUnit(model))
+		_, taskModel := generation.GetByModel(model)
+		assert.False(t, taskModel)
+		assert.Empty(t, generation.PluginsByModel(model))
 	}
 }
 

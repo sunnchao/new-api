@@ -59,6 +59,10 @@ const TOKEN_AUDIT_OPERATIONS: Record<
     labelKey: 'View API token key',
     namedKey: 'View key for API token “{{name}}”',
   },
+  'token.key_reset': {
+    labelKey: 'Reset API token key',
+    namedKey: 'Reset key for API token “{{name}}”',
+  },
   'token.delete_batch': { labelKey: 'Batch delete API tokens' },
   'token.key_view_batch': { labelKey: 'View API token keys in batch' },
 }

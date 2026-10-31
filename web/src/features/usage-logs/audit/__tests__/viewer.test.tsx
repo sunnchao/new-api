@@ -125,6 +125,12 @@ it.each([
     '',
   ],
   [
+    'token.key_reset',
+    { id: 11, name: 'production' },
+    'Reset key for API token “production”',
+    '',
+  ],
+  [
     'token.delete_batch',
     { total: 4, count: 1, requested_ids: [11, 11, 12, 99] },
     'Batch delete API tokens',

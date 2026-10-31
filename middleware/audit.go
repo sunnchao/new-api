@@ -224,6 +224,8 @@ func TokenOperationAudit() gin.HandlerFunc {
 			action, content = "token.delete_batch", "API token batch deletion"
 		case "POST /api/token/:id/key":
 			action, content = "token.key_view", "API token key access"
+		case "POST /api/token/:id/reset-key":
+			action, content = "token.key_reset", "API token key reset"
 		case "POST /api/token/batch/keys":
 			action, content = "token.key_view_batch", "API token batch key access"
 		default:

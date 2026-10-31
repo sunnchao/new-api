@@ -24,11 +24,11 @@ type Token struct {
 	UnlimitedQuota     bool           `json:"unlimited_quota"`
 	ModelLimitsEnabled bool           `json:"model_limits_enabled"`
 	ModelLimits        string         `json:"model_limits" gorm:"type:text"`
-	MjModel         string         `json:"mj_model" gorm:"type:varchar(16);default:''"`
+	MjModel            string         `json:"mj_model" gorm:"type:varchar(16);default:''"`
 	AllowIps           *string        `json:"allow_ips" gorm:"default:''"`
 	UsedQuota          int            `json:"used_quota" gorm:"default:0"` // used quota
 	Group              string         `json:"group" gorm:"default:''"`
-	BackupGroup     string         `json:"backup_group" gorm:"default:''"`
+	BackupGroup        string         `json:"backup_group" gorm:"default:''"`
 	CrossGroupRetry    bool           `json:"cross_group_retry"` // 跨分组重试，仅auto分组有效
 	AutoGroups         string         `json:"-" gorm:"type:text"`
 	DeletedAt          gorm.DeletedAt `gorm:"index"`
@@ -327,6 +327,30 @@ func (token *Token) SelectUpdate() (err error) {
 	}
 	// This can update zero values
 	return DB.Model(token).Select("accessed_time", "status").Updates(token).Error
+}
+
+// ResetKey 就地更换令牌密钥，保留 Id、用量与配置，旧密钥立即失效。
+func (token *Token) ResetKey(newKey string) error {
+	if token.Id == 0 || newKey == "" {
+		return errors.New("token id or new key is empty")
+	}
+	oldKey := token.Key
+	result := DB.Model(&Token{}).Where("id = ?", token.Id).Update("key", newKey)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return errors.New("token not found")
+	}
+	token.Key = newKey
+	if err := rotateTokenCacheKey(oldKey, newKey); err != nil {
+		// 迁移失败时优先保证旧密钥立即失效，宁可让新密钥从数据库重新水合。
+		if delErr := invalidateTokenCacheForMutation(oldKey); delErr != nil {
+			common.SysLog(common.LogText("failed to invalidate old token cache after key reset: %s", delErr.Error()))
+		}
+		common.SysError(common.LogText("failed to rotate token cache key: %s", err.Error()))
+	}
+	return nil
 }
 
 func (token *Token) Delete() (err error) {

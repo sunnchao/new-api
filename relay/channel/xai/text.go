@@ -51,12 +51,17 @@ func xAIStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Re
 			return
 		}
 
-		// 把 xAI 的usage转换为 OpenAI 的usage
+		// 把 xAI 的usage转换为 OpenAI 的usage。整份复制: 结算依赖
+		// prompt_tokens_details.cached_tokens 等明细, 只挑三个字段会把
+		// 缓存命中丢成 0。
 		if xAIResp.Usage != nil {
 			containStreamUsage = true
-			usage.PromptTokens = xAIResp.Usage.PromptTokens
-			usage.TotalTokens = xAIResp.Usage.TotalTokens
-			usage.CompletionTokens = usage.TotalTokens - usage.PromptTokens
+			*usage = *xAIResp.Usage
+			// total_tokens 覆盖 prompt+completion; 缺失时保留上游的
+			// completion_tokens, 不把负数带进结算。
+			if usage.TotalTokens > 0 {
+				usage.CompletionTokens = max(usage.TotalTokens-usage.PromptTokens, 0)
+			}
 		}
 
 		openaiResponse := streamResponseXAI2OpenAI(xAIResp, usage)
@@ -90,8 +95,10 @@ func xAIHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Response
 		return nil, types.NewError(err, types.ErrorCodeBadResponseBody)
 	}
 	if xaiResponse.Usage != nil {
-		xaiResponse.Usage.CompletionTokens = xaiResponse.Usage.TotalTokens - xaiResponse.Usage.PromptTokens
-		xaiResponse.Usage.CompletionTokenDetails.TextTokens = xaiResponse.Usage.CompletionTokens - xaiResponse.Usage.CompletionTokenDetails.ReasoningTokens
+		if xaiResponse.Usage.TotalTokens > 0 {
+			xaiResponse.Usage.CompletionTokens = max(xaiResponse.Usage.TotalTokens-xaiResponse.Usage.PromptTokens, 0)
+		}
+		xaiResponse.Usage.CompletionTokenDetails.TextTokens = max(xaiResponse.Usage.CompletionTokens-xaiResponse.Usage.CompletionTokenDetails.ReasoningTokens, 0)
 	}
 
 	// new body

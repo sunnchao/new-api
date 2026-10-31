@@ -731,6 +731,8 @@ export const STATIC_I18N_KEYS = [
   'Delete API token “{{name}}”',
   'View API token key',
   'View key for API token “{{name}}”',
+  'Reset API token key',
+  'Reset key for API token “{{name}}”',
   'Batch delete API tokens',
   'View API token keys in batch',
   'API token creation',

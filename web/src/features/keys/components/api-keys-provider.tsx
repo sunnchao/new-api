@@ -37,6 +37,7 @@ type ApiKeysContextType = {
   setResolvedKey: React.Dispatch<React.SetStateAction<string>>
   resolveRealKey: (id: number) => Promise<string | null>
   resolveRealKeysBatch: (ids: number[]) => Promise<Record<number, string>>
+  rememberResolvedKey: (id: number, key: string) => void
   resolvedKeys: Record<number, string>
   loadingKeys: Record<number, boolean>
   copiedKeyId: number | null
@@ -71,6 +72,11 @@ export function ApiKeysProvider({ children }: { children: React.ReactNode }) {
 
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1)
+  }, [])
+
+  // 密钥重置后缓存新值，避免"复制 Key"继续返回已作废的旧密钥。
+  const rememberResolvedKey = useCallback((id: number, key: string) => {
+    setResolvedKeys((prev) => ({ ...prev, [id]: key }))
   }, [])
 
   const resolveRealKey = useCallback(
@@ -167,6 +173,7 @@ export function ApiKeysProvider({ children }: { children: React.ReactNode }) {
         setResolvedKey,
         resolveRealKey,
         resolveRealKeysBatch,
+        rememberResolvedKey,
         resolvedKeys,
         loadingKeys,
         copiedKeyId,

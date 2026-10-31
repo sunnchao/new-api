@@ -121,6 +121,7 @@ it.each([
   ['token.delete_batch', '批量删除 API 令牌'],
   ['token.key_view', '查看 API 令牌「1」的密钥（ID: 11）'],
   ['token.key_view_batch', '批量查看 API 令牌密钥'],
+  ['token.key_reset', '重置 API 令牌「1」的密钥（ID: 11）'],
 ])('localizes the neutral event summary for %s', async (action, summary) => {
   const i18n = createInstance()
   await i18n.init({ lng: 'zh', resources: { zh } })

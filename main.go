@@ -5,6 +5,7 @@ import (
 	"context"
 	"embed"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"

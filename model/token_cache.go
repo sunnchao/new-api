@@ -47,6 +47,27 @@ func invalidateTokenCacheForMutation(key string) error {
 	return common.RDB.Del(ctx, getTokenCacheKey(key)).Err()
 }
 
+// rotateTokenCacheKey moves the token hash to the new key after a key reset and
+// raises a fence on the old one. The hash is the authoritative quota state
+// (pre-consume writes Redis first and persists to the database in batches), so
+// dropping it would make the new key hydrate an inflated balance from a lagging
+// snapshot. The fence keeps a reader that already loaded the pre-reset row from
+// publishing the retired key back into the cache.
+func rotateTokenCacheKey(oldKey string, newKey string) error {
+	if !common.RedisEnabled || oldKey == "" || newKey == "" {
+		return nil
+	}
+	const script = `
+redis.call('SET', KEYS[3], 1, 'EX', ARGV[1])
+if redis.call('EXISTS', KEYS[1]) == 1 then
+  redis.call('RENAME', KEYS[1], KEYS[2])
+end
+return 1`
+	return common.RDB.Eval(context.Background(), script, []string{
+		getTokenCacheKey(oldKey), getTokenCacheKey(newKey), getTokenCacheFenceKey(oldKey),
+	}, tokenCacheFenceSeconds).Err()
+}
+
 // cacheInitToken publishes a database snapshot only when no mutation fence is
 // active and the hash is cold. An existing hash only gets its TTL refreshed:
 // its RemainQuota may already be ahead of this snapshot because atomic

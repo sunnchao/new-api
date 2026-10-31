@@ -27,6 +27,7 @@ import {
   Copy,
   Link,
   Loader2,
+  RefreshCw,
 } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -48,8 +49,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useChatPresets } from '@/features/chat/hooks/use-chat-presets'
-import { resolveChatUrl } from '@/features/chat/lib/chat-links'
-import type { ChatPreset } from '@/features/chat/lib/chat-links'
+import { resolveChatUrl, type ChatPreset } from '@/features/chat/lib/chat-links'
 import { sendToFluent } from '@/features/chat/lib/send-to-fluent'
 import { encodeChannelConnectionInfo } from '@/lib/channel-connection-info'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
@@ -288,6 +288,18 @@ export function DataTableRowActions<TData>({
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => {
+            setCurrentRow(apiKey)
+            setOpen('reset-key')
+          }}
+        >
+          {t('Reset Key')}
+          <DropdownMenuShortcut>
+            <RefreshCw size={16} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => {

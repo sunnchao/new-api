@@ -593,6 +593,51 @@ func TestGetTokenKeyRequiresOwnershipAndReturnsFullKey(t *testing.T) {
 	}
 }
 
+func TestResetTokenKeyRotatesInPlaceAndRequiresOwnership(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	// InitLogDB 同时初始化生产环境的列名引用，GetTokenByKey 依赖 commonKeyCol。
+	require.NoError(t, model.InitLogDB())
+	token := seedToken(t, db, 1, "rotated-token", "owner1234token5678")
+	oldKey := token.Key
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPost, "/api/token/"+strconv.Itoa(token.Id)+"/reset-key", nil, 1)
+	ctx.Params = gin.Params{{Key: "id", Value: strconv.Itoa(token.Id)}}
+	ResetTokenKey(ctx)
+
+	response := decodeAPIResponse(t, recorder)
+	require.True(t, response.Success, response.Message)
+
+	var keyData tokenKeyResponse
+	require.NoError(t, common.Unmarshal(response.Data, &keyData))
+	require.NotEmpty(t, keyData.Key)
+	assert.NotEqual(t, oldKey, keyData.Key)
+
+	// 令牌本身保留，只有密钥变化。
+	rotated, err := model.GetTokenById(token.Id)
+	require.NoError(t, err)
+	assert.Equal(t, keyData.Key, rotated.Key)
+	assert.Equal(t, "rotated-token", rotated.Name)
+	assert.Equal(t, 100, rotated.RemainQuota)
+
+	// 旧密钥立即失效，新密钥解析到同一个令牌。
+	_, err = model.GetTokenByKey(oldKey, true)
+	require.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	rotatedLookup, err := model.GetTokenByKey(keyData.Key, true)
+	require.NoError(t, err)
+	assert.Equal(t, token.Id, rotatedLookup.Id)
+
+	// 其他用户不能重置该令牌。
+	foreignCtx, foreignRecorder := newAuthenticatedContext(t, http.MethodPost, "/api/token/"+strconv.Itoa(token.Id)+"/reset-key", nil, 2)
+	foreignCtx.Params = gin.Params{{Key: "id", Value: strconv.Itoa(token.Id)}}
+	ResetTokenKey(foreignCtx)
+
+	foreignResponse := decodeAPIResponse(t, foreignRecorder)
+	assert.False(t, foreignResponse.Success)
+	unchanged, err := model.GetTokenById(token.Id)
+	require.NoError(t, err)
+	assert.Equal(t, keyData.Key, unchanged.Key)
+}
+
 func TestTokenAllowUserQuotaQueryOnCreateAndUpdate(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
@@ -792,6 +837,7 @@ func verifyAPITokenAudit(t *testing.T) {
 		}
 		c.Next()
 	}, GetTokenKey)
+	tokenRoutes.POST("/:id/reset-key", ResetTokenKey)
 	tokenRoutes.GET("/", GetAllTokens)
 	tokenRoutes.GET("/:id", GetToken)
 	tokenRoutes.GET("/search", SearchTokens)
@@ -826,6 +872,8 @@ func verifyAPITokenAudit(t *testing.T) {
 		{name: "PAT key view", method: "POST", path: "/$id/key", action: "token.key_view", success: true, params: `{"id":$id,"name":"owned"}`, usePAT: true},
 		{name: "foreign key view", method: "POST", path: "/$other/key", action: "token.key_view", params: `{"id":$other}`},
 		{name: "rate limited key view", method: "POST", path: "/$id/key", action: "token.key_view", params: `{"id":$id}`, rateLimit: true},
+		{name: "key reset", method: "POST", path: "/$id/reset-key", action: "token.key_reset", success: true, params: `{"id":$id,"name":"owned"}`},
+		{name: "foreign key reset", method: "POST", path: "/$other/reset-key", action: "token.key_reset", params: `{"id":$other}`},
 		{name: "batch delete partial and duplicate", method: "POST", path: "/batch", body: `{"ids":[$id,$id,$other,999999]}`, action: "token.delete_batch", success: true, params: `{"requested_ids":[$id,$id,$other,999999],"total":4,"count":1}`},
 		{name: "empty batch delete", method: "POST", path: "/batch", body: `{"ids":[]}`, action: "token.delete_batch", params: `{"requested_ids":[],"total":0}`},
 		{name: "batch keys partial and duplicate", method: "POST", path: "/batch/keys", body: `{"ids":[$id,$id,$other,999999]}`, action: "token.key_view_batch", success: true, params: `{"requested_ids":[$id,$id,$other,999999],"total":4,"count":1,"returned_ids":[$id]}`},

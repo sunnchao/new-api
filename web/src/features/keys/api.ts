@@ -116,6 +116,14 @@ export async function fetchTokenKey(
   return res.data
 }
 
+// Regenerate a token key in place; the previous key stops working immediately.
+export async function resetApiKeyKey(
+  id: number
+): Promise<{ success: boolean; message?: string; data?: { key: string } }> {
+  const res = await api.post(`/api/token/${id}/reset-key`)
+  return res.data
+}
+
 // Batch fetch real (unmasked) keys for multiple tokens
 export async function fetchTokenKeysBatch(ids: number[]): Promise<{
   success: boolean
