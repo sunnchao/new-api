@@ -169,6 +169,7 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
   const loadingPresetIdRef = useRef<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingPreset, setPendingPreset] = useState<ChatPreset | null>(null)
+  const [selectedTokenName, setSelectedTokenName] = useState<string | null>(null)
 
   const {
     data: tokens = [],
@@ -187,6 +188,7 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
         template: preset.url,
         apiKey,
         serverAddress,
+        tokenName: selectedTokenName || undefined,
       })
 
       if (!url) {
@@ -222,7 +224,7 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
   )
 
   const handleTokenSelected = useCallback(
-    async (tokenId: number) => {
+    async (tokenId: number, tokenName: string) => {
       const preset = pendingPreset
       setPickerOpen(false)
       if (!preset) return
@@ -247,6 +249,7 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
         loadingPresetIdRef.current = null
         setLoadingPresetId(null)
         setPendingPreset(null)
+        setSelectedTokenName(tokenName)
       }
     },
     [pendingPreset, launchExternalUrl, t]
@@ -293,7 +296,7 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
       tokens={tokens}
       isLoading={tokensLoading}
       error={tokensError as Error | null}
-      onSelect={(tokenId) => void handleTokenSelected(tokenId)}
+      onSelect={(tokenId, tokenName) => void handleTokenSelected(tokenId, tokenName)}
     />
   )
 

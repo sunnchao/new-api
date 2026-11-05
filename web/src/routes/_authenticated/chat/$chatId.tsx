@@ -66,11 +66,13 @@ function ChatRouteComponent() {
   const [pickerOpen, setPickerOpen] = useState(needsToken)
   const [cancelled, setCancelled] = useState(false)
   const [resetKey, setResetKey] = useState(`${chatId}:${needsToken}`)
+  const [selectedTokenName, setSelectedTokenName] = useState<string | null>(null)
 
   // Reset selection whenever the chat preset (or its key requirement) changes.
   if (resetKey !== `${chatId}:${needsToken}`) {
     setResetKey(`${chatId}:${needsToken}`)
     setSelectedTokenId(null)
+    setSelectedTokenName(null)
     setCancelled(false)
     setPickerOpen(needsToken)
   }
@@ -95,6 +97,7 @@ function ChatRouteComponent() {
       template: preset.url,
       apiKey: needsToken ? activeKey : undefined,
       serverAddress,
+      tokenName: selectedTokenName || undefined,
     })
   }, [activeKey, isWebLink, needsToken, preset, serverAddress])
 
@@ -149,8 +152,9 @@ function ChatRouteComponent() {
       tokens={tokens}
       isLoading={tokensLoading}
       error={tokensError as Error | null}
-      onSelect={(tokenId) => {
+      onSelect={(tokenId, tokenName) => {
         setSelectedTokenId(tokenId)
+        setSelectedTokenName(tokenName)
         setPickerOpen(false)
         setCancelled(false)
       }}

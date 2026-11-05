@@ -38,6 +38,7 @@ export type ResolveChatUrlParams = {
   template: string
   apiKey?: string
   serverAddress: string
+  tokenName?: string
 }
 
 export type ActiveApiKey = {
@@ -154,6 +155,7 @@ export function resolveChatUrl({
   template,
   apiKey,
   serverAddress,
+  tokenName
 }: ResolveChatUrlParams): string {
   let url = template
   const safeServerAddress = serverAddress || ''
@@ -162,9 +164,10 @@ export function resolveChatUrl({
 
   if (url.includes('{cherryConfig}')) {
     const payload = {
-      id: 'new-api',
+      id: 'chirou-api',
       baseUrl: safeServerAddress,
       apiKey: safeApiKey,
+      tokenName: tokenName || undefined,
     }
     const encoded = encodeURIComponent(toBase64(JSON.stringify(payload)))
     return replaceToken(url, '{cherryConfig}', encoded)
@@ -172,9 +175,10 @@ export function resolveChatUrl({
 
   if (url.includes('{aionuiConfig}')) {
     const payload = {
-      platform: 'new-api',
+      platform: 'chirou-api',
       baseUrl: safeServerAddress,
       apiKey: safeApiKey,
+      tokenName: tokenName || undefined,
     }
     const encoded = encodeURIComponent(toBase64(JSON.stringify(payload)))
     return replaceToken(url, '{aionuiConfig}', encoded)
@@ -182,9 +186,10 @@ export function resolveChatUrl({
 
   if (url.includes('{deepchatConfig}')) {
     const payload = {
-      id: 'new-api',
+      id: 'c-api',
       baseUrl: safeServerAddress,
       apiKey: safeApiKey,
+      tokenName: tokenName || undefined,
     }
     const encoded = encodeURIComponent(toBase64(JSON.stringify(payload)))
     return replaceToken(url, '{deepchatConfig}', encoded)
@@ -196,6 +201,7 @@ export function resolveChatUrl({
       `baseurl=${encodeURIComponent(safeServerAddress)}`,
       `apikey=${encodeURIComponent(safeApiKey)}`,
       'type=openai',
+      tokenName ? `tokenname=${encodeURIComponent(tokenName)}` : '',
     ].join('&')
     return replaceToken(url, '{aqbotConfig}', query)
   }

@@ -43,7 +43,7 @@ export type ChatTokenPickerDialogProps = {
   tokens: ApiKey[]
   isLoading?: boolean
   error?: Error | null
-  onSelect: (tokenId: number) => void
+  onSelect: (tokenId: number, tokenName: string) => void
 }
 
 export function ChatTokenPickerDialog({
@@ -91,7 +91,7 @@ export function ChatTokenPickerDialog({
                   <li key={token.id}>
                     <button
                       type='button'
-                      onClick={() => onSelect(token.id)}
+                      onClick={() => onSelect(token.id, displayName || '')}
                       className={cn(
                         'border-border bg-background hover:border-primary hover:bg-muted/40 flex w-full flex-col gap-2 rounded-md border p-3 text-left transition-all',
                         'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2'

@@ -56,6 +56,7 @@ function Chat2LinkPage() {
   )
 
   const [selectedTokenId, setSelectedTokenId] = useState<number | null>(null)
+  const [selectedTokenName, setSelectedTokenName] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [cancelled, setCancelled] = useState(false)
   const presetKey = firstWebPreset?.id ?? null
@@ -65,6 +66,7 @@ function Chat2LinkPage() {
   if (resetKey !== nextResetKey) {
     setResetKey(nextResetKey)
     setSelectedTokenId(null)
+    setSelectedTokenName(null)
     setCancelled(false)
     setPickerOpen(Boolean(nextResetKey))
   }
@@ -106,6 +108,7 @@ function Chat2LinkPage() {
       template: firstWebPreset.url,
       apiKey: needsToken ? activeKey : undefined,
       serverAddress,
+      tokenName: selectedTokenName || undefined,
     })
 
     if (url) {
@@ -135,8 +138,9 @@ function Chat2LinkPage() {
       tokens={tokens}
       isLoading={tokensLoading}
       error={tokensError as Error | null}
-      onSelect={(tokenId) => {
+      onSelect={(tokenId, tokenName) => {
         setSelectedTokenId(tokenId)
+        setSelectedTokenName(tokenName)
         setPickerOpen(false)
         setCancelled(false)
       }}
