@@ -117,6 +117,16 @@ const defaultBillingSettings: BillingSettings = {
     '{"mode":"permanent","unit":"day","value":0}',
   'gift_quota_expiration_setting.topup_bonus':
     '{"mode":"permanent","unit":"day","value":0}',
+  'topup_campaign_setting.enabled': true,
+  'topup_campaign_setting.campaign_key': '2026-double-11',
+  'topup_campaign_setting.start_time': 1793894400,
+  'topup_campaign_setting.end_time': 1794412799,
+  'topup_campaign_setting.day_bonus_start': 1794326400,
+  'topup_campaign_setting.day_bonus_end': 1794412799,
+  'topup_campaign_setting.day_bonus_rate': 0.05,
+  'topup_campaign_setting.tiers':
+    '[{"min_amount":100,"bonus_amount":10},{"min_amount":300,"bonus_amount":40},{"min_amount":500,"bonus_amount":80},{"min_amount":1000,"bonus_amount":200},{"min_amount":2026,"bonus_amount":520}]',
+  'topup_campaign_setting.periods': '[]',
 }
 
 export function BillingSettings() {

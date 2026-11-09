@@ -2,6 +2,9 @@ package config
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testConfigWithMap struct {
@@ -93,4 +96,26 @@ func TestUpdateConfigFromMap_ScalarFieldsUnchanged(t *testing.T) {
 	if cfg.Modes["m"] != "v" {
 		t.Errorf("Modes should be unchanged, got %v", cfg.Modes)
 	}
+}
+
+type testConfigPeriod struct {
+	Key       string `json:"key"`
+	Whitelist []int  `json:"whitelist"`
+}
+
+type testConfigWithSlice struct {
+	Periods []testConfigPeriod `json:"periods"`
+}
+
+func TestUpdateConfigFromMap_SliceReplacement(t *testing.T) {
+	cfg := &testConfigWithSlice{
+		Periods: []testConfigPeriod{{Key: "old", Whitelist: []int{2}}},
+	}
+
+	require.NoError(t, UpdateConfigFromMap(cfg, map[string]string{
+		"periods": `[{"key":"new"}]`,
+	}))
+	require.Len(t, cfg.Periods, 1)
+	assert.Equal(t, "new", cfg.Periods[0].Key)
+	assert.Empty(t, cfg.Periods[0].Whitelist)
 }

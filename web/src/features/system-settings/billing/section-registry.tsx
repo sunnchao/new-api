@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { resolveCampaignPeriods } from '@/features/topup-campaign/lib/settings'
 import { parseCurrencyDisplayType } from '@/lib/currency'
 
 import { CheckinSettingsSection } from '../general/checkin-settings-section'
@@ -26,6 +27,7 @@ import { RatioSettingsCard } from '../models/ratio-settings-card'
 import type { BillingSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
 import { GiftQuotaExpirationSection } from './gift-quota-expiration-section'
+import { TopupCampaignSection } from './topup-campaign-section'
 
 const getModelDefaults = (settings: BillingSettings) => ({
   ModelPrice: settings.ModelPrice,
@@ -203,6 +205,27 @@ const BILLING_SECTIONS = [
       <GiftQuotaExpirationSection
         checkin={settings['gift_quota_expiration_setting.checkin']}
         topupBonus={settings['gift_quota_expiration_setting.topup_bonus']}
+      />
+    ),
+  },
+  {
+    id: 'topup-campaign',
+    titleKey: 'Top-up Campaign',
+    build: (settings: BillingSettings) => (
+      <TopupCampaignSection
+        defaultValues={{
+          enabled: settings['topup_campaign_setting.enabled'],
+          periods: resolveCampaignPeriods({
+            periods: settings['topup_campaign_setting.periods'],
+            campaignKey: settings['topup_campaign_setting.campaign_key'],
+            startTime: settings['topup_campaign_setting.start_time'],
+            endTime: settings['topup_campaign_setting.end_time'],
+            dayBonusStart: settings['topup_campaign_setting.day_bonus_start'],
+            dayBonusEnd: settings['topup_campaign_setting.day_bonus_end'],
+            dayBonusRate: settings['topup_campaign_setting.day_bonus_rate'],
+            tiers: settings['topup_campaign_setting.tiers'],
+          }),
+        }}
       />
     ),
   },

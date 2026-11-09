@@ -108,6 +108,8 @@ export type TopNavLink = {
   disabled?: boolean
   requiresAuth?: boolean
   external?: boolean
+  /** Highlights a time-limited campaign entry apart from ordinary navigation. */
+  variant?: 'default' | 'promotion'
   /** When present, the parent opens a secondary menu instead of navigating. */
   items?: TopNavLinkItem[]
 }

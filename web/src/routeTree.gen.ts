@@ -29,6 +29,7 @@ import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedChat2linkRouteImport } from './routes/_authenticated/chat2link'
 import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_authenticated/system-settings/route'
 import { Route as AboutIndexRouteImport } from './routes/about/index'
+import { Route as ActivitiesDouble11RouteImport } from './routes/activities/double11'
 import { Route as ContactIndexRouteImport } from './routes/contact/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsClaudeCodeRouteImport } from './routes/docs/claude-code'
@@ -181,6 +182,11 @@ const AuthenticatedSystemSettingsRouteRoute =
 const AboutIndexRoute = AboutIndexRouteImport.update({
   id: '/about/',
   path: '/about/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivitiesDouble11Route = ActivitiesDouble11RouteImport.update({
+  id: '/activities/double11',
+  path: '/activities/double11',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactIndexRoute = ContactIndexRouteImport.update({
@@ -510,6 +516,7 @@ export interface FileRoutesByFullPath {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/chat2link': typeof AuthenticatedChat2linkRoute
+  '/activities/double11': typeof ActivitiesDouble11Route
   '/docs/claude-code': typeof DocsClaudeCodeRoute
   '/docs/codex': typeof DocsCodexRoute
   '/docs/gemini-cli': typeof DocsGeminiCliRoute
@@ -583,6 +590,7 @@ export interface FileRoutesByTo {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/chat2link': typeof AuthenticatedChat2linkRoute
+  '/activities/double11': typeof ActivitiesDouble11Route
   '/docs/claude-code': typeof DocsClaudeCodeRoute
   '/docs/codex': typeof DocsCodexRoute
   '/docs/gemini-cli': typeof DocsGeminiCliRoute
@@ -660,6 +668,7 @@ export interface FileRoutesById {
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
   '/_authenticated/chat2link': typeof AuthenticatedChat2linkRoute
+  '/activities/double11': typeof ActivitiesDouble11Route
   '/docs/claude-code': typeof DocsClaudeCodeRoute
   '/docs/codex': typeof DocsCodexRoute
   '/docs/gemini-cli': typeof DocsGeminiCliRoute
@@ -736,6 +745,7 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/chat2link'
+    | '/activities/double11'
     | '/docs/claude-code'
     | '/docs/codex'
     | '/docs/gemini-cli'
@@ -809,6 +819,7 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/chat2link'
+    | '/activities/double11'
     | '/docs/claude-code'
     | '/docs/codex'
     | '/docs/gemini-cli'
@@ -885,6 +896,7 @@ export interface FileRouteTypes {
     | '/(errors)/500'
     | '/(errors)/503'
     | '/_authenticated/chat2link'
+    | '/activities/double11'
     | '/docs/claude-code'
     | '/docs/codex'
     | '/docs/gemini-cli'
@@ -953,6 +965,7 @@ export interface RootRouteChildren {
   errors404Route: typeof errors404Route
   errors500Route: typeof errors500Route
   errors503Route: typeof errors503Route
+  ActivitiesDouble11Route: typeof ActivitiesDouble11Route
   DocsClaudeCodeRoute: typeof DocsClaudeCodeRoute
   DocsCodexRoute: typeof DocsCodexRoute
   DocsGeminiCliRoute: typeof DocsGeminiCliRoute
@@ -1108,6 +1121,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about/'
       preLoaderRoute: typeof AboutIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/activities/double11': {
+      id: '/activities/double11'
+      path: '/activities/double11'
+      fullPath: '/activities/double11'
+      preLoaderRoute: typeof ActivitiesDouble11RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact/': {
@@ -1655,6 +1675,7 @@ const rootRouteChildren: RootRouteChildren = {
   errors404Route: errors404Route,
   errors500Route: errors500Route,
   errors503Route: errors503Route,
+  ActivitiesDouble11Route: ActivitiesDouble11Route,
   DocsClaudeCodeRoute: DocsClaudeCodeRoute,
   DocsCodexRoute: DocsCodexRoute,
   DocsGeminiCliRoute: DocsGeminiCliRoute,

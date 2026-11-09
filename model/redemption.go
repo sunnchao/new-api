@@ -214,6 +214,7 @@ func Redeem(key string, userId int) (*RedemptionResult, error) {
 		RecordLog(userId, LogTypeSubscriptionPay, common.NewMessage("通过兑换码获取订阅 {{planTitle}}，兑换码ID {{id}}", map[string]any{"planTitle": planTitle, "id": redemption.Id}), nil)
 	} else {
 		syncCreditUserQuotaCache(userId, redemption.Quota, common.LogText("redemption"))
+		GrantRedemptionCampaignBonus(userId, redemption.Id, redemption.Quota)
 		RecordLog(userId, LogTypeTopup, common.NewMessage("Topped up {{quota}} with a redemption code, code ID {{id}}", map[string]any{"quota": logger.FormatQuota(redemption.Quota), "id": redemption.Id}), nil)
 	}
 	return result, nil

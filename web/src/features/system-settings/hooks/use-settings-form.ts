@@ -242,6 +242,14 @@ export function useSettingsForm<T extends FieldValues>({
 
   const compare = compareValues || defaultCompare
 
+  const markSaved = (data: T) => {
+    const flattenedValues = flattenValues(data)
+    baselineRef.current = flattenedValues
+    defaultValuesRef.current = data
+    serializedDefaultsRef.current = JSON.stringify(flattenedValues)
+    form.reset(data)
+  }
+
   const handleSubmit = async (data: T) => {
     const dirtyValues = collectDirtyValues(form.formState.dirtyFields, data)
     const changedEntries = Object.entries(dirtyValues).filter(
@@ -263,11 +271,7 @@ export function useSettingsForm<T extends FieldValues>({
 
     await onSubmit(data, changedFields)
 
-    const flattenedValues = flattenValues(data)
-    baselineRef.current = flattenedValues
-    defaultValuesRef.current = data
-    serializedDefaultsRef.current = JSON.stringify(flattenedValues)
-    form.reset(data)
+    markSaved(data)
   }
 
   const handleReset = () => {
@@ -280,6 +284,7 @@ export function useSettingsForm<T extends FieldValues>({
     // eslint-disable-next-line react-hooks/refs
     handleSubmit: form.handleSubmit(handleSubmit),
     handleReset,
+    markSaved,
     isDirty: form.formState.isDirty,
     isSubmitting: form.formState.isSubmitting,
   }

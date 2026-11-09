@@ -19,11 +19,13 @@ For commercial licensing, please contact support@quantumnous.com
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import type { TopNavLink } from '@/components/layout/types'
 import { buildDocsMenuItems } from '@/features/docs/lib/docs-menu-items'
+import { useTopupCampaign } from '@/features/topup-campaign/hooks/use-topup-campaign'
+import { isCampaignVisible } from '@/features/topup-campaign/lib/campaign'
 import { useStatus } from '@/hooks/use-status'
 import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
 import { useAuthStore } from '@/stores/auth-store'
-import type { TopNavLink } from '@/components/layout/types'
 import '@/features/contact/i18n'
 
 export type { TopNavLink }
@@ -45,6 +47,7 @@ export function useTopNavLinks(): TopNavLink[] {
   const { t } = useTranslation()
   const { status } = useStatus()
   const { auth } = useAuthStore()
+  const { data: campaign } = useTopupCampaign({ refetchInterval: false })
 
   // Parse HeaderNavModules
   const modules = useMemo(() => {
@@ -68,6 +71,15 @@ export function useTopNavLinks(): TopNavLink[] {
   // Console -> /dashboard (new console path)
   if (modules?.console !== false) {
     links.push({ title: t('Console'), href: '/dashboard' })
+  }
+
+  // Top-up campaign, only while the activity is enabled and running
+  if (isCampaignVisible(campaign)) {
+    links.push({
+      title: t('Top-up Bonus'),
+      href: '/activities/double11',
+      variant: 'promotion',
+    })
   }
 
   // Pricing

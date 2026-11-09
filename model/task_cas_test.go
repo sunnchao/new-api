@@ -63,6 +63,7 @@ func TestMain(m *testing.M) {
 		&UserAccessToken{},
 		&Checkin{},
 		&UserGiftQuota{},
+		&TopupCampaignEvent{},
 	); err != nil {
 		panic("failed to migrate: " + err.Error())
 	}
@@ -99,6 +100,7 @@ func truncateTables(t *testing.T) {
 		DB.Exec("DELETE FROM system_tasks")
 		DB.Exec("DELETE FROM checkins")
 		DB.Exec("DELETE FROM user_gift_quotas")
+		DB.Exec("DELETE FROM topup_campaign_events")
 	})
 }
 

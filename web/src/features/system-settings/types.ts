@@ -367,6 +367,15 @@ export type BillingSettings = {
   'checkin_setting.max_quota': number
   'gift_quota_expiration_setting.checkin': string
   'gift_quota_expiration_setting.topup_bonus': string
+  'topup_campaign_setting.enabled': boolean
+  'topup_campaign_setting.campaign_key': string
+  'topup_campaign_setting.start_time': number
+  'topup_campaign_setting.end_time': number
+  'topup_campaign_setting.day_bonus_start': number
+  'topup_campaign_setting.day_bonus_end': number
+  'topup_campaign_setting.day_bonus_rate': number
+  'topup_campaign_setting.tiers': string
+  'topup_campaign_setting.periods': string
 }
 
 export type OperationsSettings = {

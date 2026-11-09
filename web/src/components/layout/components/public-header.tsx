@@ -17,8 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { ChevronDown, ExternalLink } from 'lucide-react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
@@ -45,6 +45,8 @@ import { useAuthStore } from '@/stores/auth-store'
 import { defaultTopNavLinks } from '../config/top-nav.config'
 import type { TopNavLink } from '../types'
 import { HeaderLogo } from './header-logo'
+import { PromotionNavContent } from './promotion-nav-link'
+import { promotionNavClassName } from './promotion-nav-style'
 
 const AUTH_PROMPT_SECONDS = 5
 
@@ -344,12 +346,17 @@ export function PublicHeader(props: PublicHeaderProps) {
                       aria-disabled={link.disabled}
                       tabIndex={link.disabled ? -1 : undefined}
                       onClick={(event) => handleNavLinkClick(event, link)}
-                      className={cn(
-                        'text-muted-foreground hover:text-foreground min-w-0 truncate rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200',
-                        link.disabled && 'pointer-events-none opacity-50'
-                      )}
+                      className={
+                        link.variant === 'promotion'
+                          ? promotionNavClassName(link)
+                          : cn(
+                              'text-muted-foreground hover:text-foreground min-w-0 truncate rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200',
+                              link.disabled && 'pointer-events-none opacity-50'
+                            )
+                      }
+                      data-variant={link.variant ?? 'default'}
                     >
-                      {t(link.title)}
+                      <PromotionNavContent link={link} title={t(link.title)} />
                     </a>
                   )
                 }
@@ -360,15 +367,20 @@ export function PublicHeader(props: PublicHeaderProps) {
                     title={t(link.title)}
                     disabled={link.disabled}
                     onClick={(event) => handleNavLinkClick(event, link)}
-                    className={cn(
-                      'min-w-0 truncate rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200',
-                      isActive
-                        ? 'text-foreground'
-                        : 'text-muted-foreground hover:text-foreground',
-                      link.disabled && 'pointer-events-none opacity-50'
-                    )}
+                    className={
+                      link.variant === 'promotion'
+                        ? promotionNavClassName(link)
+                        : cn(
+                            'min-w-0 truncate rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200',
+                            isActive
+                              ? 'text-foreground'
+                              : 'text-muted-foreground hover:text-foreground',
+                            link.disabled && 'pointer-events-none opacity-50'
+                          )
+                    }
+                    data-variant={link.variant ?? 'default'}
                   >
-                    {t(link.title)}
+                    <PromotionNavContent link={link} title={t(link.title)} />
                   </Link>
                 )
               })}
@@ -467,6 +479,8 @@ export function PublicHeader(props: PublicHeaderProps) {
                   ? 'translate-y-0 opacity-100'
                   : 'translate-y-4 opacity-0',
                 isActive ? 'text-foreground' : 'text-muted-foreground',
+                link.variant === 'promotion' &&
+                  'relative my-1 rounded-xl border border-rose-500/30 bg-gradient-to-r from-rose-500/15 via-orange-400/10 to-amber-400/10 px-3 pe-7 text-rose-700 dark:text-rose-300',
                 link.disabled && 'pointer-events-none opacity-50'
               )
               const transitionStyle = {
@@ -536,9 +550,10 @@ export function PublicHeader(props: PublicHeaderProps) {
                     tabIndex={link.disabled ? -1 : undefined}
                     onClick={(event) => handleNavLinkClick(event, link, true)}
                     className={linkClassName}
+                    data-variant={link.variant ?? 'default'}
                     style={transitionStyle}
                   >
-                    {t(link.title)}
+                    <PromotionNavContent link={link} title={t(link.title)} />
                   </a>
                 )
               }
@@ -549,9 +564,10 @@ export function PublicHeader(props: PublicHeaderProps) {
                   disabled={link.disabled}
                   onClick={(event) => handleNavLinkClick(event, link, true)}
                   className={linkClassName}
+                  data-variant={link.variant ?? 'default'}
                   style={transitionStyle}
                 >
-                  {t(link.title)}
+                  <PromotionNavContent link={link} title={t(link.title)} />
                 </Link>
               )
             })}

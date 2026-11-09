@@ -19,14 +19,15 @@ For commercial licensing, please contact support@quantumnous.com
 import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
+
 import { chatI18nResources } from '../features/chat/i18n'
 import { docsI18nResources } from '../features/docs/i18n'
 import { homeI18nResources } from '../features/home/i18n'
 import { pricingI18nResources } from '../features/pricing/i18n'
 import { subscriptionsI18nResources } from '../features/subscriptions/i18n'
 import { ticketsI18nResources } from '../features/tickets/i18n'
+import { topupCampaignI18nResources } from '../features/topup-campaign/i18n'
 import { usageLogsI18nResources } from '../features/usage-logs/i18n'
-
 import { convertDetectedLanguage } from './languages'
 import en from './locales/en.json'
 import fr from './locales/fr.json'
@@ -61,7 +62,8 @@ export const resources = {
     chatI18nResources.en,
     ticketsI18nResources.en,
     homeI18nResources.en,
-    docsI18nResources.en
+    docsI18nResources.en,
+    topupCampaignI18nResources.en
   ),
   zhCN: mergeFeatureTranslations(
     zhCN,
@@ -71,7 +73,8 @@ export const resources = {
     chatI18nResources.zhCN,
     ticketsI18nResources.zhCN,
     homeI18nResources.zhCN,
-    docsI18nResources.zhCN
+    docsI18nResources.zhCN,
+    topupCampaignI18nResources.zhCN
   ),
   fr: mergeFeatureTranslations(
     fr,
@@ -121,7 +124,8 @@ export const resources = {
     chatI18nResources.zhTW,
     ticketsI18nResources.zhTW,
     homeI18nResources.zhTW,
-    docsI18nResources.zhTW
+    docsI18nResources.zhTW,
+    topupCampaignI18nResources.zhTW
   ),
 } as const
 

@@ -57,10 +57,16 @@ export function useUpdateOption() {
   return useMutation({
     mutationFn: async (request: UpdateOptionRequest) =>
       requireServerSuccess(await updateSystemOption(request)),
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       if (data.success) {
         // Always refresh system-options
-        queryClient.invalidateQueries({ queryKey: ['system-options'] })
+        await queryClient.invalidateQueries(
+          { queryKey: ['system-options'] },
+          { cancelRefetch: false }
+        )
+        if (variables.key.startsWith('topup_campaign_setting.')) {
+          queryClient.invalidateQueries({ queryKey: ['topup-campaign'] })
+        }
 
         // If updating frontend-display-related config, also refresh status
         if (STATUS_RELATED_KEYS.has(variables.key)) {
@@ -79,6 +85,36 @@ export function useUpdateOption() {
     },
     onError: (error: Error) => {
       handleServerError(error, i18next.t('Failed to update setting'))
+    },
+  })
+}
+
+export function useUpdateOptionsBatch() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (requests: UpdateOptionRequest[]) => {
+      for (const request of requests) {
+        requireServerSuccess(await updateSystemOption(request))
+      }
+      // One refetch after every PUT has committed; invalidating after each PUT
+      // can return an intermediate payload that resets the form mid-save.
+      await queryClient.invalidateQueries(
+        { queryKey: ['system-options'] },
+        { cancelRefetch: false }
+      )
+      if (
+        requests.some((request) =>
+          request.key.startsWith('topup_campaign_setting.')
+        )
+      ) {
+        queryClient.invalidateQueries({ queryKey: ['topup-campaign'] })
+      }
+      toast.success(i18next.t('Setting updated successfully'))
+    },
+    onError: (error: Error) => {
+      handleServerError(error, i18next.t('Failed to update setting'))
+      queryClient.invalidateQueries({ queryKey: ['system-options'] })
     },
   })
 }

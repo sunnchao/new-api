@@ -32,6 +32,8 @@ import {
 import { cn } from '@/lib/utils'
 
 import type { TopNavLink } from '../types'
+import { PromotionNavContent } from './promotion-nav-link'
+import { promotionNavClassName } from './promotion-nav-style'
 
 type TopNavProps = React.HTMLAttributes<HTMLElement> & {
   links: TopNavLink[]
@@ -50,6 +52,7 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
         isActive: false,
         disabled: false,
         external: false,
+        variant: 'default' as const,
         ...link,
       })),
     [links]
@@ -60,7 +63,9 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
     if (!items?.length) return null
     return items.map((item, itemIndex) => {
       const previous = items[itemIndex - 1]
-      const showSeparator = Boolean(item.external && previous && !previous.external)
+      const showSeparator = Boolean(
+        item.external && previous && !previous.external
+      )
       return (
         <div key={`${item.title}-${item.href}`}>
           {showSeparator ? <DropdownMenuSeparator /> : null}
@@ -71,11 +76,7 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
             )}
             render={
               item.external ? (
-                <a
-                  href={item.href}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                />
+                <a href={item.href} target='_blank' rel='noopener noreferrer' />
               ) : (
                 <Link to={item.href} />
               )
@@ -129,17 +130,26 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
                         href={link.href}
                         target='_blank'
                         rel='noopener noreferrer'
-                        className={!link.isActive ? 'text-muted-foreground' : ''}
+                        className={
+                          !link.isActive ? 'text-muted-foreground' : ''
+                        }
                       >
                         {t(link.title)}
                       </a>
                     ) : (
                       <Link
                         to={link.href}
-                        className={!link.isActive ? 'text-muted-foreground' : ''}
+                        className={cn(
+                          promotionNavClassName(link),
+                          'w-full justify-start rounded-lg'
+                        )}
+                        data-variant={link.variant}
                         disabled={link.disabled}
                       >
-                        {t(link.title)}
+                        <PromotionNavContent
+                          link={link}
+                          title={t(link.title)}
+                        />
                       </Link>
                     )
                   }
@@ -190,9 +200,10 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
                 href={link.href}
                 target='_blank'
                 rel='noopener noreferrer'
-                className={`hover:text-primary text-sm font-medium transition-colors ${link.isActive ? '' : 'text-muted-foreground'}`}
+                className={promotionNavClassName(link)}
+                data-variant={link.variant}
               >
-                {t(link.title)}
+                <PromotionNavContent link={link} title={t(link.title)} />
               </a>
             )
           }
@@ -202,9 +213,10 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
               key={`${link.title}-${link.href}`}
               to={link.href}
               disabled={link.disabled}
-              className={`hover:text-primary text-sm font-medium transition-colors ${link.isActive ? '' : 'text-muted-foreground'}`}
+              className={promotionNavClassName(link)}
+              data-variant={link.variant}
             >
-              {t(link.title)}
+              <PromotionNavContent link={link} title={t(link.title)} />
             </Link>
           )
         })}

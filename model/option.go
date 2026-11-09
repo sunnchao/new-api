@@ -313,6 +313,9 @@ func validateOptionValue(key string, value string) error {
 	if err := operation_setting.ValidateGiftQuotaExpirationOption(key, value); err != nil {
 		return err
 	}
+	if err := operation_setting.ValidateTopupCampaignOption(key, value); err != nil {
+		return err
+	}
 	return nil
 }
 

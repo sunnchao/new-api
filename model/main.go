@@ -338,6 +338,11 @@ func migrateDB() error {
 	if err := migrateOptionPrimaryKey(DB); err != nil {
 		common.SysError(common.LogText("failed to migrate options primary key: %s", err.Error()))
 	}
+	// Backfill campaign events before AutoMigrate adds the (source, source_id)
+	// unique key they now rely on.
+	if err := migrateTopupCampaignEventSources(); err != nil {
+		return err
+	}
 
 	err := DB.AutoMigrate(
 		&Channel{},
@@ -370,6 +375,7 @@ func migrateDB() error {
 		&TwoFABackupCode{},
 		&Checkin{},
 		&UserGiftQuota{},
+		&TopupCampaignEvent{},
 		&SubscriptionOrder{},
 		&UserSubscription{},
 		&SubscriptionPreConsumeRecord{},
