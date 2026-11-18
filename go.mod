@@ -4,7 +4,7 @@ module github.com/QuantumNous/new-api
 go 1.26.10
 
 require (
-	github.com/Calcium-Ion/go-epay v0.0.5
+	github.com/Calcium-Ion/go-epay v0.0.6
 	github.com/abema/go-mp4 v1.4.1
 	github.com/andybalholm/brotli v1.2.0
 	github.com/anknown/ahocorasick v0.0.0-20190904063843-d75dbd5169c0
@@ -33,6 +33,7 @@ require (
 	github.com/jinzhu/copier v0.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/klauspost/compress v1.19.0
+	github.com/ledongthuc/pdf v0.0.0-20261020125853-5e46805f718e
 	github.com/mewkiz/flac v1.0.13
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/pkg/errors v0.9.1
@@ -46,7 +47,7 @@ require (
 	github.com/tcolgate/mp3 v0.0.0-20170426193717-e79c5a46d300
 	github.com/thanhpk/randstr v1.0.6
 	github.com/tidwall/gjson v1.19.0
-	github.com/tidwall/sjson v1.2.5 // indirect
+	github.com/tidwall/sjson v1.2.5
 	github.com/tiktoken-go/tokenizer v0.8.1 // indirect
 	github.com/waffo-com/waffo-go v1.3.2
 	github.com/yapingcat/gomedia v0.0.0-20240906162731-17feea57090c
@@ -71,39 +72,21 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/ClickHouse/ch-go v0.71.0 // indirect
-	github.com/antonlindstrom/pgstore v0.0.0-20220421113606-e3a6e3fed12a // indirect
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
-	github.com/boj/redistore v1.4.2 // indirect
-	github.com/bradfitz/gomemcache v0.0.0-20260422231931-4d751bb6e37c // indirect
-	github.com/bradleypeabody/gorilla-sessions-memcache v0.0.0-20240916143655-c0e34fd2f304 // indirect
 	github.com/casbin/govaluate v1.10.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.5.1 // indirect
-	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
-	github.com/golang/snappy v1.0.0 // indirect
-	github.com/gomodule/redigo v1.9.3 // indirect
 	github.com/hashicorp/go-version v1.8.0 // indirect
-	github.com/kidstuff/mongostore v0.0.0-20181113001930-e650cd85ee4b // indirect
-	github.com/laziness-coders/mongostore v0.0.14 // indirect
-	github.com/lib/pq v1.12.3 // indirect
-	github.com/montanaflynn/stats v0.12.2 // indirect
 	github.com/paulmach/orb v0.12.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.25 // indirect
-	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.60.0 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
-	github.com/wader/gormstore/v2 v2.0.5 // indirect
-	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
-	github.com/xdg-go/scram v1.2.0 // indirect
-	github.com/xdg-go/stringprep v1.0.4 // indirect
-	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	go.mongodb.org/mongo-driver v1.17.9 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.8.0 // indirect
 	go.opentelemetry.io/otel v1.41.0 // indirect
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
@@ -193,9 +176,10 @@ require (
 )
 
 require (
-	github.com/Calcium-Ion/moejs v0.1.0-alpha.7
 	github.com/ClickHouse/clickhouse-go/v2 v2.46.0
-	github.com/MoeForge/moego v0.1.0-alpha.1
+	github.com/HugoSmits86/nativewebp v1.3.0
+	github.com/MoeForge/moego v0.1.0-alpha.3
+	github.com/MoeForge/moejs v0.1.0
 	github.com/QuantumNous/new-api/relaykit v0.0.0
 	github.com/QuantumNous/new-api/tokenkit v0.0.0
 )

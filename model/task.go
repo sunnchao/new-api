@@ -10,6 +10,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
+	"github.com/QuantumNous/new-api/pkg/jsplugin"
 	commonRelay "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 )
@@ -135,8 +136,35 @@ type TaskPrivateData struct {
 	// declared retainResult: false. The upstream snapshot was never written
 	// and every retrieval surface treats the task as not found. The zero
 	// value keeps historical rows retained and retrievable.
-	ResultDiscarded bool `json:"result_discarded,omitempty"`
+	ResultDiscarded       bool                               `json:"result_discarded,omitempty"`
 	WalletQuotaAllocation *commonRelay.WalletQuotaAllocation `json:"wallet_quota_allocation,omitempty"`
+	// CredentialAccount is the account of the plugin credential that
+	// submitted the task, which polls the task and fetches its content.
+	CredentialAccount string `json:"credential_account,omitempty"`
+	// RequestPlugins is set when a request plugin instance may report the
+	// task: the task reports once, at its final state.
+	RequestPlugins *TaskRequestPlugins `json:"request_plugins,omitempty"`
+}
+
+// TaskRequestPlugins is what the report of a task needs from its
+// submission. The request id and path are in Execution; the model, group,
+// user, channel and token are on the task.
+type TaskRequestPlugins struct {
+	// Instances are the ids of the report instances that matched.
+	Instances   []string `json:"instances"`
+	Format      string   `json:"format"`
+	ChannelType int      `json:"channel_type,omitempty"`
+	Attempt     int      `json:"attempt,omitempty"`
+	Username    string   `json:"username,omitempty"`
+	TokenName   string   `json:"token_name,omitempty"`
+	// StartedAt is when the submission started, in Unix milliseconds.
+	StartedAt int64 `json:"started_at"`
+	// Request is the client body as a report shows it, inline media
+	// replaced by references; null when it is not JSON or too large.
+	Request json.RawMessage           `json:"request,omitempty"`
+	Media   []jsplugin.TransformMedia `json:"media,omitempty"`
+	// Record is the submission's public record.
+	Record []commonRelay.RequestPluginRecord `json:"record,omitempty"`
 }
 
 type TaskExecutionSnapshot struct {
@@ -163,14 +191,14 @@ type TaskPluginAuthorSnapshot struct {
 
 // TaskBillingContext 记录任务提交时的计费参数，以便轮询阶段可以重新计算额度。
 type TaskBillingContext struct {
-	ModelPrice      float64                      `json:"model_price,omitempty"`       // 模型单价
-	GroupRatio      float64                      `json:"group_ratio,omitempty"`       // 分组倍率
-	ModelRatio      float64                      `json:"model_ratio,omitempty"`       // 模型倍率
-	OtherRatios     map[string]float64           `json:"other_ratios,omitempty"`      // 附加倍率（时长、分辨率等）
-	OriginModelName string                       `json:"origin_model_name,omitempty"` // 模型名称，必须为OriginModelName
-	PerCallBilling  bool                         `json:"per_call_billing,omitempty"`  // 按次计费：跳过轮询阶段的差额结算
-	TieredSnapshot  *billingexpr.BillingSnapshot `json:"tiered_snapshot,omitempty"`
-	SubscriptionBillingMode string             `json:"subscription_billing_mode,omitempty"`
+	ModelPrice              float64                      `json:"model_price,omitempty"`       // 模型单价
+	GroupRatio              float64                      `json:"group_ratio,omitempty"`       // 分组倍率
+	ModelRatio              float64                      `json:"model_ratio,omitempty"`       // 模型倍率
+	OtherRatios             map[string]float64           `json:"other_ratios,omitempty"`      // 附加倍率（时长、分辨率等）
+	OriginModelName         string                       `json:"origin_model_name,omitempty"` // 模型名称，必须为OriginModelName
+	PerCallBilling          bool                         `json:"per_call_billing,omitempty"`  // 按次计费：跳过轮询阶段的差额结算
+	TieredSnapshot          *billingexpr.BillingSnapshot `json:"tiered_snapshot,omitempty"`
+	SubscriptionBillingMode string                       `json:"subscription_billing_mode,omitempty"`
 }
 
 // ResultRetrievable reports whether retrieval surfaces (native query routes,
@@ -216,7 +244,7 @@ func (p TaskPrivateData) Value() (driver.Value, error) {
 		p.Execution == nil && p.BillingSource == "" && p.SubscriptionId == 0 &&
 		p.TokenId == 0 && p.NodeName == "" && p.BillingContext == nil &&
 		!p.ResponsesBackground && len(p.PluginState) == 0 && p.PollFailures == 0 &&
-		!p.ResultDiscarded {
+		!p.ResultDiscarded && p.RequestPlugins == nil {
 		return nil, nil
 	}
 	// 同 Properties.Value:string 避免 PG simple protocol 的 bytea 编码。
@@ -250,6 +278,11 @@ func InitTask(platform constant.TaskPlatform, relayInfo *commonRelay.RelayInfo) 
 			relayInfo.ChannelMeta.ChannelType == constant.ChannelTypeVertexAi ||
 			relayInfo.ChannelMeta.ChannelType == constant.ChannelTypeNewAPI {
 			privateData.Key = relayInfo.ChannelMeta.ApiKey
+		}
+		if relayInfo.ChannelMeta.ChannelType == constant.ChannelTypeTaskPlugin {
+			if credential, ok := jsplugin.ParseCredential(relayInfo.ChannelMeta.ApiKey); ok {
+				privateData.CredentialAccount = credential.AccountID
+			}
 		}
 		if relayInfo.UpstreamModelName != "" {
 			properties.UpstreamModelName = relayInfo.UpstreamModelName

@@ -24,8 +24,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { SectionPageLayout } from '@/components/layout'
 import { AllSubscriptionsTable } from './components/all-subscriptions-table'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-
 import { SubscriptionsDialogs } from './components/subscriptions-dialogs'
 import { SubscriptionsPrimaryButtons } from './components/subscriptions-primary-buttons'
 import {

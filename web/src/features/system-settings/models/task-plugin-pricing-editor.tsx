@@ -50,6 +50,9 @@ type TaskPluginPricingEditorProps = {
   onChange: Dispatch<SetStateAction<Record<string, string>>>
   modelExpression: string
   modelBillingMode?: 'ratio' | 'tiered_expr'
+  // The legacy model price is per call: the only legacy price that also
+  // prices the tasks of a plugin relaying the model.
+  perCallPrice?: boolean
   currency: PricingCurrency
   availableGroups?: string[]
   children: ReactNode
@@ -72,7 +75,8 @@ export function TaskPluginPricingEditor(props: TaskPluginPricingEditorProps) {
     }
     const compatible = taskExpressionCompatible(
       props.modelExpression,
-      variant.usage_schema
+      variant.usage_schema,
+      variant.relay
     )
     if (compatible !== undefined) return !compatible
     return props.modelExpression === variant.effective && !variant.compatible
@@ -89,11 +93,9 @@ export function TaskPluginPricingEditor(props: TaskPluginPricingEditorProps) {
         aria-label={t('Provider')}
         className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto'
       >
-        <TabsTrigger value='__model__'>
-          {props.ordinaryPricing ? t('Ordinary OpenAI') : t('Default')}
-        </TabsTrigger>
+        <TabsTrigger value='__model__'>{t('Default price')}</TabsTrigger>
         {!props.ordinaryPricing && props.onConfigureOrdinaryPricing && (
-          <TabsTrigger value='__ordinary__'>{t('Ordinary OpenAI')}</TabsTrigger>
+          <TabsTrigger value='__ordinary__'>{t('Ordinary price')}</TabsTrigger>
         )}
         {props.variants.map((variant) => (
           <TabsTrigger
@@ -152,7 +154,7 @@ export function TaskPluginPricingEditor(props: TaskPluginPricingEditorProps) {
           <Alert>
             <AlertDescription>
               {t(
-                'Set ordinary OpenAI prices without changing plugin prices. Changes take effect when you save.'
+                'Set ordinary prices without changing plugin prices. Changes take effect when you save.'
               )}
             </AlertDescription>
           </Alert>
@@ -161,7 +163,7 @@ export function TaskPluginPricingEditor(props: TaskPluginPricingEditorProps) {
             variant='outline'
             onClick={props.onConfigureOrdinaryPricing}
           >
-            {t('Configure ordinary OpenAI pricing')}
+            {t('Configure ordinary pricing')}
           </Button>
         </TabsContent>
       )}
@@ -211,15 +213,21 @@ export function TaskPluginPricingEditor(props: TaskPluginPricingEditorProps) {
         const split = splitBillingExprAndRequestRules(expression)
         let compatible = taskExpressionCompatible(
           expression,
-          variant.usage_schema
+          variant.usage_schema,
+          !separate && variant.relay
         )
-        if (!separate && !usesExpression) compatible = true
-        else if (compatible === undefined && expression === variant.effective) {
+        if (!separate && !usesExpression) {
+          compatible = !variant.relay || Boolean(props.perCallPrice)
+        } else if (
+          compatible === undefined &&
+          expression === variant.effective
+        ) {
           compatible = variant.compatible
         }
         let modelCompatible = taskExpressionCompatible(
           props.modelExpression,
-          variant.usage_schema
+          variant.usage_schema,
+          variant.relay
         )
         if (
           modelCompatible === undefined &&
@@ -227,12 +235,19 @@ export function TaskPluginPricingEditor(props: TaskPluginPricingEditorProps) {
         ) {
           modelCompatible = variant.compatible
         }
-        let inheritDescription = t('Use model-level expression')
-        if (!usesExpression) inheritDescription = t('Use model-level pricing')
+        let inheritDescription: string | undefined = t(
+          'Use model-level expression'
+        )
+        // The not-configured notice replaces it when the plugin cannot inherit.
+        if (!usesExpression) {
+          inheritDescription = compatible
+            ? t('Use model-level pricing')
+            : undefined
+        }
         let description = !separate ? inheritDescription : undefined
         if (props.ordinaryPricing && usesExpression) {
           description = t(
-            'Plugin expressions are independent from ordinary OpenAI pricing.'
+            'Plugin expressions are independent from the default price.'
           )
         }
         return (

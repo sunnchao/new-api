@@ -22,7 +22,6 @@ import {
   ClipboardList,
   FileText,
   CreditCard,
-  Command,
   FlaskConical,
   Key,
   LayoutDashboard,
@@ -38,6 +37,7 @@ import {
   Users,
   Wallet,
   Headset,
+  Workflow,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -181,7 +181,7 @@ export function useSidebarData(badges: SidebarBadges = {}): SidebarData {
             requiredRole: ROLE.SUPER_ADMIN,
           },
           {
-            title: t('Task Plugins'),
+            title: t('Plugins'),
             url: '/task-plugins',
             icon: PlugZap,
             requiredRole: ROLE.SUPER_ADMIN,
@@ -190,6 +190,12 @@ export function useSidebarData(badges: SidebarBadges = {}): SidebarData {
             title: t('Ticket Management'),
             url: '/tickets',
             icon: Headset,
+          },
+          {
+            title: t('Request processing'),
+            url: '/request-processing',
+            icon: Workflow,
+            requiredRole: ROLE.SUPER_ADMIN,
           },
           {
             title: t('System Settings'),
